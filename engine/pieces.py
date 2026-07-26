@@ -134,13 +134,22 @@ class FrostMage(Piece):
                     foco_r, foco_c = r + dr, c + dc
                     if 0 <= foco_r < 8 and 0 <= foco_c < 8:
                         aoe = []
+                        tem_inimigo = False  # NOVA REGRA: O feitiço precisa de um alvo válido
+                        
                         for adr, adc in [(0,0), (-1,0), (1,0), (0,-1), (0,1)]:
                             ar, ac = foco_r + adr, foco_c + adc
                             if 0 <= ar < 8 and 0 <= ac < 8:
                                 aoe.append((ar, ac))
-                        stuns[(foco_r, foco_c)] = aoe
+                                p = board[ar][ac]
+                                if p and p.team != self.team:
+                                    tem_inimigo = True
+                                    
+                        # Só adiciona aos movimentos válidos se apanhar inimigos na área
+                        if tem_inimigo:
+                            stuns[(foco_r, foco_c)] = aoe
         return stuns
 
+    
 class BoneLord(Piece):
     def __init__(self, team):
         super().__init__(team, "BoneLord", cost=100, acronym="BL", path_type="physical")

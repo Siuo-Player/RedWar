@@ -5,11 +5,18 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
 from engine.pieces import Bone, Ghoul, Obelisk, Sentry, FrostMage, BoneLord
-from ai.evaluator import avaliador_estrategico, avaliador_guloso
+
+# Importar todos os perfis disponíveis
+from ai.evaluator import (
+    avaliador_estrategico, 
+    avaliador_guloso, 
+    avaliador_agressivo, 
+    avaliador_defensivo
+)
 from ai.search import find_best_move
 
 def carregar_abertura_basica(gs):
-    # Formação Pretas (Vai usar a IA Gulosa)
+    # Formação Pretas
     gs.board[0][3] = BoneLord('pretas')
     gs.board[0][2] = Obelisk('pretas')
     gs.board[0][4] = Obelisk('pretas')
@@ -17,7 +24,7 @@ def carregar_abertura_basica(gs):
     gs.board[1][3] = Ghoul('pretas')
     gs.board[1][4] = Ghoul('pretas')
     
-    # Formação Brancas (Vai usar a IA Estratégica)
+    # Formação Brancas
     gs.board[7][3] = BoneLord('brancas')
     gs.board[7][2] = Obelisk('brancas')
     gs.board[7][4] = Obelisk('brancas')
@@ -25,26 +32,24 @@ def carregar_abertura_basica(gs):
     gs.board[6][3] = Ghoul('brancas')
     gs.board[6][4] = Ghoul('brancas')
 
-def run_ai_match():
-    # Tempo limite ignorado nas simulações de IA pura
+def run_ai_match(eval_brancas, nome_brancas, eval_pretas, nome_pretas):
     gs = GameState(time_limit_seconds=99999) 
     carregar_abertura_basica(gs)
     
-    print("A iniciar Batalha de IAs (Abertura Básica)...")
-    print("Brancas: IA Estratégica (Avalia Mobilidade) | Pretas: IA Gulosa (Avalia Material)\n")
+    print(f"\n--- A iniciar Combate Simulado ---")
+    print(f"Brancas: {nome_brancas} | Pretas: {nome_pretas}\n")
     
     turnos = 0
-    # Limite de 150 turnos para evitar loops eternos de evasão
     while not gs.game_over and turnos < 150:
         turnos += 1
-        depth = 2 # Profundidade de previsão
+        depth = 2 
         
         if gs.white_to_move:
-            print(f"Turno {turnos}: IA Branca a pensar...")
-            best_move = find_best_move(gs, depth, avaliador_estrategico)
+            print(f"Turno {turnos}: Brancas ({nome_brancas}) a pensar...")
+            best_move = find_best_move(gs, depth, eval_brancas)
         else:
-            print(f"Turno {turnos}: IA Preta a pensar...")
-            best_move = find_best_move(gs, depth, avaliador_guloso)
+            print(f"Turno {turnos}: Pretas ({nome_pretas}) a pensar...")
+            best_move = find_best_move(gs, depth, eval_pretas)
             
         if best_move:
             if best_move["type"] == "stun":
@@ -60,4 +65,5 @@ def run_ai_match():
     print(f"\nFim do Jogo! Vencedor: {gs.winner}")
 
 if __name__ == "__main__":
-    run_ai_match()
+    # Teste de Colisão de Estilos: Agressivo vs Defensivo
+    run_ai_match(avaliador_agressivo, "IA Agressiva", avaliador_defensivo, "IA Defensiva")
