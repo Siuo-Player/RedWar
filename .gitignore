@@ -1,0 +1,24 @@
+# Ambientes Virtuais
+venv/
+env/
+.env/
+
+# Pytest e Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ficheiros Python gerados e cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
