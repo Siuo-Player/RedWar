@@ -1,48 +1,67 @@
-from engine.pieces import Piece
+from engine.pieces import Bone, Sentry # Importa as outras que usares
 
 class GameState:
     def __init__(self):
-        # Tabuleiro 8x8 vazio. Vamos representá-lo como uma matriz 2D.
-        # Numa casa vazia teremos None, caso contrário teremos um objeto da classe Piece.
-        self.board = [
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None],
-            [None, None, None, None, None, None, None, None]
-        ]
+        # Tabuleiro inicializado apenas com algumas peças para o teste base
+        self.board = [[None for _ in range(8)] for _ in range(8)]
+        self.board[0][0] = Sentry('pretas')
+        self.board[1][0] = Bone('pretas')
+        self.board[7][7] = Bone('brancas')
         
-        self.white_to_move = True  # Define de quem é o turno
-        self.move_log = []         # Regista o histórico de jogadas para permitir "Undo" e para o treino da IA
-        
-        # Aqui ficarão os timers globais (ex: paredes de gelo no mapa)
-        self.active_effects = []
+        self.white_to_move = True
+        self.move_log = []
+        self.active_combo_piece = None # Para gerir a passiva do Sentry
+        self.game_over = False
 
-    def make_move(self, start_pos, end_pos):
-        """
-        Executa um movimento básico. 
-        start_pos e end_pos são tuplos (linha, coluna).
-        """
+    def make_action(self, start_pos, end_pos, action_type="move"):
+        """action_type pode ser 'move' ou 'attack'"""
+        if self.game_over: return
+
         start_row, start_col = start_pos
         end_row, end_col = end_pos
-        
-        piece_moved = self.board[start_row][start_col]
-        piece_captured = self.board[end_row][end_col] # Será None se a casa estiver vazia
-        
-        # 1. Mover a peça (isto assume que o movimento já foi validado antes de chamar esta função)
-        self.board[start_row][start_col] = None
-        self.board[end_row][end_col] = piece_moved
-        
-        # 2. Registar a jogada (essencial para a IA desfazer jogadas na árvore de decisão)
+        piece = self.board[start_row][start_col]
+        target_piece = self.board[end_row][end_col]
+
+        # Executar a ação
+        if action_type == "move":
+            self.board[start_row][start_col] = None
+            self.board[end_row][end_col] = piece
+        elif action_type == "attack":
+            self.board[start_row][start_col] = None
+            self.board[end_row][end_col] = piece # Move-se para a casa do inimigo após matar (hit-kill)
+
+        # Registar na log (crítico para a IA depois fazer Undo)
         self.move_log.append({
             'start': start_pos,
             'end': end_pos,
-            'piece_moved': piece_moved,
-            'piece_captured': piece_captured
+            'piece': piece,
+            'captured': target_piece if action_type == "attack" else None,
+            'type': action_type
         })
-        
-        # 3. Trocar o turno
+
+        # Passiva do Sentry: se for um ataque, ganha +1 turno com esta peça
+        if action_type == "attack" and piece.name == "Sentry":
+            self.active_combo_piece = (end_row, end_col) # Bloqueia o turno para só esta peça jogar
+        else:
+            self.end_turn()
+
+    def end_turn(self):
+        self.active_combo_piece = None
         self.white_to_move = not self.white_to_move
+        
+        # Reduzir timers de atordoamento e efeitos globais
+        for r in range(8):
+            for c in range(8):
+                p = self.board[r][c]
+                if p and p.stun_timer > 0:
+                    p.stun_timer -= 1
+        
+        self.check_game_over()
+
+    def check_game_over(self):
+        # Condição de vitória provisória: não há mais peças de uma das equipas
+        brancas_vivas = sum(1 for r in range(8) for c in range(8) if self.board[r][c] and self.board[r][c].team == 'brancas')
+        pretas_vivas = sum(1 for r in range(8) for c in range(8) if self.board[r][c] and self.board[r][c].team == 'pretas')
+        
+        if brancas_vivas == 0 or pretas_vivas == 0:
+            self.game_over = True
