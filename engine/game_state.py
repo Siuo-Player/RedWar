@@ -2,8 +2,7 @@ from typing import List, Optional
 from engine.pieces import Piece
 
 class GameState:
-    def __init__(self):
-        # Tabuleiro vazio (Pronto para o Draft)
+    def __init__(self, time_limit_seconds=180):
         self.board: List[List[Optional[Piece]]] = [[None for _ in range(8)] for _ in range(8)]
         
         self.white_to_move = True
@@ -13,6 +12,27 @@ class GameState:
         self.game_over = False
         self.winner = None
         self.turns_without_capture = 0
+        
+        # Relógios de Jogo (em segundos)
+        self.white_time = float(time_limit_seconds)
+        self.black_time = float(time_limit_seconds)
+
+    def update_time(self, delta_time):
+        """Reduz o tempo do jogador ativo. Chamado todos os frames."""
+        if self.game_over: return
+        
+        if self.white_to_move:
+            self.white_time -= delta_time
+            if self.white_time <= 0:
+                self.white_time = 0
+                self.game_over = True
+                self.winner = "Tempo Esgotado - Pretas Vencem"
+        else:
+            self.black_time -= delta_time
+            if self.black_time <= 0:
+                self.black_time = 0
+                self.game_over = True
+                self.winner = "Tempo Esgotado - Brancas Vencem"
 
     def make_action(self, start_pos, end_pos, action_type="move", affected_area=None):
         if self.game_over: return
@@ -20,14 +40,12 @@ class GameState:
         start_row, start_col = start_pos
         end_row, end_col = end_pos
         piece = self.board[start_row][start_col]
-        target_piece = self.board[end_row][end_col]
         
         captured_something = False
 
-        if action_type == "stun" and affected_area:
+        if action_type == "stun" and affected_area and piece:
             for (ar, ac) in affected_area:
                 alvo = self.board[ar][ac]
-                # Friendly Fire Desativado: Só afeta se for inimigo
                 if alvo and alvo.team != piece.team:
                     if alvo.stun_timer > 0:
                         self.board[ar][ac] = None 
@@ -72,22 +90,23 @@ class GameState:
         self.check_game_over()
 
     def check_game_over(self):
-        brancas_vivas = sum(1 for r in range(8) for c in range(8) if self.board[r][c] and self.board[r][c].team == 'brancas')
-        pretas_vivas = sum(1 for r in range(8) for c in range(8) if self.board[r][c] and self.board[r][c].team == 'pretas')
+        # Correção Pylance: Extrair as peças válidas de forma segura
+        pecas_brancas = [p for linha in self.board for p in linha if p is not None and p.team == 'brancas']
+        pecas_pretas = [p for linha in self.board for p in linha if p is not None and p.team == 'pretas']
         
-        if brancas_vivas == 0:
+        if not pecas_brancas:
             self.game_over = True
-            self.winner = "Pretas Vencem"
-        elif pretas_vivas == 0:
+            self.winner = "Aniquilação - Pretas Vencem"
+        elif not pecas_pretas:
             self.game_over = True
-            self.winner = "Brancas Vencem"
+            self.winner = "Aniquilação - Brancas Vencem"
         elif self.turns_without_capture >= 50:
             self.game_over = True
-            pontos_brancas = sum(self.board[r][c].cost for r in range(8) for c in range(8) if self.board[r][c] and self.board[r][c].team == 'brancas')
-            pontos_pretas = sum(self.board[r][c].cost for r in range(8) for c in range(8) if self.board[r][c] and self.board[r][c].team == 'pretas')
-            if pontos_brancas > pontos_pretas:
-                self.winner = "Limite 50 - Brancas Vencem"
-            elif pontos_pretas > pontos_brancas:
-                self.winner = "Limite 50 - Pretas Vencem"
+            pts_brancas = sum(p.cost for p in pecas_brancas)
+            pts_pretas = sum(p.cost for p in pecas_pretas)
+            if pts_brancas > pts_pretas:
+                self.winner = "Limite 50 Mov. - Brancas Vencem"
+            elif pts_pretas > pts_brancas:
+                self.winner = "Limite 50 Mov. - Pretas Vencem"
             else:
-                self.winner = "Empate"
+                self.winner = "Empate por Limite de Movimentos"

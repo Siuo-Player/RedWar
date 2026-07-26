@@ -1,6 +1,6 @@
 import pytest
 from engine.game_state import GameState
-from engine.pieces import Bone, Sentry
+from engine.pieces import Bone, Sentry, FrostMage
 
 def test_piece_movement():
     gs = GameState()
@@ -36,6 +36,9 @@ def test_stun_on_stunned_is_kill():
     alvo.stun_timer = 1
     gs.board[0][0] = alvo
     
-    # Passar a área afetada corrige o erro do teste
+    # Criar o atacante para não dar erro de team
+    mago = FrostMage('brancas')
+    gs.board[2][2] = mago
+    
     gs.make_action((2, 2), (0, 0), action_type="stun", affected_area=[(0, 0)])
     assert gs.board[0][0] is None

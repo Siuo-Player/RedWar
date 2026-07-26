@@ -49,7 +49,7 @@ def desenhar_pecas(ecra, board):
                 if peca.name == "Bone" or peca.name == "BoneLord":
                     pygame.draw.circle(ecra, cor_base, centro, raio)
                     pygame.draw.circle(ecra, cor_borda, centro, raio, 2)
-                    if peca.name == "BoneLord": # Adicionar uma coroa visual
+                    if peca.name == "BoneLord": 
                         pygame.draw.circle(ecra, (255, 215, 0), centro, raio//2)
                 elif peca.name == "Sentry" or peca.name == "Obelisk":
                     rect = pygame.Rect(0, 0, raio*2, raio*2)
@@ -61,22 +61,42 @@ def desenhar_pecas(ecra, board):
                     pygame.draw.polygon(ecra, cor_base, pontos)
                     pygame.draw.polygon(ecra, cor_borda, pontos, 2)
 
-def desenhar_loja_draft(ecra, pontos, timer, peca_selecionada_loja):
-    """Desenha a UI de Draft na base do ecrã."""
+def format_time(seconds):
+    mins = int(seconds) // 60
+    secs = int(seconds) % 60
+    return f"{mins:02d}:{secs:02d}"
+
+def desenhar_interface_batalha(ecra, gs):
+    """Desenha os relógios durante o jogo."""
+    rect_fundo = pygame.Rect(0, 8 * TAMANHO_CASA, LARGURA, 120)
+    pygame.draw.rect(ecra, (30, 30, 30), rect_fundo)
+    
+    txt_pretas = FONTE.render(f"PRETAS: {format_time(gs.black_time)}", True, (255, 50, 50) if gs.black_time < 30 else (200, 200, 200))
+    txt_brancas = FONTE.render(f"BRANCAS: {format_time(gs.white_time)}", True, (255, 50, 50) if gs.white_time < 30 else (255, 255, 255))
+    
+    ecra.blit(txt_pretas, (20, 8 * TAMANHO_CASA + 20))
+    ecra.blit(txt_brancas, (LARGURA - 200, 8 * TAMANHO_CASA + 20))
+
+def desenhar_loja_draft(ecra, pontos, timer, peca_selecionada, tempo_jogo_selecionado):
     rect_loja = pygame.Rect(0, 8 * TAMANHO_CASA, LARGURA, 120)
     pygame.draw.rect(ecra, (30, 30, 30), rect_loja)
 
     txt_pontos = FONTE.render(f"PONTOS: {pontos}", True, (255, 215, 0))
-    txt_tempo = FONTE.render(f"TEMPO: {timer}s", True, (255, 50, 50) if timer < 10 else (255, 255, 255))
+    txt_tempo = FONTE.render(f"DRAFT: {timer}s", True, (255, 50, 50) if timer < 10 else (255, 255, 255))
     ecra.blit(txt_pontos, (10, 8 * TAMANHO_CASA + 10))
-    ecra.blit(txt_tempo, (LARGURA - 150, 8 * TAMANHO_CASA + 10))
+    ecra.blit(txt_tempo, (LARGURA - 300, 8 * TAMANHO_CASA + 10))
 
-    # Opções de compra
+    # Botão de Seleção de Tempo de Jogo
+    btn_tempo = pygame.Rect(LARGURA - 450, 8 * TAMANHO_CASA + 10, 120, 30)
+    pygame.draw.rect(ecra, (100, 150, 200), btn_tempo)
+    txt_btn_tempo = FONTE_PEQUENA.render(f"JOGO: {tempo_jogo_selecionado//60} MIN", True, (0, 0, 0))
+    ecra.blit(txt_btn_tempo, (LARGURA - 440, 8 * TAMANHO_CASA + 15))
+
     opcoes = [("Bone", 10), ("Ghoul", 30), ("Obelisk", 40), ("Sentry", 50), ("FrostMage", 60), ("BoneLord", 100)]
     for i, (nome, custo) in enumerate(opcoes):
         x = 10 + i * 100
         y = 8 * TAMANHO_CASA + 50
-        cor = (100, 255, 100) if peca_selecionada_loja == nome else (200, 200, 200)
+        cor = (100, 255, 100) if peca_selecionada == nome else (200, 200, 200)
         
         btn = pygame.Rect(x, y, 90, 40)
         pygame.draw.rect(ecra, cor, btn)
@@ -87,7 +107,6 @@ def desenhar_loja_draft(ecra, pontos, timer, peca_selecionada_loja):
         ecra.blit(txt_nome, (x + 5, y + 2))
         ecra.blit(txt_custo, (x + 5, y + 20))
 
-    # Botão Ready
     btn_ready = pygame.Rect(LARGURA - 110, 8 * TAMANHO_CASA + 50, 100, 40)
     pygame.draw.rect(ecra, (50, 200, 50), btn_ready)
     txt_ready = FONTE.render("READY", True, (0, 0, 0))
