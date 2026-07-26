@@ -1,0 +1,1552 @@
+{
+    "total_matches": 7680,
+    "outcomes": {
+        "Sem Movimentos - Brancas Vencem": 1412,
+        "Limite 50 Mov. - Brancas Vencem": 688,
+        "Sem Movimentos - Pretas Vencem": 1306,
+        "Limite 50 Mov. - Pretas Vencem": 820,
+        "Aniquila\u00e7\u00e3o - Pretas Vencem": 602,
+        "Empate por Limite de Movimentos": 2244,
+        "Aniquila\u00e7\u00e3o - Brancas Vencem": 608
+    },
+    "positional_winrates_greedy": {
+        "pretas_Bone_0_0": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_Bone_0_1": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Bone_0_2": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Bone_0_3": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_Bone_0_4": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_Bone_0_5": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Bone_0_6": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Bone_0_7": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Bone_1_0": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Bone_1_1": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_Bone_1_2": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Bone_1_3": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Bone_1_4": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Bone_1_5": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Bone_1_6": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Bone_1_7": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_0": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_1": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_2": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_4": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_5": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_6": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_7": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_0": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_1": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_2": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_4": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_5": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_6": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_7": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_0": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_1": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_2": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_4": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_5": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_6": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_7": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_0": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_1": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_2": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_4": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_5": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_6": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_7": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_Sentry_0_0": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Sentry_0_1": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_Sentry_0_2": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Sentry_0_3": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_Sentry_0_4": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Sentry_0_5": {
+            "wins": 12,
+            "plays": 20
+        },
+        "pretas_Sentry_0_6": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Sentry_0_7": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Sentry_1_0": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_Sentry_1_1": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_Sentry_1_2": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Sentry_1_3": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Sentry_1_4": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_Sentry_1_5": {
+            "wins": 12,
+            "plays": 20
+        },
+        "pretas_Sentry_1_6": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Sentry_1_7": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_0": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_1": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_2": {
+            "wins": 14,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_3": {
+            "wins": 15,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_4": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_5": {
+            "wins": 16,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_6": {
+            "wins": 17,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_7": {
+            "wins": 17,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_0": {
+            "wins": 16,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_1": {
+            "wins": 18,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_2": {
+            "wins": 16,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_3": {
+            "wins": 15,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_4": {
+            "wins": 17,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_5": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_6": {
+            "wins": 15,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_7": {
+            "wins": 13,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_0": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_1": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_2": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_3": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_4": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_5": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_6": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_7": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_0": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_1": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_2": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_3": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_4": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_5": {
+            "wins": 11,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_6": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_7": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Bone_6_0": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Bone_6_1": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_Bone_6_2": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Bone_6_3": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Bone_6_4": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Bone_6_5": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Bone_6_6": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Bone_6_7": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Bone_7_0": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Bone_7_1": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Bone_7_2": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_Bone_7_3": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Bone_7_4": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Bone_7_5": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Bone_7_6": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Bone_7_7": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_0": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_1": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_2": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_4": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_5": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_6": {
+            "wins": 13,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_7": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_0": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_1": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_2": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_3": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_4": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_5": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_6": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_7": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_0": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_1": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_2": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_4": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_5": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_6": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_7": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_0": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_1": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_2": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_3": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_4": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_5": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_6": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_7": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Sentry_6_0": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Sentry_6_1": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Sentry_6_2": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Sentry_6_3": {
+            "wins": 14,
+            "plays": 20
+        },
+        "brancas_Sentry_6_4": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Sentry_6_5": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Sentry_6_6": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Sentry_6_7": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_Sentry_7_0": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Sentry_7_1": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_Sentry_7_2": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Sentry_7_3": {
+            "wins": 12,
+            "plays": 20
+        },
+        "brancas_Sentry_7_4": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Sentry_7_5": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Sentry_7_6": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_Sentry_7_7": {
+            "wins": 14,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_0": {
+            "wins": 13,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_1": {
+            "wins": 14,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_2": {
+            "wins": 18,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_3": {
+            "wins": 16,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_4": {
+            "wins": 17,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_5": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_6": {
+            "wins": 14,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_7": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_0": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_1": {
+            "wins": 14,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_2": {
+            "wins": 16,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_3": {
+            "wins": 13,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_4": {
+            "wins": 16,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_5": {
+            "wins": 18,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_6": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_7": {
+            "wins": 14,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_0": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_1": {
+            "wins": 11,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_2": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_3": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_4": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_5": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_6": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_7": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_0": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_1": {
+            "wins": 9,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_2": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_3": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_4": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_5": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_6": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_7": {
+            "wins": 6,
+            "plays": 20
+        }
+    },
+    "positional_winrates_random": {
+        "pretas_Bone_0_0": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Bone_0_1": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Bone_0_2": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_Bone_0_3": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Bone_0_4": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Bone_0_5": {
+            "wins": 2,
+            "plays": 20
+        },
+        "pretas_Bone_0_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Bone_0_7": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Bone_1_0": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_Bone_1_1": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Bone_1_2": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Bone_1_3": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Bone_1_4": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Bone_1_5": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Bone_1_6": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Bone_1_7": {
+            "wins": 2,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_0": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_1": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_2": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_3": {
+            "wins": 1,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_4": {
+            "wins": 1,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Ghoul_0_7": {
+            "wins": 1,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_0": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_1": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_2": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_3": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_4": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_5": {
+            "wins": 2,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Ghoul_1_7": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_0": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_1": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_2": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_3": {
+            "wins": 2,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_4": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_6": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Obelisk_0_7": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_0": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_1": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_2": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_3": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_4": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_5": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_6": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Obelisk_1_7": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Sentry_0_0": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Sentry_0_1": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Sentry_0_2": {
+            "wins": 10,
+            "plays": 20
+        },
+        "pretas_Sentry_0_3": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Sentry_0_4": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Sentry_0_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Sentry_0_6": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Sentry_0_7": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_Sentry_1_0": {
+            "wins": 9,
+            "plays": 20
+        },
+        "pretas_Sentry_1_1": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Sentry_1_2": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_Sentry_1_3": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_Sentry_1_4": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_Sentry_1_5": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_Sentry_1_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_Sentry_1_7": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_0": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_1": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_2": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_3": {
+            "wins": 2,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_4": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_5": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_6": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_FrostMage_0_7": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_0": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_1": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_2": {
+            "wins": 2,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_3": {
+            "wins": 2,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_4": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_FrostMage_1_7": {
+            "wins": 0,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_0": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_1": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_2": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_4": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_5": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_6": {
+            "wins": 7,
+            "plays": 20
+        },
+        "pretas_BoneLord_0_7": {
+            "wins": 3,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_0": {
+            "wins": 4,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_1": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_2": {
+            "wins": 6,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_3": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_4": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_5": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_6": {
+            "wins": 5,
+            "plays": 20
+        },
+        "pretas_BoneLord_1_7": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Bone_6_0": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Bone_6_1": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Bone_6_2": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Bone_6_3": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Bone_6_4": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Bone_6_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Bone_6_6": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Bone_6_7": {
+            "wins": 0,
+            "plays": 20
+        },
+        "brancas_Bone_7_0": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Bone_7_1": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Bone_7_2": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Bone_7_3": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Bone_7_4": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Bone_7_5": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Bone_7_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Bone_7_7": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_0": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_1": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_2": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_3": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_4": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_5": {
+            "wins": 1,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_6": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Ghoul_6_7": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_0": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_1": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_2": {
+            "wins": 10,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_3": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_4": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_5": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_6": {
+            "wins": 1,
+            "plays": 20
+        },
+        "brancas_Ghoul_7_7": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_0": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_1": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_2": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_3": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_4": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_5": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_6": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Obelisk_6_7": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_0": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_1": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_2": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_3": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_4": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_6": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Obelisk_7_7": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Sentry_6_0": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_Sentry_6_1": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_Sentry_6_2": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Sentry_6_3": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Sentry_6_4": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_Sentry_6_5": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Sentry_6_6": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Sentry_6_7": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Sentry_7_0": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Sentry_7_1": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Sentry_7_2": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_Sentry_7_3": {
+            "wins": 1,
+            "plays": 20
+        },
+        "brancas_Sentry_7_4": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_Sentry_7_5": {
+            "wins": 7,
+            "plays": 20
+        },
+        "brancas_Sentry_7_6": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_Sentry_7_7": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_0": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_1": {
+            "wins": 0,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_2": {
+            "wins": 0,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_3": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_4": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_5": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_FrostMage_6_7": {
+            "wins": 0,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_0": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_1": {
+            "wins": 1,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_2": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_3": {
+            "wins": 1,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_4": {
+            "wins": 1,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_6": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_FrostMage_7_7": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_0": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_1": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_2": {
+            "wins": 8,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_3": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_4": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_5": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_6": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_BoneLord_6_7": {
+            "wins": 1,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_0": {
+            "wins": 6,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_1": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_2": {
+            "wins": 5,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_3": {
+            "wins": 2,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_4": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_5": {
+            "wins": 4,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_6": {
+            "wins": 3,
+            "plays": 20
+        },
+        "brancas_BoneLord_7_7": {
+            "wins": 3,
+            "plays": 20
+        }
+    }
+}

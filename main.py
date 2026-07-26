@@ -102,9 +102,10 @@ def main():
                             linha, coluna = y // TAMANHO_CASA, x // TAMANHO_CASA
                             if linha >= 6 and gs.board[linha][coluna] is None:
                                 nova_peca = criar_peca_por_nome(peca_loja, 'brancas')
-                                gs.board[linha][coluna] = nova_peca
-                                pontos_jogador -= nova_peca.cost
-                                peca_loja = None
+                                if nova_peca is not None: # <-- Correção do Pylance
+                                    gs.board[linha][coluna] = nova_peca
+                                    pontos_jogador -= nova_peca.cost
+                                    peca_loja = None
                                 
                     elif fase_atual == "BATTLE":
                         coluna = x // TAMANHO_CASA

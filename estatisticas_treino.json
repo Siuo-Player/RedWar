@@ -1,0 +1,115 @@
+{
+    "total_matches": 1000,
+    "outcomes": {
+        "Empate por Limite de Movimentos": 558,
+        "Limite 50 Mov. - Pretas Vencem": 190,
+        "Limite 50 Mov. - Brancas Vencem": 158,
+        "Sem Movimentos - Pretas Vencem": 38,
+        "Sem Movimentos - Brancas Vencem": 40,
+        "Aniquila\u00e7\u00e3o - Pretas Vencem": 10,
+        "Aniquila\u00e7\u00e3o - Brancas Vencem": 6
+    },
+    "piece_usage": {
+        "Ghoul": 1852,
+        "BoneLord": 985,
+        "Obelisk": 1588,
+        "Sentry": 1413,
+        "Bone": 3797,
+        "FrostMage": 1230
+    },
+    "piece_wins": {
+        "Sentry": 408,
+        "BoneLord": 235,
+        "Obelisk": 339,
+        "Ghoul": 413,
+        "Bone": 757,
+        "FrostMage": 183
+    },
+    "action_types": {
+        "move": 61709,
+        "stun": 17555,
+        "attack": 1463
+    },
+    "heatmap": [
+        [
+            1172,
+            1405,
+            1313,
+            1373,
+            1185,
+            1000,
+            837,
+            478
+        ],
+        [
+            1773,
+            2348,
+            2283,
+            2082,
+            1785,
+            1416,
+            1078,
+            613
+        ],
+        [
+            1443,
+            1987,
+            1893,
+            1598,
+            1305,
+            1059,
+            819,
+            481
+        ],
+        [
+            1242,
+            1588,
+            1591,
+            1382,
+            1097,
+            907,
+            751,
+            485
+        ],
+        [
+            1208,
+            1578,
+            1538,
+            1378,
+            1143,
+            975,
+            780,
+            520
+        ],
+        [
+            1476,
+            1793,
+            1796,
+            1741,
+            1433,
+            1189,
+            927,
+            593
+        ],
+        [
+            1285,
+            1546,
+            1467,
+            1468,
+            1354,
+            1205,
+            980,
+            584
+        ],
+        [
+            1221,
+            1504,
+            1457,
+            1422,
+            1216,
+            1027,
+            733,
+            421
+        ]
+    ]
+}

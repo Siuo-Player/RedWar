@@ -110,3 +110,21 @@ class GameState:
                 self.winner = "Limite 50 Mov. - Pretas Vencem"
             else:
                 self.winner = "Empate por Limite de Movimentos"
+
+            # 3. Condição de Bloqueio (Sem movimentos válidos)
+        if not self.game_over:
+            current_team = 'brancas' if self.white_to_move else 'pretas'
+            tem_jogada = False
+            
+            for r in range(8):
+                for c in range(8):
+                    p = self.board[r][c]
+                    if p and p.team == current_team and p.can_act():
+                        if p.get_valid_moves(r, c, self.board) or p.get_valid_attacks(r, c, self.board) or p.get_valid_stuns(r, c, self.board):
+                            tem_jogada = True
+                            break
+                if tem_jogada: break
+                
+            if not tem_jogada:
+                self.game_over = True
+                self.winner = f"Sem Movimentos - {'Pretas' if current_team == 'brancas' else 'Brancas'} Vencem"
