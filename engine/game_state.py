@@ -1,46 +1,44 @@
-from typing import List, Optional
-from engine.pieces import Piece
+# engine/game_state.py
+from typing import Any
 
 class GameState:
-    def __init__(self, time_limit_seconds=180):
-        self.board: List[List[Optional[Piece]]] = [[None for _ in range(8)] for _ in range(8)]
-        
+    def __init__(self, time_limit_seconds=600):
+        # Type hint para o Pylance não chorar ao adicionarmos peças
+        self.board: list[list[Any]] = [[None for _ in range(8)] for _ in range(8)]
         self.white_to_move = True
-        self.move_log = []
-        self.active_combo_piece = None
-        
         self.game_over = False
         self.winner = None
         self.turns_without_capture = 0
         
-        # Relógios de Jogo (em segundos)
-        self.white_time = float(time_limit_seconds)
-        self.black_time = float(time_limit_seconds)
+        self.white_time = time_limit_seconds
+        self.black_time = time_limit_seconds
 
-    def update_time(self, delta_time):
-        """Reduz o tempo do jogador ativo. Chamado todos os frames."""
-        if self.game_over: return
-        
-        if self.white_to_move:
-            self.white_time -= delta_time
-            if self.white_time <= 0:
-                self.white_time = 0
-                self.game_over = True
-                self.winner = "Tempo Esgotado - Pretas Vencem"
-        else:
-            self.black_time -= delta_time
-            if self.black_time <= 0:
-                self.black_time = 0
-                self.game_over = True
-                self.winner = "Tempo Esgotado - Brancas Vencem"
+    def to_dict(self):
+        """Serializa o estado para JSON (Multiplayer/Web)"""
+        board_state = []
+        for r in range(8):
+            row = []
+            for c in range(8):
+                p = self.board[r][c]
+                row.append(p.to_dict() if p else None)
+            board_state.append(row)
+            
+        return {
+            "white_to_move": self.white_to_move,
+            "game_over": self.game_over,
+            "winner": self.winner,
+            "turns_without_capture": self.turns_without_capture,
+            "white_time": self.white_time,
+            "black_time": self.black_time,
+            "board": board_state
+        }
 
-    def make_action(self, start_pos, end_pos, action_type="move", affected_area=None):
+    def make_action(self, start_pos, end_pos, action_type="move", affected_area=None, spawn_name=None):
         if self.game_over: return
 
         start_row, start_col = start_pos
         end_row, end_col = end_pos
         piece = self.board[start_row][start_col]
-        
         captured_something = False
 
         if action_type == "stun" and affected_area and piece:
@@ -53,6 +51,14 @@ class GameState:
                     else:
                         alvo.stun_timer = 3 
 
+        elif action_type == "spawn" and spawn_name and piece:
+            from engine.pieces import obter_catalogo_pecas
+            catalogo = obter_catalogo_pecas()
+            classe_alvo = next((p["class"] for p in catalogo if p["name"] == spawn_name), None)
+            if classe_alvo:
+                self.board[end_row][end_col] = classe_alvo(piece.team)
+                piece.stun_timer = 1 
+
         elif action_type == "move":
             self.board[start_row][start_col] = None
             self.board[end_row][end_col] = piece
@@ -62,69 +68,50 @@ class GameState:
             self.board[end_row][end_col] = piece 
             captured_something = True
 
+        # Promoção do Bone
+        if piece and piece.name == "Bone" and action_type in ["move", "attack"]:
+            ultima_linha = 0 if piece.team == 'brancas' else 7
+            if end_row == ultima_linha:
+                from engine.pieces import BoneLord
+                self.board[end_row][end_col] = BoneLord(piece.team)
+
         if captured_something:
             self.turns_without_capture = 0
         else:
             self.turns_without_capture += 1
 
-        self.move_log.append({
-            'start': start_pos, 'end': end_pos,
-            'piece': piece, 'type': action_type
-        })
-
-        if action_type == "attack" and piece and piece.name == "Sentry":
-            self.active_combo_piece = (end_row, end_col) 
-        else:
-            self.end_turn()
-
-    def end_turn(self):
-        self.active_combo_piece = None
         self.white_to_move = not self.white_to_move
+        self.update_stun_timers()
+        self.check_game_over()
+
+    def update_stun_timers(self):
+        equipa_atual = 'brancas' if self.white_to_move else 'pretas'
+        for r in range(8):
+            for c in range(8):
+                p = self.board[r][c]
+                if p and p.team == equipa_atual and p.stun_timer > 0:
+                    p.stun_timer -= 1
+
+    def check_game_over(self):
+        white_alive = False
+        black_alive = False
         
         for r in range(8):
             for c in range(8):
                 p = self.board[r][c]
-                if p and p.stun_timer > 0:
-                    p.stun_timer -= 1
-        
-        self.check_game_over()
+                if p:
+                    if p.team == 'brancas': white_alive = True
+                    else: black_alive = True
 
-    def check_game_over(self):
-        # Correção Pylance: Extrair as peças válidas de forma segura
-        pecas_brancas = [p for linha in self.board for p in linha if p is not None and p.team == 'brancas']
-        pecas_pretas = [p for linha in self.board for p in linha if p is not None and p.team == 'pretas']
-        
-        if not pecas_brancas:
+        if not white_alive and not black_alive:
+            self.game_over = True
+            self.winner = "Empate por Aniquilação Mútua"
+        elif not white_alive:
             self.game_over = True
             self.winner = "Aniquilação - Pretas Vencem"
-        elif not pecas_pretas:
+        elif not black_alive:
             self.game_over = True
             self.winner = "Aniquilação - Brancas Vencem"
         elif self.turns_without_capture >= 50:
             self.game_over = True
-            pts_brancas = sum(p.cost for p in pecas_brancas)
-            pts_pretas = sum(p.cost for p in pecas_pretas)
-            if pts_brancas > pts_pretas:
-                self.winner = "Limite 50 Mov. - Brancas Vencem"
-            elif pts_pretas > pts_brancas:
-                self.winner = "Limite 50 Mov. - Pretas Vencem"
-            else:
-                self.winner = "Empate por Limite de Movimentos"
-
-            # 3. Condição de Bloqueio (Sem movimentos válidos)
-        if not self.game_over:
-            current_team = 'brancas' if self.white_to_move else 'pretas'
-            tem_jogada = False
-            
-            for r in range(8):
-                for c in range(8):
-                    p = self.board[r][c]
-                    if p and p.team == current_team and p.can_act():
-                        if p.get_valid_moves(r, c, self.board) or p.get_valid_attacks(r, c, self.board) or p.get_valid_stuns(r, c, self.board):
-                            tem_jogada = True
-                            break
-                if tem_jogada: break
-                
-            if not tem_jogada:
-                self.game_over = True
-                self.winner = f"Sem Movimentos - {'Pretas' if current_team == 'brancas' else 'Brancas'} Vencem"
+            self.winner = "Empate por Limite de Movimentos"

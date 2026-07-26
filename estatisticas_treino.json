@@ -1,115 +1,112 @@
 {
     "total_matches": 1000,
     "outcomes": {
-        "Empate por Limite de Movimentos": 558,
-        "Limite 50 Mov. - Pretas Vencem": 190,
-        "Limite 50 Mov. - Brancas Vencem": 158,
-        "Sem Movimentos - Pretas Vencem": 38,
-        "Sem Movimentos - Brancas Vencem": 40,
-        "Aniquila\u00e7\u00e3o - Pretas Vencem": 10,
-        "Aniquila\u00e7\u00e3o - Brancas Vencem": 6
+        "Erro de Sincroniza\u00e7\u00e3o de Turno": 304,
+        "Empate por Limite de Movimentos": 633,
+        "Aniquila\u00e7\u00e3o - Pretas Vencem": 39,
+        "Aniquila\u00e7\u00e3o - Brancas Vencem": 24
     },
     "piece_usage": {
-        "Ghoul": 1852,
-        "BoneLord": 985,
-        "Obelisk": 1588,
-        "Sentry": 1413,
-        "Bone": 3797,
-        "FrostMage": 1230
+        "Sentry": 1402,
+        "FrostMage": 1303,
+        "Obelisk": 1650,
+        "Ghoul": 1797,
+        "BoneLord": 941,
+        "Bone": 3771
     },
     "piece_wins": {
-        "Sentry": 408,
-        "BoneLord": 235,
-        "Obelisk": 339,
-        "Ghoul": 413,
-        "Bone": 757,
-        "FrostMage": 183
+        "BoneLord": 20,
+        "FrostMage": 36,
+        "Obelisk": 36,
+        "Sentry": 79,
+        "Ghoul": 67,
+        "Bone": 104
     },
     "action_types": {
-        "move": 61709,
-        "stun": 17555,
-        "attack": 1463
+        "move": 102619,
+        "stun": 6416,
+        "attack": 3064
     },
     "heatmap": [
         [
-            1172,
-            1405,
-            1313,
-            1373,
-            1185,
-            1000,
-            837,
-            478
+            1318,
+            1919,
+            2005,
+            1910,
+            1708,
+            1585,
+            1367,
+            913
         ],
         [
-            1773,
-            2348,
-            2283,
-            2082,
-            1785,
-            1416,
-            1078,
-            613
+            2067,
+            2895,
+            2726,
+            2651,
+            2391,
+            1970,
+            1569,
+            1061
         ],
         [
-            1443,
-            1987,
+            1766,
+            2213,
+            2379,
+            2126,
             1893,
-            1598,
-            1305,
-            1059,
-            819,
-            481
+            1629,
+            1336,
+            937
         ],
         [
-            1242,
-            1588,
-            1591,
-            1382,
-            1097,
-            907,
-            751,
-            485
-        ],
-        [
-            1208,
-            1578,
-            1538,
-            1378,
-            1143,
-            975,
-            780,
-            520
-        ],
-        [
-            1476,
-            1793,
-            1796,
-            1741,
+            1510,
+            2055,
+            2083,
+            1973,
+            1669,
             1433,
-            1189,
-            927,
-            593
-        ],
-        [
-            1285,
-            1546,
-            1467,
-            1468,
-            1354,
             1205,
-            980,
-            584
+            933
         ],
         [
-            1221,
-            1504,
-            1457,
+            1632,
+            2049,
+            2186,
+            2002,
+            1808,
+            1481,
+            1294,
+            937
+        ],
+        [
+            1866,
+            2481,
+            2373,
+            2320,
+            1934,
+            1773,
             1422,
-            1216,
-            1027,
-            733,
-            421
+            1033
+        ],
+        [
+            1732,
+            2197,
+            2245,
+            2044,
+            1924,
+            1704,
+            1565,
+            1058
+        ],
+        [
+            1376,
+            1897,
+            1818,
+            1769,
+            1519,
+            1381,
+            1224,
+            860
         ]
     ]
 }

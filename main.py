@@ -1,166 +1,97 @@
 import pygame
-import sys
-import random
 import time
-from ui.window import TAMANHO_CASA, COLUNAS, LINHAS, LARGURA, ALTURA, desenhar_tabuleiro
-from ui.renderer import desenhar_pecas, desenhar_destaques, desenhar_loja_draft, desenhar_interface_batalha
+import random
 from engine.game_state import GameState
-from engine.pieces import Bone, Ghoul, Obelisk, Sentry, FrostMage, BoneLord
+from engine.pieces import obter_catalogo_pecas
+from ui.renderer import desenhar_tabuleiro, desenhar_pecas, desenhar_loja_dinamica, desenhar_enciclopedia, C_FUNDO
 
-ALTURA_TOTAL = ALTURA + 120 
-pygame.font.init()
-FONTE_GAMEOVER = pygame.font.SysFont("Arial", 40, bold=True)
+ORCAMENTO_BRANCAS = 180 
+ORCAMENTO_PRETAS = 200 
 
-def criar_peca_por_nome(nome, team):
-    if nome == "Bone": return Bone(team)
-    if nome == "Ghoul": return Ghoul(team)
-    if nome == "Obelisk": return Obelisk(team)
-    if nome == "Sentry": return Sentry(team)
-    if nome == "FrostMage": return FrostMage(team)
-    if nome == "BoneLord": return BoneLord(team)
-    return None
-
-def auto_draft_ia(gs):
-    pontos_ia = 200
-    opcoes = [("Bone", 10), ("Ghoul", 30), ("Obelisk", 40), ("Sentry", 50), ("FrostMage", 60), ("BoneLord", 100)]
+def auto_draft_ia(gs, orcamento):
+    pontos = orcamento
+    cat = obter_catalogo_pecas()
     for r in range(2):
         for c in range(8):
-            opcoes_validas = [op for op in opcoes if op[1] <= pontos_ia]
-            if not opcoes_validas: break
-            escolha = random.choice(opcoes_validas)
-            gs.board[r][c] = criar_peca_por_nome(escolha[0], 'pretas')
-            pontos_ia -= escolha[1]
+            validas = [p for p in cat if p["cost"] <= pontos]
+            if not validas: break
+            esc = random.choice(validas)
+            gs.board[r][c] = esc["class"]('pretas')
+            pontos -= esc["cost"]
 
 def main():
     pygame.init()
-    ecra = pygame.display.set_mode((LARGURA, ALTURA_TOTAL))
+    ecra = pygame.display.set_mode((900, 800), pygame.RESIZABLE)
     pygame.display.set_caption("RedWar - Combat Engine")
+    clock = pygame.time.Clock()
     
-    clock = pygame.time.Clock() # Necessário para o delta time
-    fase_atual = "DRAFT" 
-    
-    # Variáveis de Draft
-    pontos_jogador = 200
+    gs = GameState(time_limit_seconds=180)
+    fase_atual = "DRAFT"
+    pontos_jogador = ORCAMENTO_BRANCAS
     peca_loja = None
-    tempo_inicio_draft = time.time()
-    opcoes_tempo_jogo = [60, 180, 600] # 1, 3 e 10 minutos
-    idx_tempo = 1
+    catalogo = obter_catalogo_pecas()
     
-    # O GameState será recriado ao clicar Ready para aplicar o tempo escolhido
-    gs = GameState(time_limit_seconds=opcoes_tempo_jogo[idx_tempo]) 
-    
-    # Variáveis de Batalha
-    casa_selecionada = None
-    movimentos, ataques, stuns = [], [], {}
+    # CORREÇÃO PYLANCE: Inicializar botões com retângulos vazios antes do loop
+    btn_voltar = pygame.Rect(0, 0, 0, 0)
+    btn_ready = pygame.Rect(0, 0, 0, 0)
+    btn_info = pygame.Rect(0, 0, 0, 0)
+    botoes_loja = {}
     
     correr = True
     while correr:
-        dt = clock.tick(60) / 1000.0 # Segundos passados desde o último frame
-        
-        mouse_x, mouse_y = pygame.mouse.get_pos()
-        linha_hover = mouse_y // TAMANHO_CASA
-        coluna_hover = mouse_x // TAMANHO_CASA
-        hover_pos = (linha_hover, coluna_hover)
-
-        tempo_restante = max(0, 60 - int(time.time() - tempo_inicio_draft))
-
-        # Atualizar relógio da batalha
-        if fase_atual == "BATTLE" and not gs.game_over:
-            gs.update_time(dt)
+        w, h = ecra.get_size()
+        h_tabuleiro = h - 160
+        tam_casa = min(w // 8, h_tabuleiro // 8)
+        off_x = (w - (8 * tam_casa)) // 2
+        off_y = 20
+        off_loja = off_y + (8 * tam_casa) + 20
 
         for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
+            if evento.type == pygame.QUIT: 
                 correr = False
-                
-            elif evento.type == pygame.MOUSEBUTTONDOWN and not gs.game_over:
+            elif evento.type == pygame.VIDEORESIZE:
+                ecra = pygame.display.set_mode((evento.w, evento.h), pygame.RESIZABLE)
+            elif evento.type == pygame.MOUSEBUTTONDOWN:
                 if evento.button == 1:
-                    x, y = pygame.mouse.get_pos()
+                    mx, my = pygame.mouse.get_pos()
                     
-                    if fase_atual == "DRAFT":
-                        if y >= ALTURA:
-                            # Botão Ready
-                            if x >= LARGURA - 110 and y >= ALTURA + 50:
-                                auto_draft_ia(gs)
-                                fase_atual = "BATTLE"
-                            # Botão Tempo de Jogo
-                            elif LARGURA - 450 <= x <= LARGURA - 330 and 8 * TAMANHO_CASA + 10 <= y <= 8 * TAMANHO_CASA + 40:
-                                idx_tempo = (idx_tempo + 1) % len(opcoes_tempo_jogo)
-                                # Transfere as peças colocadas para o novo GameState com o novo tempo
-                                temp_board = gs.board
-                                gs = GameState(time_limit_seconds=opcoes_tempo_jogo[idx_tempo])
-                                gs.board = temp_board
-                            # Comprar Peça
-                            else:
-                                opcoes = [("Bone", 10), ("Ghoul", 30), ("Obelisk", 40), ("Sentry", 50), ("FrostMage", 60), ("BoneLord", 100)]
-                                for i, (nome, custo) in enumerate(opcoes):
-                                    bx = 10 + i * 100
-                                    by = ALTURA + 50
-                                    if bx <= x <= bx + 90 and by <= y <= by + 40:
-                                        peca_loja = nome if custo <= pontos_jogador else None
-                        
-                        elif peca_loja and y < ALTURA:
-                            linha, coluna = y // TAMANHO_CASA, x // TAMANHO_CASA
-                            if linha >= 6 and gs.board[linha][coluna] is None:
-                                nova_peca = criar_peca_por_nome(peca_loja, 'brancas')
-                                if nova_peca is not None: # <-- Correção do Pylance
-                                    gs.board[linha][coluna] = nova_peca
-                                    pontos_jogador -= nova_peca.cost
+                    if fase_atual == "INFO":
+                        if btn_voltar.collidepoint(mx, my):
+                            fase_atual = "DRAFT"
+                    
+                    elif fase_atual == "DRAFT":
+                        if my >= off_loja:
+                            for nome, rect in botoes_loja.items():
+                                if rect.collidepoint(mx, my): peca_loja = nome
+                            if btn_ready.collidepoint(mx, my):
+                                auto_draft_ia(gs, ORCAMENTO_PRETAS)
+                                fase_atual = "BATALHA"
+                            if btn_info.collidepoint(mx, my):
+                                fase_atual = "INFO"
+                        elif peca_loja and off_y <= my < off_y + 8*tam_casa:
+                            c = (mx - off_x) // tam_casa
+                            r = (my - off_y) // tam_casa
+                            if 0 <= c < 8 and r >= 6 and gs.board[r][c] is None:
+                                p_data = next((p for p in catalogo if p["name"] == peca_loja), None)
+                                if p_data and p_data["cost"] <= pontos_jogador:
+                                    gs.board[r][c] = p_data["class"]('brancas')
+                                    pontos_jogador -= p_data["cost"]
                                     peca_loja = None
-                                
-                    elif fase_atual == "BATTLE":
-                        coluna = x // TAMANHO_CASA
-                        linha = y // TAMANHO_CASA
-                        alvo = (linha, coluna)
-                        
-                        if casa_selecionada == alvo:
-                            casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
-                        elif casa_selecionada:
-                            if alvo in movimentos:
-                                gs.make_action(casa_selecionada, alvo, "move")
-                                casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
-                            elif alvo in ataques:
-                                gs.make_action(casa_selecionada, alvo, "attack")
-                                casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
-                            elif alvo in stuns:
-                                gs.make_action(casa_selecionada, alvo, "stun", affected_area=stuns[alvo])
-                                casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
-                            else:
-                                casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
-                        else:
-                            peca_clicada = gs.board[linha][coluna] if linha < 8 else None
-                            is_white = (peca_clicada and peca_clicada.team == 'brancas')
-                            if peca_clicada and peca_clicada.can_act() and (is_white == gs.white_to_move):
-                                casa_selecionada = alvo
-                                movimentos = peca_clicada.get_valid_moves(linha, coluna, gs.board)
-                                ataques = peca_clicada.get_valid_attacks(linha, coluna, gs.board)
-                                stuns = peca_clicada.get_valid_stuns(linha, coluna, gs.board)
 
-        ecra.fill((0, 0, 0))
-        desenhar_tabuleiro(ecra, casa_selecionada)
+        ecra.fill(C_FUNDO)
         
-        if fase_atual == "BATTLE":
-            desenhar_destaques(ecra, movimentos, ataques, stuns, hover_pos)
-            desenhar_interface_batalha(ecra, gs)
-        elif fase_atual == "DRAFT":
-            desenhar_loja_draft(ecra, pontos_jogador, tempo_restante, peca_loja, opcoes_tempo_jogo[idx_tempo])
-            if tempo_restante == 0:
-                auto_draft_ia(gs)
-                fase_atual = "BATTLE"
-                
-        desenhar_pecas(ecra, gs.board)
-
-        if gs.game_over:
-            overlay = pygame.Surface((LARGURA, ALTURA_TOTAL), pygame.SRCALPHA)
-            overlay.fill((0, 0, 0, 180)) 
-            ecra.blit(overlay, (0, 0))
-            texto = FONTE_GAMEOVER.render(gs.winner, True, (255, 215, 0))
-            rect_texto = texto.get_rect(center=(LARGURA//2, ALTURA_TOTAL//2))
-            ecra.blit(texto, rect_texto)
+        if fase_atual == "INFO":
+            btn_voltar = desenhar_enciclopedia(ecra, w, h, catalogo)
+        else:
+            desenhar_tabuleiro(ecra, tam_casa, off_x, off_y)
+            desenhar_pecas(ecra, gs.board, tam_casa, off_x, off_y)
+            if fase_atual == "DRAFT":
+                botoes_loja, btn_ready, btn_info = desenhar_loja_dinamica(ecra, w, h, catalogo, pontos_jogador, peca_loja, off_loja)
 
         pygame.display.flip()
+        clock.tick(60)
 
     pygame.quit()
-    sys.exit()
 
 if __name__ == "__main__":
     main()

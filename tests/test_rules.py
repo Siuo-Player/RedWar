@@ -1,44 +1,61 @@
+# tests/test_rules.py
 import pytest
 from engine.game_state import GameState
-from engine.pieces import Bone, Sentry, FrostMage
+from engine.pieces import Bone, BoneLord, FrostMage, Lich
 
-def test_piece_movement():
-    gs = GameState()
-    gs.board[4][4] = Bone('brancas')
-    moves = gs.board[4][4].get_valid_moves(4, 4, gs.board)
-    assert len(moves) == 8
-
-def test_sentry_passive_combo():
-    gs = GameState()
-    gs.white_to_move = True
-    sentry = Sentry('brancas')
-    bone_alvo = Bone('pretas')
-    gs.board[4][4] = sentry
-    gs.board[4][5] = bone_alvo
-    gs.make_action((4, 4), (4, 5), action_type="attack")
-    assert gs.board[4][5] == sentry
-    assert gs.white_to_move == True
-    assert gs.active_combo_piece == (4, 5)
-
-def test_stun_mechanic():
+def test_bone_promotion():
     gs = GameState()
     bone = Bone('brancas')
-    bone.stun_timer = 1
-    gs.board[0][0] = bone
-    assert len(bone.get_valid_moves(0, 0, gs.board)) == 0
-    assert bone.can_act() == False
-    gs.end_turn()
-    assert bone.can_act() == True
+    gs.board[1][4] = bone
+    gs.white_to_move = True
+    
+    # Move para a última linha inimiga (linha 0 para as brancas)
+    gs.make_action((1, 4), (0, 4), "move")
+    
+    promovido = gs.board[0][4]
+    assert promovido is not None
+    assert promovido.name == "BoneLord"
+    assert promovido.team == 'brancas'
 
-def test_stun_on_stunned_is_kill():
+def test_lich_spawn_mechanic():
     gs = GameState()
-    alvo = Bone('pretas')
-    alvo.stun_timer = 1
-    gs.board[0][0] = alvo
+    lich = Lich('brancas')
+    gs.board[4][4] = lich
+    gs.white_to_move = True
     
-    # Criar o atacante para não dar erro de team
-    mago = FrostMage('brancas')
-    gs.board[2][2] = mago
+    # Lich invoca um Ghoul na casa (3, 4)
+    gs.make_action((4, 4), (3, 4), action_type="spawn", spawn_name="Ghoul")
     
-    gs.make_action((2, 2), (0, 0), action_type="stun", affected_area=[(0, 0)])
-    assert gs.board[0][0] is None
+    invocado = gs.board[3][4]
+    assert invocado is not None
+    assert invocado.name == "Ghoul"
+    assert invocado.team == 'brancas'
+    # O Lich deve ficar atordoado por 1 turno (cooldown de invocação)
+    assert lich.stun_timer == 1
+
+def test_stun_hit_kill():
+    gs = GameState()
+    mage = FrostMage('brancas')
+    bone = Bone('pretas')
+    
+    gs.board[4][4] = mage
+    gs.board[2][4] = bone
+    bone.stun_timer = 1 # O Bone já está atordoado
+    gs.white_to_move = True
+    
+    stuns = mage.get_valid_stuns(4, 4, gs.board)
+    gs.make_action((4, 4), (2, 4), action_type="stun", affected_area=stuns[(2, 4)])
+    
+    # Stun em cima de Stun resulta em morte
+    assert gs.board[2][4] is None
+
+def test_game_over_annihilation():
+    gs = GameState()
+    gs.board[0][0] = Bone('brancas')
+    gs.board[1][0] = Bone('pretas')
+    gs.white_to_move = True
+    
+    gs.make_action((0, 0), (1, 0), "attack")
+    
+    assert gs.game_over == True
+    assert gs.winner == "Aniquilação - Brancas Vencem"
