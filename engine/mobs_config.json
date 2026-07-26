@@ -1,9 +1,9 @@
 {
-    "BoneLord": 90,
-    "FrostMage": 50,
-    "Obelisk": 30,
-    "Sentry": 40,
-    "Ghoul": 20,
+    "BoneLord": 80,
+    "Obelisk": 20,
+    "Ghoul": 10,
+    "FrostMage": 40,
+    "Sentry": 30,
     "Bone": 5,
     "Phantom": 45,
     "Lich": 80
