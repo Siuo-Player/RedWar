@@ -4,10 +4,13 @@ from ui.window import TAMANHO_CASA, COLUNAS, LINHAS, LARGURA, ALTURA, desenhar_t
 from ui.renderer import desenhar_pecas, desenhar_destaques
 from engine.game_state import GameState
 
+pygame.font.init()
+FONTE_GAMEOVER = pygame.font.SysFont("Arial", 40, bold=True)
+
 def main():
     pygame.init()
     ecra = pygame.display.set_mode((LARGURA, ALTURA))
-    pygame.display.set_caption("RedWar - Combat Engine")
+    pygame.display.set_caption("RedWar - Game Over & AI Setup")
     
     gs = GameState()
     casa_selecionada = None
@@ -15,7 +18,6 @@ def main():
     correr = True
     
     while correr:
-        # Obter posição atual do rato (para o efeito Hover do Stun)
         mouse_x, mouse_y = pygame.mouse.get_pos()
         hover_pos = (mouse_y // TAMANHO_CASA, mouse_x // TAMANHO_CASA)
 
@@ -23,14 +25,13 @@ def main():
             if evento.type == pygame.QUIT:
                 correr = False
                 
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
+            elif evento.type == pygame.MOUSEBUTTONDOWN and not gs.game_over:
                 if evento.button == 1:
                     x, y = pygame.mouse.get_pos()
                     coluna = x // TAMANHO_CASA
                     linha = y // TAMANHO_CASA
                     alvo = (linha, coluna)
                     
-                    # 1. Tentar executar ação se já tivermos uma peça selecionada
                     if casa_selecionada:
                         if alvo in movimentos:
                             gs.make_action(casa_selecionada, alvo, "move")
@@ -45,13 +46,10 @@ def main():
                             casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
                             continue
 
-                    # 2. Selecionar uma peça nova
                     if casa_selecionada == alvo:
-                        # Duplo clique desmarca
                         casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
                     else:
                         peca_clicada = gs.board[linha][coluna]
-                        # Apenas deixa selecionar se houver peça, se for a vez da equipa dela, e se não estiver atordoada
                         is_white = (peca_clicada and peca_clicada.team == 'brancas')
                         if peca_clicada and peca_clicada.can_act() and (is_white == gs.white_to_move):
                             casa_selecionada = alvo
@@ -61,10 +59,20 @@ def main():
                         else:
                             casa_selecionada, movimentos, ataques, stuns = None, [], [], {}
 
-        # Ordem de desenho é crítica: Tabuleiro -> Destaques (Overlays) -> Peças
         desenhar_tabuleiro(ecra, casa_selecionada)
         desenhar_destaques(ecra, movimentos, ataques, stuns, hover_pos)
         desenhar_pecas(ecra, gs.board)
+        
+        # UI DE FIM DE JOGO
+        if gs.game_over:
+            overlay = pygame.Surface((LARGURA, ALTURA), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 180)) # Ecrã escurece 
+            ecra.blit(overlay, (0, 0))
+            
+            texto = FONTE_GAMEOVER.render(gs.winner, True, (255, 215, 0)) # Dourado
+            rect_texto = texto.get_rect(center=(LARGURA//2, ALTURA//2))
+            ecra.blit(texto, rect_texto)
+
         pygame.display.flip()
 
     pygame.quit()
