@@ -1,0 +1,1 @@
+# Definição das classes das peças, custos de exército e as suas regras de movimento únicas

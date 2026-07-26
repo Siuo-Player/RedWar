@@ -1,0 +1,1 @@
+# Validação de mecânicas de tabuleiro: os turnos e temporizadores estão a funcionar?

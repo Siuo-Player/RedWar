@@ -1,0 +1,1 @@
+# Lógica de desenho: traduz o game_state.py em imagens (tabuleiro, peças, seleções)

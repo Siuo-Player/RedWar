@@ -1,0 +1,1 @@
+# Avaliação estática de uma posição (material, controlo de casas, timers ativos)

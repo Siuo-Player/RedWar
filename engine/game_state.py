@@ -1,0 +1,1 @@
+# Gere o estado do tabuleiro, regras e mecânicas temporárias (ex: timers de gelo/imobilização)

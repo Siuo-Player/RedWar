@@ -1,0 +1,1 @@
+# O algoritmo principal (Minimax / Alpha-Beta Pruning) para percorrer a árvore de jogadas

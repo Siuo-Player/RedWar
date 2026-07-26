@@ -1,0 +1,1 @@
+# Validação das regras: o Move Generator dá os movimentos corretos numa posição X?
