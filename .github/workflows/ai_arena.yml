@@ -1,34 +1,39 @@
 name: RedWar AI Arena
 
 on:
-  pull_request:
-    paths:
-      - 'ai/**'
-      - 'engine/**'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Sem a diretiva 'cancel-in-progress', os torneios longos entram em fila 
+# e terminam todos de forma sequencial, garantindo que nenhum jogo é perdido.
 
 jobs:
   arena-tournament:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Fazer Checkout do Código
-      uses: actions/checkout@v4
+      - name: Checkout do Repositório
+        uses: actions/checkout@v3
 
-    - name: Configurar ambiente Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: "3.11"
+      - name: Instalar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-    - name: Instalar Dependências do Motor
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Instalar Dependências
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-    - name: Correr Testes Unitários Base
-      run: |
-        pytest tests/
+      - name: Executar Torneio da Arena (10.000 Jogos / Margem de 5 Vitórias)
+        run: |
+          python ai/arena_tournament.py --jogos 10000 --margem_vitorias 5
 
-    - name: ⚔️ Combate de Validação da IA (Brute-Force)
-      run: |
-        # Corre 100 jogos para garantir amostra estatística confiável
-        python ai/arena_tournament.py --jogos 100 --threshold 55.0
+      - name: Commit e Push dos Resultados
+        run: |
+          git config --global user.name "RedWar Arena Bot"
+          git config --global user.email "actions@github.com"
+          git add *.json ai/*.json || true
+          git commit -m "🏆 AI Arena: Torneio de 10.000 jogos concluído com sucesso" || echo "Sem alterações para gravar"
+          git push

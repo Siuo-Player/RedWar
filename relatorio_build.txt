@@ -2,11 +2,11 @@ RELATÓRIO DE BUILD E BALANCEAMENTO
 ==================================
 Testes: OK
 Custos Atualizados pelo MCTS:
-- FrostMage: 60 pts
-- Sentry: 56 pts
-- Phantom: 43 pts
-- Obelisk: 30 pts
-- BoneLord: 77 pts
-- Lich: 73 pts
+- FrostMage: 51 pts
+- Sentry: 48 pts
+- Phantom: 37 pts
+- Obelisk: 26 pts
+- BoneLord: 66 pts
+- Lich: 63 pts
 - Ghoul: 20 pts
 - Bone: 5 pts

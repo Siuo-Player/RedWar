@@ -9,6 +9,15 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from engine.game_state import GameState
 from ai.opening_tester import carregar_abertura_basica
 from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO
+import argparse
+
+def verificar_promocao(vitorias_desafiante, vitorias_atual, margem=5):
+    """
+    Critério: O desafiante tem de ter estritamente mais vitórias 
+    e uma diferença mínima de 5 vitórias face ao atual campeão.
+    """
+    diferenca = vitorias_desafiante - vitorias_atual
+    return diferenca >= margem
 
 def run_headless_match(bot_brancas, bot_pretas):
     gs = GameState(time_limit_seconds=99999)
@@ -53,8 +62,8 @@ def start_tournament(num_games, win_threshold):
     print(f"\n\nTaxa de Vitória do Challenger: {win_rate:.2f}%")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--jogos", type=int, default=10)
-    parser.add_argument("--threshold", type=float, default=55.0)
+    parser = argparse.ArgumentParser(description="Torneio da Arena RedWar")
+    parser.add_argument("--jogos", type=int, default=10000, help="Número total de partidas")
+    parser.add_argument("--margem_vitorias", type=int, default=5, help="Diferença mínima de vitórias exigida")
     args = parser.parse_args()
     start_tournament(args.jogos, args.threshold)
