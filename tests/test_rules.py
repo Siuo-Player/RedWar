@@ -3,7 +3,7 @@ import pytest
 from engine.game_state import GameState
 from engine.pieces import Bone, BoneLord, FrostMage, Lich
 
-def test_bone_promotion():
+def test_bone_no_promotion():
     gs = GameState()
     bone = Bone('brancas')
     gs.board[1][4] = bone
@@ -12,10 +12,11 @@ def test_bone_promotion():
     # Move para a última linha inimiga (linha 0 para as brancas)
     gs.make_action((1, 4), (0, 4), "move")
     
-    promovido = gs.board[0][4]
-    assert promovido is not None
-    assert promovido.name == "BoneLord"
-    assert promovido.team == 'brancas'
+    movida = gs.board[0][4]
+    assert movida is not None
+    # Confirma que a promoção FOI REMOVIDA e ele continua a ser um Bone
+    assert movida.name == "Bone"
+    assert movida.team == 'brancas'
 
 def test_lich_spawn_mechanic():
     gs = GameState()
@@ -44,7 +45,8 @@ def test_stun_hit_kill():
     gs.white_to_move = True
     
     stuns = mage.get_valid_stuns(4, 4, gs.board)
-    gs.make_action((4, 4), (2, 4), action_type="stun", affected_area=stuns[(2, 4)])
+    # CORREÇÃO: Passar apenas a lista de coordenadas do 'aoe' para a ação
+    gs.make_action((4, 4), (2, 4), action_type="stun", affected_area=stuns[(2, 4)]["aoe"])
     
     # Stun em cima de Stun resulta em morte
     assert gs.board[2][4] is None

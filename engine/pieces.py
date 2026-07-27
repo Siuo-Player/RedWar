@@ -46,14 +46,15 @@ class Piece:
 
     def get_valid_moves(self, r, c, board, tile_effects=None) -> list: return []
     def get_valid_attacks(self, r, c, board, tile_effects=None) -> list: return []
+    def get_threat_area(self, r, c, board, tile_effects=None) -> list: return []
     def get_valid_stuns(self, r, c, board, tile_effects=None) -> dict: return {}
     def get_valid_spawns(self, r, c, board, tile_effects=None) -> list: return []
 
 class Bone(Piece):
     def __init__(self, team):
         super().__init__(team, "Bone", CUSTOS_ATUAIS.get("Bone", 10), "Bo")
-        self.descricao = "Infantaria invocada que apodrece rapidamente."
-        self.passiva = "Desintegra-se após 5 turnos. Não pode ser comprada no Draft."
+        self.descricao = "Infantaria invocada."
+        self.passiva = "Desintegra-se após 5 turnos."
         self.draftable = False
         self.lifespan = 5 
 
@@ -77,11 +78,23 @@ class Bone(Piece):
                 if self.is_enemy(board[nr][nc]): attacks.append((nr, nc))
         return attacks
 
+    def get_threat_area(self, r, c, board, tile_effects=None) -> list:
+        if not self.can_act(): return []
+        threats = []
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < 8 and 0 <= nc < 8:
+                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": continue
+                threats.append((nr, nc))
+        return threats
+
 class Ghoul(Piece):
     def __init__(self, team):
         super().__init__(team, "Ghoul", CUSTOS_ATUAIS.get("Ghoul", 30), "Gh")
-        self.descricao = "Vanguarda agressiva."
-        self.passiva = "Movimenta-se apenas para a frente e diagonais frontais."
+        self.descricao = "Vanguarda agressiva invocada."
+        self.passiva = "Avança letalmente. Desintegra-se após 5 turnos."
+        self.draftable = False
+        self.lifespan = 5 
     def get_valid_moves(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act(): return []
         moves = []
@@ -102,11 +115,21 @@ class Ghoul(Piece):
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": continue
                 if self.is_enemy(board[nr][nc]): attacks.append((nr, nc))
         return attacks
+    def get_threat_area(self, r, c, board, tile_effects=None) -> list:
+        if not self.can_act(): return []
+        threats = []
+        dir_frente = -1 if self.team == 'brancas' else 1
+        for dc in [-1, 0, 1]:
+            nr, nc = r + dir_frente, c + dc
+            if 0 <= nr < 8 and 0 <= nc < 8:
+                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": continue
+                threats.append((nr, nc))
+        return threats
 
 class Obelisk(Piece):
     def __init__(self, team):
         super().__init__(team, "Obelisk", CUSTOS_ATUAIS.get("Obelisk", 40), "Ob")
-        self.descricao = "Estrutura pesada defensiva."
+        self.descricao = "Estrutura pesada."
     def get_valid_moves(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act(): return []
         moves = []
@@ -121,7 +144,7 @@ class Phantom(Piece):
     def __init__(self, team):
         super().__init__(team, "Phantom", CUSTOS_ATUAIS.get("Phantom", 45), "Ph")
         self.descricao = "Assassino espectral."
-        self.passiva = "Salta peças e obstáculos em formato de L."
+        self.passiva = "Salta em L."
     def get_valid_moves(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act(): return []
         moves = []
@@ -140,12 +163,21 @@ class Phantom(Piece):
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": continue
                 if self.is_enemy(board[nr][nc]): attacks.append((nr, nc))
         return attacks
+    def get_threat_area(self, r, c, board, tile_effects=None) -> list:
+        if not self.can_act(): return []
+        threats = []
+        for dr, dc in [(-2,-1), (-2,1), (-1,-2), (-1,2), (1,-2), (1,2), (2,-1), (2,1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < 8 and 0 <= nc < 8:
+                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": continue
+                threats.append((nr, nc))
+        return threats
 
 class Sentry(Piece):
     def __init__(self, team):
         super().__init__(team, "Sentry", CUSTOS_ATUAIS.get("Sentry", 50), "Se")
-        self.descricao = "Atirador de longo alcance."
-        self.passiva = "O Gelo corta a sua linha de visão."
+        self.descricao = "Atirador."
+        self.passiva = "Ataque em linha reta."
     def get_valid_moves(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act(): return []
         moves = []
@@ -171,6 +203,18 @@ class Sentry(Piece):
                         break
                 else: break
         return attacks
+    def get_threat_area(self, r, c, board, tile_effects=None) -> list:
+        if not self.can_act(): return []
+        threats = []
+        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            for i in range(1, 8):
+                nr, nc = r + dr * i, c + dc * i
+                if 0 <= nr < 8 and 0 <= nc < 8:
+                    if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": break
+                    threats.append((nr, nc))
+                    if board[nr][nc] is not None: break 
+                else: break
+        return threats
 
 class FrostMage(Piece):
     def __init__(self, team):
@@ -207,7 +251,6 @@ class FrostMage(Piece):
                                 p = board[ar][ac]
                                 if p and p.team != self.team: tem_inimigo = True
                         
-                        # Retorna a área de qualquer forma para a UI desenhar, mas sinaliza se é útil
                         stuns[(foco_r, foco_c)] = {"aoe": aoe, "has_enemy": tem_inimigo}
         return stuns
 
@@ -241,7 +284,6 @@ class BoneLord(Piece):
     def __init__(self, team):
         super().__init__(team, "BoneLord", CUSTOS_ATUAIS.get("BoneLord", 100), "BL")
         self.descricao = "Comandante Necromante."
-        self.passiva = "Não se move ao atacar. Abater inimigos ressuscita-os como Bones."
     def get_valid_moves(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act(): return []
         moves = []
@@ -256,21 +298,32 @@ class BoneLord(Piece):
     def get_valid_attacks(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act(): return []
         attacks = []
-        
         padroes_ataque = [
             (-3, -1), (-3, 1), (3, -1), (3, 1),  
             (-1, -3), (1, -3), (-1, 3), (1, 3),  
             (-2, -2), (-2, 2), (2, -2), (2, 2)   
         ]
-        
         for dr, dc in padroes_ataque:
             nr, nc = r + dr, c + dc
             if 0 <= nr < 8 and 0 <= nc < 8:
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": continue
                 if self.is_enemy(board[nr][nc]): 
                     attacks.append((nr, nc))
-                    
         return attacks
+    def get_threat_area(self, r, c, board, tile_effects=None) -> list:
+        if not self.can_act(): return []
+        threats = []
+        padroes_ataque = [
+            (-3, -1), (-3, 1), (3, -1), (3, 1),  
+            (-1, -3), (1, -3), (-1, 3), (1, 3),  
+            (-2, -2), (-2, 2), (2, -2), (2, 2)   
+        ]
+        for dr, dc in padroes_ataque:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < 8 and 0 <= nc < 8:
+                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc]["type"] == "ice": continue
+                threats.append((nr, nc))
+        return threats
 
 TODAS_AS_PECAS = [Bone, Ghoul, Obelisk, Phantom, Sentry, FrostMage, Lich, BoneLord]
 
@@ -287,7 +340,5 @@ def obter_catalogo_pecas():
     return catalogo
 
 def criar_peca_por_nome(nome, team):
-    cat = obter_catalogo_pecas()
-    classe = next((p["class"] for p in cat if p["name"] == nome), None)
-    if not classe and nome == "Bone": classe = Bone
+    classe = next((cls for cls in TODAS_AS_PECAS if cls.__name__ == nome), None)
     return classe(team) if classe else None

@@ -9,8 +9,7 @@ _CACHE_IMAGENS = {}
 
 def carregar_imagem_peca(nome_peca, team, tam):
     chave = (nome_peca, team, tam)
-    if chave in _CACHE_IMAGENS: 
-        return _CACHE_IMAGENS[chave]
+    if chave in _CACHE_IMAGENS: return _CACHE_IMAGENS[chave]
     
     caminho_pasta = os.path.join(os.path.dirname(os.path.dirname(__file__)), "ui", "assets")
     caminho_completo = os.path.join(caminho_pasta, f"{nome_peca.lower()}.png")
@@ -33,7 +32,6 @@ def carregar_imagem_peca(nome_peca, team, tam):
     return None
 
 def desenhar_tabuleiro(ecra, gs, tam_casa, off_x, off_y):
-    # Destaques do Último Movimento (Estilo Chess.com)
     luzes_chess = []
     if hasattr(gs, 'last_move') and gs.last_move:
         luzes_chess.append(gs.last_move["start"])
@@ -42,8 +40,6 @@ def desenhar_tabuleiro(ecra, gs, tam_casa, off_x, off_y):
     for r in range(8):
         for c in range(8):
             cor = (200, 200, 200) if (r + c) % 2 == 0 else (100, 100, 100)
-            
-            # Pinta as casas do último movimento de amarelo translúcido
             if (r, c) in luzes_chess:
                 cor = (230, 230, 120) if (r + c) % 2 == 0 else (180, 180, 80)
 
@@ -70,43 +66,66 @@ def desenhar_destaques(ecra, gs, casa_selecionada, tam_casa, off_x, off_y):
 
     movimentos = p.get_valid_moves(r, c, gs.board, gs.tile_effects)
     ataques = p.get_valid_attacks(r, c, gs.board, gs.tile_effects)
+    ameacas = p.get_threat_area(r, c, gs.board, gs.tile_effects)
     stuns = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
     spawns = p.get_valid_spawns(r, c, gs.board, gs.tile_effects)
 
+    # 1. Movimentos (Verde Suave)
     s_move = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-    s_move.fill((100, 255, 100, 100))  
-    s_spawn = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-    s_spawn.fill((200, 100, 255, 100)) 
-
+    s_move.fill((50, 255, 50, 80))  
     for mr, mc in movimentos:
         ecra.blit(s_move, (off_x + mc * tam_casa, off_y + mr * tam_casa))
+        pygame.draw.rect(ecra, (50, 255, 50), (off_x + mc * tam_casa, off_y + mr * tam_casa, tam_casa, tam_casa), 2)
 
-    for sr, sc, sname in spawns:
-        ecra.blit(s_spawn, (off_x + sc * tam_casa, off_y + sr * tam_casa))
+    # 2. Alcance Fantasma / Threat Area (Laranja Translúcido)
+    s_threat = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
+    s_threat.fill((255, 150, 0, 40))
+    for tr, tc in ameacas:
+        if (tr, tc) not in ataques: # Só pinta se não for um alvo real
+            ecra.blit(s_threat, (off_x + tc * tam_casa, off_y + tr * tam_casa))
+            pygame.draw.rect(ecra, (255, 150, 0, 150), (off_x + tc * tam_casa, off_y + tr * tam_casa, tam_casa, tam_casa), 2)
 
+    # 3. Ataques Reais (Vermelho Sangue)
+    s_atk = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
+    s_atk.fill((255, 0, 0, 100))
     for ar, ac in ataques:
-        rect_atk = pygame.Rect(off_x + ac * tam_casa, off_y + ar * tam_casa, tam_casa, tam_casa)
-        s_atk = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-        s_atk.fill((255, 80, 80, 80))
-        ecra.blit(s_atk, (rect_atk.x, rect_atk.y))
-        pygame.draw.rect(ecra, (255, 50, 50), rect_atk, 4)
+        ecra.blit(s_atk, (off_x + ac * tam_casa, off_y + ar * tam_casa))
+        pygame.draw.rect(ecra, (255, 0, 0), (off_x + ac * tam_casa, off_y + ar * tam_casa, tam_casa, tam_casa), 4)
 
-    # UI DO MAGO CORRIGIDA
+    # 4. Invocações (Amarelo Dourado Ouro - MUITO diferente do verde)
+    s_spawn = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
+    s_spawn.fill((255, 215, 0, 120)) 
+    for sr, sc, sname in spawns:
+        cx = off_x + sc * tam_casa + tam_casa // 2
+        cy = off_y + sr * tam_casa + tam_casa // 2
+        ecra.blit(s_spawn, (off_x + sc * tam_casa, off_y + sr * tam_casa))
+        pygame.draw.rect(ecra, (255, 215, 0), (off_x + sc * tam_casa, off_y + sr * tam_casa, tam_casa, tam_casa), 4)
+        # Uma cruz amarela subtil no chão para reforçar que é Invocação
+        pygame.draw.line(ecra, (255, 255, 255), (cx - 10, cy), (cx + 10, cy), 3)
+        pygame.draw.line(ecra, (255, 255, 255), (cx, cy - 10), (cx, cy + 10), 3)
+
+    # 5. FrostMage (Stun Visual Avançado)
     for foco_r, foco_c in stuns.keys():
         info = stuns[(foco_r, foco_c)]
         cx = off_x + foco_c * tam_casa + tam_casa // 2
         cy = off_y + foco_r * tam_casa + tam_casa // 2
         compr = tam_casa // 4
         
-        # Se tem inimigo, cruz é azul viva. Se está vazio, cruz é cinza desbotada.
-        cor_cruz = (0, 200, 255) if info["has_enemy"] else (150, 150, 150)
+        # Se tem inimigo, Ciano Brilhante. Se vazio, Cinzento Desbotado.
+        cor_cruz = (0, 255, 255) if info["has_enemy"] else (100, 120, 150)
+        bg_alpha = 80 if info["has_enemy"] else 30
+        espessura = 5 if info["has_enemy"] else 2
         
-        pygame.draw.line(ecra, cor_cruz, (cx - compr, cy), (cx + compr, cy), 5)
-        pygame.draw.line(ecra, cor_cruz, (cx, cy - compr), (cx, cy + compr), 5)
+        s_stun = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
+        s_stun.fill((*cor_cruz[:3], bg_alpha))
+        ecra.blit(s_stun, (off_x + foco_c * tam_casa, off_y + foco_r * tam_casa))
+        
+        pygame.draw.line(ecra, cor_cruz, (cx - compr, cy), (cx + compr, cy), espessura)
+        pygame.draw.line(ecra, cor_cruz, (cx, cy - compr), (cx, cy + compr), espessura)
         
         for (aoe_r, aoe_c) in info["aoe"]:
             rect_aoe = pygame.Rect(off_x + aoe_c * tam_casa + 2, off_y + aoe_r * tam_casa + 2, tam_casa - 4, tam_casa - 4)
-            pygame.draw.rect(ecra, cor_cruz, rect_aoe, 2)
+            pygame.draw.rect(ecra, cor_cruz, rect_aoe, max(1, espessura - 2))
 
 def desenhar_pecas(ecra, board, tam_casa, off_x, off_y):
     fonte = pygame.font.SysFont("arial", int(tam_casa * 0.4))
@@ -145,7 +164,6 @@ def desenhar_pecas(ecra, board, tam_casa, off_x, off_y):
                     ecra.blit(txt_vida, (pos_x, pos_y))
 
 def desenhar_log(ecra, gs, off_x_log, off_y, width, height):
-    """Desenha o histórico de ações no lado direito do ecrã."""
     pygame.draw.rect(ecra, (40, 40, 40), (off_x_log, off_y, width, height), border_radius=10)
     fonte_tit = pygame.font.SysFont("arial", 24, bold=True)
     fonte_txt = pygame.font.SysFont("arial", 16)
@@ -155,7 +173,6 @@ def desenhar_log(ecra, gs, off_x_log, off_y, width, height):
     pygame.draw.line(ecra, (100, 100, 100), (off_x_log + 20, off_y + 50), (off_x_log + width - 20, off_y + 50), 2)
     
     y = off_y + 60
-    # Mostra os últimos 12 turnos para caber no painel
     for log in gs.move_log[-12:]:
         cor_txt = (150, 200, 255) if log["team"] == "brancas" else (255, 150, 150)
         txt_short = fonte_tit.render(log["short"], True, cor_txt)

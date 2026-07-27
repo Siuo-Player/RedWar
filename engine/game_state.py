@@ -1,7 +1,6 @@
 from typing import Any
 
 def coords_para_notacao(r, c):
-    """Converte (6, 0) para Notação de Xadrez 'a2'"""
     letras = "abcdefgh"
     return f"{letras[c]}{8-r}"
 
@@ -13,11 +12,8 @@ class GameState:
         self.game_over = False
         self.winner = None
         self.turns_without_capture = 0
-        
-        # SISTEMA CHESS.COM (Histórico e Último Movimento)
         self.move_log = []
-        self.last_move = None  # Guarda tuplo: (start_pos, end_pos)
-        
+        self.last_move = None
         self.white_time = time_limit_seconds
         self.black_time = time_limit_seconds
         self.state_history = {}
@@ -90,7 +86,6 @@ class GameState:
                         self.tile_effects[r][c] = None
 
     def gerar_notacao(self, piece, start_pos, end_pos, action_type, spawn_name):
-        """Cria o histórico de batalhas ao estilo de Xadrez"""
         sr, sc = start_pos
         er, ec = end_pos
         s_alg = coords_para_notacao(sr, sc)
@@ -112,8 +107,7 @@ class GameState:
             short = f"{piece.acronym} + {spawn_name[:2]} {e_alg}"
             full = f"O {piece.name} invocou um {spawn_name} em {e_alg}."
         else:
-            short = "?"
-            full = "?"
+            short, full = "?", "?"
             
         self.move_log.append({"short": prefixo + short, "full": full, "team": piece.team})
 
@@ -199,7 +193,6 @@ class GameState:
             self.winner = f"{vencedor} Vencem (Oponente forçou repetição)"
             return
 
-        # REGRA NOVA: SEM MOVIMENTOS = DERROTA (O Fim do Bloqueio Total)
         tem_jogada = False
         equipa_atual = 'brancas' if self.white_to_move else 'pretas'
         for r in range(8):
