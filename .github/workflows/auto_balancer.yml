@@ -1,12 +1,14 @@
 name: RedWar Auto-Balancer & ELO Calibration
 
 on:
-  workflow_dispatch: # Permite-te clicar num botão no GitHub para rodar manualmente
-  schedule:
-    - cron: '0 3 * * *' # Roda automaticamente todos os dias às 3 da manhã (UTC)
+  push:
+    branches:
+      - main  # Dispara sempre que fizeres push para a branch principal
+  workflow_dispatch: # Mantém o botão manual disponível na web
 
-permissions:
-  contents: write # Dá permissão ao bot para alterar os ficheiros e fazer push
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true # Cancela automaticamente os runs anteriores pendentes/em execução
 
 jobs:
   nightly-calibration:
@@ -25,21 +27,17 @@ jobs:
           python ai/trainer.py
           python ai/game_analyzer.py
 
-      - name: 2. Calibração da Matemática do ELO (Versão Rápida Cloud)
+      - name: 2. Calibração da Matemática do ELO
         run: |
           python ai/calibrate_elo_chain.py --jogos 50
 
-      # Se quisermos que um script Python atualize o mobs_config.json baseado nas vitórias, ele correria aqui.
-      
       - name: Commit e Push das Modificações
         run: |
           git config --global user.name "RedWar Auto-Balancer Bot"
           git config --global user.email "actions@github.com"
           
-          # Adiciona todos os ficheiros JSON gerados ou modificados pelos scripts
           git add *.json
           git add ai/*.json
           
-          # Faz commit apenas se houver mudanças reais
-          git commit -m "🤖 Auto-Balance: Telemetria, Custos e ELO recalibrados automaticamente" || echo "Sem alterações para gravar"
+          git commit -m "🤖 Auto-Balance: Telemetria e ELO atualizados para o commit mais recente" || echo "Sem alterações para gravar"
           git push
