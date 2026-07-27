@@ -32,22 +32,41 @@ def avaliador_estrategico(gs):
     return count_material_and_mobility(gs)
 
 def avaliador_guloso(gs):
-    """IA 1: Material Pura. Foca-se apenas em comer peças e diferença de pontos."""
+    """
+    IA Sanguinária:
+    Odeia empates, força trocas de peças e tem um foco doentio em aniquilar.
+    """
     if gs.game_over:
-        if "Brancas" in str(gs.winner): return 99999
-        if "Pretas" in str(gs.winner): return -99999
-        return 0
-        
+        if "Aniquilação" in str(gs.winner) or "Vencem" in str(gs.winner):
+            return 99999 if "Brancas" in str(gs.winner) else -99999
+        # Empate é inaceitável. A IA prefere jogar de forma suicida a empatar.
+        return -50000 if gs.white_to_move else 50000
+
     score = 0
     for r in range(8):
         for c in range(8):
             p = gs.board[r][c]
             if p:
                 valor = p.cost
-                # Peça atordoada vale metade na avaliação
-                if p.stun_timer > 0:
-                    valor *= 0.5 
-                score += valor if p.team == 'brancas' else -valor
+                
+                # INCENTIVO A TROCAS (Bloodlust): Peças inimigas valem 20% mais.
+                if (p.team == 'pretas' and gs.white_to_move) or (p.team == 'brancas' and not gs.white_to_move):
+                    valor *= 1.2
+                
+                # Se o inimigo estiver atordoado, o seu valor defensivo cai (Facilita o combo do FrostMage)
+                if p.stun_timer > 0: 
+                    valor *= 0.2  
+                
+                avanco = (7 - r) if p.team == 'brancas' else r
+                micro_bonus = avanco * 0.5 
+                
+                valor_final = valor + micro_bonus
+                score += valor_final if p.team == 'brancas' else -valor_final
+                
+    # PENALIZAÇÃO DE INATIVIDADE: Quanto mais turnos sem capturas, mais em pânico a IA fica.
+    penalidade = gs.turns_without_capture * 3
+    score -= penalidade if gs.white_to_move else -penalidade
+
     return score
 
 def avaliador_agressivo(gs):

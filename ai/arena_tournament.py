@@ -1,4 +1,3 @@
-# ai/arena_tournament.py
 import sys
 import os
 import argparse
@@ -6,24 +5,20 @@ import argparse
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
-from engine.pieces import preencher_draft_aleatorio, criar_peca_por_nome # Precisas de exportar estas do color_balancer ou criar utilitário
 from ai.search import find_best_move
+from ai.opening_tester import carregar_abertura_basica
 
 # Para o torneio, importamos os avaliadores. 
-# Num ambiente real de CI/CD, tu testas o Novo Avaliador contra o Baseline (Atual).
 from ai.evaluator import avaliador_estrategico as Baseline_AI
 from ai.evaluator import avaliador_agressivo as Challenger_AI
 
 def run_headless_match(eval_brancas, eval_pretas):
     """Corre um jogo sem prints para máxima velocidade."""
     gs = GameState(time_limit_seconds=99999)
-    # Draft simplificado para o torneio de IA (200 pts)
-    # (Nota: Assegura-te que o preencher_draft_aleatorio existe ou usa uma abertura fixa)
-    from ai.opening_tester import carregar_abertura_basica
     carregar_abertura_basica(gs) 
     
     turnos = 0
-    while not gs.game_over and turnos < 150:
+    while not gs.game_over and turnos < 1000:
         turnos += 1
         depth = 2 
         
@@ -41,6 +36,9 @@ def run_headless_match(eval_brancas, eval_pretas):
                 gs.make_action(best_move["start"], best_move["end"], best_move["type"])
         else:
             gs.check_game_over()
+            if not gs.game_over:
+                gs.game_over = True
+                gs.winner = "Bloqueio"
             break
 
     return gs.winner
@@ -57,16 +55,16 @@ def start_tournament(num_games, win_threshold):
     for i in range(num_games):
         if i % 2 == 0:
             winner = run_headless_match(Challenger_AI, Baseline_AI)
-            if "Brancas" in winner: wins_challenger += 1
-            elif "Pretas" in winner: wins_baseline += 1
+            # A verificação 'winner and str(winner)' protege contra resultados nulos e agrada ao Pylance
+            if winner and "Brancas" in str(winner): wins_challenger += 1
+            elif winner and "Pretas" in str(winner): wins_baseline += 1
             else: draws += 1
         else:
             winner = run_headless_match(Baseline_AI, Challenger_AI)
-            if "Pretas" in winner: wins_challenger += 1
-            elif "Brancas" in winner: wins_baseline += 1
+            if winner and "Pretas" in str(winner): wins_challenger += 1
+            elif winner and "Brancas" in str(winner): wins_baseline += 1
             else: draws += 1
             
-        # Progresso
         if (i + 1) % 10 == 0:
             sys.stdout.write(f"\rJogos completados: {i + 1}/{num_games}")
             sys.stdout.flush()
@@ -74,7 +72,11 @@ def start_tournament(num_games, win_threshold):
     print("\n\n📊 RESULTADOS DO TORNEIO:")
     print(f"Challenger: {wins_challenger} | Baseline: {wins_baseline} | Empates: {draws}")
     
-    win_rate = (wins_challenger / num_games) * 100
+    if num_games > 0:
+        win_rate = (wins_challenger / num_games) * 100
+    else:
+        win_rate = 0.0
+        
     print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
     
     if win_rate >= win_threshold:

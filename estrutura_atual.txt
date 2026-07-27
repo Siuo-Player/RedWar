@@ -1,0 +1,51 @@
+ESTRUTURA REAL DO PROJETO REDWAR
+=================================
+
+📁 RedWar/
+├── 📄 .gitignore
+├── 📄 Documento_Design_Jogo.md
+├── 📄 Estrutura_Projeto.md
+├── 📄 README.md
+├── 📄 build_pipeline.py
+├── 📄 estatisticas_exaustivas.json
+├── 📄 estatisticas_treino.json
+├── 📄 gerar_estrutura.py
+├── 📄 main.py
+├── 📄 multiplayer_main.py
+├── 📄 prototipo_tabuleiro.py
+├── 📄 relatorio_build.txt
+├── 📄 reorganize.py
+├── 📄 requirements.txt
+├── 📁 .github/
+│   ├── 📁 workflows/
+│   │   └── 📄 ai_arena.yml
+├── 📁 ai/
+│   ├── 📄 __init__.py
+│   ├── 📄 arena_tournament.py
+│   ├── 📄 auto_balancer.py
+│   ├── 📄 color_balancer.py
+│   ├── 📄 evaluator.py
+│   ├── 📄 exhaustive_trainer.py
+│   ├── 📄 game_analyzer.py
+│   ├── 📄 opening_tester.py
+│   ├── 📄 search.py
+│   └── 📄 trainer.py
+├── 📁 engine/
+│   ├── 📄 __init__.py
+│   ├── 📄 game_state.py
+│   ├── 📄 mobs_config.json
+│   ├── 📄 move_generator.py
+│   └── 📄 pieces.py
+├── 📁 network/
+│   └── 📄 client.py
+├── 📁 server/
+│   └── 📄 app.py
+├── 📁 tests/
+│   ├── 📄 __init__.py
+│   ├── 📄 test_moves.py
+│   └── 📄 test_rules.py
+├── 📁 ui/
+│   ├── 📄 __init__.py
+│   ├── 📄 renderer.py
+│   ├── 📄 window.py
+│   ├── 📁 assets/

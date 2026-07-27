@@ -1,0 +1,10 @@
+--- JOGO ENCRAVADO (Seed: 31) ---
+ .  .  .  .  .  .  .  . 
+ . Li  .  .  . Ph  .  . 
+ .  . Gh  .  .  .  .  . 
+ . Gh  .  .  .  .  .  . 
+Li Gh Gh  .  .  .  .  . 
+Gh Gh Gh  .  .  .  .  . 
+Gh Gh Gh Gh  .  .  .  . 
+Gh Gh Gh Gh Gh Gh Gh  . 
+

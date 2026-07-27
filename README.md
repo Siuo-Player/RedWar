@@ -7,61 +7,105 @@ Um jogo de tabuleiro tático assimétrico de eliminação direta focado em siner
 ### 🎮 Gameplay Tático
 * **Eliminação Direta (Hit-Kill):** Não existem pontos de vida. Capturas removem a peça instantaneamente.
 * **Mecânica de Stun:** Atordoamentos táticos que bloqueiam o inimigo durante o seu turno. Aplicar *Stun* num alvo já atordoado resulta em morte instantânea.
-* **Fase de Draft (Economia):** Jogadores constroem o seu exército de raiz num tabuleiro vazio, usando um orçamento de 200 Pontos.
+* **Fase de Draft (Economia):** Jogadores constroem o seu exército de raiz num tabuleiro vazio.
+* **Efeitos de Terreno:** Peças interagem dinamicamente com zonas de Gelo (Bloqueio) e Fogo (Stun).
 
 ### 🧠 Inteligência Artificial Avançada
 * **Minimax com Poda Alfa-Beta:** O motor de busca da IA.
 * **Move Ordering:** Avaliação otimizada que testa capturas e ameaças primeiro, aumentando a profundidade de cálculo.
-* **4 Perfis Heurísticos:**
-  * 🗡️ *Agressiva* (Recompensa invasão inimiga)
-  * 🛡️ *Defensiva* (Recompensa proteção do rei)
-  * 💰 *Gulosa* (Foco estrito em material)
-  * ♟️ *Estratégica* (Valoriza mobilidade e controlo do centro)
-* **Auto-Balancer Automático:** Um script em Python que consome milhares de simulações (MCTS / Greedy) em `.json` para sugerir ajustes dinâmicos ao custo das peças com base na sua *Win-Rate*.
+* **Auto-Balancer Automático:** Um script que consome simulações exaustivas para sugerir ajustes dinâmicos ao custo das peças.
 
-## 🏗️ Arquitetura do Projeto
+---
 
-| Módulo | Descrição |
-| :--- | :--- |
-| **`/engine`** | Lógica determinística pura. Valida regras de movimento, *Stuns*, condição dos 50-movimentos e deteção de bloqueios no tabuleiro. |
-| **`/ai`** | O cérebro do projeto. Contém as avaliações heurísticas, o algoritmo de busca e simuladores exaustivos sem interface gráfica (Headless). |
-| **`/ui`** | Interface gráfica construída em Pygame. Gere o ecrã de *Draft*, relógios de xadrez em tempo real e overlays de Áreas de Efeito (AoE). |
-| **`/tests`** | Suite de testes unitários automatizados construídos com `pytest` para blindar as regras matemáticas do jogo. |
+## 🚀 Guia de Comandos e Execução
 
-## 🚀 Instalação e Execução
-
-**1. Instalar as dependências:**
+### ⚙️ Instalação Inicial
 ```bash
 pip install -r requirements.txt
 ```
 
-**2. Jogar (Interface Gráfica contra IA ou Local):**
+### 🎮 Jogar
+**Modo Local (Tu vs IA)**
+
+O modo clássico para jogares no teu computador.
+
 ```bash
 python main.py
 ```
 
-**3. Correr Ferramentas de IA (Simuladores):**
+**Modo Multiplayer (Rede/LAN)**
+
+Para jogares contra um amigo noutro computador.
+
+1. Abre um terminal e inicia o servidor:
 ```bash
-# Testar Aberturas entre diferentes personalidades de IA
-python ai/opening_tester.py
-
-# Correr Simulação Exaustiva de Estruturas
-python ai/exhaustive_trainer.py
-
-# Gerar Sugestões de Balanceamento
-python ai/auto_balancer.py
+python server/app.py
 ```
 
-**4. Correr Testes de Lógica:**
+2. No teu computador, conecta-te como Jogador 1 (Brancas):
+```bash
+python multiplayer_main.py localhost
+```
+
+3. No computador do teu amigo, ele conecta-se usando o teu IP local (exemplo):
+```bash
+python multiplayer_main.py 192.168.1.100
+```
+
+### 🔬 Ferramentas de IA e Balanceamento
+**1. Analisar Telemetria e Gridlocks (Caixa Negra)**
+
+Corre jogos invisíveis focados em encontrar anomalias táticas da IA.
+
+```bash
+python ai/game_analyzer.py
+```
+
+**2. Otimizar Custos (Auto-Balancer)**
+
+Se as peças estiverem desbalanceadas, corre este comando para a IA descobrir os novos valores matemáticos ideais.
+
+```bash
+python build_pipeline.py
+```
+
+### 🧪 Testes Unitários e Controlo de Qualidade
+Para garantir que regras base do motor (movimentos, stuns, etc.) não se partiram após modificares o código.
+
 ```bash
 pytest tests/
 ```
 
-## 📚 Documentação Adicional
+### 💾 Git (Sincronizar Alterações)
+Após realizares testes que corram bem, guarda e partilha o teu progresso no GitHub.
 
-Para detalhes profundos sobre as mecânicas, peças e a estrutura completa de pastas, consulta:
-
-* **[Documento_Design_Jogo.md](Documento_Design_Jogo.md)** — Game Design Document completo
-* **[Estrutura_Projeto.md](Estrutura_Projeto.md)** — Mapeamento detalhado do repositório
+```bash
+git add .
+git commit -m "atualizacao: descricao das tuas alteracoes aqui"
+git push
+```
 
 ---
+
+### Os Comandos que Precisas Agora
+
+Como adicionámos funcionalidades gigantescas em massa para resolver os problemas passados, deves correr os comandos pela seguinte ordem no teu terminal:
+
+1. **Joga contra a IA localmente e tenta as novas mecânicas (Verifica as imagens e a jogabilidade):**
+```powershell
+python main.py
+```
+
+2. **Garante que o novo BoneLord e os ossos não encravaram a IA com loops infinitos (O `jogos_encravados.txt` deve vir vazio):**
+
+```powershell
+python ai/game_analyzer.py
+```
+
+3. **Se tudo estiver perfeito, salva no GitHub:**
+
+```powershell
+git add .
+git commit -m "feat: BoneLord ataca à distância via necromancia, Bones decaem após 5 turnos, e adicionados terrenos fire/ice dinâmicos com novo README"
+git push
+```

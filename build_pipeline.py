@@ -21,10 +21,7 @@ def executar_pipeline():
     print("✅ Estatísticas geradas!\n")
     
     print("3. Auto-Balancing e Atualização do JSON de Custos...")
-    
-    # CORREÇÃO PYLANCE: Inicializar a variável antes do bloco try
     novo_custo = {}
-    
     try:
         with open("estatisticas_treino.json", "r") as f: 
             stats = json.load(f)
@@ -33,8 +30,16 @@ def executar_pipeline():
         
         for peca, wins in stats.get("piece_wins", {}).items():
             plays = stats["piece_usage"].get(peca, 1)
-            fator = ((wins / plays) - 0.5) * 2 
-            ajuste = max(-10, min(10, int(custos_atuais.get(peca, 50) * fator)))
+            empates = stats.get("draws", 0) 
+            
+            jogos_decisivos = max(1, plays - empates)
+            win_rate_real = wins / jogos_decisivos
+            
+            fator = (win_rate_real - 0.5) * 2 
+            
+            max_ajuste = max(2, int(custos_atuais.get(peca, 50) * 0.15))
+            ajuste = max(-max_ajuste, min(max_ajuste, int(custos_atuais.get(peca, 50) * fator)))
+            
             novo_custo[peca] = max(5, custos_atuais.get(peca, 50) + ajuste)
             
         for k, v in custos_atuais.items():

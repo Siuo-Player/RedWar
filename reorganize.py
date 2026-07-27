@@ -1,53 +1,50 @@
+# reorganize.py
 import os
+import shutil
 from pathlib import Path
 
-def create_structure():
-    structure = {
-        "engine": {
-            "__init__.py": "",
-            "game_state.py": "# Gere o estado do tabuleiro, regras, relogio, stun timer e 50-move rule",
-            "move_generator.py": "# Gerador otimizado de movimentos",
-            "pieces.py": "# Definicao das classes, custos, get_valid_moves, attacks e stuns",
-        },
-        "ui": {
-            "__init__.py": "",
-            "window.py": "# Gestao da janela Pygame, resolucao e grid",
-            "renderer.py": "# Desenho visual, overlays AoE (Alpha), loja de draft e relogios",
-            "assets": {}
-        },
-        "ai": {
-            "__init__.py": "",
-            "evaluator.py": "# Perfis de IA (Gulosa, Estrategica, Agressiva, Defensiva)",
-            "search.py": "# Algoritmo Minimax com Poda Alfa-Beta e Move Ordering",
-            "trainer.py": "# Simulador rapido (1000 partidas aleatorias)",
-            "exhaustive_trainer.py": "# Simulador exaustivo de estruturas (Minimax + Monte Carlo)",
-            "opening_tester.py": "# Arena modular para testar perfis de IA em aberturas",
-            "auto_balancer.py": "# Script de analise de Win-Rate para ajuste automatico de custos"
-        },
-        "tests": {
-            "__init__.py": "",
-            "test_moves.py": "# Testes unitarios de movimentos base",
-            "test_rules.py": "# Testes de game over, stun hit-kill e passivas",
-        }
-    }
+# Mapa de Arrumação Automática
+MAPA_FICHEIROS = {
+    "game_state.py": "engine",
+    "pieces.py": "engine",
+    "mobs_config.json": "engine",
+    "renderer.py": "ui",
+    "evaluator.py": "ai",
+    "search.py": "ai",
+    "trainer.py": "ai",
+    "arena_tournament.py": "ai",
+    "color_balancer.py": "ai",
+    "game_analyzer.py": "ai",
+    "opening_tester.py": "ai",
+    "client.py": "network",
+    "app.py": "server",
+    "test_moves.py": "tests",
+    "test_rules.py": "tests"
+}
 
+def organizar_projeto():
     base_dir = Path.cwd()
-    print(f"A verificar/atualizar estrutura em: {base_dir}\n")
+    movidos = 0
+    
+    print("🧹 A verificar ficheiros soltos na raiz do projeto...")
+    
+    for ficheiro in base_dir.iterdir():
+        if ficheiro.is_file() and ficheiro.name in MAPA_FICHEIROS:
+            pasta_destino = base_dir / MAPA_FICHEIROS[ficheiro.name]
+            pasta_destino.mkdir(exist_ok=True)
+            
+            caminho_destino = pasta_destino / ficheiro.name
+            
+            if caminho_destino.exists():
+                print(f"⚠️ {ficheiro.name} já existe em {pasta_destino.name}/. A substituir pela versão da raiz...")
+                caminho_destino.unlink()
+                
+            shutil.move(str(ficheiro), str(caminho_destino))
+            print(f"✅ Movido: {ficheiro.name} -> {pasta_destino.name}/")
+            movidos += 1
+            
+    if movidos == 0:
+        print("✨ Tudo perfeitamente organizado!")
 
-    for folder, contents in structure.items():
-        folder_path = base_dir / folder
-        folder_path.mkdir(exist_ok=True)
-
-        if isinstance(contents, dict):
-            for file_name, file_content in contents.items():
-                if file_name == "assets":
-                    (folder_path / file_name).mkdir(exist_ok=True)
-                else:
-                    file_path = folder_path / file_name
-                    if not file_path.exists():
-                        file_path.write_text(file_content, encoding='utf-8')
-
-    print("Estrutura de pastas e ficheiros atualizada com sucesso!")
-
-if __name__ == '__main__':
-    create_structure()
+if __name__ == "__main__":
+    organizar_projeto()

@@ -1,1 +1,0 @@
-# Dada uma posição, devolve todos os movimentos válidos para as peças

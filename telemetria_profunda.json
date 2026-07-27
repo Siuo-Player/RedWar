@@ -1,0 +1,132 @@
+{
+    "estatisticas_gerais": {
+        "partidas_simuladas": 100,
+        "turnos_medios": 87.3,
+        "causas_fim": {
+            "Brancas Vencem (Oponente ficou sem movimentos)": 15,
+            "Pretas Vencem (Oponente ficou sem movimentos)": 19,
+            "Aniquila\u00e7\u00e3o - Pretas Vencem": 8,
+            "Empate por Limite de Movimentos": 51,
+            "Aniquila\u00e7\u00e3o - Brancas Vencem": 6,
+            "None": 1
+        }
+    },
+    "metricas_combate": {
+        "mortes_totais_por_peca": {
+            "BoneLord": 52,
+            "Sentry": 111,
+            "Phantom": 51,
+            "Ghoul": 620,
+            "Obelisk": 173,
+            "FrostMage": 43,
+            "Bone": 37,
+            "Lich": 59
+        },
+        "abates_realizados_por_peca": {
+            "Sentry": 498,
+            "FrostMage": 87,
+            "BoneLord": 135,
+            "Ghoul": 166,
+            "Bone": 57,
+            "Phantom": 203
+        },
+        "pontos_destruidos_por_peca": {
+            "Sentry": 9178,
+            "FrostMage": 1315,
+            "BoneLord": 1612,
+            "Ghoul": 2100,
+            "Bone": 1499,
+            "Phantom": 2105
+        },
+        "stuns_aplicados": 4136,
+        "mortes_por_stun": 87,
+        "taxa_letalidade_stun": 2.1
+    },
+    "metricas_invocacao": {
+        "spawns_realizados": {
+            "Ghoul": 768
+        }
+    },
+    "heatmap": [
+        [
+            139,
+            196,
+            184,
+            244,
+            192,
+            195,
+            162,
+            134
+        ],
+        [
+            163,
+            253,
+            177,
+            179,
+            138,
+            183,
+            152,
+            126
+        ],
+        [
+            143,
+            187,
+            170,
+            119,
+            132,
+            103,
+            90,
+            81
+        ],
+        [
+            120,
+            115,
+            115,
+            105,
+            80,
+            81,
+            47,
+            49
+        ],
+        [
+            131,
+            171,
+            159,
+            137,
+            110,
+            91,
+            84,
+            55
+        ],
+        [
+            166,
+            197,
+            171,
+            117,
+            112,
+            105,
+            72,
+            66
+        ],
+        [
+            111,
+            191,
+            163,
+            125,
+            106,
+            131,
+            111,
+            60
+        ],
+        [
+            170,
+            191,
+            177,
+            168,
+            159,
+            133,
+            139,
+            101
+        ]
+    ]
+}

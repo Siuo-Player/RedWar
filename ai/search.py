@@ -1,4 +1,4 @@
-import copy
+import random
 
 def get_all_moves_ordered(gs):
     current_team = 'brancas' if gs.white_to_move else 'pretas'
@@ -9,16 +9,19 @@ def get_all_moves_ordered(gs):
         for c in range(8):
             p = gs.board[r][c]
             if p and p.team == current_team and p.can_act():
-                for atk in p.get_valid_attacks(r, c, gs.board):
+                for atk in p.get_valid_attacks(r, c, gs.board, gs.tile_effects):
                     ataques_stuns.append({"start": (r, c), "end": atk, "type": "attack", "piece": p, "prioridade": 2})
                 
-                for foco, area in p.get_valid_stuns(r, c, gs.board).items():
-                    ataques_stuns.append({"start": (r, c), "end": foco, "type": "stun", "area": area, "piece": p, "prioridade": 1})
+                # NOVO: A IA só usa Stuns se a casa tiver realmente um inimigo (has_enemy = True)
+                stuns_validos = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
+                for foco, area_info in stuns_validos.items():
+                    if area_info["has_enemy"]:
+                        ataques_stuns.append({"start": (r, c), "end": foco, "type": "stun", "area": area_info["aoe"], "piece": p, "prioridade": 1})
                 
-                for r_spawn, c_spawn, spawn_name in p.get_valid_spawns(r, c, gs.board):
+                for r_spawn, c_spawn, spawn_name in p.get_valid_spawns(r, c, gs.board, gs.tile_effects):
                     ataques_stuns.append({"start": (r, c), "end": (r_spawn, c_spawn), "type": "spawn", "spawn_name": spawn_name, "piece": p, "prioridade": 1.5})
                 
-                for move in p.get_valid_moves(r, c, gs.board):
+                for move in p.get_valid_moves(r, c, gs.board, gs.tile_effects):
                     movimentos_normais.append({"start": (r, c), "end": move, "type": "move", "piece": p, "prioridade": 0})
                     
     return ataques_stuns + movimentos_normais
@@ -34,13 +37,10 @@ def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func):
     if maximizing_player:
         max_eval = -float('inf')
         for acao in acoes:
-            gs_copy = copy.deepcopy(gs)
-            if acao["type"] == "stun":
-                gs_copy.make_action(acao["start"], acao["end"], "stun", acao["area"])
-            elif acao["type"] == "spawn":
-                gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
-            else:
-                gs_copy.make_action(acao["start"], acao["end"], acao["type"])
+            gs_copy = gs.fast_clone()
+            if acao["type"] == "stun": gs_copy.make_action(acao["start"], acao["end"], "stun", acao.get("area", []))
+            elif acao["type"] == "spawn": gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
+            else: gs_copy.make_action(acao["start"], acao["end"], acao["type"])
                 
             eval = minimax(gs_copy, depth - 1, alpha, beta, False, evaluator_func)
             max_eval = max(max_eval, eval)
@@ -50,13 +50,10 @@ def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func):
     else:
         min_eval = float('inf')
         for acao in acoes:
-            gs_copy = copy.deepcopy(gs)
-            if acao["type"] == "stun":
-                gs_copy.make_action(acao["start"], acao["end"], "stun", acao["area"])
-            elif acao["type"] == "spawn":
-                gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
-            else:
-                gs_copy.make_action(acao["start"], acao["end"], acao["type"])
+            gs_copy = gs.fast_clone()
+            if acao["type"] == "stun": gs_copy.make_action(acao["start"], acao["end"], "stun", acao.get("area", []))
+            elif acao["type"] == "spawn": gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
+            else: gs_copy.make_action(acao["start"], acao["end"], acao["type"])
                 
             eval = minimax(gs_copy, depth - 1, alpha, beta, True, evaluator_func)
             min_eval = min(min_eval, eval)
@@ -65,39 +62,39 @@ def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func):
         return min_eval
 
 def find_best_move(gs, depth, evaluator_func):
-    best_move = None
-    acoes = get_all_moves_ordered(gs)
-    if not acoes: return None
+    melhor_move = None
+    alpha = -float('inf')
+    beta = float('inf')
     
+    acoes = get_all_moves_ordered(gs)
+    random.shuffle(acoes)
+    acoes.sort(key=lambda x: x.get("prioridade", 0), reverse=True)
+
     if gs.white_to_move:
-        max_eval = -float('inf')
+        melhor_score = -float('inf')
         for acao in acoes:
-            gs_copy = copy.deepcopy(gs)
-            if acao["type"] == "stun":
-                gs_copy.make_action(acao["start"], acao["end"], "stun", acao["area"])
-            elif acao["type"] == "spawn":
-                gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
-            else:
-                gs_copy.make_action(acao["start"], acao["end"], acao["type"])
-            
-            eval = minimax(gs_copy, depth - 1, -float('inf'), float('inf'), False, evaluator_func)
-            if eval > max_eval:
-                max_eval = eval
-                best_move = acao
+            gs_copy = gs.fast_clone()
+            if acao["type"] == "stun": gs_copy.make_action(acao["start"], acao["end"], "stun", acao.get("area", []))
+            elif acao["type"] == "spawn": gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
+            else: gs_copy.make_action(acao["start"], acao["end"], acao["type"])
+                
+            score = minimax(gs_copy, depth - 1, alpha, beta, False, evaluator_func)
+            if score > melhor_score:
+                melhor_score = score
+                melhor_move = acao
+            alpha = max(alpha, melhor_score)
     else:
-        min_eval = float('inf')
+        melhor_score = float('inf')
         for acao in acoes:
-            gs_copy = copy.deepcopy(gs)
-            if acao["type"] == "stun":
-                gs_copy.make_action(acao["start"], acao["end"], "stun", acao["area"])
-            elif acao["type"] == "spawn":
-                gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
-            else:
-                gs_copy.make_action(acao["start"], acao["end"], acao["type"])
+            gs_copy = gs.fast_clone()
+            if acao["type"] == "stun": gs_copy.make_action(acao["start"], acao["end"], "stun", acao.get("area", []))
+            elif acao["type"] == "spawn": gs_copy.make_action(acao["start"], acao["end"], "spawn", spawn_name=acao.get("spawn_name"))
+            else: gs_copy.make_action(acao["start"], acao["end"], acao["type"])
                 
-            eval = minimax(gs_copy, depth - 1, -float('inf'), float('inf'), True, evaluator_func)
-            if eval < min_eval:
-                min_eval = eval
-                best_move = acao
-                
-    return best_move
+            score = minimax(gs_copy, depth - 1, alpha, beta, True, evaluator_func)
+            if score < melhor_score:
+                melhor_score = score
+                melhor_move = acao
+            beta = min(beta, melhor_score)
+            
+    return melhor_move
