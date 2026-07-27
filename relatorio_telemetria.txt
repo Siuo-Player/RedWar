@@ -2,19 +2,21 @@ RELATÓRIO DE TELEMETRIA PROFUNDA
 =================================
 
 1. CAUSAS DE FIM DE JOGO
- - Brancas Vencem (Oponente ficou sem movimentos): 15 vezes (15.0%)
- - Empate por Limite de Movimentos: 57 vezes (57.0%)
- - Aniquilação - Pretas Vencem: 7 vezes (7.0%)
- - Pretas Vencem (Oponente ficou sem movimentos): 11 vezes (11.0%)
- - Aniquilação - Brancas Vencem: 9 vezes (9.0%)
- - Brancas Vencem (Oponente forçou repetição): 1 vezes (1.0%)
+ - None: 2 vezes (2.0%)
+ - Brancas Vencem (Oponente ficou sem movimentos): 29 vezes (29.0%)
+ - Empate por Limite de Movimentos: 33 vezes (33.0%)
+ - Pretas Vencem (Oponente ficou sem movimentos): 17 vezes (17.0%)
+ - Aniquilação - Brancas Vencem: 11 vezes (11.0%)
+ - Aniquilação - Pretas Vencem: 6 vezes (6.0%)
+ - Pretas Vencem (Oponente forçou repetição): 1 vezes (1.0%)
+ - Bloqueio Total: 1 vezes (1.0%)
 
 2. LETALIDADE OFENSIVA (Quem mais MATA e DESTRÓI VALOR)
 Peça            | Abates   | Valor Destruído
 ---------------------------------------------
-Ghoul           | 29       | 508 pts
-Sentry          | 419      | 10891 pts
-FrostMage       | 72       | 1642 pts
-Phantom         | 86       | 1385 pts
-BoneLord        | 65       | 928 pts
-Bone            | 16       | 626 pts
+Sentry          | 428      | 14156 pts
+BoneLord        | 42       | 652 pts
+Bone            | 13       | 141 pts
+Ghoul           | 47       | 320 pts
+Phantom         | 48       | 840 pts
+FrostMage       | 47       | 1752 pts

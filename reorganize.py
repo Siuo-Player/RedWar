@@ -3,12 +3,18 @@ import os
 import shutil
 from pathlib import Path
 
-# Mapa de Arrumação Automática
+# Mapa de Arrumação Automática Atualizado
 MAPA_FICHEIROS = {
+    # Engine
     "game_state.py": "engine",
     "pieces.py": "engine",
     "mobs_config.json": "engine",
+    "config.py": "engine",
+    
+    # UI
     "renderer.py": "ui",
+    
+    # AI
     "evaluator.py": "ai",
     "search.py": "ai",
     "trainer.py": "ai",
@@ -16,8 +22,16 @@ MAPA_FICHEIROS = {
     "color_balancer.py": "ai",
     "game_analyzer.py": "ai",
     "opening_tester.py": "ai",
+    "bot.py": "ai",
+    "auto_pricer.py": "ai",
+    "calibrate_elo.py": "ai",
+    "calibrate_elo_chain.py": "ai",
+    
+    # Network & Server
     "client.py": "network",
     "app.py": "server",
+    
+    # Tests
     "test_moves.py": "tests",
     "test_rules.py": "tests"
 }

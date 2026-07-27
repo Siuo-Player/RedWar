@@ -1,10 +1,10 @@
 {
-    "Sentry": 17,
-    "Obelisk": 8,
-    "FrostMage": 26,
-    "Ghoul": 5,
-    "BoneLord": 60,
+    "Sentry": 65,
+    "Obelisk": 35,
+    "FrostMage": 70,
+    "Ghoul": 20,
+    "BoneLord": 90,
     "Bone": 5,
-    "Phantom": 45,
-    "Lich": 80
+    "Phantom": 50,
+    "Lich": 85
 }

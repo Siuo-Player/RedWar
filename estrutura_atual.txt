@@ -7,34 +7,39 @@ ESTRUTURA REAL DO PROJETO REDWAR
 ├── 📄 Estrutura_Projeto.md
 ├── 📄 README.md
 ├── 📄 build_pipeline.py
-├── 📄 estatisticas_exaustivas.json
 ├── 📄 estatisticas_treino.json
+├── 📄 estrutura_atual.txt
 ├── 📄 gerar_estrutura.py
+├── 📄 jogos_encravados_log.txt
 ├── 📄 main.py
 ├── 📄 multiplayer_main.py
-├── 📄 prototipo_tabuleiro.py
 ├── 📄 relatorio_build.txt
+├── 📄 relatorio_telemetria.txt
 ├── 📄 reorganize.py
 ├── 📄 requirements.txt
+├── 📄 telemetria_profunda.json
 ├── 📁 .github/
 │   ├── 📁 workflows/
-│   │   └── 📄 ai_arena.yml
+│   │   ├── 📄 ai_arena.yml
+│   │   └── 📄 auto_balancer.yml
 ├── 📁 ai/
 │   ├── 📄 __init__.py
 │   ├── 📄 arena_tournament.py
-│   ├── 📄 auto_balancer.py
+│   ├── 📄 auto_pricer.py
+│   ├── 📄 bot.py
+│   ├── 📄 calibrate_elo.py
+│   ├── 📄 calibrate_elo_chain.py
 │   ├── 📄 color_balancer.py
 │   ├── 📄 evaluator.py
-│   ├── 📄 exhaustive_trainer.py
 │   ├── 📄 game_analyzer.py
 │   ├── 📄 opening_tester.py
 │   ├── 📄 search.py
 │   └── 📄 trainer.py
 ├── 📁 engine/
 │   ├── 📄 __init__.py
+│   ├── 📄 config.py
 │   ├── 📄 game_state.py
 │   ├── 📄 mobs_config.json
-│   ├── 📄 move_generator.py
 │   └── 📄 pieces.py
 ├── 📁 network/
 │   └── 📄 client.py
@@ -47,5 +52,12 @@ ESTRUTURA REAL DO PROJETO REDWAR
 ├── 📁 ui/
 │   ├── 📄 __init__.py
 │   ├── 📄 renderer.py
-│   ├── 📄 window.py
 │   ├── 📁 assets/
+│   │   ├── 📄 bone.png
+│   │   ├── 📄 bonelord.png
+│   │   ├── 📄 frostmage.png
+│   │   ├── 📄 ghoul.png
+│   │   ├── 📄 lich.png
+│   │   ├── 📄 obelisk.png
+│   │   ├── 📄 phantom.png
+│   │   └── 📄 sentry.png

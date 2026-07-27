@@ -26,7 +26,6 @@ class GameState:
                 p = self.board[r][c]
                 linha.append(p.to_dict() if p else None)
             board_dict.append(linha)
-            
         return {
             "white_to_move": self.white_to_move,
             "game_over": self.game_over,
@@ -94,22 +93,21 @@ class GameState:
         num_turno = (len(self.move_log) // 2) + 1
         prefixo = f"{num_turno}. " if piece.team == 'brancas' else f"{num_turno}... "
         
-        if action_type == "move":
-            short = f"{piece.acronym} {s_alg}-{e_alg}"
-            full = f"O {piece.name} moveu-se para a casa {e_alg}."
-        elif action_type == "attack":
-            short = f"{piece.acronym} {s_alg}x{e_alg}"
-            full = f"O {piece.name} destruiu o inimigo em {e_alg}."
-        elif action_type == "stun":
-            short = f"{piece.acronym} * {e_alg}"
-            full = f"O {piece.name} atordoou a área {e_alg}."
-        elif action_type == "spawn":
-            short = f"{piece.acronym} + {spawn_name[:2]} {e_alg}"
-            full = f"O {piece.name} invocou um {spawn_name} em {e_alg}."
-        else:
-            short, full = "?", "?"
+        if action_type == "move": short = f"{piece.acronym} {s_alg}-{e_alg}"
+        elif action_type == "attack": short = f"{piece.acronym} {s_alg}x{e_alg}"
+        elif action_type == "stun": short = f"{piece.acronym} * {e_alg}"
+        elif action_type == "spawn": short = f"{piece.acronym} + {spawn_name[:2]} {e_alg}"
+        else: short = "?"
             
-        self.move_log.append({"short": prefixo + short, "full": full, "team": piece.team})
+        # O SEGREDO DO ANALISADOR: Clonamos o tabuleiro antes da jogada ser registada
+        estado_congelado = self.fast_clone()
+        
+        self.move_log.append({
+            "short": prefixo + short, 
+            "team": piece.team, 
+            "estado_anterior": estado_congelado, # A Fotografia
+            "acao_escolhida": {"start": start_pos, "end": end_pos, "type": action_type}
+        })
 
     def make_action(self, start_pos, end_pos, action_type="move", affected_area=None, spawn_name=None):
         if self.game_over: return
@@ -131,20 +129,15 @@ class GameState:
                         captured_something = True
                     else:
                         alvo.stun_timer = 3 
-
         elif action_type == "spawn" and spawn_name and piece:
             from engine.pieces import criar_peca_por_nome
             nova_peca = criar_peca_por_nome(spawn_name, piece.team)
-            if nova_peca:
-                self.board[end_row][end_col] = nova_peca
+            if nova_peca: self.board[end_row][end_col] = nova_peca
             piece.stun_timer = 1 
-            if hasattr(piece, 'spawn_cooldown'):
-                piece.spawn_cooldown = 4 
-
+            if hasattr(piece, 'spawn_cooldown'): piece.spawn_cooldown = 4 
         elif action_type == "move":
             self.board[start_row][start_col] = None
             self.board[end_row][end_col] = piece
-            
         elif action_type == "attack":
             captured_something = True
             if piece.name == "BoneLord":
@@ -170,27 +163,21 @@ class GameState:
         white_alive = any(p.team == 'brancas' for row in self.board for p in row if p)
         black_alive = any(p.team == 'pretas' for row in self.board for p in row if p)
         
-        if not white_alive and not black_alive:
-            self.game_over, self.winner = True, "Empate por Aniquilação Mútua"
-            return
-        elif not white_alive:
+        if not white_alive and not black_alive: 
+            self.game_over, self.winner = True, "Empate"
+        elif not white_alive: 
             self.game_over, self.winner = True, "Aniquilação - Pretas Vencem"
-            return
-        elif not black_alive:
+        elif not black_alive: 
             self.game_over, self.winner = True, "Aniquilação - Brancas Vencem"
-            return
+        elif self.turns_without_capture >= 50: 
+            self.game_over, self.winner = True, "Empate (50 Lances)"
             
-        if self.turns_without_capture >= 50:
-            self.game_over, self.winner = True, "Empate por Limite de Movimentos"
-            return
+        if self.game_over: return
             
         current_hash = self.get_state_hash()
         self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1
         if self.state_history[current_hash] >= 3:
-            self.game_over = True
-            culpado = 'Brancas' if not self.white_to_move else 'Pretas'
-            vencedor = 'Pretas' if culpado == 'Brancas' else 'Brancas'
-            self.winner = f"{vencedor} Vencem (Oponente forçou repetição)"
+            self.game_over, self.winner = True, "Empate por Repetição"
             return
 
         tem_jogada = False
@@ -203,8 +190,7 @@ class GameState:
                         tem_jogada = True
                     else:
                         stuns = p.get_valid_stuns(r, c, self.board, self.tile_effects)
-                        if any(info["has_enemy"] for info in stuns.values()):
-                            tem_jogada = True
+                        if any(info["has_enemy"] for info in stuns.values()): tem_jogada = True
                 if tem_jogada: break
             if tem_jogada: break
 
@@ -212,3 +198,6 @@ class GameState:
             self.game_over = True
             vencedor = 'Pretas' if self.white_to_move else 'Brancas'
             self.winner = f"{vencedor} Vencem (Oponente ficou sem movimentos)"
+
+
+

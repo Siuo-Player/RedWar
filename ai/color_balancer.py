@@ -7,8 +7,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
-from ai.search import find_best_move
-from ai.evaluator import avaliador_guloso
+from ai.bot import BOT_INICIANTE
 
 def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
     pontos = orcamento
@@ -31,7 +30,7 @@ def jogar_batalha_simulada(orcamento_brancas, orcamento_pretas):
     turnos = 0
     while not gs.game_over and turnos < 150:
         turnos += 1
-        best_move = find_best_move(gs, depth=1, evaluator_func=avaliador_guloso)
+        best_move = BOT_INICIANTE.play(gs)
         
         if best_move:
             if best_move["type"] == "stun":

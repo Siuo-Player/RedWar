@@ -1,10 +1,20 @@
---- JOGO ENCRAVADO (Seed: 31) ---
+--- JOGO ENCRAVADO (Seed: 7) ---
+ .  .  .  . BL  .  .  . 
  .  .  .  .  .  .  .  . 
- . Li  .  .  . Ph  .  . 
- .  . Gh  .  .  .  .  . 
- . Gh  .  .  .  .  .  . 
-Li Gh Gh  .  .  .  .  . 
-Gh Gh Gh  .  .  .  .  . 
-Gh Gh Gh Gh  .  .  .  . 
-Gh Gh Gh Gh Gh Gh Gh  . 
+ .  .  .  .  .  .  .  . 
+ .  .  .  .  .  .  .  . 
+ .  .  .  .  .  .  .  . 
+Gh  .  .  .  .  .  .  . 
+ .  .  .  .  .  .  .  . 
+Ph  . Li  .  .  .  .  . 
+
+--- JOGO ENCRAVADO (Seed: 22) ---
+ . BL Li Ob Ob Ob  .  . 
+ .  .  .  .  .  .  .  . 
+ .  .  .  .  .  .  .  . 
+Gh  .  .  .  .  .  .  . 
+ .  .  .  .  .  .  .  . 
+Gh  .  .  .  .  .  . Ob 
+ .  .  .  .  .  .  .  . 
+Ph Ob Li  .  . Ob Ph Ob 
 
