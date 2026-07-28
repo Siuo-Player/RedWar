@@ -81,44 +81,41 @@ def obter_bonus_posicional(piece, r, c):
 
 def avaliador_mestre(gs):
     """
-    O novo avaliador principal. Substitui o avaliador_guloso.
-    Leva em conta: Material, PST, Stun Tactico e Decadência de Vida.
+    Avaliador estático de soma zero absoluto.
+    Valores Positivos = Vantagem Brancas | Valores Negativos = Vantagem Pretas
     """
     if gs.game_over:
         if "Aniquilação" in str(gs.winner) or "Vencem" in str(gs.winner):
             return 99999 if "Brancas" in str(gs.winner) else -99999
-        return -50000 if gs.white_to_move else 50000
+        return 0 
 
     score = 0
     for r in range(8):
         for c in range(8):
             p = gs.board[r][c]
             if p:
+                # 1. Valor Material Intacto (Garante que a IA continua a querer capturar a peça)
                 valor_base = p.cost
                 
-                # REFINAMENTO 1: A IA sabe que peças com Lifespan valem menos à medida que o tempo passa
                 if hasattr(p, 'lifespan') and p.lifespan is not None:
-                    # Um Ghoul com 1 turno de vida vale 20% do normal. Com 5 turnos, vale 100%.
                     valor_base *= (p.lifespan / 5.0)
 
-                # REFINAMENTO 2: Bloodlust (Incentiva trocas)
-                if (p.team == 'pretas' and gs.white_to_move) or (p.team == 'brancas' and not gs.white_to_move):
-                    valor_base *= 1.2
-                
-                # REFINAMENTO 3: Consciência de Stun Avançada
-                if p.stun_timer > 0: 
-                    valor_base *= 0.2  
-                    # Bónus adicional por ter inimigos em stun (controlo de mapa)
-                    if (p.team == 'pretas' and gs.white_to_move) or (p.team == 'brancas' and not gs.white_to_move):
-                        valor_base -= 15 
-                
-                # Adiciona Piece-Square Table
                 valor_base += obter_bonus_posicional(p, r, c)
                 
-                score += valor_base if p.team == 'brancas' else -valor_base
+                # 2. Soma Zero com Penalidade de Stun Desacoplada
+                if p.team == 'brancas':
+                    score += valor_base
+                    # Se a minha peça está atordoada, a minha posição é pior
+                    if p.stun_timer > 0: score -= (p.cost * 0.5) 
+                else:
+                    score -= valor_base
+                    # Se a peça inimiga está atordoada, a minha posição é melhor
+                    if p.stun_timer > 0: score += (p.cost * 0.5) 
                 
-    penalidade = gs.turns_without_capture * 3
-    score -= penalidade if gs.white_to_move else -penalidade
+    if score > 0:
+        score -= gs.turns_without_capture
+    elif score < 0:
+        score += gs.turns_without_capture
 
     return score
 

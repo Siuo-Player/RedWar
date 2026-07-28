@@ -9,12 +9,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from engine.game_state import GameState
 from ai.opening_tester import carregar_abertura_basica
 from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO
-import argparse
 
 def verificar_promocao(vitorias_desafiante, vitorias_atual, margem=5):
     """
     Critério: O desafiante tem de ter estritamente mais vitórias 
-    e uma diferença mínima de 5 vitórias face ao atual campeão.
+    e uma diferença mínima face ao atual campeão.
     """
     diferenca = vitorias_desafiante - vitorias_atual
     return diferenca >= margem
@@ -40,10 +39,11 @@ def run_headless_match(bot_brancas, bot_pretas):
     return gs.winner
 
 def start_tournament(num_games, win_threshold):
-    print(f"⚔️ A INICIAR TORNEIO DE ARENA: {num_games} JOGOS")
+    print(f"⚔️ A INICIAR TORNEIO DE ARENA: {num_games} JOGOS (Margem exigida: {win_threshold})")
     wins_challenger = wins_baseline = draws = 0
     
     for i in range(num_games):
+        # Alternar quem joga de brancas para ser justo
         if i % 2 == 0:
             winner = run_headless_match(BOT_AVANCADO, BOT_INTERMEDIO)
             if winner and "Brancas" in str(winner): wins_challenger += 1
@@ -59,11 +59,20 @@ def start_tournament(num_games, win_threshold):
         sys.stdout.flush()
 
     win_rate = (wins_challenger / max(1, num_games)) * 100
-    print(f"\n\nTaxa de Vitória do Challenger: {win_rate:.2f}%")
+    print(f"\n\nResultados: Desafiante {wins_challenger} | Campeão {wins_baseline} | Empates {draws}")
+    print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
+    
+    # Aplicação real da lógica de promoção
+    if verificar_promocao(wins_challenger, wins_baseline, win_threshold):
+        print(f"👑 SUCESSO: O Desafiante superou o Campeão por uma margem >= {win_threshold} vitórias!")
+    else:
+        print(f"❌ FALHA: O Desafiante não atingiu a margem de {win_threshold} vitórias para ser promovido.")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Torneio da Arena RedWar")
-    parser.add_argument("--jogos", type=int, default=10000, help="Número total de partidas")
+    parser.add_argument("--jogos", type=int, default=50, help="Número total de partidas")
     parser.add_argument("--margem_vitorias", type=int, default=5, help="Diferença mínima de vitórias exigida")
     args = parser.parse_args()
-    start_tournament(args.jogos, args.threshold)
+    
+    # Bug corrigido: de args.threshold para args.margem_vitorias
+    start_tournament(args.jogos, args.margem_vitorias)

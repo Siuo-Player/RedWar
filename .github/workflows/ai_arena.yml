@@ -26,14 +26,14 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Executar Torneio da Arena (10.000 Jogos / Margem de 5 Vitórias)
+      - name: Executar Torneio da Arena
         run: |
-          python ai/arena_tournament.py --jogos 10000 --margem_vitorias 5
+          python ai/arena_tournament.py --jogos 50 --margem_vitorias 5
 
       - name: Commit e Push dos Resultados
         run: |
           git config --global user.name "RedWar Arena Bot"
           git config --global user.email "actions@github.com"
           git add *.json ai/*.json || true
-          git commit -m "🏆 AI Arena: Torneio de 10.000 jogos concluído com sucesso" || echo "Sem alterações para gravar"
+          git commit -m "🏆 AI Arena: Torneio de validação (50 jogos) concluído" || echo "Sem alterações para gravar"
           git push

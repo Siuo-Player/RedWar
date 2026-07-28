@@ -1,134 +1,133 @@
 {
     "estatisticas_gerais": {
         "partidas_simuladas": 100,
-        "turnos_medios": 55.8,
+        "turnos_medios": 40.0,
         "causas_fim": {
-            "None": 2,
-            "Brancas Vencem (Oponente ficou sem movimentos)": 29,
-            "Empate por Limite de Movimentos": 33,
-            "Pretas Vencem (Oponente ficou sem movimentos)": 17,
-            "Aniquila\u00e7\u00e3o - Brancas Vencem": 11,
-            "Aniquila\u00e7\u00e3o - Pretas Vencem": 6,
-            "Pretas Vencem (Oponente for\u00e7ou repeti\u00e7\u00e3o)": 1,
-            "Bloqueio Total": 1
+            "Aniquila\u00e7\u00e3o - Brancas Vencem": 16,
+            "Brancas Vencem (Oponente ficou sem movimentos)": 26,
+            "Empate por Repeti\u00e7\u00e3o": 19,
+            "Pretas Vencem (Oponente ficou sem movimentos)": 21,
+            "Aniquila\u00e7\u00e3o - Pretas Vencem": 7,
+            "Empate (50 Lances)": 10,
+            "None": 1
         }
     },
     "metricas_combate": {
         "mortes_totais_por_peca": {
-            "Phantom": 96,
-            "BoneLord": 76,
-            "FrostMage": 92,
-            "Obelisk": 114,
-            "Sentry": 98,
-            "Ghoul": 76,
-            "Bone": 11,
-            "Lich": 62
+            "FrostMage": 24,
+            "Phantom": 63,
+            "Lich": 66,
+            "Sentry": 53,
+            "BoneLord": 54,
+            "Bone": 4,
+            "Obelisk": 73,
+            "Ghoul": 62
         },
         "abates_realizados_por_peca": {
-            "Sentry": 428,
-            "BoneLord": 42,
-            "Bone": 13,
-            "Ghoul": 47,
-            "Phantom": 48,
-            "FrostMage": 47
+            "Sentry": 256,
+            "BoneLord": 24,
+            "FrostMage": 36,
+            "Phantom": 43,
+            "Bone": 5,
+            "Ghoul": 35
         },
         "pontos_destruidos_por_peca": {
-            "Sentry": 14156,
-            "BoneLord": 652,
-            "Bone": 141,
-            "Ghoul": 320,
-            "Phantom": 840,
-            "FrostMage": 1752
+            "Sentry": 9954,
+            "BoneLord": 808,
+            "FrostMage": 1383,
+            "Phantom": 1549,
+            "Bone": 236,
+            "Ghoul": 896
         },
-        "stuns_aplicados": 3373,
-        "mortes_por_stun": 47,
-        "taxa_letalidade_stun": 1.39
+        "stuns_aplicados": 2027,
+        "mortes_por_stun": 36,
+        "taxa_letalidade_stun": 1.78
     },
     "metricas_invocacao": {
         "spawns_realizados": {
-            "Ghoul": 271
+            "Ghoul": 372
         }
     },
     "heatmap": [
         [
-            135,
-            244,
-            221,
-            116,
-            117,
-            112,
-            102,
-            96
-        ],
-        [
-            151,
-            201,
-            129,
-            112,
-            129,
-            102,
-            93,
-            96
-        ],
-        [
-            113,
-            73,
-            114,
-            139,
+            86,
+            127,
+            123,
+            85,
             66,
-            41,
-            32,
-            12
-        ],
-        [
-            198,
-            124,
-            102,
-            84,
-            102,
-            58,
-            51,
-            20
-        ],
-        [
-            238,
-            99,
-            122,
-            89,
-            102,
-            79,
-            55,
-            20
-        ],
-        [
-            147,
-            64,
-            63,
-            77,
-            53,
-            38,
-            31,
+            37,
+            23,
             16
         ],
         [
-            83,
-            179,
-            76,
-            58,
-            55,
-            29,
-            32,
-            5
+            129,
+            151,
+            131,
+            102,
+            108,
+            44,
+            20,
+            15
         ],
         [
-            31,
-            75,
-            63,
-            31,
-            24,
-            23,
-            23,
-            11
+            109,
+            94,
+            88,
+            55,
+            53,
+            51,
+            18,
+            15
+        ],
+        [
+            94,
+            74,
+            60,
+            66,
+            52,
+            30,
+            21,
+            20
+        ],
+        [
+            98,
+            82,
+            89,
+            90,
+            60,
+            20,
+            18,
+            23
+        ],
+        [
+            92,
+            133,
+            76,
+            87,
+            42,
+            25,
+            30,
+            16
+        ],
+        [
+            102,
+            112,
+            116,
+            69,
+            56,
+            36,
+            17,
+            14
+        ],
+        [
+            44,
+            90,
+            72,
+            45,
+            30,
+            9,
+            14,
+            26
         ]
     ]
 }

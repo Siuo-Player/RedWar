@@ -2,6 +2,7 @@
 import sys
 import os
 import json
+import time
 from collections import Counter
 import random
 import concurrent.futures
@@ -9,30 +10,19 @@ import concurrent.futures
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
-from engine.pieces import obter_catalogo_pecas
+from engine.config import LIMITE_TURNOS
 from ai.bot import BOT_INTERMEDIO
-from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LIMITE_TURNOS
-
-def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
-    pontos = orcamento
-    catalogo = obter_catalogo_pecas()
-    for r in linhas_validas:
-        for c in range(8):
-            validas = [p for p in catalogo if p["cost"] <= pontos]
-            if not validas: break
-            escolha = random.choice(validas)
-            gs.board[r][c] = escolha["class"](team)
-            pontos -= escolha["cost"]
+from ai.opening_tester import carregar_abertura_basica
 
 def simular_um_jogo(seed):
-    random.seed(seed)
+    start_time = time.time()
     gs = GameState(time_limit_seconds=99999)
-    preencher_draft_aleatorio(gs, 'pretas', [0, 1], ORCAMENTO_PRETAS)
-    preencher_draft_aleatorio(gs, 'brancas', [6, 7], ORCAMENTO_BRANCAS)
+    # Usa o novo Opening Book caótico em vez do draft cego antigo
+    carregar_abertura_basica(gs, seed)
     
     resultado = {
-        "turnos": 0, "winner": None, "mortes_por_peca": Counter(), "spawns_realizados": Counter(),
-        "abates_por_peca": Counter(), "valor_destruido_por_peca": Counter(),
+        "turnos": 0, "tempo_segundos": 0.0, "winner": None, "mortes_por_peca": Counter(), 
+        "spawns_realizados": Counter(), "abates_por_peca": Counter(), "valor_destruido_por_peca": Counter(),
         "stuns_aplicados": 0, "mortes_por_stun": 0,
         "heatmap": [[0 for _ in range(8)] for _ in range(8)], "tabuleiro_encravado": None
     }
@@ -40,8 +30,6 @@ def simular_um_jogo(seed):
     turnos = 0
     while not gs.game_over and turnos < LIMITE_TURNOS:
         turnos += 1
-        
-        # USA O BOT INTERMÉDIO PARA VELOCIDADE CONSTANTE
         best_move = BOT_INTERMEDIO.play(gs)
         
         if best_move:
@@ -89,6 +77,7 @@ def simular_um_jogo(seed):
 
     resultado["turnos"] = turnos
     resultado["winner"] = str(gs.winner)
+    resultado["tempo_segundos"] = time.time() - start_time
     return resultado
 
 def correr_diagnostico_profundo(num_jogos=100):
@@ -98,6 +87,7 @@ def correr_diagnostico_profundo(num_jogos=100):
     mortes_por_peca, spawns_realizados, abates_por_peca, valor_destruido_por_peca = Counter(), Counter(), Counter(), Counter()
     log_encravados = ""
     stuns_aplicados = mortes_por_stun = turnos_totais = jogos_concluidos = 0
+    tempo_total_processamento = 0.0
     executor = None
 
     try:
@@ -107,6 +97,7 @@ def correr_diagnostico_profundo(num_jogos=100):
             for futuro in concurrent.futures.as_completed(futuros):
                 res = futuro.result()
                 turnos_totais += res["turnos"]
+                tempo_total_processamento += res["tempo_segundos"]
                 causas_fim[res["winner"]] += 1
                 mortes_por_peca.update(res["mortes_por_peca"])
                 spawns_realizados.update(res["spawns_realizados"])
@@ -129,21 +120,32 @@ def correr_diagnostico_profundo(num_jogos=100):
     if log_encravados:
         with open("jogos_encravados_log.txt", "w", encoding="utf-8") as f: f.write(log_encravados)
 
+    tempo_medio = tempo_total_processamento / max(1, num_jogos)
+
     dados_exportacao = {
-        "estatisticas_gerais": {"partidas_simuladas": num_jogos, "turnos_medios": round(turnos_totais / max(1,num_jogos), 1), "causas_fim": dict(causas_fim)},
+        "estatisticas_gerais": {
+            "partidas_simuladas": num_jogos, 
+            "turnos_medios": round(turnos_totais / max(1,num_jogos), 1), 
+            "tempo_medio_segundos_por_jogo": round(tempo_medio, 2),
+            "causas_fim": dict(causas_fim)
+        },
         "metricas_combate": {
             "mortes_totais_por_peca": dict(mortes_por_peca), "abates_realizados_por_peca": dict(abates_por_peca),
             "pontos_destruidos_por_peca": dict(valor_destruido_por_peca), "stuns_aplicados": stuns_aplicados,
-            "mortes_por_stun": mortes_por_stun, "taxa_letalidade_stun": round((mortes_por_stun / max(1, stuns_aplicados)) * 100, 2)
+            "mortes_por_stun": mortes_por_stun, "taxa_letalidade_stun": round((mortes_por_stun / max(1, stuns_aplicados)) * 100, 2) if stuns_aplicados > 0 else 0
         },
         "metricas_invocacao": {"spawns_realizados": dict(spawns_realizados)}, "heatmap": heatmap
     }
 
     with open("telemetria_profunda.json", "w", encoding="utf-8") as f: json.dump(dados_exportacao, f, indent=4)
     with open("relatorio_telemetria.txt", "w", encoding="utf-8") as f:
-        f.write("RELATÓRIO DE TELEMETRIA PROFUNDA\n=================================\n\n1. CAUSAS DE FIM DE JOGO\n")
+        f.write("RELATÓRIO DE TELEMETRIA PROFUNDA\n=================================\n\n1. ESTATÍSTICAS GERAIS\n")
+        f.write(f" - Partidas Simuladas: {num_jogos}\n")
+        f.write(f" - Turnos Médios: {round(turnos_totais / max(1,num_jogos), 1)}\n")
+        f.write(f" - Tempo Médio por Jogo (CPU): {round(tempo_medio, 2)} segundos\n\n")
+        f.write("2. CAUSAS DE FIM DE JOGO\n")
         for causa, qtd in causas_fim.items(): f.write(f" - {causa}: {qtd} vezes ({(qtd/max(1,num_jogos))*100:.1f}%)\n")
-        f.write("\n2. LETALIDADE OFENSIVA (Quem mais MATA e DESTRÓI VALOR)\nPeça            | Abates   | Valor Destruído\n---------------------------------------------\n")
+        f.write("\n3. LETALIDADE OFENSIVA (Quem mais MATA e DESTRÓI VALOR)\nPeça            | Abates   | Valor Destruído\n---------------------------------------------\n")
         for peca in abates_por_peca: f.write(f"{peca:<15} | {abates_por_peca[peca]:<8} | {valor_destruido_por_peca[peca]} pts\n")
 
 if __name__ == "__main__":

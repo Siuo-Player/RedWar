@@ -4,7 +4,7 @@ import json
 ARQUIVO_CUSTOS = os.path.join(os.path.dirname(__file__), 'mobs_config.json')
 CUSTOS_BASE = {
     "Bone": 10, "Ghoul": 30, "Obelisk": 40, "Phantom": 45, 
-    "Sentry": 50, "FrostMage": 60, "Lich": 80, "BoneLord": 100
+    "Sentry": 90, "FrostMage": 60, "Lich": 80, "BoneLord": 100
 }
 
 def carregar_custos():

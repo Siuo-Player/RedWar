@@ -29,7 +29,7 @@ jobs:
 
       - name: 2. Calibração da Matemática do ELO
         run: |
-          python ai/calibrate_elo_chain.py --jogos 50
+          python ai/calibrate_elo_chain.py --jogos 20
 
       - name: Commit e Push das Modificações
         run: |

@@ -10,7 +10,7 @@ class GameState:
         self.tile_effects: list[list[Any]] = [[None for _ in range(8)] for _ in range(8)]
         self.white_to_move = True
         self.game_over = False
-        self.winner = None
+        self.winner: str | None = None
         self.turns_without_capture = 0
         self.move_log = []
         self.last_move = None
@@ -160,26 +160,41 @@ class GameState:
         self.check_game_over()
 
     def check_game_over(self):
+        
         white_alive = any(p.team == 'brancas' for row in self.board for p in row if p)
         black_alive = any(p.team == 'pretas' for row in self.board for p in row if p)
         
+        # 1. Aniquilação (Mantém-se igual)
         if not white_alive and not black_alive: 
-            self.game_over, self.winner = True, "Empate"
+            self.game_over, self.winner = True, "Empate (Aniquilação Mútua)"
         elif not white_alive: 
             self.game_over, self.winner = True, "Aniquilação - Pretas Vencem"
         elif not black_alive: 
             self.game_over, self.winner = True, "Aniquilação - Brancas Vencem"
-        elif self.turns_without_capture >= 50: 
-            self.game_over, self.winner = True, "Empate (50 Lances)"
             
         if self.game_over: return
+
+        # Determina quem foi o culpado pela última jogada
+        # (Se é a vez das Brancas jogarem agora, significa que as Pretas acabaram de jogar)
+        adversario_vencedor = 'Brancas' if self.white_to_move else 'Pretas'
             
+        # 2. Punição por Estagnação (50 Lances sem captura/ação irreversível)
+        # O jogador que faz o 50º lance passivo, perde.
+        if self.turns_without_capture >= 50: 
+            self.game_over = True
+            self.winner = f"{adversario_vencedor} Vencem (Oponente esgotou limite tático)"
+            return
+            
+        # 3. Punição por Repetição
+        # O jogador que forçar a 3ª repetição do mesmo tabuleiro, perde.
         current_hash = self.get_state_hash()
         self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1
         if self.state_history[current_hash] >= 3:
-            self.game_over, self.winner = True, "Empate por Repetição"
+            self.game_over = True
+            self.winner = f"{adversario_vencedor} Vencem (Oponente forçou repetição)"
             return
 
+        # 4. Punição por Bloqueio / Falta de Lances (Mantém-se igual)
         tem_jogada = False
         equipa_atual = 'brancas' if self.white_to_move else 'pretas'
         for r in range(8):
@@ -196,8 +211,7 @@ class GameState:
 
         if not tem_jogada:
             self.game_over = True
-            vencedor = 'Pretas' if self.white_to_move else 'Brancas'
-            self.winner = f"{vencedor} Vencem (Oponente ficou sem movimentos)"
+            self.winner = f"{adversario_vencedor} Vencem (Oponente ficou sem movimentos)"
 
 
 
