@@ -10,6 +10,7 @@ ESTRUTURA REAL DO PROJETO REDWAR
 ├── 📄 build_pipeline.py
 ├── 📄 estatisticas_treino.json
 ├── 📄 estrutura_atual.txt
+├── 📄 fetch_icons.py
 ├── 📄 gerar_estrutura.py
 ├── 📄 jogos_encravados_log.txt
 ├── 📄 main.py
@@ -36,6 +37,7 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   ├── 📄 calibrate_elo_chain.py
 │   ├── 📄 color_balancer.py
 │   ├── 📄 elo_config.json
+│   ├── 📄 estatisticas_treino.json
 │   ├── 📄 evaluator.c
 │   ├── 📄 evaluator.cp312-win_amd64.pyd
 │   ├── 📄 evaluator.pyi
@@ -45,10 +47,11 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   ├── 📄 search.py
 │   └── 📄 trainer.py
 ├── 📁 engine/
+│   ├── 📄 HEROES_SCHEMA.md
 │   ├── 📄 __init__.py
 │   ├── 📄 config.py
 │   ├── 📄 game_state.py
-│   ├── 📄 mobs_config.json
+│   ├── 📄 heroes_config.json
 │   └── 📄 pieces.py
 ├── 📁 network/
 │   └── 📄 client.py

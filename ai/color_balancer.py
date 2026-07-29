@@ -35,9 +35,11 @@ def jogar_batalha_simulada(orcamento_brancas, orcamento_pretas):
         
         if best_move:
             if best_move["type"] == "stun":
-                gs.make_action(best_move["start"], best_move["end"], "stun", best_move["area"])
+                gs.make_action(best_move["start"], best_move["end"], "stun", affected_area=best_move.get("area", []))
             elif best_move["type"] == "spawn":
                 gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
+            elif best_move["type"] == "spell":
+                gs.make_action(best_move["start"], best_move["end"], "spell", spell_name=best_move.get("spell_name"))
             else:
                 gs.make_action(best_move["start"], best_move["end"], best_move["type"])
         else:

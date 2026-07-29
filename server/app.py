@@ -51,13 +51,33 @@ async def gerir_conexao(websocket):
                 turno_atual = 'brancas' if gs.white_to_move else 'pretas'
                 if cor == turno_atual:
                     # Executar ação no motor centralizado
-                    gs.make_action(
-                        start_pos=tuple(dados["start"]),
-                        end_pos=tuple(dados["end"]),
-                        action_type=dados["action_type"],
-                        affected_area=dados.get("area"),
-                        spawn_name=dados.get("spawn_name")
-                    )
+                    if dados["action_type"] == "stun":
+                        gs.make_action(
+                            start_pos=tuple(dados["start"]),
+                            end_pos=tuple(dados["end"]),
+                            action_type="stun",
+                            affected_area=dados.get("area")
+                        )
+                    elif dados["action_type"] == "spawn":
+                        gs.make_action(
+                            start_pos=tuple(dados["start"]),
+                            end_pos=tuple(dados["end"]),
+                            action_type="spawn",
+                            spawn_name=dados.get("spawn_name")
+                        )
+                    elif dados["action_type"] == "spell":
+                        gs.make_action(
+                            start_pos=tuple(dados["start"]),
+                            end_pos=tuple(dados["end"]),
+                            action_type="spell",
+                            spell_name=dados.get("spell_name")
+                        )
+                    else:
+                        gs.make_action(
+                            start_pos=tuple(dados["start"]),
+                            end_pos=tuple(dados["end"]),
+                            action_type=dados["action_type"]
+                        )
                     await enviar_estado_para_todos()
                 else:
                     await websocket.send(json.dumps({"tipo": "erro", "mensagem": "Não é o teu turno!"}))

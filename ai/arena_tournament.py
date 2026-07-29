@@ -29,9 +29,14 @@ def run_headless_match(bot_brancas, bot_pretas):
         else: best_move = bot_pretas.play(gs)
             
         if best_move:
-            if best_move["type"] == "stun": gs.make_action(best_move["start"], best_move["end"], "stun", best_move["area"])
-            elif best_move["type"] == "spawn": gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
-            else: gs.make_action(best_move["start"], best_move["end"], best_move["type"])
+            if best_move["type"] == "stun":
+                gs.make_action(best_move["start"], best_move["end"], "stun", affected_area=best_move.get("area", []))
+            elif best_move["type"] == "spawn":
+                gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
+            elif best_move["type"] == "spell":
+                gs.make_action(best_move["start"], best_move["end"], "spell", spell_name=best_move.get("spell_name"))
+            else:
+                gs.make_action(best_move["start"], best_move["end"], best_move["type"])
         else:
             gs.check_game_over()
             if not gs.game_over: gs.game_over, gs.winner = True, "Bloqueio"

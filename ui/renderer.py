@@ -94,7 +94,6 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
     movimentos = p.get_valid_moves(r, c, gs.board, gs.tile_effects)
     ataques = p.get_valid_attacks(r, c, gs.board, gs.tile_effects)
     stuns = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
-    spawns = p.get_valid_spawns(r, c, gs.board, gs.tile_effects)
 
     # Destacar movimentos (verde pulsante)
     s_move = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
@@ -146,6 +145,27 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
         # translúcido
         vfx_surf.set_alpha(int(160 + 95 * pulsar))
         ecra.blit(vfx_surf, (tx, ty))
+
+    # Areas de Feitico (Spells) com cor roxa e oscilacao
+    if hasattr(p, 'get_valid_spells'):
+        for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
+            tr, tc = spell["target"]
+            s_spell = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
+            alpha = int(90 + 120 * pulsar) if hover_pos == (tr, tc) else int(60 + 80 * pulsar)
+            s_spell.fill((200, 50, 255, alpha))
+            ecra.blit(s_spell, (off_x + tc * tam_casa, off_y + tr * tam_casa))
+            
+            txt = font_vfx.render(spell["spell_type"].upper(), True, (255, 255, 255))
+            osc = int(math.sin((ticks + (tr * 13 + tc * 7)) / 280.0) * (tam_casa * 0.12))
+            tx = off_x + tc * tam_casa + tam_casa // 2 - txt.get_width() // 2
+            ty = off_y + tr * tam_casa - txt.get_height() - 6 + osc
+            vfx_surf = pygame.Surface((txt.get_width(), txt.get_height()), pygame.SRCALPHA)
+            vfx_surf.fill((0, 0, 0, 0))
+            vfx_surf.blit(txt, (0, 0))
+            vfx_surf.set_alpha(int(160 + 95 * pulsar))
+            ecra.blit(vfx_surf, (tx, ty))
+
+
 
 def carregar_imagem_peca(nome_peca, team, tam):
     chave = (nome_peca, team, tam)

@@ -54,10 +54,12 @@ def animar_acao(ecra, gs, start_pos, end_pos, action_type, tam_casa, off_x, off_
             if img: ecra.blit(img, img.get_rect(center=(cx, cy)))
             else: pygame.draw.circle(ecra, (200,200,200), (cx, cy), int(tam_casa * 0.38))
         elif action_type == "stun": pygame.draw.circle(ecra, (0, 200, 255), (int(cx), int(cy)), 12)
-        elif action_type == "spawn": pygame.draw.circle(ecra, (200, 100, 255), (int(cx), int(cy)), 12) 
+        elif action_type == "spawn": pygame.draw.circle(ecra, (200, 100, 255), (int(cx), int(cy)), 12)
+        elif action_type == "spell": pygame.draw.circle(ecra, (200, 50, 255), (int(cx), int(cy)), 12)
         pygame.display.flip()
         clock.tick(60)
     if action_type in ["move", "attack"]: gs.board[sr][sc] = piece
+
 
 resultados_analise = {}
 
@@ -211,11 +213,19 @@ def main():
                                             animar_acao(ecra, gs, (sr, sc), (r, c), "stun", tam_casa, off_x, off_y_tab, clock)
                                             gs.make_action((sr, sc), (r, c), "stun", affected_area=stuns[(r, c)]["aoe"])
                                         else:
+                                            spawn_found = False
                                             for sp in p.get_valid_spawns(sr, sc, gs.board, gs.tile_effects):
                                                 if (r, c) == (sp[0], sp[1]):
                                                     animar_acao(ecra, gs, (sr, sc), (r, c), "spawn", tam_casa, off_x, off_y_tab, clock)
                                                     gs.make_action((sr, sc), (r, c), "spawn", spawn_name=sp[2])
+                                                    spawn_found = True
                                                     break
+                                            if not spawn_found and hasattr(p, 'get_valid_spells'):
+                                                for spell in p.get_valid_spells(sr, sc, gs.board, gs.tile_effects):
+                                                    if (r, c) == spell["target"]:
+                                                        animar_acao(ecra, gs, (sr, sc), (r, c), "spell", tam_casa, off_x, off_y_tab, clock)
+                                                        gs.make_action((sr, sc), (r, c), "spell", spell_name=spell["spell_type"])
+                                                        break
                                 casa_selecionada = None
 
             elif evento.type == pygame.MOUSEMOTION:
@@ -234,7 +244,14 @@ def main():
                 best_move = resultado_ia.pop() if resultado_ia else None
                 if best_move:
                     animar_acao(ecra, gs, best_move["start"], best_move["end"], best_move["type"], tam_casa, off_x, off_y_tab, clock)
-                    gs.make_action(best_move["start"], best_move["end"], best_move["type"], best_move.get("area"), best_move.get("spawn_name"))
+                    if best_move["type"] == "stun":
+                        gs.make_action(best_move["start"], best_move["end"], "stun", affected_area=best_move.get("area", []))
+                    elif best_move["type"] == "spawn":
+                        gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
+                    elif best_move["type"] == "spell":
+                        gs.make_action(best_move["start"], best_move["end"], "spell", spell_name=best_move.get("spell_name"))
+                    else:
+                        gs.make_action(best_move["start"], best_move["end"], best_move["type"])
                 pygame.display.set_caption(f"RedWar - O Teu Turno")
                 thread_ia = None
 

@@ -46,7 +46,7 @@ def simular_jogo_treino(seed):
     bot_pretas, elo_pretas = random.choice(POOL_BOTS)
     
     comp_pretas = preencher_draft_aleatorio(gs, 'pretas', [0, 1], ORCAMENTO_PRETAS)
-    comp_brancas = preencher_draft_aleatorio(gs, 'brancas', [6, 7], ORCAMENTO_BRANCAS)
+    comp_brancas = preencher_draft_aleatorio(gs, 'brancas', [LINHAS - 2, LINHAS - 1], ORCAMENTO_BRANCAS)
 
     turnos = 0
     while not gs.game_over and turnos < LIMITE_TURNOS:
@@ -54,9 +54,14 @@ def simular_jogo_treino(seed):
         best_move = bot_brancas.play(gs) if gs.white_to_move else bot_pretas.play(gs)
         
         if best_move:
-            if best_move["type"] == "stun": gs.make_action(best_move["start"], best_move["end"], "stun", best_move.get("area", []))
-            elif best_move["type"] == "spawn": gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
-            else: gs.make_action(best_move["start"], best_move["end"], best_move["type"])
+            if best_move["type"] == "stun":
+                gs.make_action(best_move["start"], best_move["end"], "stun", affected_area=best_move.get("area", []))
+            elif best_move["type"] == "spawn":
+                gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
+            elif best_move["type"] == "spell":
+                gs.make_action(best_move["start"], best_move["end"], "spell", spell_name=best_move.get("spell_name"))
+            else:
+                gs.make_action(best_move["start"], best_move["end"], best_move["type"])
         else:
             gs.check_game_over()
             if not gs.game_over: gs.game_over, gs.winner = True, "Bloqueio Total"
@@ -91,9 +96,11 @@ def gerar_estatisticas_treino(num_jogos=200):
         "matches": historico_partidas
     }
     
-    with open("estatisticas_treino.json", "w") as f:
+    os.makedirs("data", exist_ok=True)
+    caminho_stats = os.path.join("data", "estatisticas_treino.json")
+    with open(caminho_stats, "w") as f:
         json.dump(stats, f, indent=4)
-    print("\n✅ estatisticas_treino.json atualizado com metadados ELO!")
+    print(f"\n✅ {caminho_stats} atualizado com metadados ELO!")
 
 if __name__ == "__main__":
     gerar_estatisticas_treino(200)

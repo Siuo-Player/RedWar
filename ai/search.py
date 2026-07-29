@@ -30,7 +30,35 @@ def get_all_moves_ordered(gs, hash_atual=None, depth=0, killer_moves=None):
                 
                 for r_spawn, c_spawn, spawn_name in p.get_valid_spawns(r, c, gs.board, gs.tile_effects):
                     acoes.append({"start": (r, c), "end": (r_spawn, c_spawn), "type": "spawn", "spawn_name": spawn_name, "prioridade": 500})
-                
+
+                if hasattr(p, 'get_valid_spells'):
+                    for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
+                        if not spell or not isinstance(spell, dict):
+                            continue
+                        target = spell.get("target")
+                        spell_type = spell.get("spell_type")
+                        if target is None or spell_type is None:
+                            continue
+
+                        if spell_type == "purify":
+                            prioridade = 900
+                        elif spell_type == "ignite":
+                            prioridade = 600
+                        elif spell_type == "barricade":
+                            prioridade = 400
+                        elif spell_type == "swap":
+                            prioridade = 300
+                        else:
+                            prioridade = 250
+
+                        acoes.append({
+                            "start": (r, c),
+                            "end": target,
+                            "type": "spell",
+                            "spell_name": spell_type,
+                            "prioridade": prioridade
+                        })
+
                 for move in p.get_valid_moves(r, c, gs.board, gs.tile_effects):
                     bonus_atual = obter_bonus_posicional(p, r, c)
                     bonus_futuro = obter_bonus_posicional(p, move[0], move[1])
@@ -191,7 +219,14 @@ def find_best_move(gs, evaluator_func=None, time_limit=2.0):
 
     global TRANSPOSITION_TABLE
     if len(TRANSPOSITION_TABLE) > 200000:
-        TRANSPOSITION_TABLE.clear()
+        # Apaga entradas de baixa profundidade para preservar resultados profundos
+        chaves_a_remover = [k for k, v in TRANSPOSITION_TABLE.items() if v.get('depth', 0) <= 2]
+        for k in chaves_a_remover:
+            del TRANSPOSITION_TABLE[k]
+        if len(TRANSPOSITION_TABLE) > 150000:
+            chaves = list(TRANSPOSITION_TABLE.keys())
+            for k in chaves[:50000]:
+                del TRANSPOSITION_TABLE[k]
 
     gs.compute_initial_hash()
 

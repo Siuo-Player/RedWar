@@ -3,16 +3,19 @@ name: RedWar Auto-Balancer & ELO Calibration
 on:
   push:
     branches:
-      - main  # Dispara sempre que fizeres push para a branch principal
-  workflow_dispatch: # Mantém o botão manual disponível na web
+      - main
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true # Cancela automaticamente os runs anteriores pendentes/em execução
+  cancel-in-progress: true
 
 jobs:
   nightly-calibration:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Crucial: Dá permissão ao agente para fazer git push!
+    
     steps:
       - name: Checkout do Repositório
         uses: actions/checkout@v3
@@ -22,22 +25,26 @@ jobs:
         with:
           python-version: '3.10'
 
+      - name: Instalar Dependências e Compilar Motor C++
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # O Segredo: Compilar o ficheiro .pyx em .so para Linux no servidor!
+          python setup.py build_ext --inplace
+
       - name: 1. Treino e Extração de Estatísticas
         run: |
           python ai/trainer.py
-          python ai/game_analyzer.py
+          python ai/auto_pricer.py
 
       - name: 2. Calibração da Matemática do ELO
         run: |
-          python ai/calibrate_elo_chain.py --jogos 20
+          python ai/calibrate_elo_chain.py --jogos 20 --minutos 10
 
       - name: Commit e Push das Modificações
         run: |
           git config --global user.name "RedWar Auto-Balancer Bot"
           git config --global user.email "actions@github.com"
-          
-          git add *.json
-          git add ai/*.json
-          
-          git commit -m "🤖 Auto-Balance: Telemetria e ELO atualizados para o commit mais recente" || echo "Sem alterações para gravar"
+          git add engine/*.json ai/*.json || true
+          git commit -m "🤖 Auto-Balance: Telemetria e ELO atualizados (GitHub Actions)" || echo "Sem alterações para gravar"
           git push

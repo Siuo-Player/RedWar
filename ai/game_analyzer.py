@@ -117,8 +117,10 @@ def correr_diagnostico_profundo(num_jogos=100):
         sys.exit(0)
 
     print("\n\n✅ Diagnóstico concluído! A exportar ficheiros...")
+    os.makedirs("logs", exist_ok=True)
+    
     if log_encravados:
-        with open("jogos_encravados_log.txt", "w", encoding="utf-8") as f: f.write(log_encravados)
+        with open(os.path.join("logs", "jogos_encravados_log.txt"), "w", encoding="utf-8") as f: f.write(log_encravados)
 
     tempo_medio = tempo_total_processamento / max(1, num_jogos)
 
@@ -137,8 +139,8 @@ def correr_diagnostico_profundo(num_jogos=100):
         "metricas_invocacao": {"spawns_realizados": dict(spawns_realizados)}, "heatmap": heatmap
     }
 
-    with open("telemetria_profunda.json", "w", encoding="utf-8") as f: json.dump(dados_exportacao, f, indent=4)
-    with open("relatorio_telemetria.txt", "w", encoding="utf-8") as f:
+    with open(os.path.join("logs", "telemetria_profunda.json"), "w", encoding="utf-8") as f: json.dump(dados_exportacao, f, indent=4)
+    with open(os.path.join("logs", "relatorio_telemetria.txt"), "w", encoding="utf-8") as f:
         f.write("RELATÓRIO DE TELEMETRIA PROFUNDA\n=================================\n\n1. ESTATÍSTICAS GERAIS\n")
         f.write(f" - Partidas Simuladas: {num_jogos}\n")
         f.write(f" - Turnos Médios: {round(turnos_totais / max(1,num_jogos), 1)}\n")
