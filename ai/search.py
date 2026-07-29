@@ -1,10 +1,6 @@
 # ai/search.py
-import time
-import random
 from ai.evaluator import obter_bonus_posicional
 from engine.config import LINHAS, COLUNAS
-
-class TimeOutException(Exception): pass
 
 TRANSPOSITION_TABLE = {}
 
@@ -84,8 +80,7 @@ def get_all_moves_ordered(gs, hash_atual=None, depth=0, killer_moves=None):
             
     return acoes
 
-def quiescence_search(gs, alpha, beta, maximizing_player, evaluator_func, depth_limit, start_time, time_limit):
-    if time.process_time() - start_time > time_limit: raise TimeOutException()
+def quiescence_search(gs, alpha, beta, maximizing_player, evaluator_func, depth_limit):
     stand_pat = evaluator_func(gs)
     
     if depth_limit == 0: return stand_pat
@@ -98,10 +93,9 @@ def quiescence_search(gs, alpha, beta, maximizing_player, evaluator_func, depth_
         if stand_pat >= beta: return beta
         if alpha < stand_pat: alpha = stand_pat
         for acao in acoes:
-            if time.process_time() - start_time > time_limit: raise TimeOutException()
             undo = gs.make_simulation_action(acao)
             try:
-                score = quiescence_search(gs, alpha, beta, False, evaluator_func, depth_limit - 1, start_time, time_limit)
+                score = quiescence_search(gs, alpha, beta, False, evaluator_func, depth_limit - 1)
             finally:
                 gs.unmake_simulation_action(undo)
             
@@ -112,10 +106,9 @@ def quiescence_search(gs, alpha, beta, maximizing_player, evaluator_func, depth_
         if stand_pat <= alpha: return alpha
         if beta > stand_pat: beta = stand_pat
         for acao in acoes:
-            if time.process_time() - start_time > time_limit: raise TimeOutException()
             undo = gs.make_simulation_action(acao)
             try:
-                score = quiescence_search(gs, alpha, beta, True, evaluator_func, depth_limit - 1, start_time, time_limit)
+                score = quiescence_search(gs, alpha, beta, True, evaluator_func, depth_limit - 1)
             finally:
                 gs.unmake_simulation_action(undo)
             
@@ -123,9 +116,7 @@ def quiescence_search(gs, alpha, beta, maximizing_player, evaluator_func, depth_
             if score < beta: beta = score
         return beta
 
-def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func, start_time, time_limit, killer_moves):
-    if time.process_time() - start_time > time_limit: raise TimeOutException()
-    
+def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func, killer_moves):
     state_hash = gs.get_state_hash()
     tt_entry = TRANSPOSITION_TABLE.get(state_hash)
     
@@ -136,16 +127,16 @@ def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func, start_tim
         if alpha >= beta: return tt_entry['score']
 
     if gs.game_over: return evaluator_func(gs)
-    if depth == 0: return quiescence_search(gs, alpha, beta, maximizing_player, evaluator_func, 3, start_time, time_limit)
+    if depth == 0: return quiescence_search(gs, alpha, beta, maximizing_player, evaluator_func, 3)
         
     if depth >= 3 and gs.turns_without_capture < 40:
         undo_null = gs.make_null_move()
         try:
             if maximizing_player:
-                score = minimax(gs, depth - 3, alpha, beta, False, evaluator_func, start_time, time_limit, killer_moves)
+                score = minimax(gs, depth - 3, alpha, beta, False, evaluator_func, killer_moves)
                 if score >= beta: return beta
             else:
-                score = minimax(gs, depth - 3, alpha, beta, True, evaluator_func, start_time, time_limit, killer_moves)
+                score = minimax(gs, depth - 3, alpha, beta, True, evaluator_func, killer_moves)
                 if score <= alpha: return alpha
         finally:
             gs.unmake_null_move(undo_null)
@@ -159,11 +150,9 @@ def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func, start_tim
     if maximizing_player:
         max_eval = -float('inf')
         for acao in acoes:
-            if time.process_time() - start_time > time_limit: raise TimeOutException()
-            
             undo = gs.make_simulation_action(acao)
             try:
-                eval_score = minimax(gs, depth - 1, alpha, beta, False, evaluator_func, start_time, time_limit, killer_moves)
+                eval_score = minimax(gs, depth - 1, alpha, beta, False, evaluator_func, killer_moves)
             finally:
                 gs.unmake_simulation_action(undo)
             
@@ -187,11 +176,9 @@ def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func, start_tim
         min_eval = float('inf')
         original_beta = beta
         for acao in acoes:
-            if time.process_time() - start_time > time_limit: raise TimeOutException()
-            
             undo = gs.make_simulation_action(acao)
             try:
-                eval_score = minimax(gs, depth - 1, alpha, beta, True, evaluator_func, start_time, time_limit, killer_moves)
+                eval_score = minimax(gs, depth - 1, alpha, beta, True, evaluator_func, killer_moves)
             finally:
                 gs.unmake_simulation_action(undo)
             
@@ -212,7 +199,7 @@ def minimax(gs, depth, alpha, beta, maximizing_player, evaluator_func, start_tim
         
         return min_eval
 
-def find_best_move(gs, evaluator_func=None, time_limit=2.0):
+def find_best_move(gs, evaluator_func=None, depth_limit=5, noise_level=0):
     if evaluator_func is None:
         from ai.evaluator import avaliador_mestre
         evaluator_func = avaliador_mestre
@@ -230,7 +217,6 @@ def find_best_move(gs, evaluator_func=None, time_limit=2.0):
 
     gs.compute_initial_hash()
 
-    start_time = time.process_time()
     hash_raiz = gs.get_state_hash()
     
     killer_moves = [[None, None] for _ in range(100)]
@@ -239,51 +225,45 @@ def find_best_move(gs, evaluator_func=None, time_limit=2.0):
 
     melhor_move_global = acoes[0] 
     
-    try:
-        for current_depth in range(1, 100): 
-            alpha = -float('inf')
-            beta = float('inf')
-            
-            if hash_raiz in TRANSPOSITION_TABLE:
-                best_prev_depth = TRANSPOSITION_TABLE[hash_raiz].get('best_move')
-                if best_prev_depth in acoes:
-                    acoes.remove(best_prev_depth)
-                    acoes.insert(0, best_prev_depth)
+    for current_depth in range(1, depth_limit + 1):
+        alpha = -float('inf')
+        beta = float('inf')
+        
+        if hash_raiz in TRANSPOSITION_TABLE:
+            best_prev_depth = TRANSPOSITION_TABLE[hash_raiz].get('best_move')
+            if best_prev_depth in acoes:
+                acoes.remove(best_prev_depth)
+                acoes.insert(0, best_prev_depth)
 
-            melhor_move_nesta_profundidade = acoes[0]
+        melhor_move_nesta_profundidade = acoes[0]
 
-            if gs.white_to_move:
-                melhor_score = -float('inf')
-                for acao in acoes:
-                    if time.process_time() - start_time > time_limit: raise TimeOutException()
-                    undo = gs.make_simulation_action(acao)
-                    try:
-                        score = minimax(gs, current_depth - 1, alpha, beta, False, evaluator_func, start_time, time_limit, killer_moves)
-                    finally:
-                        gs.unmake_simulation_action(undo)
-                    
-                    if score > melhor_score:
-                        melhor_score = score
-                        melhor_move_nesta_profundidade = acao
-                    alpha = max(alpha, melhor_score)
-            else:
-                melhor_score = float('inf')
-                for acao in acoes:
-                    if time.process_time() - start_time > time_limit: raise TimeOutException()
-                    undo = gs.make_simulation_action(acao)
-                    try:
-                        score = minimax(gs, current_depth - 1, alpha, beta, True, evaluator_func, start_time, time_limit, killer_moves)
-                    finally:
-                        gs.unmake_simulation_action(undo)
-                    
-                    if score < melhor_score:
-                        melhor_score = score
-                        melhor_move_nesta_profundidade = acao
-                    beta = min(beta, melhor_score)
-                    
-            melhor_move_global = melhor_move_nesta_profundidade
-            
-    except TimeOutException:
-        pass 
+        if gs.white_to_move:
+            melhor_score = -float('inf')
+            for acao in acoes:
+                undo = gs.make_simulation_action(acao)
+                try:
+                    score = minimax(gs, current_depth - 1, alpha, beta, False, evaluator_func, killer_moves)
+                finally:
+                    gs.unmake_simulation_action(undo)
+                
+                if score > melhor_score:
+                    melhor_score = score
+                    melhor_move_nesta_profundidade = acao
+                alpha = max(alpha, melhor_score)
+        else:
+            melhor_score = float('inf')
+            for acao in acoes:
+                undo = gs.make_simulation_action(acao)
+                try:
+                    score = minimax(gs, current_depth - 1, alpha, beta, True, evaluator_func, killer_moves)
+                finally:
+                    gs.unmake_simulation_action(undo)
+                
+                if score < melhor_score:
+                    melhor_score = score
+                    melhor_move_nesta_profundidade = acao
+                beta = min(beta, melhor_score)
+                
+        melhor_move_global = melhor_move_nesta_profundidade
 
     return melhor_move_global
