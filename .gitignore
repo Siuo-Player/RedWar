@@ -22,3 +22,11 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Cython e Compilacao
+*.c
+*.obj
+*.pyd
+*.lib
+*.exp
+build/

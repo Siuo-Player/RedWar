@@ -6,11 +6,15 @@ import subprocess
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(ROOT_DIR)
 
+# Injetar ROOT_DIR no PYTHONPATH para os scripts encontrarem os módulos (engine, ai, etc)
+env = os.environ.copy()
+env["PYTHONPATH"] = ROOT_DIR
+
 def executar_pipeline():
     print("🚀 A INICIAR PIPELINE DE BUILD E BALANCEAMENTO...\n")
     
     print("1. A correr Testes Unitários...")
-    test_result = subprocess.run([sys.executable, "-m", "pytest", "tests/"], capture_output=True, text=True)
+    test_result = subprocess.run([sys.executable, "-m", "pytest", "tests/"], capture_output=True, text=True, env=env)
     if test_result.returncode != 0:
         print("❌ FALHA NOS TESTES. Abortando Pipeline.")
         print(test_result.stdout)
@@ -18,11 +22,13 @@ def executar_pipeline():
     print("✅ Testes passaram com sucesso!\n")
     
     print("2. A Simular Estatísticas de Jogo Rápido (Trainer)...")
-    subprocess.run([sys.executable, os.path.join("ai", "trainer.py")], capture_output=False)
+    # CORREÇÃO: Apontar corretamente para a super-pasta tools
+    subprocess.run([sys.executable, os.path.join("tools", "analytics", "trainer.py")], capture_output=False, env=env)
     print("✅ Estatísticas geradas em data/estatisticas_treino.json!\n")
     
     print("3. Auto-Balancing e Atualização do JSON de Custos...")
-    subprocess.run([sys.executable, os.path.join("ai", "auto_pricer.py")], capture_output=False)
+    # CORREÇÃO: Apontar corretamente para a super-pasta tools
+    subprocess.run([sys.executable, os.path.join("tools", "balance", "auto_pricer.py")], capture_output=False, env=env)
     
     print("\n4. A Gerar Relatório de Pipeline...")
     os.makedirs("logs", exist_ok=True)
