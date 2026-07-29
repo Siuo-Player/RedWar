@@ -104,9 +104,9 @@ class GameState:
                     novo_gs.board[r][c] = nova_peca
                 ef = novo_gs.tile_effects[r][c]
                 if ef: novo_gs.tile_effects[r][c] = ef.copy()
-            # snapshots should not carry evaluator cache
-            novo_gs.current_score = None
-            return novo_gs
+        # snapshots should not carry evaluator cache
+        novo_gs.current_score = None
+        return novo_gs
 
     # =====================================================================
     # MAKE / UNMAKE CORE (Alta Performance para Pesquisa da IA)
@@ -131,7 +131,11 @@ class GameState:
                 if p:
                     undo["pieces"].append((p, p.stun_timer, getattr(p, 'lifespan', None), getattr(p, 'spawn_cooldown', 0)))
 
-        self.make_action(acao["start"], acao["end"], acao["type"], acao.get("area"), acao.get("spawn_name"), is_simulation=True)
+        self.make_action(
+            acao["start"], acao["end"], acao["type"],
+            acao.get("area"), acao.get("spawn_name"), acao.get("spell_name"),
+            is_simulation=True
+        )
         return undo
 
     def unmake_simulation_action(self, undo):
@@ -195,7 +199,7 @@ class GameState:
     # =====================================================================
     # NÚCLEO TÁTICO
     # =====================================================================
-    def make_action(self, start_pos, end_pos, action_type="move", affected_area=None, spawn_name=None, is_simulation=False):
+    def make_action(self, start_pos, end_pos, action_type="move", affected_area=None, spawn_name=None, spell_name=None, is_simulation=False):
         if self.game_over: return
         if not self._hash_valid: self.compute_initial_hash()
 
@@ -205,7 +209,7 @@ class GameState:
         captured_something = False
 
         if not is_simulation:
-            self.gerar_notacao(piece, start_pos, end_pos, action_type, spawn_name)
+            self.gerar_notacao(piece, start_pos, end_pos, action_type, spawn_name, spell_name)
             
         self.last_move = {"start": start_pos, "end": end_pos}
 
@@ -231,6 +235,28 @@ class GameState:
             piece.stun_timer = 1 
             self.add_piece_hash(start_row, start_col, piece)
             if hasattr(piece, 'spawn_cooldown'): piece.spawn_cooldown = 4 
+        elif action_type == "spell" and spell_name and piece:
+            if spell_name == "ignite":
+                self.tile_effects[end_row][end_col] = {"type": "fire", "timer": 3, "team": piece.team}
+            elif spell_name == "purify":
+                alvo = self.board[end_row][end_col]
+                if alvo and alvo.team == piece.team:
+                    self.remove_piece_hash(end_row, end_col)
+                    alvo.stun_timer = 0
+                    self.add_piece_hash(end_row, end_col, alvo)
+            elif spell_name == "swap":
+                alvo = self.board[end_row][end_col]
+                if alvo and alvo.team == piece.team and alvo is not piece:
+                    self.remove_piece_hash(start_row, start_col)
+                    self.remove_piece_hash(end_row, end_col)
+                    self.board[start_row][start_col], self.board[end_row][end_col] = alvo, piece
+                    self.add_piece_hash(start_row, start_col, self.board[start_row][start_col])
+                    self.add_piece_hash(end_row, end_col, self.board[end_row][end_col])
+            elif spell_name == "barricade":
+                from engine.pieces import StoneWall
+                barr = StoneWall(piece.team)
+                self.board[end_row][end_col] = barr
+                self.add_piece_hash(end_row, end_col, barr)
         elif action_type == "move":
             self.remove_piece_hash(start_row, start_col)
             self.board[start_row][start_col] = None
@@ -302,7 +328,7 @@ class GameState:
                     if ef["timer"] <= 0:
                         self.tile_effects[r][c] = None
 
-    def gerar_notacao(self, piece, start_pos, end_pos, action_type, spawn_name):
+    def gerar_notacao(self, piece, start_pos, end_pos, action_type, spawn_name=None, spell_name=None, affected_area=None):
         sr, sc = start_pos
         er, ec = end_pos
         s_alg = coords_para_notacao(sr, sc)
@@ -315,15 +341,24 @@ class GameState:
         elif action_type == "attack": short = f"{piece.acronym} {s_alg}x{e_alg}"
         elif action_type == "stun": short = f"{piece.acronym} * {e_alg}"
         elif action_type == "spawn": short = f"{piece.acronym} + {spawn_name[:2]} {e_alg}"
+        elif action_type == "spell" and spell_name:
+            short = f"{piece.acronym} {spell_name.upper()} {e_alg}"
         else: short = "?"
             
         estado_congelado = self.fast_clone()
         
         self.move_log.append({
-            "short": prefixo + short, 
-            "team": piece.team, 
+            "short": prefixo + short,
+            "team": piece.team,
             "estado_anterior": estado_congelado,
-            "acao_escolhida": {"start": start_pos, "end": end_pos, "type": action_type}
+            "acao_escolhida": {
+                "start": start_pos,
+                "end": end_pos,
+                "type": action_type,
+                "spell_name": spell_name,
+                "spawn_name": spawn_name,
+                "area": affected_area
+            }
         })
 
     def check_game_over(self):

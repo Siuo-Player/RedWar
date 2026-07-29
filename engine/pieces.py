@@ -66,6 +66,7 @@ class Piece:
     def get_threat_area(self, r, c, board, tile_effects=None) -> list: return []
     def get_valid_stuns(self, r, c, board, tile_effects=None) -> dict: return {}
     def get_valid_spawns(self, r, c, board, tile_effects=None) -> list: return []
+    def get_valid_spells(self, r, c, board, tile_effects=None) -> list: return []
 
 
 # -------------------- BehaviorCompiler ---------------------------------
@@ -333,6 +334,39 @@ class Inquisitor(DataPiece):
     __slots__ = ()
     def __init__(self, team):
         super().__init__(team, 'Inquisitor')
+    
+    def get_aura_positions(self, r, c, board, tile_effects=None):
+        """Return list of enemy positions within the silence aura radius."""
+        if not self.can_act():
+            return []
+        data = HERO_DEFS.get('Inquisitor', {})
+        radius = int(data.get('aura_radius', 2))
+        aoe = []
+        for dr in range(-radius, radius + 1):
+            for dc in range(-radius, radius + 1):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < LINHAS and 0 <= nc < COLUNAS:
+                    if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get('type') == 'ice':
+                        continue
+                    p = board[nr][nc]
+                    if p and p.team != self.team:
+                        aoe.append((nr, nc))
+        return aoe
+
+    def get_valid_spells(self, r, c, board, tile_effects=None):
+        """Return possible silence targets (positions) for the Inquisitor aura."""
+        return self.get_aura_positions(r, c, board, tile_effects)
+
+    def get_threat_area(self, r, c, board, tile_effects=None) -> list:
+        # include normal attack threat area and aura positions as soft-threats
+        threats = super().get_threat_area(r, c, board, tile_effects)
+        aura = self.get_aura_positions(r, c, board, tile_effects)
+        for pos in aura:
+            if pos not in threats:
+                threats.append(pos)
+        return threats
 
 class Berserker(DataPiece):
     __slots__ = ()
@@ -344,36 +378,131 @@ class Pyromancer(DataPiece):
     __slots__ = ()
     def __init__(self, team):
         super().__init__(team, 'Pyromancer')
+
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        return []
+        if not self.can_act():
+            return []
+        targets = []
+        max_range = 3
+        for dr in range(-max_range, max_range + 1):
+            for dc in range(-max_range, max_range + 1):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                    continue
+                target = board[nr][nc]
+                if target is None or target.team != self.team:
+                    targets.append({"target": (nr, nc), "spell_type": "ignite"})
+        return targets
 
 class Dragoon(DataPiece):
     __slots__ = ()
     def __init__(self, team):
         super().__init__(team, 'Dragoon')
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        return []
+        """Return possible jump/leap landing positions for the Dragoon.
+
+        Simple rule implemented:
+         - can jump over a single obstacle in any of the 8 directions and land
+           two squares away if empty or occupied by an enemy.
+         - additionally can leap up to `jump_max` tiles in a straight line
+           (configurable in `heroes_config.json` under Dragoon.jump_max).
+        """
+        if not self.can_act():
+            return []
+        data = HERO_DEFS.get('Dragoon', {})
+        max_jump = int(data.get('jump_max', 2))
+        lands = []
+        dirs = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]
+        for dr, dc in dirs:
+            # jump over single obstacle to land two away
+            midr, midc = r + dr, c + dc
+            landr, landc = r + dr*2, c + dc*2
+            if 0 <= midr < LINHAS and 0 <= midc < COLUNAS and 0 <= landr < LINHAS and 0 <= landc < COLUNAS:
+                if board[midr][midc] is not None:
+                    dest = board[landr][landc]
+                    if dest is None or dest.team != self.team:
+                        lands.append((landr, landc))
+            # straight leaps up to max_jump (can pass over empty tiles)
+            for step in range(2, max_jump + 1):
+                nr = r + dr * step
+                nc = c + dc * step
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                    break
+                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get('type') == 'ice':
+                    break
+                dest = board[nr][nc]
+                if dest is None:
+                    lands.append((nr, nc))
+                else:
+                    if dest.team != self.team:
+                        lands.append((nr, nc))
+                    break
+        # deduplicate
+        uniq = []
+        for p in lands:
+            if p not in uniq:
+                uniq.append(p)
+        return uniq
 
 class Cleric(DataPiece):
     __slots__ = ()
     def __init__(self, team):
         super().__init__(team, 'Cleric')
+
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        return []
+        if not self.can_act():
+            return []
+        purify_targets = []
+        for dr in range(-2, 3):
+            for dc in range(-2, 3):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                    continue
+                target = board[nr][nc]
+                if target and target.team == self.team and target.stun_timer > 0:
+                    purify_targets.append({"target": (nr, nc), "spell_type": "purify"})
+        return purify_targets
 
 class Trickster(DataPiece):
     __slots__ = ()
     def __init__(self, team):
         super().__init__(team, 'Trickster')
+
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        return []
+        if not self.can_act():
+            return []
+        swaps = []
+        max_range = 3
+        for dr in range(-max_range, max_range + 1):
+            for dc in range(-max_range, max_range + 1):
+                if dr == 0 and dc == 0:
+                    continue
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                    continue
+                target = board[nr][nc]
+                if target and target.team == self.team and target is not board[r][c]:
+                    swaps.append({"target": (nr, nc), "spell_type": "swap"})
+        return swaps
 
 class Geomancer(DataPiece):
     __slots__ = ()
     def __init__(self, team):
         super().__init__(team, 'Geomancer')
+
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        return []
+        if not self.can_act():
+            return []
+        walls = []
+        for dr, dc in [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < LINHAS and 0 <= nc < COLUNAS and board[nr][nc] is None:
+                walls.append({"target": (nr, nc), "spell_type": "barricade"})
+        return walls
 
 # Keep FrostMage and Lich special methods
 class FrostMage(DataPiece):
@@ -426,10 +555,20 @@ class Lich(DataPiece):
         return spawns
 
 
+class Phantom(DataPiece):
+    __slots__ = ()
+    def __init__(self, team):
+        super().__init__(team, 'Phantom')
+
+class Sentry(DataPiece):
+    __slots__ = ()
+    def __init__(self, team):
+        super().__init__(team, 'Sentry')
+
+
 TODAS_AS_PECAS = [
     Bone, Ghoul, Obelisk, BoneLord,
-    Phantom := type('Phantom', (DataPiece,), {'__slots__': (), '__init__': lambda self, team: DataPiece.__init__(self, team, 'Phantom')}),
-    Sentry := type('Sentry', (DataPiece,), {'__slots__': (), '__init__': lambda self, team: DataPiece.__init__(self, team, 'Sentry')}),
+    Phantom, Sentry,
     FrostMage, Lich,
     Ranger, Nightshade, Templar, StoneWall, Inquisitor, Berserker,
     Pyromancer, Dragoon, Cleric, Trickster, Geomancer
