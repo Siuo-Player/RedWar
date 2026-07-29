@@ -1,172 +1,292 @@
-# ⚔️ RedWar: Combat Engine & AI Simulation
+<div align="center">
 
-Um jogo de tabuleiro tático assimétrico de eliminação direta focado em sinergia de peças, controlo de área e posicionamento estratégico. O projeto inclui um motor de Inteligência Artificial modular inspirado na arquitetura do Stockfish, suportando simulações exaustivas e balanceamento automático.
+# ⚔️ RedWar
 
-## ✨ Características Principais
+### *Tactical Grid Warfare. One Engine to Rule Them All.*
 
-### 🎮 Gameplay Tático
-* **Eliminação Direta (Hit-Kill):** Não existem pontos de vida. Capturas removem a peça instantaneamente.
-* **Mecânica de Stun:** Atordoamentos táticos que bloqueiam o inimigo durante o seu turno. Aplicar *Stun* num alvo já atordoado resulta em morte instantânea.
-* **Fase de Draft (Economia):** Jogadores constroem o seu exército de raiz num tabuleiro vazio.
-* **Efeitos de Terreno:** Peças interagem dinamicamente com zonas de Gelo (Bloqueio) e Fogo (Stun).
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Pygame](https://img.shields.io/badge/Pygame-2.5.2-FF6F00?logo=python&logoColor=white)](https://www.pygame.org/)
+[![Cython](https://img.shields.io/badge/Cython-3.0+-009688?logo=c&logoColor=white)](https://cython.org/)
+[![pytest](https://img.shields.io/badge/pytest-8.0-0A9EDC?logo=pytest&logoColor=white)](https://pytest.org/)
+[![CI — AI Arena](https://img.shields.io/badge/CI-AI%20Arena-FF4444?logo=githubactions&logoColor=white)](.github/workflows/ai_arena.yml)
+[![Contributions — ai/ only](https://img.shields.io/badge/PRs%20Welcome-ai%2F%20only-brightgreen)](ai/)
 
-### 🧠 Inteligência Artificial Avançada
-* **Minimax com Poda Alfa-Beta:** O motor de busca da IA.
-* **Move Ordering:** Avaliação otimizada que testa capturas e ameaças primeiro, aumentando a profundidade de cálculo.
-* **Auto-Balancer Automático:** Um script que consome simulações exaustivas para sugerir ajustes dinâmicos ao custo das peças.
+**RedWar** é um jogo de tabuleiro tático em grelha com economia de pontos, eliminação direta e mecânicas profundas — stuns, spawns, terrenos dinâmicos e feitiços (*ignite*, *purify*, *barricade*, *swap*).
 
-### 📊 Calibração de ELO
-O sistema ELO não mede força absoluta; mede a probabilidade de vitória entre dois jogadores. A pontuação esperada de um jogador A contra um jogador B é calculada por:
+**Ares Engine** é o Stockfish do RedWar: um motor de busca Minimax open-source, calibrado por ELO, pronto para ser otimizado pela comunidade global.
 
-$$E_A = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}$$
-
-Isto significa que uma diferença de exatamente 400 pontos de ELO indica que o jogador mais forte tem uma probabilidade matemática de vitória de aproximadamente 90,9%.
-
-**A nossa calibração** fixa o Bot Aleatório na âncora absoluta de 100 ELO. Se quisermos que o Bot Base (profundidade 1) tenha 300 ELO, então a sua taxa de vitória empírica contra o Aleatório deve ser:
-
-$$E_A = \frac{1}{1 + 10^{\frac{100 - 300}{400}}} \approx 0.76$$
-
-Ou seja, para o nosso "chute" de 300 ELO estar correto, a IA base tem de ganhar cerca de 76% dos jogos contra o Bot Aleatório. Se ganhar 95% das vezes, então o seu verdadeiro ELO não é 300, mas sim aproximadamente 611.
-
-Para descobrir a verdade empírica, o projeto usa um script que faz o inverso da fórmula, convertendo a taxa de vitória real em um ELO verdadeiro:
-
-$$R_A = 100 - 400 \cdot \log_{10}\left(\frac{1 - E_A}{E_A}\right)$$
-
-## 🧠 Arquitetura da IA e Escalonamento ELO
-
-O motor tático do RedWar utiliza um sistema de ELO dinâmico calibrado matematicamente, abandonando abordagens baseadas em suposições, para fornecer diferentes níveis de dificuldade em tempo real.
-
-### A Matemática por Trás do Nível de Dificuldade
-O sistema ELO mede a probabilidade relativa de vitória usando a curva logística da Federação Internacional de Xadrez (FIDE):
-
-$$E_A = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}$$
-
-Para que o slider de dificuldade do jogo refletisse a realidade estatística, a IA foi sujeita a uma bateria de testes rigorosa:
-1. **A Âncora (100 ELO):** Desenvolvemos um bot aleatório que não avalia posições, assumindo a base mais baixa possível.
-2. **O Teste Empírico:** Colocámos a IA no seu nível de processamento mais baixo (profundidade 1, limite de 0.05s) a jogar contra o bot aleatório.
-3. **O Resultado:** O motor base obteve uma taxa de vitória de **99,5%**.
-4. **Cálculo Inverso:** Aplicando o teorema do ELO de forma inversa, descobrimos que o ELO base real da IA é de **~900 ELO**.
-
-### Gestão de Tempo Linear
-Sabendo que 0.05s geram **900 ELO**, e definindo o nosso teto computacional nos **2600 ELO** a 5.0s (onde entra em ação a otimização máxima do Alpha-Beta Pruning, Quiescence Search e Iterative Deepening), qualquer ELO escolhido na interface usa uma interpolação linear para alocar milissegundos de processamento de forma exata à dificuldade pretendida.
-
-### Escalada de Âncora (Anchored ELO Scaling)
-Este é o santo graal do teste de motores de xadrez: a escalada de âncora. Se puséssemos o Nível 4 (Mestre) a jogar contra o Aleatório (100 ELO), ele ganharia 1000 em 1000 jogos, o que faria a fórmula explodir para infinito e quebrar o cálculo. Para medir a força de uma IA de topo, ela tem de jogar contra a versão imediatamente abaixo dela. Assim, subimos a escada degrau a degrau: o Nível 1 mede-se contra o Aleatório; o Nível 2 mede-se contra o Nível 1; o Nível 3 mede-se contra o Nível 2; e assim sucessivamente.
-
-A fórmula de extração de ELO que aplicaremos é a seguinte:
-
-$$ELO_{Superior} = ELO_{Inferior} - 400 \cdot \log_{10}\left(\frac{1 - W}{W}\right)$$
-
-Onde $W$ é a win-rate entre $0.001$ e $0.999$ para evitar divisões por zero.
+</div>
 
 ---
 
-## 🚀 Guia de Comandos e Execução
+## 🎯 Visão & Filosofia
 
-### ⚙️ Instalação Inicial
+O RedWar assenta numa divisão estrita e intencional:
+
+| Camada | Escopo | Licença / Contribuição |
+|--------|--------|------------------------|
+| **O Jogo & Multijogador** | UI (Pygame), regras, rede, deploy | **Closed / Owner Source** — desenvolvido e controlado pelo autor |
+| **Ares Engine** (`ai/`) | Busca, avaliação, bots, calibração | **Open Source** — PRs da comunidade bem-vindos |
+
+> *Tu não editas o tabuleiro. Tu editas o cérebro que o domina.*
+
+A pasta `ai/` é a **única** zona do repositório aberta a Pull Requests externos. O resto do projeto — motor de jogo, interface gráfica, ferramentas de balanceamento, pipeline DevOps — permanece sob controlo do autor. Isto garante integridade das regras de jogo enquanto permite uma corrida global pela supremacia algorítmica.
+
+---
+
+## 🧠 Ares Engine — O Stockfish do RedWar
+
+Inspirado na arquitetura dos motores de xadrez de elite, o Ares Engine isola a inteligência artificial num núcleo puro, testável e otimizável:
+
+```
+ai/
+├── bot.py          # Orquestração de bots, presets ELO e dificuldade dinâmica
+├── search.py       # Minimax + Alpha-Beta, Move Ordering, TT, Iterative Deepening
+├── evaluator.pyx   # Avaliador posicional (Cython — hot path compilado)
+├── trainer.py      # Geração de telemetria para calibração
+└── game_analyzer.py # Deteção de gridlocks e anomalias táticas
+```
+
+### Stack Algorítmica
+
+- **Minimax com Alpha-Beta Pruning** — poda agressiva para maximizar profundidade de busca
+- **Move Ordering heurístico** — capturas, stuns e ameaças avaliados primeiro
+- **Zobrist Hashing + Tabela de Transposição** — cache de posições com limpeza inteligente por profundidade
+- **Iterative Deepening** — profundidade crescente dentro do limite de tempo
+- **Killer Moves & Quiescence** — estabilidade tática em posições voláteis
+- **Avaliador Cython** (`evaluator.pyx`) — avaliação posicional compilada para NPS elevado
+- **Simulação completa de Feitiços** — *ignite*, *purify*, *barricade*, *swap* integrados no `game_state.py` e na árvore de busca
+
+### Calibração ELO
+
+O sistema de dificuldade não é arbitrário. Mede probabilidade de vitória relativa usando a curva logística FIDE:
+
+$$E_A = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}$$
+
+A âncora empírica fixa o **Bot Aleatório em 100 ELO**. Bots superiores são calibrados em cadeia (*Anchored ELO Scaling*), evitando inflação estatística quando um motor de topo enfrenta oponentes fracos.
+
+Presets oficiais da Arena:
+
+| Bot | ELO Aproximado | Perfil |
+|-----|----------------|--------|
+| `BOT_ALEATORIO` | 100 | Movimentos aleatórios — baseline absoluto |
+| `BOT_INICIANTE` | 140 | Entrada tática |
+| `BOT_INTERMEDIO` | 200 | Desafiante padrão da Arena |
+| `BOT_AVANCADO` | 250 | Campeão atual |
+| `BOT_MESTRE` | 300 | Teto calibrado empiricamente |
+
+---
+
+## 🏟️ A Arena — GitHub Actions
+
+A Arena é o coliseu automatizado onde bots da comunidade provam o seu valor. Sem favoritismos. Sem merge manual por simpatia. **Só matemática.**
+
+### Como Funciona
+
+1. **Submetes um PR** que altera exclusivamente ficheiros em `ai/`
+2. O workflow [`ai_arena.yml`](.github/workflows/ai_arena.yml) dispara automaticamente
+3. Corre um torneio headless de **50 partidas** via `tools/analytics/arena_tournament.py`
+4. O **Desafiante** (`BOT_AVANCADO` — a tua versão) enfrenta o **Campeão** (`BOT_INTERMEDIO` — baseline)
+5. Cores alternam a cada jogo para eliminar viés de primeira jogada
+
+### Critério de Promoção
+
+```python
+def verificar_promocao(vitorias_desafiante, vitorias_atual, margem=5):
+    diferenca = vitorias_desafiante - vitorias_atual
+    return diferenca >= margem
+```
+
+O Desafiante tem de vencer o Campeão por uma **margem mínima de 5 vitórias** em 50 jogos. Só então o código é promovido. Merge automático. Sem desculpas.
+
+```
+⚔️ TORNEIO DE ARENA: 50 JOGOS (Margem exigida: 5)
+Resultados: Desafiante 28 | Campeão 20 | Empates 2
+👑 SUCESSO: O Desafiante superou o Campeão por uma margem >= 5 vitórias!
+```
+
+> **Regra de ouro:** Se a tua IA não vence matematicamente, o teu PR não entra. Optimiza o `search.py`, refina o `evaluator.pyx`, ou volta à prancheta.
+
+---
+
+## 🤝 Como Contribuir (Ares Engine)
+
+### ✅ Podes contribuir
+
+- Otimizações de busca (`search.py`)
+- Heurísticas de avaliação (`evaluator.pyx`)
+- Lógica de bots e presets ELO (`bot.py`)
+- Ferramentas de análise dentro de `ai/`
+
+### ❌ Não aceites PRs externos
+
+- `engine/` — regras de jogo, peças, feitiços
+- `ui/` — interface gráfica e VFX
+- `online/` — multijogador
+- `tools/` — laboratório privado (Auto-Pricer, calibração, torneios)
+- `deploy/`, `main.py`, configs de build
+
+### Fluxo Recomendado
+
+```bash
+# 1. Fork & clone
+git clone https://github.com/<teu-user>/RedWar.git
+cd RedWar
+
+# 2. Instalar dependências
+pip install -r requirements.txt
+
+# 3. Compilar o avaliador Cython (se alteraste evaluator.pyx)
+python setup.py build_ext --inplace
+
+# 4. Garantir que os testes passam
+pytest tests/
+
+# 5. Testar localmente contra o campeão
+python tools/analytics/arena_tournament.py --jogos 50 --margem_vitorias 5
+
+# 6. Abrir PR com alterações exclusivamente em ai/
+```
+
+---
+
+## 🏗️ Arquitetura do Projeto
+
+```
+RedWar/
+├── ai/                 # 🟢 OPEN SOURCE — Ares Engine (comunidade)
+│   ├── bot.py
+│   ├── search.py
+│   ├── evaluator.pyx
+│   ├── trainer.py
+│   └── game_analyzer.py
+│
+├── engine/             # 🔒 Motor de jogo — regras, estado, peças
+│   ├── game_state.py   #    make/unmake, Zobrist, feitiços, stuns
+│   ├── pieces.py       #    Lógica de movimento, ataque, spawn
+│   ├── heroes_config.json
+│   └── config.py
+│
+├── ui/                 # 🔒 Interface Pygame — render, VFX, HUD
+│   └── renderer.py
+│
+├── online/             # 🔒 Multijogador (scaffolding)
+│   ├── server/
+│   ├── client/
+│   └── network/
+│
+├── tools/              # 🔒 Laboratório privado
+│   ├── analytics/      #    Arena, calibração ELO, opening tester
+│   ├── balance/        #    Auto-Pricer, color balancer
+│   └── scripts/        #    Build pipeline, hooks, utilitários
+│
+├── tests/              # Testes unitários (pytest)
+├── docs/               # Documentação de design e esquemas
+├── deploy/             # Packaging (PyInstaller specs)
+├── data/               # Telemetria e estatísticas de treino
+├── logs/               # Relatórios de build e gridlocks
+│
+├── main.py             # Entry point — Jogo local vs IA
+└── requirements.txt
+```
+
+### Separação Motor ↔ UI
+
+O motor (`engine/` + `ai/`) é **completamente headless** — pura matemática. A UI (`ui/`) apenas pergunta: *"Quais os movimentos legais?"* e desenha o resultado. Esta separação permite simulações massivas na Arena sem abrir uma janela gráfica.
+
+---
+
+## 🎮 RedWar — O Jogo
+
+### Mecânicas Core
+
+- **Eliminação Direta (Hit-Kill)** — sem HP. Captura = remoção instantânea.
+- **Economia de Draft** — constrói o exército num tabuleiro vazio dentro de um orçamento de pontos.
+- **Stun Tático** — atordoamentos bloqueiam turnos; stun num alvo já atordoado = morte instantânea.
+- **Terrenos Dinâmicos** — Gelo (bloqueio) e Fogo (stun) alteram o campo de batalha.
+- **Feitiços** — *ignite*, *purify*, *barricade*, *swap* com VFX dedicados na UI.
+
+### Quick Start
+
 ```bash
 pip install -r requirements.txt
+python setup.py build_ext --inplace   # Compilar evaluator Cython
+python main.py                         # Jogar vs IA localmente
 ```
 
-### 🎮 Jogar
-**Modo Local (Tu vs IA)**
-
-O modo clássico para jogares no teu computador.
+### Multijogador (Em Desenvolvimento)
 
 ```bash
-python main.py
+# Terminal 1 — Servidor
+python online/server/app.py
+
+# Terminal 2 — Cliente (Jogador 1)
+python online/client/multiplayer_main.py localhost
+
+# Terminal 3 — Cliente (Jogador 2, noutra máquina)
+python online/client/multiplayer_main.py <IP_DO_SERVIDOR>
 ```
 
-**Modo Multiplayer (Rede/LAN)**
-
-Para jogares contra um amigo noutro computador.
-
-1. Abre um terminal e inicia o servidor:
-```bash
-python server/app.py
-```
-
-2. No teu computador, conecta-te como Jogador 1 (Brancas):
-```bash
-python multiplayer_main.py localhost
-```
-
-3. No computador do teu amigo, ele conecta-se usando o teu IP local (exemplo):
-```bash
-python multiplayer_main.py 192.168.1.100
-```
-
-### 🔬 Ferramentas de IA e Balanceamento
-**1. Analisar Telemetria e Gridlocks (Caixa Negra)**
-
-Corre jogos invisíveis focados em encontrar anomalias táticas da IA.
+### DevOps Local
 
 ```bash
-python ai/game_analyzer.py
-```
-
-**2. Otimizar Custos (Auto-Balancer)**
-
-Se as peças estiverem desbalanceadas, corre este comando para a IA descobrir os novos valores matemáticos ideais.
-
-```bash
-python build_pipeline.py
-```
-
-### 🧪 Testes Unitários e Controlo de Qualidade
-Para garantir que regras base do motor (movimentos, stuns, etc.) não se partiram após modificares o código.
-
-```bash
-pytest tests/
-```
-
-### 💾 Git (Sincronizar Alterações)
-Após realizares testes que corram bem, guarda e partilha o teu progresso no GitHub.
-
-```bash
-git add .
-git commit -m "atualizacao: descricao das tuas alteracoes aqui"
-git push
+pytest tests/                                    # Testes unitários rápidos
+python tools/scripts/build_pipeline.py           # Pipeline completo (testes + telemetria + balance)
+python tools/analytics/arena_tournament.py       # Simular torneio da Arena localmente
+python ai/game_analyzer.py                       # Detetar gridlocks e anomalias
 ```
 
 ---
 
-## 🗺️ Masterplan & Roadmap (Fase Atual)
+## 🗺️ Roadmap
 
-Este documento lista as grandes tarefas de refatoração e arquitetura planeadas para a próxima fase do projeto. Nenhuma alteração de código será aplicada automaticamente a partir daqui — este roadmap serve apenas como plano de trabalho e referência para a equipa.
+### 🔴 Em Curso / Próximo
 
-- **Add 10x10 board + algebraic coordinates:** atualizar limites do tabuleiro para 10x10 e desenhar coordenadas A–J / 1–10 nas margens.
-- **Introduce `HeroEntity` and `heroes_database.json` schema:** criar classe genérica `HeroEntity` e ficheiro JSON para definir peças e habilidades de forma data-driven.
-- **Replace hardcoded piece classes with JSON-driven loader:** migrar instâncias atuais para um loader que carrega `heroes_database.json`.
-- **Implement strict turn-based effects:** gerir `stun`, `freeze`, `shield` e outras condições por turnos (sem HP nem valores de dano).
-- **Add movement effects (push/pull), silence, terrain manipulation:** implementar novos efeitos e estados de terreno no motor.
-- **UI: bounding boxes, Hero Info Panel, hover intent visuals:** painel lateral informativo, retículas de alcance e feedback ao passar o rato.
-- **Auto-Balancer integration:** integrar o pipeline de simulação para ajustar custos no `heroes_database.json` a partir de win-rates.
-- **Write tests:** cobertura unitária e de integração para loader, regras de movimento, efeitos por turnos e limites do tabuleiro.
-- **Migration:** converter as peças existentes (ex.: BoneLord) para o formato JSON e validar com simulações.
-- **Docs:** adicionar `docs/adding_heroes.md`, esquema JSON e guias de contribution.
+| Frente | Estado | Descrição |
+|--------|--------|-----------|
+| **Modelo Matemático de ELO** | 🟡 Pendente | Abandonar limites de tempo como proxy de dificuldade. Implementar **Miopia** (`Depth = max(1, ⌊ELO/400⌋)`) e **Roleta de Blunders** (ruído probabilístico na raiz para ELOs baixos) — modelo Stockfish/Chess.com |
+| **Cythonização Extrema** | 🟡 Pendente | Além do `evaluator.pyx`: converter geração de movimentos, make/unmake e regras de `game_state.py` para C++ — objetivo: explodir NPS |
+| **Multijogador Real** | 🟡 Scaffolding | Infraestrutura em `online/` para partidas humano vs humano via WebSockets |
 
-Status: plano definido; trabalho de implementação planeado em fases incrementais. Se quiser, inicio a primeira tarefa (ex.: criar `heroes_database.json` + `HeroEntity`) quando autorizar.
+### ✅ Concluído Recentemente
 
-### Os Comandos que Precisas Agora
+- Zobrist Hashing + Tabela de Transposição com limpeza por profundidade
+- Feitiços integrados na IA e na UI (VFX roxos, cliques corretos)
+- Pipeline DevOps: pre-push hooks com pytest + simulações pesadas na CI
+- Refatoração cirúrgica: separação `ai/` (cérebro) vs `tools/` (laboratório)
+- Calibração ELO empírica com escala ancorada e presets oficiais da Arena
+- Schema data-driven para heróis (`heroes_config.json` + `HEROES_SCHEMA.md`)
 
-Como adicionámos funcionalidades gigantescas em massa para resolver os problemas passados, deves correr os comandos pela seguinte ordem no teu terminal:
+### 🔮 Horizonte
 
-1. **Joga contra a IA localmente e tenta as novas mecânicas (Verifica as imagens e a jogabilidade):**
-```powershell
-python main.py
-```
+- Arena pública com leaderboard de bots da comunidade
+- Integração Auto-Pricer ↔ `heroes_config.json` via CI (`auto_balancer.yml`)
+- Documentação de contribution dedicada em `docs/`
+- Tabuleiro 10×10 com coordenadas algébricas (A–J / 1–10)
 
-2. **Garante que o novo BoneLord e os ossos não encravaram a IA com loops infinitos (O `jogos_encravados.txt` deve vir vazio):**
+---
 
-```powershell
-python ai/game_analyzer.py
-```
+## 📐 Referência Rápida — Fórmulas ELO
 
-3. **Se tudo estiver perfeito, salva no GitHub:**
+**Probabilidade esperada de vitória:**
 
-```powershell
-git add .
-git commit -m "feat: BoneLord ataca à distância via necromancia, Bones decaem após 5 turnos, e adicionados terrenos fire/ice dinâmicos com novo README"
-git push
-```
+$$E_A = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}$$
+
+**Extração de ELO a partir de win-rate empírico:**
+
+$$R_A = R_B - 400 \cdot \log_{10}\left(\frac{1 - W}{W}\right)$$
+
+**Modelo de dificuldade planeado (Stockfish-style):**
+
+$$Depth_{limit} = \max\left(1,\ \left\lfloor \frac{ELO}{400} \right\rfloor \right)$$
+
+---
+
+<div align="center">
+
+### ⚔️ *Build the brain. Enter the Arena. dethrone the champion.*
+
+**RedWar** — tactical warfare on a grid.
+**Ares Engine** — open-source intelligence, closed-source battlefield.
+
+</div>
