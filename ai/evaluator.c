@@ -2484,13 +2484,13 @@ static __pyx_mstatetype * const __pyx_mstate_global = &__pyx_mstate_global_stati
 #define __pyx_int_5 __pyx_number_tab[4]
 #define __pyx_int_neg_10 __pyx_number_tab[5]
 #define __pyx_int_10 __pyx_number_tab[6]
-#define __pyx_int_15 __pyx_number_tab[7]
-#define __pyx_int_neg_20 __pyx_number_tab[8]
-#define __pyx_int_20 __pyx_number_tab[9]
-#define __pyx_int_neg_30 __pyx_number_tab[10]
-#define __pyx_int_30 __pyx_number_tab[11]
-#define __pyx_int_40 __pyx_number_tab[12]
-#define __pyx_int_neg_50 __pyx_number_tab[13]
+#define __pyx_int_neg_20 __pyx_number_tab[7]
+#define __pyx_int_20 __pyx_number_tab[8]
+#define __pyx_int_30 __pyx_number_tab[9]
+#define __pyx_int_neg_40 __pyx_number_tab[10]
+#define __pyx_int_40 __pyx_number_tab[11]
+#define __pyx_int_neg_50 __pyx_number_tab[12]
+#define __pyx_int_50 __pyx_number_tab[13]
 /* #### Code section: module_state_clear ### */
 #if CYTHON_USE_MODULE_STATE
 static CYTHON_SMALL_CODE int __pyx_m_clear(PyObject *m) {
@@ -2546,12 +2546,12 @@ return 0;
 #endif
 /* #### Code section: module_code ### */
 
-/* "ai/evaluator.pyx":73
+/* "ai/evaluator.pyx":83
  * }
  * 
  * cpdef int obter_bonus_posicional(object piece, int r, int c):             # <<<<<<<<<<<<<<
  *     cdef list tabela = MAPA_TABELAS.get(piece.name, PST_DEFAULT)
- *     # Map arbitrary board sizes onto the 8x8 PST by scaling coordinates
+ *     cdef int idx_r, idx_c
 */
 
 static PyObject *__pyx_pw_2ai_9evaluator_1obter_bonus_posicional(PyObject *__pyx_self, 
@@ -2581,42 +2581,42 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("obter_bonus_posicional", 0);
 
-  /* "ai/evaluator.pyx":74
+  /* "ai/evaluator.pyx":84
  * 
  * cpdef int obter_bonus_posicional(object piece, int r, int c):
  *     cdef list tabela = MAPA_TABELAS.get(piece.name, PST_DEFAULT)             # <<<<<<<<<<<<<<
- *     # Map arbitrary board sizes onto the 8x8 PST by scaling coordinates
  *     cdef int idx_r, idx_c
+ *     if LINHAS <= 1:
 */
   if (unlikely(__pyx_v_2ai_9evaluator_MAPA_TABELAS == Py_None)) {
     PyErr_Format(PyExc_AttributeError, "'NoneType' object has no attribute '%.30s'", "get");
-    __PYX_ERR(0, 74, __pyx_L1_error)
+    __PYX_ERR(0, 84, __pyx_L1_error)
   }
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_piece, __pyx_mstate_global->__pyx_n_u_name); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 74, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_piece, __pyx_mstate_global->__pyx_n_u_name); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 84, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyDict_GetItemDefault(__pyx_v_2ai_9evaluator_MAPA_TABELAS, __pyx_t_1, __pyx_v_2ai_9evaluator_PST_DEFAULT); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 74, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyDict_GetItemDefault(__pyx_v_2ai_9evaluator_MAPA_TABELAS, __pyx_t_1, __pyx_v_2ai_9evaluator_PST_DEFAULT); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 84, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (!(likely(PyList_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None) || __Pyx_RaiseUnexpectedTypeError("list", __pyx_t_2))) __PYX_ERR(0, 74, __pyx_L1_error)
+  if (!(likely(PyList_CheckExact(__pyx_t_2))||((__pyx_t_2) == Py_None) || __Pyx_RaiseUnexpectedTypeError("list", __pyx_t_2))) __PYX_ERR(0, 84, __pyx_L1_error)
   __pyx_v_tabela = ((PyObject*)__pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "ai/evaluator.pyx":77
- *     # Map arbitrary board sizes onto the 8x8 PST by scaling coordinates
+  /* "ai/evaluator.pyx":86
+ *     cdef list tabela = MAPA_TABELAS.get(piece.name, PST_DEFAULT)
  *     cdef int idx_r, idx_c
  *     if LINHAS <= 1:             # <<<<<<<<<<<<<<
  *         idx_r = 0
  *     else:
 */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_LINHAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 77, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_LINHAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 86, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyObject_RichCompare(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, Py_LE); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 77, __pyx_L1_error)
+  __pyx_t_1 = PyObject_RichCompare(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, Py_LE); __Pyx_XGOTREF(__pyx_t_1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 86, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 77, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 86, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   if (__pyx_t_3) {
 
-    /* "ai/evaluator.pyx":78
+    /* "ai/evaluator.pyx":87
  *     cdef int idx_r, idx_c
  *     if LINHAS <= 1:
  *         idx_r = 0             # <<<<<<<<<<<<<<
@@ -2625,8 +2625,8 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
 */
     __pyx_v_idx_r = 0;
 
-    /* "ai/evaluator.pyx":77
- *     # Map arbitrary board sizes onto the 8x8 PST by scaling coordinates
+    /* "ai/evaluator.pyx":86
+ *     cdef list tabela = MAPA_TABELAS.get(piece.name, PST_DEFAULT)
  *     cdef int idx_r, idx_c
  *     if LINHAS <= 1:             # <<<<<<<<<<<<<<
  *         idx_r = 0
@@ -2635,7 +2635,7 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
     goto __pyx_L3;
   }
 
-  /* "ai/evaluator.pyx":80
+  /* "ai/evaluator.pyx":89
  *         idx_r = 0
  *     else:
  *         idx_r = int(( (7.0 * ( (7 - r) if piece.team == 'pretas' else r )) / max(1.0, LINHAS - 1) ))             # <<<<<<<<<<<<<<
@@ -2643,51 +2643,51 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
  *         elif idx_r > 7: idx_r = 7
 */
   /*else*/ {
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_piece, __pyx_mstate_global->__pyx_n_u_team); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_piece, __pyx_mstate_global->__pyx_n_u_team); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_3 = (__Pyx_PyUnicode_Equals(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_pretas, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_3 = (__Pyx_PyUnicode_Equals(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_pretas, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     if (__pyx_t_3) {
       __pyx_t_4 = (7 - __pyx_v_r);
     } else {
       __pyx_t_4 = __pyx_v_r;
     }
-    __pyx_t_1 = PyFloat_FromDouble((7.0 * __pyx_t_4)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_1 = PyFloat_FromDouble((7.0 * __pyx_t_4)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_LINHAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_LINHAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_5 = __Pyx_PyLong_SubtractObjC(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyLong_SubtractObjC(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_t_6 = 1.0;
-    __pyx_t_7 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_7 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
-    __pyx_t_8 = PyObject_RichCompare(__pyx_t_5, __pyx_t_7, Py_GT); __Pyx_XGOTREF(__pyx_t_8); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_8 = PyObject_RichCompare(__pyx_t_5, __pyx_t_7, Py_GT); __Pyx_XGOTREF(__pyx_t_8); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
-    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_8); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_8); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
     if (__pyx_t_3) {
       __Pyx_INCREF(__pyx_t_5);
       __pyx_t_2 = __pyx_t_5;
     } else {
-      __pyx_t_8 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 80, __pyx_L1_error)
+      __pyx_t_8 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 89, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_8);
       __pyx_t_2 = __pyx_t_8;
       __pyx_t_8 = 0;
     }
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_5 = __Pyx_PyNumber_Divide(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_5 = __Pyx_PyNumber_Divide(__pyx_t_1, __pyx_t_2); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_2 = __Pyx_PyNumber_Int(__pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyNumber_Int(__pyx_t_5); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-    __pyx_t_9 = __Pyx_PyLong_As_int(__pyx_t_2); if (unlikely((__pyx_t_9 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 80, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyLong_As_int(__pyx_t_2); if (unlikely((__pyx_t_9 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 89, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_v_idx_r = __pyx_t_9;
 
-    /* "ai/evaluator.pyx":81
+    /* "ai/evaluator.pyx":90
  *     else:
  *         idx_r = int(( (7.0 * ( (7 - r) if piece.team == 'pretas' else r )) / max(1.0, LINHAS - 1) ))
  *         if idx_r < 0: idx_r = 0             # <<<<<<<<<<<<<<
@@ -2700,7 +2700,7 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
       goto __pyx_L4;
     }
 
-    /* "ai/evaluator.pyx":82
+    /* "ai/evaluator.pyx":91
  *         idx_r = int(( (7.0 * ( (7 - r) if piece.team == 'pretas' else r )) / max(1.0, LINHAS - 1) ))
  *         if idx_r < 0: idx_r = 0
  *         elif idx_r > 7: idx_r = 7             # <<<<<<<<<<<<<<
@@ -2715,22 +2715,22 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
   }
   __pyx_L3:;
 
-  /* "ai/evaluator.pyx":83
+  /* "ai/evaluator.pyx":92
  *         if idx_r < 0: idx_r = 0
  *         elif idx_r > 7: idx_r = 7
  *     if COLUNAS <= 1:             # <<<<<<<<<<<<<<
  *         idx_c = 0
  *     else:
 */
-  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_COLUNAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 83, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_COLUNAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 92, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_5 = PyObject_RichCompare(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, Py_LE); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 83, __pyx_L1_error)
+  __pyx_t_5 = PyObject_RichCompare(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, Py_LE); __Pyx_XGOTREF(__pyx_t_5); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 92, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 83, __pyx_L1_error)
+  __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_5); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 92, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   if (__pyx_t_3) {
 
-    /* "ai/evaluator.pyx":84
+    /* "ai/evaluator.pyx":93
  *         elif idx_r > 7: idx_r = 7
  *     if COLUNAS <= 1:
  *         idx_c = 0             # <<<<<<<<<<<<<<
@@ -2739,7 +2739,7 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
 */
     __pyx_v_idx_c = 0;
 
-    /* "ai/evaluator.pyx":83
+    /* "ai/evaluator.pyx":92
  *         if idx_r < 0: idx_r = 0
  *         elif idx_r > 7: idx_r = 7
  *     if COLUNAS <= 1:             # <<<<<<<<<<<<<<
@@ -2749,7 +2749,7 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
     goto __pyx_L5;
   }
 
-  /* "ai/evaluator.pyx":86
+  /* "ai/evaluator.pyx":95
  *         idx_c = 0
  *     else:
  *         idx_c = int((c * 7.0) / max(1.0, COLUNAS - 1))             # <<<<<<<<<<<<<<
@@ -2757,42 +2757,42 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
  *         elif idx_c > 7: idx_c = 7
 */
   /*else*/ {
-    __pyx_t_5 = PyFloat_FromDouble((__pyx_v_c * 7.0)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_5 = PyFloat_FromDouble((__pyx_v_c * 7.0)); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_COLUNAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_2, __pyx_mstate_global->__pyx_n_u_COLUNAS); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
-    __pyx_t_1 = __Pyx_PyLong_SubtractObjC(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyLong_SubtractObjC(__pyx_t_2, __pyx_mstate_global->__pyx_int_1, 1, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_t_6 = 1.0;
-    __pyx_t_8 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_8 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
-    __pyx_t_7 = PyObject_RichCompare(__pyx_t_1, __pyx_t_8, Py_GT); __Pyx_XGOTREF(__pyx_t_7); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_7 = PyObject_RichCompare(__pyx_t_1, __pyx_t_8, Py_GT); __Pyx_XGOTREF(__pyx_t_7); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_7); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_7); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     if (__pyx_t_3) {
       __Pyx_INCREF(__pyx_t_1);
       __pyx_t_2 = __pyx_t_1;
     } else {
-      __pyx_t_7 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 86, __pyx_L1_error)
+      __pyx_t_7 = PyFloat_FromDouble(__pyx_t_6); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 95, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __pyx_t_2 = __pyx_t_7;
       __pyx_t_7 = 0;
     }
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_1 = __Pyx_PyNumber_Divide(__pyx_t_5, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyNumber_Divide(__pyx_t_5, __pyx_t_2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-    __pyx_t_2 = __Pyx_PyNumber_Int(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_2 = __Pyx_PyNumber_Int(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_2);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_9 = __Pyx_PyLong_As_int(__pyx_t_2); if (unlikely((__pyx_t_9 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 86, __pyx_L1_error)
+    __pyx_t_9 = __Pyx_PyLong_As_int(__pyx_t_2); if (unlikely((__pyx_t_9 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 95, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
     __pyx_v_idx_c = __pyx_t_9;
 
-    /* "ai/evaluator.pyx":87
+    /* "ai/evaluator.pyx":96
  *     else:
  *         idx_c = int((c * 7.0) / max(1.0, COLUNAS - 1))
  *         if idx_c < 0: idx_c = 0             # <<<<<<<<<<<<<<
@@ -2805,7 +2805,7 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
       goto __pyx_L6;
     }
 
-    /* "ai/evaluator.pyx":88
+    /* "ai/evaluator.pyx":97
  *         idx_c = int((c * 7.0) / max(1.0, COLUNAS - 1))
  *         if idx_c < 0: idx_c = 0
  *         elif idx_c > 7: idx_c = 7             # <<<<<<<<<<<<<<
@@ -2820,7 +2820,7 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
   }
   __pyx_L5:;
 
-  /* "ai/evaluator.pyx":89
+  /* "ai/evaluator.pyx":98
  *         if idx_c < 0: idx_c = 0
  *         elif idx_c > 7: idx_c = 7
  *     return tabela[idx_r][idx_c]             # <<<<<<<<<<<<<<
@@ -2829,24 +2829,24 @@ static int __pyx_f_2ai_9evaluator_obter_bonus_posicional(PyObject *__pyx_v_piece
 */
   if (unlikely(__pyx_v_tabela == Py_None)) {
     PyErr_SetString(PyExc_TypeError, "'NoneType' object is not subscriptable");
-    __PYX_ERR(0, 89, __pyx_L1_error)
+    __PYX_ERR(0, 98, __pyx_L1_error)
   }
-  __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_tabela, __pyx_v_idx_r, int, 1, __Pyx_PyLong_From_int, 1, 1, 1, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 89, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_GetItemInt_List(__pyx_v_tabela, __pyx_v_idx_r, int, 1, __Pyx_PyLong_From_int, 1, 1, 1, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 98, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_GetItemInt(__pyx_t_2, __pyx_v_idx_c, int, 1, __Pyx_PyLong_From_int, 0, 1, 1, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 89, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_GetItemInt(__pyx_t_2, __pyx_v_idx_c, int, 1, __Pyx_PyLong_From_int, 0, 1, 1, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 98, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_9 = __Pyx_PyLong_As_int(__pyx_t_1); if (unlikely((__pyx_t_9 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 89, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyLong_As_int(__pyx_t_1); if (unlikely((__pyx_t_9 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 98, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_r = __pyx_t_9;
   goto __pyx_L0;
 
-  /* "ai/evaluator.pyx":73
+  /* "ai/evaluator.pyx":83
  * }
  * 
  * cpdef int obter_bonus_posicional(object piece, int r, int c):             # <<<<<<<<<<<<<<
  *     cdef list tabela = MAPA_TABELAS.get(piece.name, PST_DEFAULT)
- *     # Map arbitrary board sizes onto the 8x8 PST by scaling coordinates
+ *     cdef int idx_r, idx_c
 */
 
   /* function exit code */
@@ -2905,46 +2905,46 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_piece,&__pyx_mstate_global->__pyx_n_u_r,&__pyx_mstate_global->__pyx_n_u_c,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 73, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 83, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  3:
         values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 73, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 83, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  2:
         values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 73, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 83, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 73, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 83, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "obter_bonus_posicional", 0) < (0)) __PYX_ERR(0, 73, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "obter_bonus_posicional", 0) < (0)) __PYX_ERR(0, 83, __pyx_L3_error)
       for (Py_ssize_t i = __pyx_nargs; i < 3; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("obter_bonus_posicional", 1, 3, 3, i); __PYX_ERR(0, 73, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("obter_bonus_posicional", 1, 3, 3, i); __PYX_ERR(0, 83, __pyx_L3_error) }
       }
     } else if (unlikely(__pyx_nargs != 3)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 73, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 83, __pyx_L3_error)
       values[1] = __Pyx_ArgRef_FASTCALL(__pyx_args, 1);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 73, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[1])) __PYX_ERR(0, 83, __pyx_L3_error)
       values[2] = __Pyx_ArgRef_FASTCALL(__pyx_args, 2);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 73, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[2])) __PYX_ERR(0, 83, __pyx_L3_error)
     }
     __pyx_v_piece = values[0];
-    __pyx_v_r = __Pyx_PyLong_As_int(values[1]); if (unlikely((__pyx_v_r == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 73, __pyx_L3_error)
-    __pyx_v_c = __Pyx_PyLong_As_int(values[2]); if (unlikely((__pyx_v_c == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 73, __pyx_L3_error)
+    __pyx_v_r = __Pyx_PyLong_As_int(values[1]); if (unlikely((__pyx_v_r == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 83, __pyx_L3_error)
+    __pyx_v_c = __Pyx_PyLong_As_int(values[2]); if (unlikely((__pyx_v_c == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 83, __pyx_L3_error)
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("obter_bonus_posicional", 1, 3, 3, __pyx_nargs); __PYX_ERR(0, 73, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("obter_bonus_posicional", 1, 3, 3, __pyx_nargs); __PYX_ERR(0, 83, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -2975,8 +2975,8 @@ static PyObject *__pyx_pf_2ai_9evaluator_obter_bonus_posicional(CYTHON_UNUSED Py
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("obter_bonus_posicional", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_2ai_9evaluator_obter_bonus_posicional(__pyx_v_piece, __pyx_v_r, __pyx_v_c, 1); if (unlikely(__pyx_t_1 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 73, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyLong_From_int(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 73, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_2ai_9evaluator_obter_bonus_posicional(__pyx_v_piece, __pyx_v_r, __pyx_v_c, 1); if (unlikely(__pyx_t_1 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 83, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyLong_From_int(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
@@ -2993,7 +2993,7 @@ static PyObject *__pyx_pf_2ai_9evaluator_obter_bonus_posicional(CYTHON_UNUSED Py
   return __pyx_r;
 }
 
-/* "ai/evaluator.pyx":91
+/* "ai/evaluator.pyx":100
  *     return tabela[idx_r][idx_c]
  * 
  * @cython.boundscheck(False)             # <<<<<<<<<<<<<<
@@ -3033,7 +3033,7 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("avaliador_mestre", 0);
 
-  /* "ai/evaluator.pyx":94
+  /* "ai/evaluator.pyx":103
  * @cython.wraparound(False)
  * cpdef int avaliador_mestre(object gs):
  *     cdef int score = 0             # <<<<<<<<<<<<<<
@@ -3042,27 +3042,27 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
 */
   __pyx_v_score = 0;
 
-  /* "ai/evaluator.pyx":98
+  /* "ai/evaluator.pyx":107
  *     cdef object p
  * 
  *     if gs.game_over:             # <<<<<<<<<<<<<<
  *         if gs.winner is not None and ("Aniquilao" in gs.winner or "Vencem" in gs.winner):
  *             return 99999 if "Brancas" in gs.winner else -99999
 */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_game_over); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 98, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_game_over); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 107, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 98, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_t_1); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 107, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   if (__pyx_t_2) {
 
-    /* "ai/evaluator.pyx":99
+    /* "ai/evaluator.pyx":108
  * 
  *     if gs.game_over:
  *         if gs.winner is not None and ("Aniquilao" in gs.winner or "Vencem" in gs.winner):             # <<<<<<<<<<<<<<
  *             return 99999 if "Brancas" in gs.winner else -99999
  *         return 0
 */
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 108, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __pyx_t_3 = (__pyx_t_1 != Py_None);
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
@@ -3071,33 +3071,33 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
       __pyx_t_2 = __pyx_t_3;
       goto __pyx_L5_bool_binop_done;
     }
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 108, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_3 = (__Pyx_PySequence_ContainsTF(__pyx_mstate_global->__pyx_n_u_Aniquilao, __pyx_t_1, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 99, __pyx_L1_error)
+    __pyx_t_3 = (__Pyx_PySequence_ContainsTF(__pyx_mstate_global->__pyx_n_u_Aniquilao, __pyx_t_1, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 108, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     if (!__pyx_t_3) {
     } else {
       __pyx_t_2 = __pyx_t_3;
       goto __pyx_L5_bool_binop_done;
     }
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 99, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 108, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_3 = (__Pyx_PySequence_ContainsTF(__pyx_mstate_global->__pyx_n_u_Vencem, __pyx_t_1, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 99, __pyx_L1_error)
+    __pyx_t_3 = (__Pyx_PySequence_ContainsTF(__pyx_mstate_global->__pyx_n_u_Vencem, __pyx_t_1, Py_EQ)); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 108, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_t_2 = __pyx_t_3;
     __pyx_L5_bool_binop_done:;
     if (__pyx_t_2) {
 
-      /* "ai/evaluator.pyx":100
+      /* "ai/evaluator.pyx":109
  *     if gs.game_over:
  *         if gs.winner is not None and ("Aniquilao" in gs.winner or "Vencem" in gs.winner):
  *             return 99999 if "Brancas" in gs.winner else -99999             # <<<<<<<<<<<<<<
  *         return 0
  * 
 */
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 100, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_winner); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 109, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_2 = (__Pyx_PySequence_ContainsTF(__pyx_mstate_global->__pyx_n_u_Brancas, __pyx_t_1, Py_EQ)); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 100, __pyx_L1_error)
+      __pyx_t_2 = (__Pyx_PySequence_ContainsTF(__pyx_mstate_global->__pyx_n_u_Brancas, __pyx_t_1, Py_EQ)); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 109, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
       if (__pyx_t_2) {
         __pyx_t_4 = 0x1869F;
@@ -3107,7 +3107,7 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
       __pyx_r = __pyx_t_4;
       goto __pyx_L0;
 
-      /* "ai/evaluator.pyx":99
+      /* "ai/evaluator.pyx":108
  * 
  *     if gs.game_over:
  *         if gs.winner is not None and ("Aniquilao" in gs.winner or "Vencem" in gs.winner):             # <<<<<<<<<<<<<<
@@ -3116,7 +3116,7 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
 */
     }
 
-    /* "ai/evaluator.pyx":101
+    /* "ai/evaluator.pyx":110
  *         if gs.winner is not None and ("Aniquilao" in gs.winner or "Vencem" in gs.winner):
  *             return 99999 if "Brancas" in gs.winner else -99999
  *         return 0             # <<<<<<<<<<<<<<
@@ -3126,7 +3126,7 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
     __pyx_r = 0;
     goto __pyx_L0;
 
-    /* "ai/evaluator.pyx":98
+    /* "ai/evaluator.pyx":107
  *     cdef object p
  * 
  *     if gs.game_over:             # <<<<<<<<<<<<<<
@@ -3135,55 +3135,55 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
 */
   }
 
-  /* "ai/evaluator.pyx":103
+  /* "ai/evaluator.pyx":112
  *         return 0
  * 
  *     for r in range(LINHAS):             # <<<<<<<<<<<<<<
  *         for c in range(COLUNAS):
  *             p = gs.board[r][c]
 */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_LINHAS); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 103, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_LINHAS); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 112, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_5 = __Pyx_PyIndex_AsSsize_t(__pyx_t_1); if (unlikely((__pyx_t_5 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 103, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyIndex_AsSsize_t(__pyx_t_1); if (unlikely((__pyx_t_5 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 112, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __pyx_t_6 = __pyx_t_5;
   for (__pyx_t_4 = 0; __pyx_t_4 < __pyx_t_6; __pyx_t_4+=1) {
     __pyx_v_r = __pyx_t_4;
 
-    /* "ai/evaluator.pyx":104
+    /* "ai/evaluator.pyx":113
  * 
  *     for r in range(LINHAS):
  *         for c in range(COLUNAS):             # <<<<<<<<<<<<<<
  *             p = gs.board[r][c]
  *             if p is not None:
 */
-    __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_COLUNAS); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 104, __pyx_L1_error)
+    __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_mstate_global->__pyx_n_u_COLUNAS); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 113, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_7 = __Pyx_PyIndex_AsSsize_t(__pyx_t_1); if (unlikely((__pyx_t_7 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 104, __pyx_L1_error)
+    __pyx_t_7 = __Pyx_PyIndex_AsSsize_t(__pyx_t_1); if (unlikely((__pyx_t_7 == (Py_ssize_t)-1) && PyErr_Occurred())) __PYX_ERR(0, 113, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_t_8 = __pyx_t_7;
     for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
       __pyx_v_c = __pyx_t_9;
 
-      /* "ai/evaluator.pyx":105
+      /* "ai/evaluator.pyx":114
  *     for r in range(LINHAS):
  *         for c in range(COLUNAS):
  *             p = gs.board[r][c]             # <<<<<<<<<<<<<<
  *             if p is not None:
  *                 valor_base = p.cost
 */
-      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_board); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 105, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_board); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 114, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_10 = __Pyx_GetItemInt(__pyx_t_1, __pyx_v_r, int, 1, __Pyx_PyLong_From_int, 0, 0, 0, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 105, __pyx_L1_error)
+      __pyx_t_10 = __Pyx_GetItemInt(__pyx_t_1, __pyx_v_r, int, 1, __Pyx_PyLong_From_int, 0, 0, 0, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 114, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_10);
       __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __pyx_t_1 = __Pyx_GetItemInt(__pyx_t_10, __pyx_v_c, int, 1, __Pyx_PyLong_From_int, 0, 0, 0, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 105, __pyx_L1_error)
+      __pyx_t_1 = __Pyx_GetItemInt(__pyx_t_10, __pyx_v_c, int, 1, __Pyx_PyLong_From_int, 0, 0, 0, 1, __Pyx_ReferenceSharing_OwnStrongReference); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 114, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_1);
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
       __Pyx_XDECREF_SET(__pyx_v_p, __pyx_t_1);
       __pyx_t_1 = 0;
 
-      /* "ai/evaluator.pyx":106
+      /* "ai/evaluator.pyx":115
  *         for c in range(COLUNAS):
  *             p = gs.board[r][c]
  *             if p is not None:             # <<<<<<<<<<<<<<
@@ -3193,187 +3193,230 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
       __pyx_t_2 = (__pyx_v_p != Py_None);
       if (__pyx_t_2) {
 
-        /* "ai/evaluator.pyx":107
+        /* "ai/evaluator.pyx":116
  *             p = gs.board[r][c]
  *             if p is not None:
  *                 valor_base = p.cost             # <<<<<<<<<<<<<<
  * 
- *                 if p.lifespan is not None:
+ *                 # A. Degradao de Invocaes
 */
-        __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_cost); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 107, __pyx_L1_error)
+        __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_cost); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 116, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
-        __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_1); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 107, __pyx_L1_error)
+        __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_1); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 116, __pyx_L1_error)
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         __pyx_v_valor_base = __pyx_t_11;
 
-        /* "ai/evaluator.pyx":109
- *                 valor_base = p.cost
+        /* "ai/evaluator.pyx":119
  * 
+ *                 # A. Degradao de Invocaes
  *                 if p.lifespan is not None:             # <<<<<<<<<<<<<<
  *                     valor_base = int(valor_base * (p.lifespan / 5.0))
  * 
 */
-        __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_lifespan); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 109, __pyx_L1_error)
+        __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_lifespan); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 119, __pyx_L1_error)
         __Pyx_GOTREF(__pyx_t_1);
         __pyx_t_2 = (__pyx_t_1 != Py_None);
         __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
         if (__pyx_t_2) {
 
-          /* "ai/evaluator.pyx":110
- * 
+          /* "ai/evaluator.pyx":120
+ *                 # A. Degradao de Invocaes
  *                 if p.lifespan is not None:
  *                     valor_base = int(valor_base * (p.lifespan / 5.0))             # <<<<<<<<<<<<<<
  * 
- *                 valor_base += obter_bonus_posicional(p, r, c)
+ *                 # B. Bnus de Sinergia e Arqutipo (PST)
 */
-          __pyx_t_1 = __Pyx_PyLong_From_int(__pyx_v_valor_base); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 110, __pyx_L1_error)
+          __pyx_t_1 = __Pyx_PyLong_From_int(__pyx_v_valor_base); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 120, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_1);
-          __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_lifespan); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 110, __pyx_L1_error)
+          __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_lifespan); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 120, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_10);
-          __pyx_t_12 = __Pyx_PyFloat_TrueDivideObjC(__pyx_t_10, __pyx_mstate_global->__pyx_float_5_0, 5.0, 0, 0); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 110, __pyx_L1_error)
+          __pyx_t_12 = __Pyx_PyFloat_TrueDivideObjC(__pyx_t_10, __pyx_mstate_global->__pyx_float_5_0, 5.0, 0, 0); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 120, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_12);
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-          __pyx_t_10 = PyNumber_Multiply(__pyx_t_1, __pyx_t_12); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 110, __pyx_L1_error)
+          __pyx_t_10 = PyNumber_Multiply(__pyx_t_1, __pyx_t_12); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 120, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_10);
           __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
           __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-          __pyx_t_12 = __Pyx_PyNumber_Int(__pyx_t_10); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 110, __pyx_L1_error)
+          __pyx_t_12 = __Pyx_PyNumber_Int(__pyx_t_10); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 120, __pyx_L1_error)
           __Pyx_GOTREF(__pyx_t_12);
           __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-          __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_12); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 110, __pyx_L1_error)
+          __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_12); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 120, __pyx_L1_error)
           __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
           __pyx_v_valor_base = __pyx_t_11;
 
-          /* "ai/evaluator.pyx":109
- *                 valor_base = p.cost
+          /* "ai/evaluator.pyx":119
  * 
+ *                 # A. Degradao de Invocaes
  *                 if p.lifespan is not None:             # <<<<<<<<<<<<<<
  *                     valor_base = int(valor_base * (p.lifespan / 5.0))
  * 
 */
         }
 
-        /* "ai/evaluator.pyx":112
- *                     valor_base = int(valor_base * (p.lifespan / 5.0))
+        /* "ai/evaluator.pyx":123
  * 
+ *                 # B. Bnus de Sinergia e Arqutipo (PST)
  *                 valor_base += obter_bonus_posicional(p, r, c)             # <<<<<<<<<<<<<<
+ * 
+ *                 # C. ECONOMIA DE AES (Penalizao RPG)
+*/
+        __pyx_t_11 = __pyx_f_2ai_9evaluator_obter_bonus_posicional(__pyx_v_p, __pyx_v_r, __pyx_v_c, 0); if (unlikely(__pyx_t_11 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 123, __pyx_L1_error)
+        __pyx_v_valor_base = (__pyx_v_valor_base + __pyx_t_11);
+
+        /* "ai/evaluator.pyx":126
+ * 
+ *                 # C. ECONOMIA DE AES (Penalizao RPG)
+ *                 if p.stun_timer > 0:             # <<<<<<<<<<<<<<
+ *                     # Uma pea atordoada no pode agir. Perde 80% do seu valor no tabuleiro!
+ *                     valor_base = int(valor_base * 0.2)
+*/
+        __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_stun_timer); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 126, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_12);
+        __pyx_t_10 = PyObject_RichCompare(__pyx_t_12, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_10); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 126, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_t_10); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 126, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+        if (__pyx_t_2) {
+
+          /* "ai/evaluator.pyx":128
+ *                 if p.stun_timer > 0:
+ *                     # Uma pea atordoada no pode agir. Perde 80% do seu valor no tabuleiro!
+ *                     valor_base = int(valor_base * 0.2)             # <<<<<<<<<<<<<<
+ * 
+ *                     # D. AMEAA LETAL (Blood in the Water)
+*/
+          __pyx_v_valor_base = ((int)(__pyx_v_valor_base * 0.2));
+
+          /* "ai/evaluator.pyx":133
+ *                     # No RedWar, stun em cima de stun  morte. A IA inimiga deve salivar por este alvo.
+ *                     # Damos um bnus passivo de 50% do custo da pea ao inimigo s por haver fraqueza.
+ *                     if p.team == 'brancas':             # <<<<<<<<<<<<<<
+ *                         score -= int(p.cost * 0.5)
+ *                     else:
+*/
+          __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_team); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 133, __pyx_L1_error)
+          __Pyx_GOTREF(__pyx_t_10);
+          __pyx_t_2 = (__Pyx_PyUnicode_Equals(__pyx_t_10, __pyx_mstate_global->__pyx_n_u_brancas, Py_EQ)); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 133, __pyx_L1_error)
+          __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+          if (__pyx_t_2) {
+
+            /* "ai/evaluator.pyx":134
+ *                     # Damos um bnus passivo de 50% do custo da pea ao inimigo s por haver fraqueza.
+ *                     if p.team == 'brancas':
+ *                         score -= int(p.cost * 0.5)             # <<<<<<<<<<<<<<
+ *                     else:
+ *                         score += int(p.cost * 0.5)
+*/
+            __pyx_t_10 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 134, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_10);
+            __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_cost); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 134, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_12);
+            __pyx_t_1 = PyNumber_Multiply(__pyx_t_12, __pyx_mstate_global->__pyx_float_0_5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 134, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_1);
+            __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+            __pyx_t_12 = __Pyx_PyNumber_Int(__pyx_t_1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 134, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+            __pyx_t_1 = PyNumber_InPlaceSubtract(__pyx_t_10, __pyx_t_12); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 134, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_1);
+            __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+            __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+            __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_1); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 134, __pyx_L1_error)
+            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+            __pyx_v_score = __pyx_t_11;
+
+            /* "ai/evaluator.pyx":133
+ *                     # No RedWar, stun em cima de stun  morte. A IA inimiga deve salivar por este alvo.
+ *                     # Damos um bnus passivo de 50% do custo da pea ao inimigo s por haver fraqueza.
+ *                     if p.team == 'brancas':             # <<<<<<<<<<<<<<
+ *                         score -= int(p.cost * 0.5)
+ *                     else:
+*/
+            goto __pyx_L15;
+          }
+
+          /* "ai/evaluator.pyx":136
+ *                         score -= int(p.cost * 0.5)
+ *                     else:
+ *                         score += int(p.cost * 0.5)             # <<<<<<<<<<<<<<
  * 
  *                 if p.team == 'brancas':
 */
-        __pyx_t_11 = __pyx_f_2ai_9evaluator_obter_bonus_posicional(__pyx_v_p, __pyx_v_r, __pyx_v_c, 0); if (unlikely(__pyx_t_11 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 112, __pyx_L1_error)
-        __pyx_v_valor_base = (__pyx_v_valor_base + __pyx_t_11);
+          /*else*/ {
+            __pyx_t_1 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 136, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_1);
+            __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_cost); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 136, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_12);
+            __pyx_t_10 = PyNumber_Multiply(__pyx_t_12, __pyx_mstate_global->__pyx_float_0_5); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 136, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_10);
+            __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+            __pyx_t_12 = __Pyx_PyNumber_Int(__pyx_t_10); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 136, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_12);
+            __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+            __pyx_t_10 = PyNumber_InPlaceAdd(__pyx_t_1, __pyx_t_12); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 136, __pyx_L1_error)
+            __Pyx_GOTREF(__pyx_t_10);
+            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+            __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+            __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_10); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 136, __pyx_L1_error)
+            __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+            __pyx_v_score = __pyx_t_11;
+          }
+          __pyx_L15:;
 
-        /* "ai/evaluator.pyx":114
- *                 valor_base += obter_bonus_posicional(p, r, c)
+          /* "ai/evaluator.pyx":126
+ * 
+ *                 # C. ECONOMIA DE AES (Penalizao RPG)
+ *                 if p.stun_timer > 0:             # <<<<<<<<<<<<<<
+ *                     # Uma pea atordoada no pode agir. Perde 80% do seu valor no tabuleiro!
+ *                     valor_base = int(valor_base * 0.2)
+*/
+        }
+
+        /* "ai/evaluator.pyx":138
+ *                         score += int(p.cost * 0.5)
  * 
  *                 if p.team == 'brancas':             # <<<<<<<<<<<<<<
  *                     score += valor_base
- *                     if p.stun_timer > 0: score -= int(p.cost * 0.5)
+ *                 else:
 */
-        __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_team); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 114, __pyx_L1_error)
-        __Pyx_GOTREF(__pyx_t_12);
-        __pyx_t_2 = (__Pyx_PyUnicode_Equals(__pyx_t_12, __pyx_mstate_global->__pyx_n_u_brancas, Py_EQ)); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 114, __pyx_L1_error)
-        __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+        __pyx_t_10 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_team); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 138, __pyx_L1_error)
+        __Pyx_GOTREF(__pyx_t_10);
+        __pyx_t_2 = (__Pyx_PyUnicode_Equals(__pyx_t_10, __pyx_mstate_global->__pyx_n_u_brancas, Py_EQ)); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 138, __pyx_L1_error)
+        __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
         if (__pyx_t_2) {
 
-          /* "ai/evaluator.pyx":115
+          /* "ai/evaluator.pyx":139
  * 
  *                 if p.team == 'brancas':
  *                     score += valor_base             # <<<<<<<<<<<<<<
- *                     if p.stun_timer > 0: score -= int(p.cost * 0.5)
  *                 else:
+ *                     score -= valor_base
 */
           __pyx_v_score = (__pyx_v_score + __pyx_v_valor_base);
 
-          /* "ai/evaluator.pyx":116
- *                 if p.team == 'brancas':
- *                     score += valor_base
- *                     if p.stun_timer > 0: score -= int(p.cost * 0.5)             # <<<<<<<<<<<<<<
- *                 else:
- *                     score -= valor_base
-*/
-          __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_stun_timer); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 116, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_12);
-          __pyx_t_10 = PyObject_RichCompare(__pyx_t_12, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_10); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 116, __pyx_L1_error)
-          __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-          __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_t_10); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 116, __pyx_L1_error)
-          __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-          if (__pyx_t_2) {
-            __pyx_t_10 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 116, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_10);
-            __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_cost); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 116, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_12);
-            __pyx_t_1 = PyNumber_Multiply(__pyx_t_12, __pyx_mstate_global->__pyx_float_0_5); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 116, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_1);
-            __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-            __pyx_t_12 = __Pyx_PyNumber_Int(__pyx_t_1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 116, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_12);
-            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-            __pyx_t_1 = PyNumber_InPlaceSubtract(__pyx_t_10, __pyx_t_12); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 116, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_1);
-            __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-            __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-            __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_1); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 116, __pyx_L1_error)
-            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-            __pyx_v_score = __pyx_t_11;
-          }
-
-          /* "ai/evaluator.pyx":114
- *                 valor_base += obter_bonus_posicional(p, r, c)
+          /* "ai/evaluator.pyx":138
+ *                         score += int(p.cost * 0.5)
  * 
  *                 if p.team == 'brancas':             # <<<<<<<<<<<<<<
  *                     score += valor_base
- *                     if p.stun_timer > 0: score -= int(p.cost * 0.5)
+ *                 else:
 */
-          goto __pyx_L14;
+          goto __pyx_L16;
         }
 
-        /* "ai/evaluator.pyx":118
- *                     if p.stun_timer > 0: score -= int(p.cost * 0.5)
+        /* "ai/evaluator.pyx":141
+ *                     score += valor_base
  *                 else:
  *                     score -= valor_base             # <<<<<<<<<<<<<<
- *                     if p.stun_timer > 0: score += int(p.cost * 0.5)
- * 
-*/
-        /*else*/ {
-          __pyx_v_score = (__pyx_v_score - __pyx_v_valor_base);
-
-          /* "ai/evaluator.pyx":119
- *                 else:
- *                     score -= valor_base
- *                     if p.stun_timer > 0: score += int(p.cost * 0.5)             # <<<<<<<<<<<<<<
  * 
  *     if score > 0:
 */
-          __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_stun_timer); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 119, __pyx_L1_error)
-          __Pyx_GOTREF(__pyx_t_1);
-          __pyx_t_12 = PyObject_RichCompare(__pyx_t_1, __pyx_mstate_global->__pyx_int_0, Py_GT); __Pyx_XGOTREF(__pyx_t_12); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 119, __pyx_L1_error)
-          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-          __pyx_t_2 = __Pyx_PyObject_IsTrue(__pyx_t_12); if (unlikely((__pyx_t_2 < 0))) __PYX_ERR(0, 119, __pyx_L1_error)
-          __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-          if (__pyx_t_2) {
-            __pyx_t_12 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 119, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_12);
-            __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_p, __pyx_mstate_global->__pyx_n_u_cost); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 119, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_1);
-            __pyx_t_10 = PyNumber_Multiply(__pyx_t_1, __pyx_mstate_global->__pyx_float_0_5); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 119, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_10);
-            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-            __pyx_t_1 = __Pyx_PyNumber_Int(__pyx_t_10); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 119, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_1);
-            __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-            __pyx_t_10 = PyNumber_InPlaceAdd(__pyx_t_12, __pyx_t_1); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 119, __pyx_L1_error)
-            __Pyx_GOTREF(__pyx_t_10);
-            __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
-            __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-            __pyx_t_11 = __Pyx_PyLong_As_int(__pyx_t_10); if (unlikely((__pyx_t_11 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 119, __pyx_L1_error)
-            __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-            __pyx_v_score = __pyx_t_11;
-          }
+        /*else*/ {
+          __pyx_v_score = (__pyx_v_score - __pyx_v_valor_base);
         }
-        __pyx_L14:;
+        __pyx_L16:;
 
-        /* "ai/evaluator.pyx":106
+        /* "ai/evaluator.pyx":115
  *         for c in range(COLUNAS):
  *             p = gs.board[r][c]
  *             if p is not None:             # <<<<<<<<<<<<<<
@@ -3384,8 +3427,8 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
     }
   }
 
-  /* "ai/evaluator.pyx":121
- *                     if p.stun_timer > 0: score += int(p.cost * 0.5)
+  /* "ai/evaluator.pyx":143
+ *                     score -= valor_base
  * 
  *     if score > 0:             # <<<<<<<<<<<<<<
  *         score -= gs.turns_without_capture
@@ -3394,27 +3437,27 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
   __pyx_t_2 = (__pyx_v_score > 0);
   if (__pyx_t_2) {
 
-    /* "ai/evaluator.pyx":122
+    /* "ai/evaluator.pyx":144
  * 
  *     if score > 0:
  *         score -= gs.turns_without_capture             # <<<<<<<<<<<<<<
  *     elif score < 0:
  *         score += gs.turns_without_capture
 */
-    __pyx_t_10 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 122, __pyx_L1_error)
+    __pyx_t_10 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 144, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_10);
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_turns_without_capture); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 122, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_12 = PyNumber_InPlaceSubtract(__pyx_t_10, __pyx_t_1); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 122, __pyx_L1_error)
+    __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_turns_without_capture); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 144, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_12);
+    __pyx_t_1 = PyNumber_InPlaceSubtract(__pyx_t_10, __pyx_t_12); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 144, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_4 = __Pyx_PyLong_As_int(__pyx_t_12); if (unlikely((__pyx_t_4 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 122, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+    __pyx_t_4 = __Pyx_PyLong_As_int(__pyx_t_1); if (unlikely((__pyx_t_4 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 144, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
     __pyx_v_score = __pyx_t_4;
 
-    /* "ai/evaluator.pyx":121
- *                     if p.stun_timer > 0: score += int(p.cost * 0.5)
+    /* "ai/evaluator.pyx":143
+ *                     score -= valor_base
  * 
  *     if score > 0:             # <<<<<<<<<<<<<<
  *         score -= gs.turns_without_capture
@@ -3423,7 +3466,7 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
     goto __pyx_L17;
   }
 
-  /* "ai/evaluator.pyx":123
+  /* "ai/evaluator.pyx":145
  *     if score > 0:
  *         score -= gs.turns_without_capture
  *     elif score < 0:             # <<<<<<<<<<<<<<
@@ -3433,26 +3476,26 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
   __pyx_t_2 = (__pyx_v_score < 0);
   if (__pyx_t_2) {
 
-    /* "ai/evaluator.pyx":124
+    /* "ai/evaluator.pyx":146
  *         score -= gs.turns_without_capture
  *     elif score < 0:
  *         score += gs.turns_without_capture             # <<<<<<<<<<<<<<
  * 
  *     return score
 */
-    __pyx_t_12 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 124, __pyx_L1_error)
-    __Pyx_GOTREF(__pyx_t_12);
-    __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_turns_without_capture); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 124, __pyx_L1_error)
+    __pyx_t_1 = __Pyx_PyLong_From_int(__pyx_v_score); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 146, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_10 = PyNumber_InPlaceAdd(__pyx_t_12, __pyx_t_1); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 124, __pyx_L1_error)
+    __pyx_t_12 = __Pyx_PyObject_GetAttrStr(__pyx_v_gs, __pyx_mstate_global->__pyx_n_u_turns_without_capture); if (unlikely(!__pyx_t_12)) __PYX_ERR(0, 146, __pyx_L1_error)
+    __Pyx_GOTREF(__pyx_t_12);
+    __pyx_t_10 = PyNumber_InPlaceAdd(__pyx_t_1, __pyx_t_12); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 146, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_10);
-    __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
     __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-    __pyx_t_4 = __Pyx_PyLong_As_int(__pyx_t_10); if (unlikely((__pyx_t_4 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 124, __pyx_L1_error)
+    __Pyx_DECREF(__pyx_t_12); __pyx_t_12 = 0;
+    __pyx_t_4 = __Pyx_PyLong_As_int(__pyx_t_10); if (unlikely((__pyx_t_4 == (int)-1) && PyErr_Occurred())) __PYX_ERR(0, 146, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
     __pyx_v_score = __pyx_t_4;
 
-    /* "ai/evaluator.pyx":123
+    /* "ai/evaluator.pyx":145
  *     if score > 0:
  *         score -= gs.turns_without_capture
  *     elif score < 0:             # <<<<<<<<<<<<<<
@@ -3462,7 +3505,7 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
   }
   __pyx_L17:;
 
-  /* "ai/evaluator.pyx":126
+  /* "ai/evaluator.pyx":148
  *         score += gs.turns_without_capture
  * 
  *     return score             # <<<<<<<<<<<<<<
@@ -3470,7 +3513,7 @@ static int __pyx_f_2ai_9evaluator_avaliador_mestre(PyObject *__pyx_v_gs, CYTHON_
   __pyx_r = __pyx_v_score;
   goto __pyx_L0;
 
-  /* "ai/evaluator.pyx":91
+  /* "ai/evaluator.pyx":100
  *     return tabela[idx_r][idx_c]
  * 
  * @cython.boundscheck(False)             # <<<<<<<<<<<<<<
@@ -3530,32 +3573,32 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   {
     PyObject ** const __pyx_pyargnames[] = {&__pyx_mstate_global->__pyx_n_u_gs,0};
     const Py_ssize_t __pyx_kwds_len = (__pyx_kwds) ? __Pyx_NumKwargs_FASTCALL(__pyx_kwds) : 0;
-    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 91, __pyx_L3_error)
+    if (unlikely(__pyx_kwds_len < 0)) __PYX_ERR(0, 100, __pyx_L3_error)
     if (__pyx_kwds_len > 0) {
       switch (__pyx_nargs) {
         case  1:
         values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 91, __pyx_L3_error)
+        if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 100, __pyx_L3_error)
         CYTHON_FALLTHROUGH;
         case  0: break;
         default: goto __pyx_L5_argtuple_error;
       }
       const Py_ssize_t kwd_pos_args = __pyx_nargs;
-      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "avaliador_mestre", 0) < (0)) __PYX_ERR(0, 91, __pyx_L3_error)
+      if (__Pyx_ParseKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values, kwd_pos_args, __pyx_kwds_len, "avaliador_mestre", 0) < (0)) __PYX_ERR(0, 100, __pyx_L3_error)
       for (Py_ssize_t i = __pyx_nargs; i < 1; i++) {
-        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("avaliador_mestre", 1, 1, 1, i); __PYX_ERR(0, 91, __pyx_L3_error) }
+        if (unlikely(!values[i])) { __Pyx_RaiseArgtupleInvalid("avaliador_mestre", 1, 1, 1, i); __PYX_ERR(0, 100, __pyx_L3_error) }
       }
     } else if (unlikely(__pyx_nargs != 1)) {
       goto __pyx_L5_argtuple_error;
     } else {
       values[0] = __Pyx_ArgRef_FASTCALL(__pyx_args, 0);
-      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 91, __pyx_L3_error)
+      if (!CYTHON_ASSUME_SAFE_MACROS && unlikely(!values[0])) __PYX_ERR(0, 100, __pyx_L3_error)
     }
     __pyx_v_gs = values[0];
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("avaliador_mestre", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 91, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("avaliador_mestre", 1, 1, 1, __pyx_nargs); __PYX_ERR(0, 100, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -3586,8 +3629,8 @@ static PyObject *__pyx_pf_2ai_9evaluator_2avaliador_mestre(CYTHON_UNUSED PyObjec
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("avaliador_mestre", 0);
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __pyx_f_2ai_9evaluator_avaliador_mestre(__pyx_v_gs, 1); if (unlikely(__pyx_t_1 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 91, __pyx_L1_error)
-  __pyx_t_2 = __Pyx_PyLong_From_int(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 91, __pyx_L1_error)
+  __pyx_t_1 = __pyx_f_2ai_9evaluator_avaliador_mestre(__pyx_v_gs, 1); if (unlikely(__pyx_t_1 == ((int)-1) && PyErr_Occurred())) __PYX_ERR(0, 100, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyLong_From_int(__pyx_t_1); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 100, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __pyx_r = __pyx_t_2;
   __pyx_t_2 = 0;
@@ -3975,7 +4018,7 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
  * import cython
  * from engine.config import LINHAS, COLUNAS             # <<<<<<<<<<<<<<
  * 
- * cdef list PST_GHOUL = [
+ * # ==========================================================
 */
   {
     PyObject* const __pyx_imported_names[] = {__pyx_mstate_global->__pyx_n_u_LINHAS,__pyx_mstate_global->__pyx_n_u_COLUNAS};
@@ -3994,94 +4037,94 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
   }
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "ai/evaluator.pyx":6
- * 
+  /* "ai/evaluator.pyx":12
+ * # GHOUL (Melee Swarm): S pensa em marchar para a frente.
  * cdef list PST_GHOUL = [
- *     [-50,-50,-50,-50,-50,-50,-50,-50],             # <<<<<<<<<<<<<<
+ *     [ 50, 50, 50, 50, 50, 50, 50, 50], # 0: Perto de matar             # <<<<<<<<<<<<<<
  *     [ 40, 40, 40, 40, 40, 40, 40, 40],
  *     [ 30, 30, 30, 30, 30, 30, 30, 30],
 */
-  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 6, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_50, __pyx_mstate_global->__pyx_int_50, __pyx_mstate_global->__pyx_int_50, __pyx_mstate_global->__pyx_int_50, __pyx_mstate_global->__pyx_int_50, __pyx_mstate_global->__pyx_int_50, __pyx_mstate_global->__pyx_int_50, __pyx_mstate_global->__pyx_int_50); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 12, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
 
-  /* "ai/evaluator.pyx":7
+  /* "ai/evaluator.pyx":13
  * cdef list PST_GHOUL = [
- *     [-50,-50,-50,-50,-50,-50,-50,-50],
+ *     [ 50, 50, 50, 50, 50, 50, 50, 50], # 0: Perto de matar
  *     [ 40, 40, 40, 40, 40, 40, 40, 40],             # <<<<<<<<<<<<<<
  *     [ 30, 30, 30, 30, 30, 30, 30, 30],
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],
 */
-  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 7, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_40); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 13, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
 
-  /* "ai/evaluator.pyx":8
- *     [-50,-50,-50,-50,-50,-50,-50,-50],
+  /* "ai/evaluator.pyx":14
+ *     [ 50, 50, 50, 50, 50, 50, 50, 50], # 0: Perto de matar
  *     [ 40, 40, 40, 40, 40, 40, 40, 40],
  *     [ 30, 30, 30, 30, 30, 30, 30, 30],             # <<<<<<<<<<<<<<
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
 */
-  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 8, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
 
-  /* "ai/evaluator.pyx":9
+  /* "ai/evaluator.pyx":15
  *     [ 40, 40, 40, 40, 40, 40, 40, 40],
  *     [ 30, 30, 30, 30, 30, 30, 30, 30],
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],             # <<<<<<<<<<<<<<
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [  5,  5,  5,  5,  5,  5,  5,  5],
+ *     [  0,  0,  0,  0,  0,  0,  0,  0],
 */
-  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 9, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 15, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
 
-  /* "ai/evaluator.pyx":10
+  /* "ai/evaluator.pyx":16
  *     [ 30, 30, 30, 30, 30, 30, 30, 30],
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],             # <<<<<<<<<<<<<<
- *     [  5,  5,  5,  5,  5,  5,  5,  5],
  *     [  0,  0,  0,  0,  0,  0,  0,  0],
+ *     [-10,-10,-10,-10,-10,-10,-10,-10],
 */
-  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 10, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 16, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
 
-  /* "ai/evaluator.pyx":11
+  /* "ai/evaluator.pyx":17
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [  5,  5,  5,  5,  5,  5,  5,  5],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [-10,-10,-10,-10,-10,-10,-10,-10]
+ *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
+ *     [-10,-10,-10,-10,-10,-10,-10,-10],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20]  # 7: Ficar na base  um desperdcio
 */
-  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 11, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 17, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
 
-  /* "ai/evaluator.pyx":12
+  /* "ai/evaluator.pyx":18
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [  5,  5,  5,  5,  5,  5,  5,  5],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
- *     [-10,-10,-10,-10,-10,-10,-10,-10]
+ *     [  0,  0,  0,  0,  0,  0,  0,  0],
+ *     [-10,-10,-10,-10,-10,-10,-10,-10],             # <<<<<<<<<<<<<<
+ *     [-20,-20,-20,-20,-20,-20,-20,-20]  # 7: Ficar na base  um desperdcio
  * ]
 */
-  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 12, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 18, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_9);
 
-  /* "ai/evaluator.pyx":13
- *     [  5,  5,  5,  5,  5,  5,  5,  5],
+  /* "ai/evaluator.pyx":19
  *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [-10,-10,-10,-10,-10,-10,-10,-10]             # <<<<<<<<<<<<<<
+ *     [-10,-10,-10,-10,-10,-10,-10,-10],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20]  # 7: Ficar na base  um desperdcio             # <<<<<<<<<<<<<<
  * ]
  * 
 */
-  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 19, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_10);
 
-  /* "ai/evaluator.pyx":5
- * from engine.config import LINHAS, COLUNAS
+  /* "ai/evaluator.pyx":11
  * 
+ * # GHOUL (Melee Swarm): S pensa em marchar para a frente.
  * cdef list PST_GHOUL = [             # <<<<<<<<<<<<<<
- *     [-50,-50,-50,-50,-50,-50,-50,-50],
+ *     [ 50, 50, 50, 50, 50, 50, 50, 50], # 0: Perto de matar
  *     [ 40, 40, 40, 40, 40, 40, 40, 40],
 */
-  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 5, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 11, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -4096,94 +4139,94 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
   __Pyx_GIVEREF(__pyx_t_11);
   __pyx_t_11 = 0;
 
-  /* "ai/evaluator.pyx":17
- * 
+  /* "ai/evaluator.pyx":24
+ * # SENTRY (Tank): A sua funo  dominar e bloquear o centro do tabuleiro.
  * cdef list PST_SENTRY = [
- *     [-10,-10,-10,-10,-10,-10,-10,-10],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],             # <<<<<<<<<<<<<<
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
 */
-  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 17, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 24, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
 
-  /* "ai/evaluator.pyx":18
+  /* "ai/evaluator.pyx":25
  * cdef list PST_SENTRY = [
- *     [-10,-10,-10,-10,-10,-10,-10,-10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],             # <<<<<<<<<<<<<<
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
 */
-  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 18, __pyx_L1_error)
+  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 25, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_10);
 
-  /* "ai/evaluator.pyx":19
- *     [-10,-10,-10,-10,-10,-10,-10,-10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],             # <<<<<<<<<<<<<<
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
+  /* "ai/evaluator.pyx":26
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],             # <<<<<<<<<<<<<<
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
 */
-  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 19, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 26, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_9);
 
-  /* "ai/evaluator.pyx":20
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],             # <<<<<<<<<<<<<<
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
+  /* "ai/evaluator.pyx":27
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro             # <<<<<<<<<<<<<<
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
 */
-  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 20, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 27, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
 
-  /* "ai/evaluator.pyx":21
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],             # <<<<<<<<<<<<<<
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+  /* "ai/evaluator.pyx":28
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro             # <<<<<<<<<<<<<<
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],
 */
-  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 21, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 28, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
 
-  /* "ai/evaluator.pyx":22
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [-10,-10,-10,-10,-10,-10,-10,-10]
+  /* "ai/evaluator.pyx":29
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],             # <<<<<<<<<<<<<<
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20]
 */
-  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 22, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 29, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
 
-  /* "ai/evaluator.pyx":23
- *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
- *     [-10,-10,-10,-10,-10,-10,-10,-10]
+  /* "ai/evaluator.pyx":30
+ *     [ 10, 20, 30, 30, 30, 30, 20, 10], # Centro
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],             # <<<<<<<<<<<<<<
+ *     [-20,-20,-20,-20,-20,-20,-20,-20]
  * ]
 */
-  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 23, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 30, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
 
-  /* "ai/evaluator.pyx":24
- *     [ 10, 10, 10, 10, 10, 10, 10, 10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [-10,-10,-10,-10,-10,-10,-10,-10]             # <<<<<<<<<<<<<<
+  /* "ai/evaluator.pyx":31
+ *     [ 10, 10, 20, 20, 20, 20, 10, 10],
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20]             # <<<<<<<<<<<<<<
  * ]
  * 
 */
-  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 24, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 31, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
 
-  /* "ai/evaluator.pyx":16
- * ]
+  /* "ai/evaluator.pyx":23
  * 
+ * # SENTRY (Tank): A sua funo  dominar e bloquear o centro do tabuleiro.
  * cdef list PST_SENTRY = [             # <<<<<<<<<<<<<<
- *     [-10,-10,-10,-10,-10,-10,-10,-10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
+ *     [  0,  0, 10, 10, 10, 10,  0,  0],
 */
-  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_t_11, __pyx_t_10, __pyx_t_9, __pyx_t_8, __pyx_t_7, __pyx_t_6, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 16, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_t_11, __pyx_t_10, __pyx_t_9, __pyx_t_8, __pyx_t_7, __pyx_t_6, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 23, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
   __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
@@ -4198,94 +4241,94 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
   __Pyx_GIVEREF(__pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "ai/evaluator.pyx":28
- * 
+  /* "ai/evaluator.pyx":36
+ * # FROSTMAGE & LICH (Ranged CC): Precisam de estar atrs das linhas inimigas para ter viso de tiro.
  * cdef list PST_FROSTMAGE = [
- *     [-20,-10,-10,-10,-10,-10,-10,-20],             # <<<<<<<<<<<<<<
- *     [-10,  0,  0,  0,  0,  0,  0,-10],
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
+ *     [-40,-40,-40,-40,-40,-40,-40,-40], # 0: Exposto, morte certa             # <<<<<<<<<<<<<<
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],
 */
-  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 28, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 36, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
 
-  /* "ai/evaluator.pyx":29
+  /* "ai/evaluator.pyx":37
  * cdef list PST_FROSTMAGE = [
- *     [-20,-10,-10,-10,-10,-10,-10,-20],
- *     [-10,  0,  0,  0,  0,  0,  0,-10],             # <<<<<<<<<<<<<<
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
+ *     [-40,-40,-40,-40,-40,-40,-40,-40], # 0: Exposto, morte certa
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],             # <<<<<<<<<<<<<<
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],
+ *     [  0, 10, 20, 20, 20, 20, 10,  0], # Zona de tiro ideal
 */
-  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 29, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 37, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
 
-  /* "ai/evaluator.pyx":30
- *     [-20,-10,-10,-10,-10,-10,-10,-20],
- *     [-10,  0,  0,  0,  0,  0,  0,-10],
- *     [-10,  0, 15, 15, 15, 15,  0,-10],             # <<<<<<<<<<<<<<
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
+  /* "ai/evaluator.pyx":38
+ *     [-40,-40,-40,-40,-40,-40,-40,-40], # 0: Exposto, morte certa
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],             # <<<<<<<<<<<<<<
+ *     [  0, 10, 20, 20, 20, 20, 10,  0], # Zona de tiro ideal
+ *     [  0, 10, 20, 20, 20, 20, 10,  0],
 */
-  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 30, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 38, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
 
-  /* "ai/evaluator.pyx":31
- *     [-10,  0,  0,  0,  0,  0,  0,-10],
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
- *     [-10,  0, 15, 30, 30, 15,  0,-10],             # <<<<<<<<<<<<<<
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
+  /* "ai/evaluator.pyx":39
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],
+ *     [  0, 10, 20, 20, 20, 20, 10,  0], # Zona de tiro ideal             # <<<<<<<<<<<<<<
+ *     [  0, 10, 20, 20, 20, 20, 10,  0],
+ *     [  0, 10, 10, 10, 10, 10, 10,  0],
 */
-  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 31, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
 
-  /* "ai/evaluator.pyx":32
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
- *     [-10,  0, 15, 30, 30, 15,  0,-10],             # <<<<<<<<<<<<<<
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
- *     [-10,  0,  0,  0,  0,  0,  0,-10],
+  /* "ai/evaluator.pyx":40
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],
+ *     [  0, 10, 20, 20, 20, 20, 10,  0], # Zona de tiro ideal
+ *     [  0, 10, 20, 20, 20, 20, 10,  0],             # <<<<<<<<<<<<<<
+ *     [  0, 10, 10, 10, 10, 10, 10,  0],
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],
 */
-  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 32, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 40, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
 
-  /* "ai/evaluator.pyx":33
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
- *     [-10,  0, 15, 15, 15, 15,  0,-10],             # <<<<<<<<<<<<<<
- *     [-10,  0,  0,  0,  0,  0,  0,-10],
- *     [-20,-10,-10,-10,-10,-10,-10,-20]
+  /* "ai/evaluator.pyx":41
+ *     [  0, 10, 20, 20, 20, 20, 10,  0], # Zona de tiro ideal
+ *     [  0, 10, 20, 20, 20, 20, 10,  0],
+ *     [  0, 10, 10, 10, 10, 10, 10,  0],             # <<<<<<<<<<<<<<
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],
+ *     [-20,-10,  0,  0,  0,  0,-10,-20]
 */
-  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_15, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 33, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 41, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
 
-  /* "ai/evaluator.pyx":34
- *     [-10,  0, 15, 30, 30, 15,  0,-10],
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
- *     [-10,  0,  0,  0,  0,  0,  0,-10],             # <<<<<<<<<<<<<<
- *     [-20,-10,-10,-10,-10,-10,-10,-20]
+  /* "ai/evaluator.pyx":42
+ *     [  0, 10, 20, 20, 20, 20, 10,  0],
+ *     [  0, 10, 10, 10, 10, 10, 10,  0],
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],             # <<<<<<<<<<<<<<
+ *     [-20,-10,  0,  0,  0,  0,-10,-20]
  * ]
 */
-  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 34, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 42, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_9);
 
-  /* "ai/evaluator.pyx":35
- *     [-10,  0, 15, 15, 15, 15,  0,-10],
- *     [-10,  0,  0,  0,  0,  0,  0,-10],
- *     [-20,-10,-10,-10,-10,-10,-10,-20]             # <<<<<<<<<<<<<<
+  /* "ai/evaluator.pyx":43
+ *     [  0, 10, 10, 10, 10, 10, 10,  0],
+ *     [-10,  0,  5,  5,  5,  5,  0,-10],
+ *     [-20,-10,  0,  0,  0,  0,-10,-20]             # <<<<<<<<<<<<<<
  * ]
  * 
 */
-  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 35, __pyx_L1_error)
+  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 43, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_10);
 
-  /* "ai/evaluator.pyx":27
- * ]
+  /* "ai/evaluator.pyx":35
  * 
+ * # FROSTMAGE & LICH (Ranged CC): Precisam de estar atrs das linhas inimigas para ter viso de tiro.
  * cdef list PST_FROSTMAGE = [             # <<<<<<<<<<<<<<
- *     [-20,-10,-10,-10,-10,-10,-10,-20],
- *     [-10,  0,  0,  0,  0,  0,  0,-10],
+ *     [-40,-40,-40,-40,-40,-40,-40,-40], # 0: Exposto, morte certa
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
 */
-  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 27, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 35, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -4300,94 +4343,94 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
   __Pyx_GIVEREF(__pyx_t_11);
   __pyx_t_11 = 0;
 
-  /* "ai/evaluator.pyx":39
- * 
+  /* "ai/evaluator.pyx":48
+ * # BONELORD (Summoner): Frgil. Quer ficar nos cantos escuros da sua base a gerar exrcitos.
  * cdef list PST_BONELORD = [
- *     [-30,-30,-30,-30,-30,-30,-30,-30],             # <<<<<<<<<<<<<<
+ *     [-50,-50,-50,-50,-50,-50,-50,-50],             # <<<<<<<<<<<<<<
+ *     [-40,-40,-40,-40,-40,-40,-40,-40],
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
+*/
+  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50, __pyx_mstate_global->__pyx_int_neg_50); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 48, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_11);
+
+  /* "ai/evaluator.pyx":49
+ * cdef list PST_BONELORD = [
+ *     [-50,-50,-50,-50,-50,-50,-50,-50],
+ *     [-40,-40,-40,-40,-40,-40,-40,-40],             # <<<<<<<<<<<<<<
  *     [-20,-20,-20,-20,-20,-20,-20,-20],
  *     [-10,-10,-10,-10,-10,-10,-10,-10],
 */
-  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_30, __pyx_mstate_global->__pyx_int_neg_30, __pyx_mstate_global->__pyx_int_neg_30, __pyx_mstate_global->__pyx_int_neg_30, __pyx_mstate_global->__pyx_int_neg_30, __pyx_mstate_global->__pyx_int_neg_30, __pyx_mstate_global->__pyx_int_neg_30, __pyx_mstate_global->__pyx_int_neg_30); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 39, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_11);
+  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40, __pyx_mstate_global->__pyx_int_neg_40); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 49, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_10);
 
-  /* "ai/evaluator.pyx":40
- * cdef list PST_BONELORD = [
- *     [-30,-30,-30,-30,-30,-30,-30,-30],
+  /* "ai/evaluator.pyx":50
+ *     [-50,-50,-50,-50,-50,-50,-50,-50],
+ *     [-40,-40,-40,-40,-40,-40,-40,-40],
  *     [-20,-20,-20,-20,-20,-20,-20,-20],             # <<<<<<<<<<<<<<
  *     [-10,-10,-10,-10,-10,-10,-10,-10],
  *     [  0,  0,  0,  0,  0,  0,  0,  0],
 */
-  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 40, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_10);
+  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20, __pyx_mstate_global->__pyx_int_neg_20); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 50, __pyx_L1_error)
+  __Pyx_GOTREF(__pyx_t_9);
 
-  /* "ai/evaluator.pyx":41
- *     [-30,-30,-30,-30,-30,-30,-30,-30],
+  /* "ai/evaluator.pyx":51
+ *     [-40,-40,-40,-40,-40,-40,-40,-40],
  *     [-20,-20,-20,-20,-20,-20,-20,-20],
  *     [-10,-10,-10,-10,-10,-10,-10,-10],             # <<<<<<<<<<<<<<
  *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
-*/
-  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 41, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_9);
-
-  /* "ai/evaluator.pyx":42
- *     [-20,-20,-20,-20,-20,-20,-20,-20],
- *     [-10,-10,-10,-10,-10,-10,-10,-10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
 */
-  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 42, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10, __pyx_mstate_global->__pyx_int_neg_10); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 51, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
 
-  /* "ai/evaluator.pyx":43
+  /* "ai/evaluator.pyx":52
+ *     [-20,-20,-20,-20,-20,-20,-20,-20],
  *     [-10,-10,-10,-10,-10,-10,-10,-10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
  *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],
 */
-  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 43, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 52, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
 
-  /* "ai/evaluator.pyx":44
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+  /* "ai/evaluator.pyx":53
+ *     [-10,-10,-10,-10,-10,-10,-10,-10],
  *     [  0,  0,  0,  0,  0,  0,  0,  0],
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],             # <<<<<<<<<<<<<<
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 10, 30, 30, 30, 30, 30, 30, 10]
+ *     [ 40, 30, 20, 10, 10, 20, 30, 40]  # 7: Protegido nos flancos traseiros
 */
-  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 44, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 53, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
 
-  /* "ai/evaluator.pyx":45
+  /* "ai/evaluator.pyx":54
  *     [  0,  0,  0,  0,  0,  0,  0,  0],
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],             # <<<<<<<<<<<<<<
- *     [ 10, 30, 30, 30, 30, 30, 30, 10]
+ *     [ 40, 30, 20, 10, 10, 20, 30, 40]  # 7: Protegido nos flancos traseiros
  * ]
 */
-  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 45, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 54, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
 
-  /* "ai/evaluator.pyx":46
+  /* "ai/evaluator.pyx":55
  *     [ 10, 10, 10, 10, 10, 10, 10, 10],
  *     [ 20, 20, 20, 20, 20, 20, 20, 20],
- *     [ 10, 30, 30, 30, 30, 30, 30, 10]             # <<<<<<<<<<<<<<
+ *     [ 40, 30, 20, 10, 10, 20, 30, 40]  # 7: Protegido nos flancos traseiros             # <<<<<<<<<<<<<<
  * ]
  * 
 */
-  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 46, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_40, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_40); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 55, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
 
-  /* "ai/evaluator.pyx":38
- * ]
+  /* "ai/evaluator.pyx":47
  * 
+ * # BONELORD (Summoner): Frgil. Quer ficar nos cantos escuros da sua base a gerar exrcitos.
  * cdef list PST_BONELORD = [             # <<<<<<<<<<<<<<
- *     [-30,-30,-30,-30,-30,-30,-30,-30],
- *     [-20,-20,-20,-20,-20,-20,-20,-20],
+ *     [-50,-50,-50,-50,-50,-50,-50,-50],
+ *     [-40,-40,-40,-40,-40,-40,-40,-40],
 */
-  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_t_11, __pyx_t_10, __pyx_t_9, __pyx_t_8, __pyx_t_7, __pyx_t_6, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_t_11, __pyx_t_10, __pyx_t_9, __pyx_t_8, __pyx_t_7, __pyx_t_6, __pyx_t_5, __pyx_t_4); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 47, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
   __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
@@ -4402,106 +4445,106 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
   __Pyx_GIVEREF(__pyx_t_2);
   __pyx_t_2 = 0;
 
-  /* "ai/evaluator.pyx":49
+  /* "ai/evaluator.pyx":58
  * ]
  * 
- * cdef list PST_LICH = PST_BONELORD             # <<<<<<<<<<<<<<
+ * cdef list PST_LICH = PST_FROSTMAGE             # <<<<<<<<<<<<<<
  * 
- * cdef list PST_PHANTOM = [
+ * # PHANTOM (Assassin): Foge do centro. Desliza pelas bordas do mapa para invadir a retaguarda.
 */
-  __Pyx_INCREF(__pyx_v_2ai_9evaluator_PST_BONELORD);
+  __Pyx_INCREF(__pyx_v_2ai_9evaluator_PST_FROSTMAGE);
   __Pyx_XGOTREF(__pyx_v_2ai_9evaluator_PST_LICH);
-  __Pyx_DECREF_SET(__pyx_v_2ai_9evaluator_PST_LICH, __pyx_v_2ai_9evaluator_PST_BONELORD);
-  __Pyx_GIVEREF(__pyx_v_2ai_9evaluator_PST_BONELORD);
+  __Pyx_DECREF_SET(__pyx_v_2ai_9evaluator_PST_LICH, __pyx_v_2ai_9evaluator_PST_FROSTMAGE);
+  __Pyx_GIVEREF(__pyx_v_2ai_9evaluator_PST_FROSTMAGE);
 
-  /* "ai/evaluator.pyx":52
- * 
+  /* "ai/evaluator.pyx":62
+ * # PHANTOM (Assassin): Foge do centro. Desliza pelas bordas do mapa para invadir a retaguarda.
  * cdef list PST_PHANTOM = [
- *     [ 20, 10,  0,  0,  0,  0, 10, 20],             # <<<<<<<<<<<<<<
+ *     [ 30, 10,  0,  0,  0,  0, 10, 30],             # <<<<<<<<<<<<<<
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],
  *     [ 10,  0,  0,  0,  0,  0,  0, 10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
 */
-  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 52, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_30); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 62, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
 
-  /* "ai/evaluator.pyx":53
+  /* "ai/evaluator.pyx":63
  * cdef list PST_PHANTOM = [
- *     [ 20, 10,  0,  0,  0,  0, 10, 20],
- *     [ 10,  0,  0,  0,  0,  0,  0, 10],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+ *     [ 30, 10,  0,  0,  0,  0, 10, 30],
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],             # <<<<<<<<<<<<<<
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
 */
-  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 53, __pyx_L1_error)
+  __pyx_t_4 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 63, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
 
-  /* "ai/evaluator.pyx":54
- *     [ 20, 10,  0,  0,  0,  0, 10, 20],
+  /* "ai/evaluator.pyx":64
+ *     [ 30, 10,  0,  0,  0,  0, 10, 30],
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],             # <<<<<<<<<<<<<<
  *     [ 10,  0,  0,  0,  0,  0,  0, 10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
 */
-  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 54, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 64, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
 
-  /* "ai/evaluator.pyx":55
+  /* "ai/evaluator.pyx":65
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],
  *     [ 10,  0,  0,  0,  0,  0,  0, 10],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],             # <<<<<<<<<<<<<<
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
 */
-  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 55, __pyx_L1_error)
+  __pyx_t_6 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 65, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_6);
 
-  /* "ai/evaluator.pyx":56
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+  /* "ai/evaluator.pyx":66
  *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],             # <<<<<<<<<<<<<<
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],
 */
-  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 56, __pyx_L1_error)
+  __pyx_t_7 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 66, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_7);
 
-  /* "ai/evaluator.pyx":57
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],             # <<<<<<<<<<<<<<
+  /* "ai/evaluator.pyx":67
  *     [ 10,  0,  0,  0,  0,  0,  0, 10],
- *     [ 20, 10,  0,  0,  0,  0, 10, 20]
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],             # <<<<<<<<<<<<<<
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],
+ *     [ 30, 10,  0,  0,  0,  0, 10, 30]
 */
-  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 57, __pyx_L1_error)
+  __pyx_t_8 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 67, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_8);
 
-  /* "ai/evaluator.pyx":58
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
- *     [ 10,  0,  0,  0,  0,  0,  0, 10],             # <<<<<<<<<<<<<<
- *     [ 20, 10,  0,  0,  0,  0, 10, 20]
+  /* "ai/evaluator.pyx":68
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],             # <<<<<<<<<<<<<<
+ *     [ 30, 10,  0,  0,  0,  0, 10, 30]
  * ]
 */
-  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 58, __pyx_L1_error)
+  __pyx_t_9 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_5, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_9)) __PYX_ERR(0, 68, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_9);
 
-  /* "ai/evaluator.pyx":59
- *     [  0,  0,  0,  0,  0,  0,  0,  0],
+  /* "ai/evaluator.pyx":69
  *     [ 10,  0,  0,  0,  0,  0,  0, 10],
- *     [ 20, 10,  0,  0,  0,  0, 10, 20]             # <<<<<<<<<<<<<<
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],
+ *     [ 30, 10,  0,  0,  0,  0, 10, 30]             # <<<<<<<<<<<<<<
  * ]
  * 
 */
-  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_20, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_20); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 59, __pyx_L1_error)
+  __pyx_t_10 = __Pyx_PyList_Pack(8, __pyx_mstate_global->__pyx_int_30, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_0, __pyx_mstate_global->__pyx_int_10, __pyx_mstate_global->__pyx_int_30); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 69, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_10);
 
-  /* "ai/evaluator.pyx":51
- * cdef list PST_LICH = PST_BONELORD
+  /* "ai/evaluator.pyx":61
  * 
+ * # PHANTOM (Assassin): Foge do centro. Desliza pelas bordas do mapa para invadir a retaguarda.
  * cdef list PST_PHANTOM = [             # <<<<<<<<<<<<<<
- *     [ 20, 10,  0,  0,  0,  0, 10, 20],
- *     [ 10,  0,  0,  0,  0,  0,  0, 10],
+ *     [ 30, 10,  0,  0,  0,  0, 10, 30],
+ *     [ 20,  5,  0,  0,  0,  0,  5, 20],
 */
-  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 51, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyList_Pack(8, __pyx_t_2, __pyx_t_4, __pyx_t_5, __pyx_t_6, __pyx_t_7, __pyx_t_8, __pyx_t_9, __pyx_t_10); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 61, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
@@ -4516,7 +4559,7 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
   __Pyx_GIVEREF(__pyx_t_11);
   __pyx_t_11 = 0;
 
-  /* "ai/evaluator.pyx":62
+  /* "ai/evaluator.pyx":72
  * ]
  * 
  * cdef list PST_DEFAULT = [[0]*8 for _ in range(8)]             # <<<<<<<<<<<<<<
@@ -4524,25 +4567,25 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
  * cdef dict MAPA_TABELAS = {
 */
   { /* enter inner scope */
-    __pyx_t_11 = PyList_New(0); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 62, __pyx_L4_error)
+    __pyx_t_11 = PyList_New(0); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 72, __pyx_L4_error)
     __Pyx_GOTREF(__pyx_t_11);
     for (__pyx_t_3 = 0; __pyx_t_3 < 8; __pyx_t_3+=1) {
-      __pyx_t_10 = PyLong_FromSsize_t(__pyx_t_3); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 62, __pyx_L4_error)
+      __pyx_t_10 = PyLong_FromSsize_t(__pyx_t_3); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 72, __pyx_L4_error)
       __Pyx_GOTREF(__pyx_t_10);
       __Pyx_XGOTREF(__pyx_7genexpr__pyx_v_2ai_9evaluator__);
       __Pyx_DECREF_SET(__pyx_7genexpr__pyx_v_2ai_9evaluator__, __pyx_t_10);
       __Pyx_GIVEREF(__pyx_t_10);
       __pyx_t_10 = 0;
-      __pyx_t_10 = PyList_New(1 * 8); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 62, __pyx_L4_error)
+      __pyx_t_10 = PyList_New(1 * 8); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 72, __pyx_L4_error)
       __Pyx_GOTREF(__pyx_t_10);
       { Py_ssize_t __pyx_temp;
         for (__pyx_temp=0; __pyx_temp < 8; __pyx_temp++) {
           __Pyx_INCREF(__pyx_mstate_global->__pyx_int_0);
           __Pyx_GIVEREF(__pyx_mstate_global->__pyx_int_0);
-          if (__Pyx_PyList_SET_ITEM(__pyx_t_10, __pyx_temp, __pyx_mstate_global->__pyx_int_0) != (0)) __PYX_ERR(0, 62, __pyx_L4_error);
+          if (__Pyx_PyList_SET_ITEM(__pyx_t_10, __pyx_temp, __pyx_mstate_global->__pyx_int_0) != (0)) __PYX_ERR(0, 72, __pyx_L4_error);
         }
       }
-      if (unlikely(__Pyx_ListComp_Append(__pyx_t_11, (PyObject*)__pyx_t_10))) __PYX_ERR(0, 62, __pyx_L4_error)
+      if (unlikely(__Pyx_ListComp_Append(__pyx_t_11, (PyObject*)__pyx_t_10))) __PYX_ERR(0, 72, __pyx_L4_error)
       __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
     }
     __Pyx_GOTREF(__pyx_7genexpr__pyx_v_2ai_9evaluator__);
@@ -4559,94 +4602,94 @@ __Pyx_RefNannySetupContext("PyInit_evaluator", 0);
   __Pyx_GIVEREF(__pyx_t_11);
   __pyx_t_11 = 0;
 
-  /* "ai/evaluator.pyx":65
+  /* "ai/evaluator.pyx":75
  * 
  * cdef dict MAPA_TABELAS = {
  *     "Ghoul": PST_GHOUL,             # <<<<<<<<<<<<<<
  *     "Sentry": PST_SENTRY,
  *     "FrostMage": PST_FROSTMAGE,
 */
-  __pyx_t_11 = __Pyx_PyDict_NewPresized(6); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 65, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_PyDict_NewPresized(6); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
-  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Ghoul, __pyx_v_2ai_9evaluator_PST_GHOUL) < (0)) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Ghoul, __pyx_v_2ai_9evaluator_PST_GHOUL) < (0)) __PYX_ERR(0, 75, __pyx_L1_error)
 
-  /* "ai/evaluator.pyx":66
+  /* "ai/evaluator.pyx":76
  * cdef dict MAPA_TABELAS = {
  *     "Ghoul": PST_GHOUL,
  *     "Sentry": PST_SENTRY,             # <<<<<<<<<<<<<<
  *     "FrostMage": PST_FROSTMAGE,
  *     "BoneLord": PST_BONELORD,
 */
-  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Sentry, __pyx_v_2ai_9evaluator_PST_SENTRY) < (0)) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Sentry, __pyx_v_2ai_9evaluator_PST_SENTRY) < (0)) __PYX_ERR(0, 75, __pyx_L1_error)
 
-  /* "ai/evaluator.pyx":67
+  /* "ai/evaluator.pyx":77
  *     "Ghoul": PST_GHOUL,
  *     "Sentry": PST_SENTRY,
  *     "FrostMage": PST_FROSTMAGE,             # <<<<<<<<<<<<<<
  *     "BoneLord": PST_BONELORD,
  *     "Lich": PST_LICH,
 */
-  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_FrostMage, __pyx_v_2ai_9evaluator_PST_FROSTMAGE) < (0)) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_FrostMage, __pyx_v_2ai_9evaluator_PST_FROSTMAGE) < (0)) __PYX_ERR(0, 75, __pyx_L1_error)
 
-  /* "ai/evaluator.pyx":68
+  /* "ai/evaluator.pyx":78
  *     "Sentry": PST_SENTRY,
  *     "FrostMage": PST_FROSTMAGE,
  *     "BoneLord": PST_BONELORD,             # <<<<<<<<<<<<<<
  *     "Lich": PST_LICH,
  *     "Phantom": PST_PHANTOM
 */
-  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_BoneLord, __pyx_v_2ai_9evaluator_PST_BONELORD) < (0)) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_BoneLord, __pyx_v_2ai_9evaluator_PST_BONELORD) < (0)) __PYX_ERR(0, 75, __pyx_L1_error)
 
-  /* "ai/evaluator.pyx":69
+  /* "ai/evaluator.pyx":79
  *     "FrostMage": PST_FROSTMAGE,
  *     "BoneLord": PST_BONELORD,
  *     "Lich": PST_LICH,             # <<<<<<<<<<<<<<
  *     "Phantom": PST_PHANTOM
  * }
 */
-  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Lich, __pyx_v_2ai_9evaluator_PST_LICH) < (0)) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Lich, __pyx_v_2ai_9evaluator_PST_LICH) < (0)) __PYX_ERR(0, 75, __pyx_L1_error)
 
-  /* "ai/evaluator.pyx":70
+  /* "ai/evaluator.pyx":80
  *     "BoneLord": PST_BONELORD,
  *     "Lich": PST_LICH,
  *     "Phantom": PST_PHANTOM             # <<<<<<<<<<<<<<
  * }
  * 
 */
-  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Phantom, __pyx_v_2ai_9evaluator_PST_PHANTOM) < (0)) __PYX_ERR(0, 65, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_11, __pyx_mstate_global->__pyx_n_u_Phantom, __pyx_v_2ai_9evaluator_PST_PHANTOM) < (0)) __PYX_ERR(0, 75, __pyx_L1_error)
   __Pyx_XGOTREF(__pyx_v_2ai_9evaluator_MAPA_TABELAS);
   __Pyx_DECREF_SET(__pyx_v_2ai_9evaluator_MAPA_TABELAS, ((PyObject*)__pyx_t_11));
   __Pyx_GIVEREF(__pyx_t_11);
   __pyx_t_11 = 0;
 
-  /* "ai/evaluator.pyx":73
+  /* "ai/evaluator.pyx":83
  * }
  * 
  * cpdef int obter_bonus_posicional(object piece, int r, int c):             # <<<<<<<<<<<<<<
  *     cdef list tabela = MAPA_TABELAS.get(piece.name, PST_DEFAULT)
- *     # Map arbitrary board sizes onto the 8x8 PST by scaling coordinates
+ *     cdef int idx_r, idx_c
 */
-  __pyx_t_11 = __Pyx_CyFunction_New(&__pyx_mdef_2ai_9evaluator_1obter_bonus_posicional, 0, __pyx_mstate_global->__pyx_n_u_obter_bonus_posicional, NULL, __pyx_mstate_global->__pyx_n_u_ai_evaluator, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[0])); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 73, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_CyFunction_New(&__pyx_mdef_2ai_9evaluator_1obter_bonus_posicional, 0, __pyx_mstate_global->__pyx_n_u_obter_bonus_posicional, NULL, __pyx_mstate_global->__pyx_n_u_ai_evaluator, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[0])); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_11);
   #endif
-  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_obter_bonus_posicional, __pyx_t_11) < (0)) __PYX_ERR(0, 73, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_obter_bonus_posicional, __pyx_t_11) < (0)) __PYX_ERR(0, 83, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
 
-  /* "ai/evaluator.pyx":91
+  /* "ai/evaluator.pyx":100
  *     return tabela[idx_r][idx_c]
  * 
  * @cython.boundscheck(False)             # <<<<<<<<<<<<<<
  * @cython.wraparound(False)
  * cpdef int avaliador_mestre(object gs):
 */
-  __pyx_t_11 = __Pyx_CyFunction_New(&__pyx_mdef_2ai_9evaluator_3avaliador_mestre, 0, __pyx_mstate_global->__pyx_n_u_avaliador_mestre, NULL, __pyx_mstate_global->__pyx_n_u_ai_evaluator, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[1])); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 91, __pyx_L1_error)
+  __pyx_t_11 = __Pyx_CyFunction_New(&__pyx_mdef_2ai_9evaluator_3avaliador_mestre, 0, __pyx_mstate_global->__pyx_n_u_avaliador_mestre, NULL, __pyx_mstate_global->__pyx_n_u_ai_evaluator, __pyx_mstate_global->__pyx_d, ((PyObject *)__pyx_mstate_global->__pyx_codeobj_tab[1])); if (unlikely(!__pyx_t_11)) __PYX_ERR(0, 100, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_11);
   #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x030E0000
   PyUnstable_Object_EnableDeferredRefcount(__pyx_t_11);
   #endif
-  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_avaliador_mestre, __pyx_t_11) < (0)) __PYX_ERR(0, 91, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_mstate_global->__pyx_d, __pyx_mstate_global->__pyx_n_u_avaliador_mestre, __pyx_t_11) < (0)) __PYX_ERR(0, 100, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_11); __pyx_t_11 = 0;
 
   /* "ai/evaluator.pyx":1
@@ -4729,25 +4772,25 @@ static int __Pyx_InitCachedConstants(__pyx_mstatetype *__pyx_mstate) {
 static int __Pyx_InitConstants(__pyx_mstatetype *__pyx_mstate) {
   CYTHON_UNUSED_VAR(__pyx_mstate);
   {
-    const struct { const unsigned int length: 9; } index[] = {{1},{1},{16},{13},{8},{7},{7},{9},{5},{6},{4},{7},{20},{6},{6},{12},{12},{18},{16},{5},{7},{1},{18},{4},{13},{8},{9},{3},{2},{13},{5},{8},{8},{10},{4},{8},{22},{5},{3},{6},{12},{1},{12},{10},{10},{4},{8},{21},{6},{6},{177},{275}};
-    #if (CYTHON_COMPRESS_STRINGS) == 2 /* compression: bz2 (769 bytes) */
-const char* const cstring = "BZh91AY&SY\273)\375\212\000\000C\377\377\377\357\376\373{\001\275!\277\367\373\312\377\357\377\344@@@@H\300@@H@@@@\000@\000@\002<]\271\221\307\rI\244\324\3652~\246\024\332@z\232z\236\2404\332\215\001\352\003A\352h\320\320\036\220\365\006CM\251\344\236S\324\320\212z\002\003D\364\214S\320\214CM4hh\000\000\000\000\000\000\000\001\024\364i\244&\246M\242=&Cj4\001\240\311\246@\320\000\000d\014\232\006\233Q\240h\032\231552z F\232\006\200\000\003@\006\200\000\000\000\320\321\220mM2;\022\256\355!MELCL\320\205HkV J\200T\253^\304\023\212S\001\ta#\005\234\242 j%\203\021W2\321\320\341 Y\006\020\214\373\246\024\217\306\232-\203\322l \020\020\216\326\262\354\"?\001\007p \210&\034\267P\242\266@\212\202w}\032\024\212\311\201\347\201\252J\030R7!\025]\t\255\327\255\024\263`\034\235\231B\tQ\244\212\036\t\025i\275\271(#2\343\263%\335y\326\273\031\270x)\214\016\"\260\311\267S\200\035\275\001d\201\260\227Y\346\241_Vg\tQ\016\273\261_@@>\370\362\240\200\222\304\301P\255\250O\007\026\305\206\031\241\004$CP\210\010\376\r\2378\264[\344P\302\323S\346\004\212\215\017\336\312\307\025\211\210\340R\206ZA^\345\210\001\253\016\325Y\204\033\367\"d \226\014\004\217\301\351\323b \234\322\234\220L\271@\n%S.U\205'EA\260RQm\001)\213>7\205\376\210\215f\314\241\013\322\320)$d\357\233\271\226\211\360d$\315\215g\020\244<\3237o\031\007\334@\212q\310\232\216-\303$\002E\211b\266P\300-\032d\2224\031\203\202J\003\316Z\304\034\024\024\344\232\244!G0\377f\270\374eZt\336Pb\3118\031\362Ax\005\007c\211e[P\3244\312!J*\305\256Al\022\341&\305\021^2\247\244}P\005>\273\240\365\203\266\023)\271!\317\000;@\304\021\027\204\356\307\203<\216 \031\024\312\244My\006# \246@\251,\244\234h~\316\300\275j\322\356\004\034;\006S\004\217\016@}F\267\004\222\264\344,\253\341\326\336\021\024\367\020s\352\327\267\246\335\2023X\201\374\303&\017\020\237Vz\026\036\037\036a\343\301AK\326='\022\"\375\213#?\n\003\340\007s\nb\320\237\266\2555\"\272\371!p:\264X:\"\025W\312\241%\nCs\361\316\224\252\205\024\274\023\244\231\301u\365#\222(\303W\306a\306X""\0136\300\264\320\242$\242\222#\037HtNg\366\361\234\266g\343\351\277B\217\006p\254Z\265\355\301\316,2\\\325\301(;4\004\014X$5\223\034\377\027rE8P\220\273)\375\212";
-    PyObject *data = __Pyx_DecompressString(cstring, 769, 2);
+    const struct { const unsigned int length: 9; } index[] = {{1},{1},{16},{13},{8},{7},{7},{9},{5},{6},{4},{7},{20},{6},{6},{12},{12},{18},{16},{5},{7},{1},{18},{4},{13},{8},{9},{3},{2},{13},{5},{8},{8},{10},{4},{8},{22},{5},{3},{6},{12},{1},{12},{10},{10},{4},{8},{21},{6},{6},{175},{298}};
+    #if (CYTHON_COMPRESS_STRINGS) == 2 /* compression: bz2 (779 bytes) */
+const char* const cstring = "BZh91AY&SY\305\204E\217\000\000K\177\377\377\377\376\333\373\001\275!\277\367\373\312\377\357\377\344@@@@H\300@@H@@@@\000@\000@\002\\\320\224a\206\240\251\342A\351\251\345<\246\215=CL\207\2242mA\246@\006C5\r\017P\320\320h\320mG\244\364\324\"\247\350\321\001\241\032i\247\242\2324\321\240\003@\000\000\000\000\000\001\240\0008\000\000h\032\032\032\032d\000h\000\003@44\000\000\310\000\001\251\3514&\204\365\023\322L\324\3654\323OP\r1\003L\201\240\000\003F\232\014\010m46\251\246I\240\311\370}7\306\353\016\350\277Z(\302\200\327\3048\210,\226\036\0366S\310b=\214\200#\031\\\032\346\333$5\204\211\322\345\330\271CH\245\221A+\021Ad\200\351Y\311\310\024@\n\245!\033 ~j\224\311\316\303\026\217>V\317\332\202\336y\313`@\031\350F\005\020as\370vy\212\3231\226\300\314\266\250\030\264g+8\335cG\337\353\256 SA\263\263\021\274\277\331BmY&,\264\357:\023\337\324\236/\340\374ju\276\\\353\355\tc\020\022D[\032\233\367\323\033\215\025\014\235li\247\271\2557)\326C\365\361-s\020`;\335+\2700+Yx\270\3024D9\257hz\"\220\245U\030 \nn#\360u\177tk\232\353\241\031J\001k\r\002\233\325f\032\212\245\003*\335\336\247<d\003hG2\236\275JD\374\t\013\210[j\263\003\360\2135Y\320\010\233}\332\"P\310\000q;\354\273V{\010MA\2759\2516\220\220\217-\025\013\3751\226\006\004\241\n\245Z\300\216\266\223\003\020\336\327*`\310Kw?\312\324\227E\246`\242\222\017\247\302jb\"\216)\236J\201\245\231F\023#\004\023\274\255W\243\336)*\340\374\350@\212J/a\257u\304BV\237\313\307i\302\212\363\223\032\002\254\210\002|\320]\201\301\330\350N<\346\241\250SiS\241pqh\022\331\241\212#\272J\221\201\365H\035\033N\003\270\210l \246\344hD\000\354\244a\021P\241\332\030R\031\304\203\"\302\336L\365$\214\310<\310\035\203\254\321\024?h\230*\244\324\353A\007\0210\236\230h\353<\243\324\004\231\245\321T\352\360Vx\205K\260\201\327+\333\235B\3013*\220}L\302P\034>z\214!b\3170\366\362\026o\201\201\215\\\217.H\r\366\036jE\313W\001g\362\213BF\322\316+\007\347\313\345\024\307o\306,\030\223\203\365WjP\031\363\0042\300\334\375\347\034\205\n,\025V \242\221\331e1\253X]""\2046\304\330\321\345S\226\305\037V\304-\340\311uL\253\2619R\336\005\344\366\365\374\375\335\240/\027v) \323\313\240S\262t\326\021\246\204\212\212) \021BdiTU\377\213\271\"\234(Hb\302\"\307\200";
+    PyObject *data = __Pyx_DecompressString(cstring, 779, 2);
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #elif (CYTHON_COMPRESS_STRINGS) != 0 /* compression: zlib (664 bytes) */
-const char* const cstring = "x\332}P\277o\0231\030m\372\003\202\010\220\037D-\240V\224\n\306\240\224\250\022\013(--\264\n\245I\324\026\tU\306q\234\304\342b\337\331\2764\221\030:\336\350\321\243%\0062\336\2301R\227\2167\336\230?\241\177\002N[U,0\370\371\363\347\367\371=\277\302{H^\343\036t|(\031/\270\203~\231\022\317'\016<\377}\376\213m2\212+\214779\244\010\212\255/\225\303\375r}\2073!?\3036\376\330a\276S\331\335\377T\256W\010\352\034t \225\254\013\300\301\240o\327\007\202$\330\307}Y\303\255:\246\222\017\2160E\270\013I\341V\021\000H)\223Pb[\211\001E\204\025\020\343\314\227\204b\001-\215\300\246\245u\261\220\0347\030\344\315\306\265\027\204\034K\001\204\002\311!\302\r\210~ k\013\323\266m\3337h\213\264\001h\371\024\001\320\206]\014X\017\3636\226m\001\210\000\267\032D\342\256pH\013\013\027R\000\2549\213vgM\337\261\236\350t\362\006YCb\016\032\214\372\002\270L\020\353\225B\307%\030a\227\271.\307\022\n\000<\037:\327|\3739\201\345\315\260\255\232\270\005}G\n\351[\317\244\213\271\304\320\206%\355\327,\372\234\npJ\244\215T\002\004]\333\270J\t\213SB)\346\321\314s\223\210\347\027\325OS2\336pax\034\226/\357\314,$\317N\003\2442q2\255\022\023\013s\252\244\244.i\317\314\232\027fg\370r\330\013\353\243\207c|\261\021U\217\242\243\223\350\004D\340{\234\274\037l\250\254z\243:\032\306\017rj]\325ur\252p\367\254\037\010\265\372\327\203\353\252\246\270\316\353\226\331\036.\205\331\260\370\357\341i?\243^\351\204\316\234%&O\237\305\363yU\275LNm\362 3\235[\017\276\252c\275m\362\206\206[!\037-\215s\343\335\213ztP\213j\3658\225So\365\236A\303\354\360\335\310\362\037\005\336d>\031,\004\207jUY\335T\260\255\362\n*/N\245\325\354\225PV\027u9N=\n\270Z\324\2118\275\254\253\032N\3229UT{\272m\252\361\343U\2233e\363-\234\013\213\341\336\2501NL\322+\321J),\333`\346F\305k\356\216^\323\226\273<\205E\345\351\224\331\2646\236\204ka5\204aoT\033y\223\377\337\332\344zA-\360\342d\306fS\214\357M-enN\023\033M\361\017#\251_\261";
-    PyObject *data = __Pyx_DecompressString(cstring, 664, 1);
+    #elif (CYTHON_COMPRESS_STRINGS) != 0 /* compression: zlib (684 bytes) */
+const char* const cstring = "x\332uP\277o\0321\030\205\2044\264\245\r\007AA\255\372\203V\355HE\212\"uiE\322\244MD\323\000JR\251\212\\c\014X=l\260}\004\244\016\2147z\364xR\207\336x##R\226\214\2147\362'\344O\250I\322\250\252\324\301\317\366\347\367}\357\371\345\337A\362\n\367\241\355@\311x\276;\034\224(\3519\304\206g\277\316~\262MFq\231\361\306&\207\024A\261\365\271|\270_\252\355p&\344'\330\302\037\332\314\261\313\273\373\037K\2652A\355\2036\244\222u\0008\030\016\314zO\220\004\373x \253\270Y\303T\362\341\021\246\010w \311\337(\002\000)e\022JlNbH\021ay\3048s$\241X@C#\260ah\035,$\307u\006y\243~\345\005!\333P\000\241@r\210p\035\242\357\310\330\302\264e\312f\006m\222\026\000M\207\"\000Z\260\203\001\353c\336\302\262%\000\021\340F\203H\334\0216ib\321\205\024\000c\316\240\331Y\303\261\215':\357\274FV\227\230\203:\243\216\000]&\210\361J\241\335%\030\341.\353v9\226P\000\320s\240}\3057\237\023X^7\233S\0037\241cK!\035\343\231t0\227\030\232\260\244\371\232A\207S\001N\2114\221J\200`\327\024.S\302\342\224P\212\3714\362\324\213\206\2615\365\303+z=\177\311?\016J\263\330\362\350\324E\312\n\343I\025\235\031XTE%uQ\367\274\005\357\231\267\343\277\360\373Am|\177\202\3177\246\225\243\351\321\311\364\004L\301\2670~\327\335P)\365Z\2655\014\357\245\325\272\252\351\370|\376\362h\340\n\225\373k\340\272\252*\2563\272\351m\373\331 \025\024\376\337<\257[\352\245\216jk\024\235=x\030\3062\252r\021\217,\305G\334\265\346}\353\356\027u\254\267\275\214G\203\255\200\217\263\223\364d\367\2746=\250N\253\2650\221Vo\364\236\207\374\224\377vl\370+no\026\213\273K\356\241\312)\243\233p\267UFA\325\013\023I\265p)\224\322\005]\n\023+.Wk:\032&\037\351\212\206\027\267\"\326\252*\250=\335\362*\341j\316K{%\357k\260\030\024\202\275q}\022\235\277?\231>.\006%\023\316\342\270\360\207_6\251\345f7\374\205 wq'\222\311\252\236\276\245\221g\205\331\253\227\212\327\3647}8\373\347\232L\233\021;\372\2716\222\306\306\354\022L\240}\267\352\366\302\270e\"+\204\267\347N\255\353\333\314$V\370\rt]c\213";
+    PyObject *data = __Pyx_DecompressString(cstring, 684, 1);
     if (unlikely(!data)) __PYX_ERR(0, 1, __pyx_L1_error)
     const char* const bytes = __Pyx_PyBytes_AsString(data);
     #if !CYTHON_ASSUME_SAFE_MACROS
     if (likely(bytes)); else { Py_DECREF(data); __PYX_ERR(0, 1, __pyx_L1_error) }
     #endif
-    #else /* compression: none (878 bytes) */
-const char* const bytes = ".?ai/evaluator.pyxAniquila\303\247\303\243oBoneLordBrancasCOLUNASFrostMageGhoulLINHASLichPhantom__Pyx_PyDict_NextRefSentryVencemai.evaluator__annotate__asyncio.coroutinesavaliador_mestreboardbrancasccline_in_tracebackcostengine.config__func__game_overgetgs_is_coroutineitemslifespan__main____module__name__name__obter_bonus_posicionalpiecepoppretas__qualname__r__set_name__setdefaultstun_timerteam__test__turns_without_capturevalueswinner\320\000 \240\001\330\004\027\220|\2404\240q\250\005\250W\260A\360\006\000\005\010\200w\210c\220\021\330\010\020\220\001\340\010\020\220\003\2204\220t\2304\230q\240\002\240\"\240F\250%\250v\260S\270\016\300e\3106\320QV\320V]\320]_\320_`\330\010\013\2106\220\022\2203\220h\230a\330\r\023\2202\220S\230\010\240\001\330\004\007\200x\210s\220!\330\010\020\220\001\340\010\020\220\003\2202\220R\220r\230\025\230f\240E\250\030\260\022\2601\330\010\013\2106\220\022\2203\220h\230a\330\r\023\2202\220S\230\010\240\001\330\004\013\2106\220\021\220&\230\001\230\021\200\001\340\032\033\330\004\025\220Q\360\010\000\005\010\200r\210\021\330\010\013\2102\210X\220W\230E\240\025\240n\260C\260r\270\030\300\023\300I\310S\320PR\320RS\330\014\023\2209\230J\240c\250\022\250>\270\021\330\010\017\210q\340\004\010\210\005\210U\220!\2201\330\010\014\210E\220\025\220a\220q\330\014\020\220\002\220&\230\001\230\022\2301\230A\330\014\017\210r\220\027\230\001\330\020\035\230Q\230a\340\020\023\2201\220J\230g\240Q\330\024!\240\023\240A\240[\260\003\2601\260J\270b\300\001\340\020\036\320\0364\260A\260S\270\003\2701\340\020\023\2201\220F\230#\230Q\330\024\035\230Q\330\024\027\220q\230\014\240B\240c\250\031\260#\260Q\260a\260v\270R\270q\340\024\035\230Q\330\024\027\220q\230\014\240B\240c\250\031\260#\260Q\260a\260v\270R\270q\340\004\007\200v\210R\210q\330\010\021\220\022\2201\330\t\017\210r\220\021\330\010\021\220\022\2201\340\004\013\2101";
+    #else /* compression: none (899 bytes) */
+const char* const bytes = ".?ai/evaluator.pyxAniquila\303\247\303\243oBoneLordBrancasCOLUNASFrostMageGhoulLINHASLichPhantom__Pyx_PyDict_NextRefSentryVencemai.evaluator__annotate__asyncio.coroutinesavaliador_mestreboardbrancasccline_in_tracebackcostengine.config__func__game_overgetgs_is_coroutineitemslifespan__main____module__name__name__obter_bonus_posicionalpiecepoppretas__qualname__r__set_name__setdefaultstun_timerteam__test__turns_without_capturevalueswinner\320\000 \240\001\330\004\027\220|\2404\240q\250\005\250W\260A\340\004\007\200w\210c\220\021\330\010\020\220\001\340\010\020\220\003\2204\220t\2304\230q\240\002\240\"\240F\250%\250v\260S\270\016\300e\3106\320QV\320V]\320]_\320_`\330\010\013\2106\220\022\2203\220h\230a\330\r\023\2202\220S\230\010\240\001\330\004\007\200x\210s\220!\330\010\020\220\001\340\010\020\220\003\2202\220R\220r\230\025\230f\240E\250\030\260\022\2601\330\010\013\2106\220\022\2203\220h\230a\330\r\023\2202\220S\230\010\240\001\330\004\013\2106\220\021\220&\230\001\230\021\200\001\340\032\033\330\004\025\220Q\360\010\000\005\010\200r\210\021\330\010\013\2102\210X\220W\230E\240\025\240n\260C\260r\270\030\300\023\300I\310S\320PR\320RS\330\014\023\2209\230J\240c\250\022\250>\270\021\330\010\017\210q\340\004\010\210\005\210U\220!\2201\330\010\014\210E\220\025\220a\220q\330\014\020\220\002\220&\230\001\230\022\2301\230A\330\014\017\210r\220\027\230\001\330\020\035\230Q\230a\360\006\000\021\024\2201\220J\230g\240Q\330\024!\240\023\240A\240[\260\003\2601\260J\270b\300\001\360\006\000\021\037\320\0364\260A\260S\270\003\2701\360\006\000\021\024\2201\220L\240\002\240!\340\024!\240\023\240A\240[\260\002\260!\360\n\000\025\030\220q\230\006\230c\240\021\330\030!\240\023\240A\240Q\240f\250B\250a\340\030!\240\023\240A\240Q\240f\250B\250a\340\020\023\2201\220F\230#\230Q\330\024\035\230Q\340\024\035\230Q\340\004\007\200v\210R\210q\330\010\021\220\022\2201\330\t\017\210r\220\021\330\010\021\220\022\2201\340\004\013\2101";
     PyObject *data = NULL;
     CYTHON_UNUSED_VAR(__Pyx_DecompressString);
     #endif
@@ -4814,7 +4857,7 @@ const char* const bytes = ".?ai/evaluator.pyxAniquila\303\247\303\243oBoneLordBr
   }
   {
     PyObject **numbertab = __pyx_mstate->__pyx_number_tab + 2;
-    int8_t const cint_constants_1[] = {0,1,5,-10,10,15,-20,20,-30,30,40,-50};
+    int8_t const cint_constants_1[] = {0,1,5,-10,10,-20,20,30,-40,40,-50,50};
     for (int i = 0; i < 12; i++) {
       numbertab[i] = PyLong_FromLong(cint_constants_1[i - 0]);
       if (unlikely(!numbertab[i])) __PYX_ERR(0, 1, __pyx_L1_error)
@@ -4871,12 +4914,12 @@ static int __Pyx_CreateCodeObjects(__pyx_mstatetype *__pyx_mstate) {
   PyObject* tuple_dedup_map = PyDict_New();
   if (unlikely(!tuple_dedup_map)) return -1;
   {
-    const __Pyx_PyCode_New_function_description descr = {3, 0, 0, 3, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 73};
+    const __Pyx_PyCode_New_function_description descr = {3, 0, 0, 3, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 83};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_piece, __pyx_mstate->__pyx_n_u_r, __pyx_mstate->__pyx_n_u_c};
     __pyx_mstate_global->__pyx_codeobj_tab[0] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_ai_evaluator_pyx, __pyx_mstate->__pyx_n_u_obter_bonus_posicional, __pyx_mstate->__pyx_kp_b_iso88591_4q_WA_wc_4t4q_F_vS_e6QVV____6_3, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[0])) goto bad;
   }
   {
-    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 1, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 91};
+    const __Pyx_PyCode_New_function_description descr = {1, 0, 0, 1, (unsigned int)(CO_OPTIMIZED|CO_NEWLOCALS), 100};
     PyObject* const varnames[] = {__pyx_mstate->__pyx_n_u_gs};
     __pyx_mstate_global->__pyx_codeobj_tab[1] = __Pyx_PyCode_New(descr, varnames, __pyx_mstate->__pyx_kp_u_ai_evaluator_pyx, __pyx_mstate->__pyx_n_u_avaliador_mestre, __pyx_mstate->__pyx_kp_b_iso88591_Q_r_2XWE_nCr_ISPRRS_9Jc_q_U_1_E, tuple_dedup_map); if (unlikely(!__pyx_mstate_global->__pyx_codeobj_tab[1])) goto bad;
   }
