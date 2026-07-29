@@ -22,7 +22,6 @@ def executar_pipeline():
     print("✅ Estatísticas geradas em data/estatisticas_treino.json!\n")
     
     print("3. Auto-Balancing e Atualização do JSON de Custos...")
-    # Delega a lógica complexa matematicamente exata para o script do auto_pricer
     subprocess.run([sys.executable, os.path.join("ai", "auto_pricer.py")], capture_output=False)
     
     print("\n4. A Gerar Relatório de Pipeline...")
