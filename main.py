@@ -66,7 +66,7 @@ resultados_analise = {}
 def analisar_historico_thread(move_log):
     for id_jogada, log in enumerate(move_log):
         estado_congelado = log["estado_anterior"]
-        melhor_jogada = find_best_move(estado_congelado, evaluator_func=avaliador_mestre, time_limit=1.0)
+        melhor_jogada = find_best_move(estado_congelado, evaluator_func=avaliador_mestre, depth_limit=3, noise_level=150)
         if not melhor_jogada: continue
         
         s_alg = coords_para_notacao(*melhor_jogada["start"])

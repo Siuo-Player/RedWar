@@ -1,4 +1,5 @@
 # ai/search.py
+import random
 from ai.evaluator import obter_bonus_posicional
 from engine.config import LINHAS, COLUNAS
 
@@ -245,6 +246,9 @@ def find_best_move(gs, evaluator_func=None, depth_limit=5, noise_level=0):
                     score = minimax(gs, current_depth - 1, alpha, beta, False, evaluator_func, killer_moves)
                 finally:
                     gs.unmake_simulation_action(undo)
+
+                if noise_level > 0:
+                    score += random.uniform(-noise_level, noise_level)
                 
                 if score > melhor_score:
                     melhor_score = score
@@ -258,6 +262,9 @@ def find_best_move(gs, evaluator_func=None, depth_limit=5, noise_level=0):
                     score = minimax(gs, current_depth - 1, alpha, beta, True, evaluator_func, killer_moves)
                 finally:
                     gs.unmake_simulation_action(undo)
+
+                if noise_level > 0:
+                    score += random.uniform(-noise_level, noise_level)
                 
                 if score < melhor_score:
                     melhor_score = score
