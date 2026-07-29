@@ -131,6 +131,23 @@ git push
 
 ---
 
+## 🗺️ Masterplan & Roadmap (Fase Atual)
+
+Este documento lista as grandes tarefas de refatoração e arquitetura planeadas para a próxima fase do projeto. Nenhuma alteração de código será aplicada automaticamente a partir daqui — este roadmap serve apenas como plano de trabalho e referência para a equipa.
+
+- **Add 10x10 board + algebraic coordinates:** atualizar limites do tabuleiro para 10x10 e desenhar coordenadas A–J / 1–10 nas margens.
+- **Introduce `HeroEntity` and `heroes_database.json` schema:** criar classe genérica `HeroEntity` e ficheiro JSON para definir peças e habilidades de forma data-driven.
+- **Replace hardcoded piece classes with JSON-driven loader:** migrar instâncias atuais para um loader que carrega `heroes_database.json`.
+- **Implement strict turn-based effects:** gerir `stun`, `freeze`, `shield` e outras condições por turnos (sem HP nem valores de dano).
+- **Add movement effects (push/pull), silence, terrain manipulation:** implementar novos efeitos e estados de terreno no motor.
+- **UI: bounding boxes, Hero Info Panel, hover intent visuals:** painel lateral informativo, retículas de alcance e feedback ao passar o rato.
+- **Auto-Balancer integration:** integrar o pipeline de simulação para ajustar custos no `heroes_database.json` a partir de win-rates.
+- **Write tests:** cobertura unitária e de integração para loader, regras de movimento, efeitos por turnos e limites do tabuleiro.
+- **Migration:** converter as peças existentes (ex.: BoneLord) para o formato JSON e validar com simulações.
+- **Docs:** adicionar `docs/adding_heroes.md`, esquema JSON e guias de contribution.
+
+Status: plano definido; trabalho de implementação planeado em fases incrementais. Se quiser, inicio a primeira tarefa (ex.: criar `heroes_database.json` + `HeroEntity`) quando autorizar.
+
 ### Os Comandos que Precisas Agora
 
 Como adicionámos funcionalidades gigantescas em massa para resolver os problemas passados, deves correr os comandos pela seguinte ordem no teu terminal:

@@ -6,18 +6,23 @@ ESTRUTURA REAL DO PROJETO REDWAR
 ├── 📄 Documento_Design_Jogo.md
 ├── 📄 Estrutura_Projeto.md
 ├── 📄 README.md
+├── 📄 RedWar_Online.spec
 ├── 📄 build_pipeline.py
 ├── 📄 estatisticas_treino.json
 ├── 📄 estrutura_atual.txt
 ├── 📄 gerar_estrutura.py
 ├── 📄 jogos_encravados_log.txt
 ├── 📄 main.py
+├── 📄 main.spec
 ├── 📄 multiplayer_main.py
 ├── 📄 relatorio_build.txt
 ├── 📄 relatorio_telemetria.txt
 ├── 📄 reorganize.py
 ├── 📄 requirements.txt
+├── 📄 setup.py
 ├── 📄 telemetria_profunda.json
+├── 📄 tmp_game_sim.py
+├── 📄 tmp_ui_test.py
 ├── 📁 .github/
 │   ├── 📁 workflows/
 │   │   ├── 📄 ai_arena.yml
@@ -30,7 +35,11 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   ├── 📄 calibrate_elo.py
 │   ├── 📄 calibrate_elo_chain.py
 │   ├── 📄 color_balancer.py
-│   ├── 📄 evaluator.py
+│   ├── 📄 elo_config.json
+│   ├── 📄 evaluator.c
+│   ├── 📄 evaluator.cp312-win_amd64.pyd
+│   ├── 📄 evaluator.pyi
+│   ├── 📄 evaluator.pyx
 │   ├── 📄 game_analyzer.py
 │   ├── 📄 opening_tester.py
 │   ├── 📄 search.py
@@ -52,6 +61,7 @@ ESTRUTURA REAL DO PROJETO REDWAR
 ├── 📁 ui/
 │   ├── 📄 __init__.py
 │   ├── 📄 renderer.py
+│   ├── 📄 test_screenshot.png
 │   ├── 📁 assets/
 │   │   ├── 📄 bone.png
 │   │   ├── 📄 bonelord.png

@@ -3,15 +3,17 @@ import pygame
 import sys
 from network.client import NetworkClient
 from ui.renderer import desenhar_tabuleiro, C_FUNDO
+import types
+from engine.config import LINHAS, COLUNAS
 
 # Como não temos um objeto "Piece" físico, apenas dicionários vindos do JSON,
 # precisamos de um renderizador ligeiramente adaptado para a rede:
 def desenhar_pecas_rede(ecra, board_data, tam_casa, off_x, off_y):
     if not board_data: return
-    fonte = pygame.font.SysFont(None, int(tam_casa * 0.4))
+    fonte = pygame.font.Font(None, int(tam_casa * 0.4))
     
-    for r in range(8):
-        for c in range(8):
+    for r in range(LINHAS):
+        for c in range(COLUNAS):
             p_data = board_data[r][c]
             if p_data:
                 cx, cy = off_x + c * tam_casa + tam_casa//2, off_y + r * tam_casa + tam_casa//2
@@ -57,9 +59,9 @@ def main():
             pygame.display.set_caption(f"RedWar Multiplayer | {cliente.cor_atribuida.upper()} | {turno}")
             
         w, h = ecra.get_size()
-        tam_casa = min(w // 8, h // 8) - 10
-        off_x = (w - (8 * tam_casa)) // 2
-        off_y = (h - (8 * tam_casa)) // 2
+        tam_casa = min(w // COLUNAS, h // LINHAS) - 10
+        off_x = (w - (COLUNAS * tam_casa)) // 2
+        off_y = (h - (LINHAS * tam_casa)) // 2
 
         for evento in pygame.event.get():
             if evento.type == pygame.QUIT: 
@@ -71,7 +73,7 @@ def main():
                 if evento.button == 1:
                     mx, my = pygame.mouse.get_pos()
                     
-                    if off_y <= my < off_y + 8*tam_casa and off_x <= mx < off_x + 8*tam_casa:
+                    if off_y <= my < off_y + LINHAS*tam_casa and off_x <= mx < off_x + COLUNAS*tam_casa:
                         c = (mx - off_x) // tam_casa
                         r = (my - off_y) // tam_casa
                         
@@ -92,7 +94,10 @@ def main():
                             casa_selecionada = None
 
         ecra.fill(C_FUNDO)
-        desenhar_tabuleiro(ecra, tam_casa, off_x, off_y)
+        # desenhar_tabuleiro espera um objeto `gs`; como aqui usamos estado em JSON
+        # criamos um objeto mínimo que satisfaça os atributos lidos pelo renderer.
+        dummy_gs = types.SimpleNamespace(last_move=None, tile_effects=None)
+        desenhar_tabuleiro(ecra, dummy_gs, tam_casa, off_x, off_y)
         
         if casa_selecionada:
             r, c = casa_selecionada
@@ -101,7 +106,7 @@ def main():
         if estado_rede:
             desenhar_pecas_rede(ecra, estado_rede["board"], tam_casa, off_x, off_y)
         else:
-            fonte = pygame.font.SysFont(None, 48)
+            fonte = pygame.font.Font(None, 48)
             txt = fonte.render("A conectar ao Servidor...", True, (255,255,255))
             ecra.blit(txt, (w//2 - txt.get_width()//2, h//2))
 

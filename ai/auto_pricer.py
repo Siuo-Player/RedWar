@@ -3,7 +3,7 @@ import json
 import os
 import math
 
-ARQUIVO_CUSTOS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'engine', 'mobs_config.json')
+ARQUIVO_HEROES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'engine', 'heroes_config.json')
 ARQUIVO_STATS = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'estatisticas_treino.json')
 
 def calcular_win_esperada(elo_a, elo_b):
@@ -20,8 +20,10 @@ def executar_balanceamento_automatico():
     with open(ARQUIVO_STATS, 'r') as f:
         stats = json.load(f)
         
-    with open(ARQUIVO_CUSTOS, 'r') as f:
-        custos_atuais = json.load(f)
+    with open(ARQUIVO_HEROES, 'r', encoding='utf-8') as f:
+        heroes = json.load(f)
+    # map name -> cost for analysis
+    custos_atuais = {name: data.get('cost', 0) for name, data in heroes.items()}
         
     matches = stats.get("matches", [])
     if not matches:
@@ -66,7 +68,7 @@ def executar_balanceamento_automatico():
     
     for peca in custos_atuais.keys():
         if piece_volume[peca] == 0: continue
-        
+
         custo_antigo = custos_atuais[peca]
         
         # Média da Performance: O quão acima/abaixo das expectativas a peça jogou
@@ -81,6 +83,9 @@ def executar_balanceamento_automatico():
         
         if novo_custo != custo_antigo:
             custos_atuais[peca] = novo_custo
+            # update heroes mapping
+            if peca in heroes:
+                heroes[peca]['cost'] = novo_custo
             mudancas = True
             sinal = "+" if media_delta > 0 else ""
             estado = "🔴 NERFADA" if media_delta > 0 else "🟢 BUFFADA"
@@ -89,9 +94,9 @@ def executar_balanceamento_automatico():
             print(f"{peca.ljust(12)} | Performance: {media_delta*100:+.1f}% | {custo_antigo} (Estável)")
 
     if mudancas:
-        with open(ARQUIVO_CUSTOS, 'w', encoding='utf-8') as f:
-            json.dump(custos_atuais, f, indent=4)
-        print("\n✅ mobs_config.json atualizado com precisão matemática!")
+        with open(ARQUIVO_HEROES, 'w', encoding='utf-8') as f:
+            json.dump(heroes, f, indent=4, ensure_ascii=False)
+        print("\n✅ heroes_config.json atualizado com precisão matemática!")
     else:
         print("\n✅ Preços perfeitamente equilibrados. Sem mudanças.")
 

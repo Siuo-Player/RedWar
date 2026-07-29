@@ -10,7 +10,7 @@ import concurrent.futures
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
-from engine.config import LIMITE_TURNOS
+from engine.config import LIMITE_TURNOS, LINHAS, COLUNAS
 from ai.bot import BOT_INTERMEDIO
 from ai.opening_tester import carregar_abertura_basica
 
@@ -24,7 +24,7 @@ def simular_um_jogo(seed):
         "turnos": 0, "tempo_segundos": 0.0, "winner": None, "mortes_por_peca": Counter(), 
         "spawns_realizados": Counter(), "abates_por_peca": Counter(), "valor_destruido_por_peca": Counter(),
         "stuns_aplicados": 0, "mortes_por_stun": 0,
-        "heatmap": [[0 for _ in range(8)] for _ in range(8)], "tabuleiro_encravado": None
+        "heatmap": [[0 for _ in range(COLUNAS)] for _ in range(LINHAS)], "tabuleiro_encravado": None
     }
     
     turnos = 0
@@ -68,8 +68,8 @@ def simular_um_jogo(seed):
             
     if turnos >= LIMITE_TURNOS:
         board_str = f"--- JOGO ENCRAVADO (Seed: {seed}) ---\n"
-        for r in range(8):
-            for c in range(8):
+        for r in range(LINHAS):
+            for c in range(COLUNAS):
                 p = gs.board[r][c]
                 board_str += f"{p.acronym:^3}" if p else " . "
             board_str += "\n"
@@ -83,7 +83,7 @@ def simular_um_jogo(seed):
 def correr_diagnostico_profundo(num_jogos=100):
     print(f"🔬 A INICIAR TELEMETRIA PROFUNDA ({num_jogos} Partidas)...\n")
     causas_fim = Counter()
-    heatmap = [[0 for _ in range(8)] for _ in range(8)]
+    heatmap = [[0 for _ in range(COLUNAS)] for _ in range(LINHAS)]
     mortes_por_peca, spawns_realizados, abates_por_peca, valor_destruido_por_peca = Counter(), Counter(), Counter(), Counter()
     log_encravados = ""
     stuns_aplicados = mortes_por_stun = turnos_totais = jogos_concluidos = 0
@@ -106,8 +106,8 @@ def correr_diagnostico_profundo(num_jogos=100):
                 stuns_aplicados += res["stuns_aplicados"]
                 mortes_por_stun += res["mortes_por_stun"]
                 if res.get("tabuleiro_encravado"): log_encravados += res["tabuleiro_encravado"]
-                for r in range(8):
-                    for c in range(8): heatmap[r][c] += res["heatmap"][r][c]
+                for r in range(LINHAS):
+                    for c in range(COLUNAS): heatmap[r][c] += res["heatmap"][r][c]
                 jogos_concluidos += 1
                 sys.stdout.write(f"\rProcessado: {jogos_concluidos}/{num_jogos}")
                 sys.stdout.flush()

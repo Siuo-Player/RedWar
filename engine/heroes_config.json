@@ -1,0 +1,413 @@
+{
+    "Bone": {
+        "cost": 5,
+        "acronym": "Bo",
+        "descricao": "Infantaria invocada.",
+        "passiva": "Desintegra-se após 5 turnos.",
+        "draftable": false,
+        "lifespan": 5,
+        "behavior": {
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "orthogonal",
+                "max_steps": 1
+            },
+            "threat": {
+                "type": "orthogonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "Ghoul": {
+        "cost": 5,
+        "acronym": "Gh",
+        "descricao": "Vanguarda agressiva invocada.",
+        "passiva": "Avança letalmente. Desintegra-se após 5 turnos.",
+        "draftable": false,
+        "lifespan": 5,
+        "behavior": {
+            "movement": {
+                "type": "forward_cone",
+                "forward_dir_by_team": true,
+                "deltas": [
+                    [
+                        1,
+                        -1
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "forward_cone",
+                "forward_dir_by_team": true,
+                "deltas": [
+                    [
+                        1,
+                        -1
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ],
+                "max_steps": 1
+            }
+        }
+    },
+    "Obelisk": {
+        "cost": 15,
+        "acronym": "Ob",
+        "descricao": "Estrutura pesada.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "none"
+            },
+            "attack": {
+                "type": "orthogonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "Phantom": {
+        "cost": 45,
+        "acronym": "Ph",
+        "descricao": "Assassino espectral.",
+        "passiva": "Salta em L.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "knight"
+            },
+            "attack": {
+                "type": "knight"
+            }
+        }
+    },
+    "Sentry": {
+        "cost": 90,
+        "acronym": "Se",
+        "descricao": "Atirador.",
+        "passiva": "Ataque em linha reta.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "ray",
+                "dirs": [
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        -1,
+                        0
+                    ],
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        0,
+                        -1
+                    ]
+                ]
+            }
+        }
+    },
+    "FrostMage": {
+        "cost": 60,
+        "acronym": "FM",
+        "descricao": "Mago de controlo.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "diagonal",
+                "max_steps": 2
+            },
+            "stun": {
+                "type": "aoe",
+                "radius": 3
+            }
+        }
+    },
+    "Lich": {
+        "cost": 80,
+        "acronym": "Li",
+        "descricao": "Invocador Sombrio.",
+        "draftable": true,
+        "spawn_cooldown": 0,
+        "behavior": {
+            "movement": {
+                "type": "diagonal",
+                "max_steps": 1
+            },
+            "spawn": {
+                "unit": "Ghoul",
+                "pattern": "forward_row"
+            }
+        }
+    },
+    "BoneLord": {
+        "cost": 98,
+        "acronym": "BL",
+        "descricao": "Comandante Necromante.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "adjacent"
+            },
+            "attack": {
+                "type": "pattern",
+                "deltas": [
+                    [
+                        -3,
+                        -1
+                    ],
+                    [
+                        -3,
+                        1
+                    ],
+                    [
+                        3,
+                        -1
+                    ],
+                    [
+                        3,
+                        1
+                    ],
+                    [
+                        -1,
+                        -3
+                    ],
+                    [
+                        1,
+                        -3
+                    ],
+                    [
+                        -1,
+                        3
+                    ],
+                    [
+                        1,
+                        3
+                    ],
+                    [
+                        -2,
+                        -2
+                    ],
+                    [
+                        -2,
+                        2
+                    ],
+                    [
+                        2,
+                        -2
+                    ],
+                    [
+                        2,
+                        2
+                    ]
+                ]
+            }
+        }
+    },
+    "Ranger": {
+        "cost": 38,
+        "acronym": "Ra",
+        "descricao": "Atirador de precisão.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "ray",
+                "dirs": [
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        -1,
+                        0
+                    ],
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        0,
+                        -1
+                    ]
+                ],
+                "min_steps": 2
+            }
+        }
+    },
+    "Templar": {
+        "cost": 66,
+        "acronym": "Te",
+        "descricao": "Vanguarda inquebrável.",
+        "passiva": "Escudo Divino: Ignora o primeiro ataque/stun.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "orthogonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "Berserker": {
+        "cost": 62,
+        "acronym": "Be",
+        "descricao": "Guerreiro furioso.",
+        "passiva": "Varredura: Destrói inimigos adjacentes ao alvo.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "adjacent",
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "adjacent",
+                "max_steps": 1
+            }
+        }
+    },
+    "Pyromancer": {
+        "cost": 55,
+        "acronym": "Py",
+        "descricao": "Mestre do Fogo.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "diagonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "Dragoon": {
+        "cost": 85,
+        "acronym": "Dr",
+        "descricao": "Assalto aéreo.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "Cleric": {
+        "cost": 40,
+        "acronym": "Cl",
+        "descricao": "Curandeiro.",
+        "passiva": "Purificar: Remove Stun de aliados.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "diagonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "Trickster": {
+        "cost": 65,
+        "acronym": "Tr",
+        "descricao": "Ilusionista.",
+        "passiva": "Troca de posição com aliados.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "knight"
+            }
+        }
+    },
+    "Geomancer": {
+        "cost": 50,
+        "acronym": "Ge",
+        "descricao": "Manipulador da Terra.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "StoneWall": {
+        "cost": 5,
+        "acronym": "SW",
+        "descricao": "Barricada física.",
+        "passiva": "Impenetrável, dura 3 turnos.",
+        "draftable": false,
+        "lifespan": 3,
+        "behavior": {
+            "movement": {
+                "type": "none"
+            },
+            "attack": {
+                "type": "none"
+            }
+        }
+    },
+    "Nightshade": {
+        "cost": 111,
+        "acronym": "Ni",
+        "descricao": "Assassino furtivo.",
+        "passiva": "Atravessa peças ao mover.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 4,
+                "ghost_move": true
+            },
+            "attack": {
+                "type": "orthogonal",
+                "max_steps": 1
+            }
+        }
+    },
+    "Inquisitor": {
+        "cost": 104,
+        "acronym": "In",
+        "descricao": "Anti-magia.",
+        "passiva": "Aura de Silêncio: Inimigos adjacentes não usam magia.",
+        "draftable": true,
+        "behavior": {
+            "movement": {
+                "type": "adjacent",
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "adjacent",
+                "max_steps": 1
+            }
+        }
+    }
+}

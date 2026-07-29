@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
-from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LIMITE_TURNOS
+from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LIMITE_TURNOS, LINHAS, COLUNAS
 from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO, BOT_ALEATORIO
 
 # Vamos usar um pool de bots com ELOs conhecidos para gerar dados ricos
@@ -27,7 +27,7 @@ def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
     composicao = Counter()
     
     for r in linhas_validas:
-        for c in range(8):
+        for c in range(COLUNAS):
             validas = [p for p in catalogo if p["cost"] <= pontos]
             if not validas: break
             escolha = random.choice(validas)

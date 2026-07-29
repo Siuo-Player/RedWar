@@ -6,6 +6,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
 from engine.pieces import Bone, Ghoul, Obelisk, Sentry, FrostMage, BoneLord, Lich, Phantom
+from engine.config import LINHAS, COLUNAS
 from ai.bot import BOT_INICIANTE, BOT_AVANCADO
 
 # Catálogo disponível para o Opening Book
@@ -20,26 +21,26 @@ def carregar_abertura_basica(gs, seed_val=None):
         random.seed(seed_val)
         
     # Limpar o tabuleiro primeiro
-    gs.board = [[None for _ in range(8)] for _ in range(8)]
+    gs.board = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
     
     # Orçamento para a abertura (ex: 300 pontos de peças aleatórias mas espelhadas em custo/poder)
     # Para ser justo, geramos uma composição simétrica em termos de massa tática, 
     # mas distribuída de forma assimétrica nas posições iniciais.
     
-    for team, filas in [('pretas', [0, 1]), ('brancas', [6, 7])]:
+    for team, filas in [('pretas', [0, 1]), ('brancas', [LINHAS-2, LINHAS-1])]:
         pecas_a_colocar = random.sample(CATALOGO, 5) # Escolhe 5 classes diferentes
         
         for PeçaClass in pecas_a_colocar:
             # Tentar colocar até 2 instâncias de cada peça escolhida
             for _ in range(random.randint(1, 2)):
                 r = random.choice(filas)
-                c = random.randint(0, 7)
+                c = random.randint(0, COLUNAS - 1)
                 
                 # Evitar sobreposição
                 tentativas = 0
                 while gs.board[r][c] is not None and tentativas < 10:
                     r = random.choice(filas)
-                    c = random.randint(0, 7)
+                    c = random.randint(0, COLUNAS - 1)
                     tentativas += 1
                     
                 if gs.board[r][c] is None:

@@ -8,13 +8,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
 from ai.bot import BOT_INICIANTE
+from engine.config import LINHAS, COLUNAS
 
 def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
     pontos = orcamento
     catalogo = obter_catalogo_pecas()
     
     for r in linhas_validas:
-        for c in range(8):
+        for c in range(COLUNAS):
             if gs.board[r][c] is not None: continue 
             validas = [p for p in catalogo if p["cost"] <= pontos]
             if not validas: break
@@ -25,7 +26,7 @@ def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
 def jogar_batalha_simulada(orcamento_brancas, orcamento_pretas):
     gs = GameState(time_limit_seconds=99999)
     preencher_draft_aleatorio(gs, 'pretas', [0, 1], orcamento_pretas)
-    preencher_draft_aleatorio(gs, 'brancas', [6, 7], orcamento_brancas)
+    preencher_draft_aleatorio(gs, 'brancas', [LINHAS - 2, LINHAS - 1], orcamento_brancas)
     
     turnos = 0
     while not gs.game_over and turnos < 150:
