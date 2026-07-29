@@ -3,7 +3,7 @@ import sys
 import subprocess
 
 # Garante que o script corre sempre a partir da raiz do projeto
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.chdir(ROOT_DIR)
 
 def executar_pipeline():

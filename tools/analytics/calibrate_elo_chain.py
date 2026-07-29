@@ -6,7 +6,7 @@ import random
 import json
 import time
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engine.game_state import GameState
 from ai.opening_tester import carregar_abertura_basica

@@ -2,7 +2,7 @@
 import sys
 import os
 import random
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engine.game_state import GameState
 from engine.pieces import Bone, Ghoul, Obelisk, Sentry, FrostMage, BoneLord, Lich, Phantom

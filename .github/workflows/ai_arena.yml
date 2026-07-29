@@ -28,7 +28,7 @@ jobs:
 
       - name: Executar Torneio da Arena
         run: |
-          python ai/arena_tournament.py --jogos 50 --margem_vitorias 5
+          python tools/analytics/arena_tournament.py --jogos 50 --margem_vitorias 5
 
       - name: Commit e Push dos Resultados
         run: |

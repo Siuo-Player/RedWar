@@ -1,34 +1,3733 @@
 {
-  "total_matches": 30,
-  "matches": [
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade": 2, "Ranger": 1}, "black_draft": {"Bone": 4}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade": 3}, "black_draft": {"Ghoul": 2, "Obelisk":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade": 1, "Templar":1}, "black_draft": {"Ranger":1, "Obelisk":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade": 2}, "black_draft": {"Geomancer":1}, "result": 1.0},
-    {"white_elo": 1400, "black_elo": 1600, "white_draft": {"Ranger":2}, "black_draft": {"Nightshade":1}, "result": 0.0},
-    {"white_elo": 1600, "black_elo": 1400, "white_draft": {"Nightshade":1, "Inquisitor":1}, "black_draft": {"Bone":2}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Berserker":1}, "black_draft": {"Nightshade":2}, "result": 0.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Ranger":1, "Templar":1}, "black_draft": {"Phantom":1}, "result": 0.5},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":2}, "black_draft": {"StoneWall":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":1}, "black_draft": {"Ranger":2}, "result": 1.0},
-    {"white_elo": 1300, "black_elo": 1700, "white_draft": {"BoneLord":1}, "black_draft": {"Nightshade":1}, "result": 0.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Ranger":1}, "black_draft": {"Nightshade":2}, "result": 0.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":2, "Ranger":1}, "black_draft": {"Ghoul":2}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Pyromancer":1}, "black_draft": {"Nightshade":2}, "result": 0.0},
-    {"white_elo": 1550, "black_elo": 1450, "white_draft": {"Nightshade":1}, "black_draft": {"Ranger":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":3}, "black_draft": {"Obelisk":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":2}, "black_draft": {"Bone":2}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":1, "Templar":1}, "black_draft": {"Berserker":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Inquisitor":1}, "black_draft": {"Nightshade":1}, "result": 0.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":2}, "black_draft": {"Ranger":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":1}, "black_draft": {"Nightshade":1}, "result": 0.5},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Ranger":1}, "black_draft": {"BoneLord":1}, "result": 0.5},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":2}, "black_draft": {"Nightshade":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":2}, "black_draft": {"Ranger":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":1, "Berserker":1}, "black_draft": {"Obelisk":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Templar":1}, "black_draft": {"Nightshade":2}, "result": 0.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":3}, "black_draft": {"StoneWall":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Nightshade":2}, "black_draft": {"Nightshade":1}, "result": 1.0},
-    {"white_elo": 1500, "black_elo": 1500, "white_draft": {"Ranger":1}, "black_draft": {"Nightshade":1}, "result": 0.0}
-  ]
+    "total_matches": 200,
+    "matches": [
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Trickster": 1,
+                "Ghoul": 2,
+                "Pyromancer": 1,
+                "Obelisk": 2,
+                "Cleric": 1
+            },
+            "black_draft": {
+                "Phantom": 1,
+                "Berserker": 1,
+                "Lich": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Sentry": 1,
+                "Geomancer": 1,
+                "Pyromancer": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Templar": 1,
+                "Obelisk": 1,
+                "Pyromancer": 1,
+                "StoneWall": 3,
+                "Ghoul": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Templar": 2,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Trickster": 1,
+                "StoneWall": 2,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Trickster": 1,
+                "Dragoon": 1,
+                "Cleric": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Lich": 2,
+                "StoneWall": 1,
+                "Bone": 3,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Templar": 1,
+                "Dragoon": 1,
+                "Ranger": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Lich": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Dragoon": 1,
+                "Lich": 1,
+                "Obelisk": 1,
+                "Bone": 3,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "Pyromancer": 1,
+                "Phantom": 2,
+                "Ghoul": 1,
+                "Bone": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Sentry": 1,
+                "Cleric": 1,
+                "Ranger": 1,
+                "Ghoul": 4,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Trickster": 1,
+                "Ghoul": 1,
+                "StoneWall": 3
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Phantom": 1,
+                "Obelisk": 1,
+                "Trickster": 1,
+                "Templar": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Ghoul": 4,
+                "Trickster": 1,
+                "Ranger": 1,
+                "Obelisk": 1,
+                "StoneWall": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "FrostMage": 2,
+                "Pyromancer": 1,
+                "StoneWall": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Phantom": 1,
+                "Pyromancer": 1,
+                "Ghoul": 2,
+                "Obelisk": 1,
+                "Bone": 3
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Cleric": 2,
+                "StoneWall": 1,
+                "Ranger": 1,
+                "Bone": 2,
+                "FrostMage": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Sentry": 2,
+                "Bone": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Ghoul": 2,
+                "Lich": 1,
+                "Inquisitor": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Cleric": 1,
+                "Phantom": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Inquisitor": 1,
+                "FrostMage": 1,
+                "Ghoul": 2,
+                "StoneWall": 1,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Cleric": 1,
+                "Ghoul": 2,
+                "BoneLord": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Bone": 2,
+                "Inquisitor": 1,
+                "Pyromancer": 1,
+                "Ghoul": 3,
+                "StoneWall": 3
+            },
+            "black_draft": {
+                "Bone": 2,
+                "Trickster": 1,
+                "Geomancer": 1,
+                "Templar": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Bone": 1,
+                "Obelisk": 2,
+                "Geomancer": 1,
+                "Nightshade": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Templar": 1,
+                "Ghoul": 1,
+                "Cleric": 1,
+                "Geomancer": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "BoneLord": 1,
+                "Obelisk": 3,
+                "Pyromancer": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Dragoon": 1,
+                "Ranger": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "FrostMage": 1,
+                "Templar": 1,
+                "Ranger": 1,
+                "Obelisk": 1,
+                "StoneWall": 4
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "StoneWall": 5,
+                "Bone": 2,
+                "Sentry": 1,
+                "Obelisk": 2,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Cleric": 1,
+                "Inquisitor": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "FrostMage": 2,
+                "StoneWall": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Cleric": 2,
+                "Geomancer": 1,
+                "StoneWall": 3,
+                "Ranger": 1,
+                "Bone": 2,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Templar": 2,
+                "Ghoul": 2,
+                "Pyromancer": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Nightshade": 1,
+                "Pyromancer": 1,
+                "Ghoul": 4,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "Obelisk": 1,
+                "Nightshade": 1,
+                "Ghoul": 4,
+                "Cleric": 1,
+                "Bone": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Ranger": 2,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Berserker": 1,
+                "StoneWall": 2,
+                "Bone": 3
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Bone": 2,
+                "Templar": 1,
+                "Inquisitor": 1,
+                "Ghoul": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Ghoul": 4,
+                "Inquisitor": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Bone": 2,
+                "Phantom": 1,
+                "Obelisk": 1,
+                "Pyromancer": 1,
+                "Trickster": 1,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "Inquisitor": 1,
+                "Trickster": 1,
+                "StoneWall": 3,
+                "Ghoul": 2,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Geomancer": 1,
+                "Obelisk": 1,
+                "Cleric": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "StoneWall": 1,
+                "BoneLord": 1,
+                "Templar": 1,
+                "Obelisk": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Templar": 1,
+                "FrostMage": 1,
+                "Geomancer": 1,
+                "Ghoul": 2,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Ranger": 2,
+                "Berserker": 1,
+                "Cleric": 1,
+                "Obelisk": 1,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Phantom": 1,
+                "Pyromancer": 1,
+                "Berserker": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Ghoul": 2,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Obelisk": 1,
+                "Geomancer": 1,
+                "Berserker": 2,
+                "StoneWall": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Geomancer": 1,
+                "Templar": 1,
+                "Ranger": 1,
+                "Phantom": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Ranger": 2,
+                "StoneWall": 2,
+                "Ghoul": 2,
+                "Obelisk": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Bone": 3,
+                "Nightshade": 1,
+                "Pyromancer": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Trickster": 2,
+                "StoneWall": 3,
+                "Ghoul": 1,
+                "Phantom": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "StoneWall": 3,
+                "Sentry": 1,
+                "Templar": 1,
+                "Ghoul": 1,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Cleric": 1,
+                "StoneWall": 2,
+                "Obelisk": 2,
+                "Phantom": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Templar": 1,
+                "Lich": 1,
+                "Obelisk": 2,
+                "Bone": 3,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Cleric": 2,
+                "Phantom": 1,
+                "Bone": 2,
+                "FrostMage": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Nightshade": 1,
+                "Berserker": 1,
+                "StoneWall": 1,
+                "Ghoul": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "StoneWall": 2,
+                "Trickster": 1,
+                "Inquisitor": 1,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Ranger": 1,
+                "Cleric": 1,
+                "Nightshade": 1,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Geomancer": 1,
+                "Ghoul": 3,
+                "Trickster": 1,
+                "StoneWall": 1,
+                "Bone": 2,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Ranger": 3,
+                "Geomancer": 1,
+                "StoneWall": 1,
+                "Bone": 2,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Sentry": 1,
+                "Templar": 1,
+                "Ghoul": 1,
+                "Obelisk": 2,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "BoneLord": 1,
+                "Templar": 1,
+                "Ghoul": 1,
+                "StoneWall": 1,
+                "Bone": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Ghoul": 2,
+                "Pyromancer": 1,
+                "Trickster": 1,
+                "Cleric": 1,
+                "Obelisk": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Cleric": 1,
+                "Sentry": 1,
+                "Berserker": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Ranger": 1,
+                "Berserker": 1,
+                "Ghoul": 2,
+                "Bone": 2,
+                "StoneWall": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Lich": 1,
+                "Berserker": 1,
+                "Ghoul": 1,
+                "Obelisk": 3,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "Pyromancer": 1,
+                "FrostMage": 1,
+                "Phantom": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "Geomancer": 1,
+                "Sentry": 1,
+                "FrostMage": 1
+            },
+            "black_draft": {
+                "Sentry": 1,
+                "Obelisk": 1,
+                "Ranger": 1,
+                "Phantom": 1,
+                "Bone": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "StoneWall": 2,
+                "Bone": 1,
+                "BoneLord": 1,
+                "Pyromancer": 1,
+                "Obelisk": 1,
+                "Ghoul": 3
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Dragoon": 1,
+                "Bone": 2,
+                "Ranger": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Sentry": 1,
+                "Dragoon": 1,
+                "StoneWall": 1,
+                "Ghoul": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Dragoon": 1,
+                "Ghoul": 2,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Bone": 2,
+                "Ghoul": 3,
+                "Inquisitor": 1,
+                "FrostMage": 1,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Geomancer": 1,
+                "Cleric": 1,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Berserker": 1,
+                "Ranger": 1,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Berserker": 1,
+                "Cleric": 1,
+                "Bone": 2,
+                "Ghoul": 3,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Inquisitor": 1,
+                "Berserker": 1,
+                "Ghoul": 3,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Obelisk": 2,
+                "Dragoon": 1,
+                "StoneWall": 2,
+                "Bone": 1,
+                "Berserker": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "StoneWall": 1,
+                "Bone": 2,
+                "Dragoon": 1,
+                "Cleric": 1,
+                "FrostMage": 1
+            },
+            "black_draft": {
+                "Pyromancer": 1,
+                "Lich": 1,
+                "Berserker": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "FrostMage": 1,
+                "Trickster": 1,
+                "Phantom": 1,
+                "Ghoul": 2,
+                "Bone": 3,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "BoneLord": 1,
+                "Geomancer": 1,
+                "Ghoul": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Templar": 1,
+                "Inquisitor": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Ghoul": 2,
+                "Geomancer": 1,
+                "Bone": 1,
+                "StoneWall": 4
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Templar": 1,
+                "Nightshade": 1,
+                "Bone": 2,
+                "Ghoul": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Pyromancer": 2,
+                "StoneWall": 1,
+                "Bone": 2,
+                "Templar": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Templar": 1,
+                "Nightshade": 1,
+                "Ghoul": 2,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Dragoon": 2,
+                "StoneWall": 2,
+                "Ghoul": 1,
+                "Bone": 3
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Trickster": 1,
+                "Bone": 1,
+                "Ranger": 1,
+                "Dragoon": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Templar": 2,
+                "Pyromancer": 1,
+                "StoneWall": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Nightshade": 1,
+                "StoneWall": 2,
+                "Berserker": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Trickster": 1,
+                "Bone": 2,
+                "Cleric": 1,
+                "Ghoul": 2,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Pyromancer": 2,
+                "Dragoon": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Dragoon": 1,
+                "Obelisk": 3
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Dragoon": 1,
+                "Pyromancer": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Bone": 4,
+                "Ghoul": 1,
+                "BoneLord": 1,
+                "Obelisk": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Phantom": 1,
+                "FrostMage": 1,
+                "Lich": 1,
+                "Ghoul": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Lich": 1,
+                "Nightshade": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Lich": 1,
+                "StoneWall": 2,
+                "Ranger": 1,
+                "Templar": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Obelisk": 3,
+                "Berserker": 1,
+                "Phantom": 1,
+                "Ranger": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Nightshade": 1,
+                "Obelisk": 2
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Lich": 1,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Cleric": 2,
+                "Geomancer": 1,
+                "Ranger": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Templar": 1,
+                "StoneWall": 1,
+                "Bone": 3,
+                "Pyromancer": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Berserker": 1,
+                "Ranger": 1,
+                "Dragoon": 1,
+                "Bone": 2,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Ghoul": 3,
+                "Geomancer": 1,
+                "FrostMage": 1,
+                "Phantom": 1,
+                "Obelisk": 1,
+                "StoneWall": 2,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "BoneLord": 1,
+                "Phantom": 1,
+                "StoneWall": 1,
+                "Geomancer": 1
+            },
+            "black_draft": {
+                "Phantom": 1,
+                "Berserker": 1,
+                "Trickster": 1,
+                "Bone": 2,
+                "StoneWall": 3
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Bone": 1,
+                "Nightshade": 1,
+                "Templar": 1,
+                "Ghoul": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Geomancer": 1,
+                "Trickster": 1,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Templar": 1,
+                "BoneLord": 1,
+                "StoneWall": 2,
+                "Bone": 3,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Phantom": 2,
+                "Trickster": 1,
+                "StoneWall": 2,
+                "Ghoul": 2,
+                "Bone": 2,
+                "Obelisk": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Sentry": 1,
+                "FrostMage": 1,
+                "Ranger": 1,
+                "Ghoul": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Obelisk": 2,
+                "Dragoon": 1,
+                "Bone": 3,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Cleric": 1,
+                "Ghoul": 3,
+                "Lich": 1,
+                "Ranger": 1,
+                "Bone": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Inquisitor": 1,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Dragoon": 1,
+                "FrostMage": 1,
+                "Ranger": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Lich": 1,
+                "Bone": 1,
+                "Geomancer": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Inquisitor": 1,
+                "StoneWall": 2,
+                "Lich": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Ghoul": 2,
+                "Bone": 1,
+                "FrostMage": 1,
+                "Ranger": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Cleric": 1,
+                "BoneLord": 1,
+                "Phantom": 1,
+                "Ghoul": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "BoneLord": 1,
+                "StoneWall": 1,
+                "Bone": 1,
+                "Ranger": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Bone": 2,
+                "StoneWall": 4,
+                "Lich": 1,
+                "Ranger": 2,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Pyromancer": 1,
+                "Bone": 1,
+                "Sentry": 1,
+                "Geomancer": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Cleric": 2,
+                "Obelisk": 2
+            },
+            "black_draft": {
+                "Bone": 1,
+                "BoneLord": 1,
+                "Sentry": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Geomancer": 1,
+                "Ranger": 1,
+                "Trickster": 1,
+                "Phantom": 1
+            },
+            "black_draft": {
+                "StoneWall": 1,
+                "Ranger": 1,
+                "Cleric": 1,
+                "Phantom": 2,
+                "Obelisk": 1,
+                "Bone": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Obelisk": 2,
+                "Geomancer": 1,
+                "Nightshade": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "FrostMage": 1,
+                "Cleric": 1,
+                "Ghoul": 2,
+                "Bone": 1
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "BoneLord": 1,
+                "Cleric": 1,
+                "Obelisk": 1,
+                "Ranger": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Inquisitor": 1,
+                "Bone": 2,
+                "StoneWall": 2,
+                "FrostMage": 1,
+                "Ghoul": 3
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Bone": 3,
+                "Phantom": 1,
+                "Inquisitor": 1,
+                "StoneWall": 2,
+                "Ghoul": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Ghoul": 1,
+                "Nightshade": 1,
+                "Obelisk": 1,
+                "Berserker": 1,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Lich": 2,
+                "Bone": 5,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Nightshade": 1,
+                "Obelisk": 1,
+                "StoneWall": 1
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Lich": 1,
+                "StoneWall": 1,
+                "Cleric": 2,
+                "Bone": 1,
+                "Obelisk": 2
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Inquisitor": 1,
+                "Ghoul": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Geomancer": 1,
+                "Nightshade": 1,
+                "StoneWall": 3,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Pyromancer": 1,
+                "BoneLord": 1,
+                "Ghoul": 2,
+                "StoneWall": 1,
+                "Obelisk": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Obelisk": 1,
+                "Templar": 1,
+                "Lich": 1,
+                "Ranger": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Berserker": 1,
+                "Bone": 2,
+                "StoneWall": 2,
+                "Phantom": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Obelisk": 4,
+                "Sentry": 1,
+                "Cleric": 1,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Cleric": 3,
+                "Obelisk": 1,
+                "FrostMage": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Ranger": 1,
+                "BoneLord": 1,
+                "StoneWall": 1,
+                "Phantom": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Phantom": 1,
+                "Dragoon": 1,
+                "StoneWall": 3,
+                "Ranger": 1,
+                "Ghoul": 2,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Obelisk": 1,
+                "Bone": 4,
+                "Sentry": 1,
+                "Templar": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Ghoul": 2,
+                "Sentry": 1,
+                "Berserker": 1,
+                "Obelisk": 1,
+                "Bone": 4
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "Phantom": 1,
+                "Ghoul": 2,
+                "Cleric": 1,
+                "Ranger": 2,
+                "Obelisk": 1,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "Pyromancer": 1,
+                "Templar": 1,
+                "Ranger": 1,
+                "Obelisk": 1,
+                "Ghoul": 2,
+                "Bone": 2,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Ranger": 1,
+                "Pyromancer": 2,
+                "Bone": 5,
+                "Ghoul": 4,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Sentry": 1,
+                "Phantom": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Obelisk": 1,
+                "Templar": 1,
+                "StoneWall": 2,
+                "Cleric": 1,
+                "Ghoul": 1,
+                "FrostMage": 1
+            },
+            "black_draft": {
+                "Sentry": 2,
+                "Bone": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Ghoul": 2,
+                "Nightshade": 1,
+                "Phantom": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "StoneWall": 2,
+                "Berserker": 1,
+                "Ghoul": 2,
+                "Pyromancer": 1,
+                "Bone": 1,
+                "Cleric": 1,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Cleric": 1,
+                "Ranger": 1,
+                "Dragoon": 1,
+                "Ghoul": 2,
+                "StoneWall": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Inquisitor": 1,
+                "FrostMage": 1,
+                "Bone": 2,
+                "StoneWall": 2,
+                "Ghoul": 3
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Cleric": 1,
+                "Sentry": 1,
+                "Ranger": 1,
+                "Ghoul": 1,
+                "Obelisk": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Templar": 1,
+                "BoneLord": 1,
+                "Obelisk": 1,
+                "StoneWall": 2,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Nightshade": 1,
+                "Trickster": 1,
+                "Ghoul": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Bone": 2,
+                "Ghoul": 1,
+                "Lich": 1,
+                "Cleric": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "BoneLord": 1,
+                "Trickster": 1,
+                "Ghoul": 2,
+                "Bone": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Ghoul": 1,
+                "Nightshade": 1,
+                "Obelisk": 2,
+                "Cleric": 1,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Lich": 1,
+                "Nightshade": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Cleric": 1,
+                "StoneWall": 4,
+                "Ghoul": 4,
+                "Bone": 1
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "BoneLord": 1,
+                "Ghoul": 2,
+                "Geomancer": 1,
+                "StoneWall": 1,
+                "Obelisk": 2,
+                "Bone": 1
+            },
+            "black_draft": {
+                "StoneWall": 1,
+                "Trickster": 1,
+                "Lich": 1,
+                "Ranger": 1,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Phantom": 1,
+                "Nightshade": 1,
+                "Cleric": 1
+            },
+            "black_draft": {
+                "StoneWall": 1,
+                "Dragoon": 1,
+                "Templar": 1,
+                "Ranger": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Nightshade": 1,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Berserker": 1,
+                "Ghoul": 3,
+                "StoneWall": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Berserker": 1,
+                "Ghoul": 2,
+                "StoneWall": 2,
+                "Geomancer": 1,
+                "Ranger": 1,
+                "Obelisk": 1,
+                "Bone": 3
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Lich": 1,
+                "Obelisk": 1,
+                "Ranger": 1,
+                "StoneWall": 1,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Dragoon": 1,
+                "Nightshade": 1
+            },
+            "black_draft": {
+                "FrostMage": 2,
+                "Bone": 3,
+                "Phantom": 1,
+                "Ghoul": 1,
+                "StoneWall": 3
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "Nightshade": 1,
+                "Berserker": 1,
+                "StoneWall": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "StoneWall": 2,
+                "Trickster": 2,
+                "Bone": 3,
+                "Obelisk": 3
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Nightshade": 1,
+                "Ghoul": 1,
+                "Trickster": 1,
+                "Bone": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Bone": 1,
+                "Pyromancer": 1,
+                "Geomancer": 1,
+                "StoneWall": 3,
+                "Obelisk": 2,
+                "Phantom": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "BoneLord": 1,
+                "Dragoon": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Phantom": 1,
+                "StoneWall": 2,
+                "BoneLord": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Sentry": 1,
+                "BoneLord": 1,
+                "Ghoul": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Ranger": 1,
+                "Sentry": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "BoneLord": 1,
+                "Trickster": 1,
+                "Bone": 3,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Lich": 1,
+                "BoneLord": 1,
+                "Bone": 3,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Cleric": 1,
+                "Ranger": 1,
+                "Berserker": 1,
+                "Bone": 3,
+                "Ghoul": 3,
+                "StoneWall": 3,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Pyromancer": 2,
+                "Geomancer": 1,
+                "Bone": 2,
+                "Ghoul": 2,
+                "StoneWall": 1,
+                "Obelisk": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "FrostMage": 1,
+                "Trickster": 1,
+                "Templar": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Phantom": 1,
+                "Ghoul": 1,
+                "Ranger": 1,
+                "Cleric": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Ghoul": 1,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Pyromancer": 1,
+                "Nightshade": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Obelisk": 3,
+                "Sentry": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Lich": 1,
+                "Sentry": 1,
+                "Ghoul": 1,
+                "Bone": 2,
+                "StoneWall": 3
+            },
+            "black_draft": {
+                "Ghoul": 4,
+                "Lich": 1,
+                "BoneLord": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Templar": 1,
+                "Phantom": 1,
+                "Pyromancer": 1,
+                "Bone": 2,
+                "Obelisk": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Ranger": 1,
+                "Pyromancer": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Ghoul": 2,
+                "Ranger": 1,
+                "Templar": 1,
+                "Obelisk": 1,
+                "Bone": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Sentry": 1,
+                "Templar": 1,
+                "Obelisk": 2,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Trickster": 1,
+                "Inquisitor": 1,
+                "StoneWall": 1,
+                "Bone": 1,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Cleric": 1,
+                "Phantom": 2,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "StoneWall": 2,
+                "Ranger": 1,
+                "Berserker": 1,
+                "Templar": 1,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Ranger": 1,
+                "Obelisk": 3,
+                "Cleric": 1,
+                "StoneWall": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "Obelisk": 1,
+                "Trickster": 1,
+                "Phantom": 1,
+                "FrostMage": 1,
+                "Ghoul": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "StoneWall": 1,
+                "Trickster": 1,
+                "Lich": 1,
+                "Phantom": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Sentry": 1,
+                "Lich": 1,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Templar": 1,
+                "FrostMage": 1,
+                "Ghoul": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "FrostMage": 1,
+                "Dragoon": 1,
+                "Geomancer": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Dragoon": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Phantom": 1,
+                "Bone": 1,
+                "Pyromancer": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Ranger": 1,
+                "Geomancer": 1,
+                "Obelisk": 3,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Sentry": 1,
+                "Dragoon": 1,
+                "Ghoul": 1,
+                "StoneWall": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Lich": 1,
+                "Pyromancer": 1,
+                "FrostMage": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Berserker": 1,
+                "BoneLord": 1,
+                "Obelisk": 2,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Obelisk": 3,
+                "Geomancer": 1,
+                "Inquisitor": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "FrostMage": 1,
+                "Nightshade": 1,
+                "StoneWall": 2,
+                "Ghoul": 2,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Phantom": 1,
+                "Ranger": 1,
+                "Cleric": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Lich": 1,
+                "Dragoon": 1,
+                "StoneWall": 3,
+                "Bone": 3,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Sentry": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Nightshade": 1,
+                "Cleric": 1,
+                "Ranger": 1,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Inquisitor": 1,
+                "Pyromancer": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Bone": 1,
+                "Inquisitor": 1,
+                "Pyromancer": 1,
+                "Obelisk": 1,
+                "Ghoul": 4
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Templar": 1,
+                "StoneWall": 4
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "FrostMage": 1,
+                "Dragoon": 1,
+                "Ranger": 1,
+                "StoneWall": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Sentry": 1,
+                "Obelisk": 2,
+                "Trickster": 1,
+                "Bone": 2,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "Obelisk": 2,
+                "Nightshade": 1,
+                "Geomancer": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Bone": 2,
+                "Pyromancer": 1,
+                "Inquisitor": 1,
+                "Ghoul": 2,
+                "Obelisk": 1,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "StoneWall": 3,
+                "Inquisitor": 1,
+                "Cleric": 1,
+                "Obelisk": 2,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Cleric": 1,
+                "Templar": 1,
+                "Bone": 2,
+                "StoneWall": 1,
+                "Ghoul": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Cleric": 1,
+                "Ghoul": 4,
+                "StoneWall": 3,
+                "Berserker": 1,
+                "Bone": 2,
+                "Geomancer": 1
+            },
+            "black_draft": {
+                "Sentry": 1,
+                "Lich": 1,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Lich": 2,
+                "Bone": 2,
+                "StoneWall": 1,
+                "Ghoul": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Pyromancer": 1,
+                "Ghoul": 2,
+                "Obelisk": 2,
+                "StoneWall": 3,
+                "Bone": 1
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "FrostMage": 1,
+                "Templar": 1,
+                "Pyromancer": 1,
+                "Bone": 2,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Obelisk": 2,
+                "Bone": 2,
+                "Dragoon": 1,
+                "Pyromancer": 1,
+                "Ghoul": 1,
+                "StoneWall": 3
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Berserker": 1,
+                "Ghoul": 1,
+                "Obelisk": 2,
+                "BoneLord": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Bone": 4,
+                "StoneWall": 6,
+                "Trickster": 1,
+                "Lich": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Phantom": 1,
+                "Templar": 1,
+                "Trickster": 1,
+                "Bone": 2,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "FrostMage": 1,
+                "StoneWall": 3,
+                "Bone": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Trickster": 1,
+                "Phantom": 1,
+                "Templar": 1,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Sentry": 1,
+                "Ranger": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Phantom": 2,
+                "Obelisk": 1,
+                "Dragoon": 1,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "StoneWall": 3,
+                "Obelisk": 2,
+                "Sentry": 1,
+                "Pyromancer": 1,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Lich": 1,
+                "Inquisitor": 1,
+                "Bone": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "StoneWall": 1,
+                "Sentry": 1,
+                "Ghoul": 2,
+                "Lich": 1,
+                "Bone": 3
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Lich": 1,
+                "Ghoul": 1,
+                "Phantom": 1,
+                "Templar": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Bone": 2,
+                "Pyromancer": 1,
+                "Lich": 1,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Sentry": 1,
+                "Bone": 2,
+                "BoneLord": 1
+            },
+            "black_draft": {
+                "Lich": 2,
+                "StoneWall": 2,
+                "Obelisk": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Sentry": 1,
+                "Lich": 1,
+                "StoneWall": 3,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Sentry": 1,
+                "Trickster": 1,
+                "Obelisk": 1,
+                "Ghoul": 4,
+                "StoneWall": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Obelisk": 5,
+                "Lich": 1,
+                "Cleric": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Dragoon": 1,
+                "StoneWall": 4,
+                "Obelisk": 1,
+                "Ghoul": 2,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Berserker": 1,
+                "Cleric": 1,
+                "Dragoon": 1,
+                "Ghoul": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Cleric": 1,
+                "Ghoul": 2,
+                "Ranger": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Nightshade": 1,
+                "Geomancer": 1,
+                "Bone": 2,
+                "Obelisk": 1,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "Ghoul": 1,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Geomancer": 2,
+                "Trickster": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "BoneLord": 2
+            },
+            "black_draft": {
+                "Templar": 1,
+                "Nightshade": 1,
+                "Bone": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Obelisk": 2,
+                "Bone": 3,
+                "Ghoul": 3,
+                "Cleric": 1,
+                "Sentry": 1,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "Geomancer": 2,
+                "BoneLord": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Lich": 1,
+                "StoneWall": 2,
+                "Inquisitor": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Lich": 1,
+                "StoneWall": 4
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Ghoul": 2,
+                "Trickster": 1,
+                "Nightshade": 1,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Obelisk": 2,
+                "Pyromancer": 1,
+                "FrostMage": 1,
+                "Cleric": 1,
+                "Bone": 1,
+                "StoneWall": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Dragoon": 1,
+                "Ghoul": 2,
+                "BoneLord": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Ghoul": 3,
+                "Obelisk": 2,
+                "Cleric": 1,
+                "Bone": 3
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Geomancer": 1,
+                "Templar": 1,
+                "Obelisk": 1,
+                "Ghoul": 1,
+                "Berserker": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Obelisk": 3,
+                "Bone": 2,
+                "Ranger": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "BoneLord": 1,
+                "Berserker": 1,
+                "StoneWall": 4,
+                "Ghoul": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Berserker": 1,
+                "Obelisk": 1,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Inquisitor": 1,
+                "Phantom": 2,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Lich": 1,
+                "Berserker": 1,
+                "StoneWall": 2,
+                "Bone": 2,
+                "Ghoul": 1,
+                "Obelisk": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Berserker": 1,
+                "Phantom": 1,
+                "Lich": 1,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Ghoul": 2,
+                "Sentry": 1,
+                "Cleric": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Inquisitor": 1,
+                "Bone": 1,
+                "Geomancer": 1,
+                "Ranger": 1
+            },
+            "black_draft": {
+                "Bone": 1,
+                "FrostMage": 1,
+                "Sentry": 1,
+                "StoneWall": 2,
+                "Obelisk": 2,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "StoneWall": 1,
+                "Phantom": 1,
+                "Geomancer": 1,
+                "BoneLord": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Pyromancer": 1,
+                "Bone": 5,
+                "Obelisk": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Phantom": 1,
+                "Pyromancer": 1,
+                "FrostMage": 1,
+                "Ranger": 1
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Dragoon": 1,
+                "Cleric": 1,
+                "Bone": 2,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Lich": 1,
+                "Ranger": 1,
+                "Pyromancer": 1,
+                "Bone": 3,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "Inquisitor": 1,
+                "Obelisk": 1,
+                "Lich": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Inquisitor": 1,
+                "Phantom": 1,
+                "Geomancer": 1
+            },
+            "black_draft": {
+                "Obelisk": 1,
+                "Ranger": 2,
+                "BoneLord": 1,
+                "Bone": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "Obelisk": 2,
+                "Berserker": 1,
+                "Geomancer": 1,
+                "Ghoul": 2,
+                "Cleric": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Ghoul": 1,
+                "BoneLord": 1,
+                "Berserker": 1,
+                "Obelisk": 2,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Cleric": 1,
+                "Lich": 1,
+                "Pyromancer": 1,
+                "StoneWall": 2,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "FrostMage": 1,
+                "Pyromancer": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "Geomancer": 1,
+                "Obelisk": 3,
+                "BoneLord": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Cleric": 1,
+                "Lich": 1,
+                "StoneWall": 1,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Ghoul": 2,
+                "Dragoon": 1,
+                "Geomancer": 2,
+                "Bone": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Pyromancer": 1,
+                "Trickster": 1,
+                "Bone": 1,
+                "StoneWall": 3
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "Phantom": 1,
+                "Nightshade": 1,
+                "Obelisk": 1,
+                "Ghoul": 3,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Obelisk": 2,
+                "Geomancer": 1,
+                "Berserker": 1,
+                "Phantom": 1,
+                "Ghoul": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Ghoul": 3,
+                "Cleric": 1,
+                "Ranger": 1,
+                "Sentry": 1,
+                "Bone": 3
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "StoneWall": 3,
+                "Berserker": 1,
+                "Ghoul": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Inquisitor": 1,
+                "Templar": 1,
+                "Obelisk": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Ghoul": 2,
+                "Phantom": 1,
+                "Bone": 1,
+                "Lich": 1,
+                "Ranger": 1,
+                "StoneWall": 1,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Pyromancer": 2,
+                "Phantom": 1,
+                "Ranger": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Cleric": 1,
+                "Ranger": 1,
+                "Bone": 2,
+                "Obelisk": 3
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Cleric": 1,
+                "Trickster": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Templar": 1,
+                "Pyromancer": 1,
+                "Obelisk": 2,
+                "StoneWall": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Lich": 1,
+                "Ranger": 1,
+                "Trickster": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Lich": 1,
+                "Ghoul": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Bone": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "BoneLord": 1,
+                "Cleric": 1,
+                "Ranger": 1,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "Trickster": 1,
+                "Ghoul": 2,
+                "Dragoon": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "FrostMage": 2,
+                "Geomancer": 1,
+                "Obelisk": 1,
+                "Bone": 1,
+                "StoneWall": 2
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "FrostMage": 1,
+                "Bone": 1,
+                "StoneWall": 2,
+                "Ghoul": 2,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "BoneLord": 1,
+                "Ranger": 2,
+                "Bone": 2,
+                "Ghoul": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Bone": 3,
+                "FrostMage": 2,
+                "Trickster": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "FrostMage": 1,
+                "Sentry": 1,
+                "Obelisk": 2,
+                "Ghoul": 3,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Obelisk": 2,
+                "Ghoul": 3,
+                "Nightshade": 1,
+                "Ranger": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Phantom": 1,
+                "Bone": 3,
+                "Cleric": 1,
+                "StoneWall": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "BoneLord": 1,
+                "Bone": 1,
+                "Phantom": 1,
+                "Ghoul": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Obelisk": 1,
+                "FrostMage": 1,
+                "Cleric": 2,
+                "Phantom": 1
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Ranger": 2,
+                "Templar": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "FrostMage": 1,
+                "Ranger": 1,
+                "Obelisk": 2,
+                "Bone": 1,
+                "Trickster": 1
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Templar": 1,
+                "Phantom": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 2000,
+            "white_draft": {
+                "Sentry": 1,
+                "Templar": 1,
+                "StoneWall": 1,
+                "Ranger": 1
+            },
+            "black_draft": {
+                "Bone": 1,
+                "StoneWall": 1,
+                "Trickster": 1,
+                "Lich": 1,
+                "Ranger": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Inquisitor": 1,
+                "Ranger": 1,
+                "Geomancer": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Lich": 1,
+                "Templar": 1,
+                "StoneWall": 1,
+                "Phantom": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Phantom": 1,
+                "Ranger": 1,
+                "Sentry": 1,
+                "Ghoul": 1,
+                "Obelisk": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Ghoul": 1,
+                "StoneWall": 2,
+                "Trickster": 1,
+                "Lich": 1,
+                "Obelisk": 2,
+                "Bone": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Lich": 1,
+                "Templar": 1,
+                "Ranger": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Berserker": 1,
+                "Ghoul": 3,
+                "Ranger": 1,
+                "StoneWall": 1,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Phantom": 1,
+                "Lich": 1,
+                "Ghoul": 2,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "BoneLord": 1,
+                "Obelisk": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Obelisk": 1,
+                "Ranger": 1,
+                "Templar": 1,
+                "StoneWall": 2,
+                "Geomancer": 1,
+                "Ghoul": 4
+            },
+            "black_draft": {
+                "Obelisk": 1,
+                "Pyromancer": 1,
+                "BoneLord": 1,
+                "Ghoul": 2,
+                "StoneWall": 3,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "Nightshade": 1,
+                "Trickster": 1,
+                "StoneWall": 2,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Nightshade": 1,
+                "Obelisk": 2,
+                "Ghoul": 2,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Pyromancer": 1,
+                "FrostMage": 1,
+                "StoneWall": 2,
+                "Cleric": 1,
+                "Bone": 1,
+                "Ghoul": 3,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Bone": 1,
+                "FrostMage": 1,
+                "Pyromancer": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 1500,
+            "white_draft": {
+                "FrostMage": 2,
+                "Pyromancer": 1,
+                "Obelisk": 1,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "FrostMage": 1,
+                "Bone": 1,
+                "Obelisk": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 100,
+            "white_draft": {
+                "Nightshade": 1,
+                "Cleric": 1,
+                "Ranger": 1,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Sentry": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "Ranger": 1,
+                "Sentry": 1,
+                "Berserker": 1,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Bone": 1,
+                "Pyromancer": 1,
+                "Ranger": 1,
+                "Sentry": 1,
+                "StoneWall": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "StoneWall": 1,
+                "BoneLord": 1,
+                "Berserker": 1,
+                "Ghoul": 1,
+                "Obelisk": 2
+            },
+            "black_draft": {
+                "Inquisitor": 1,
+                "Lich": 1,
+                "StoneWall": 1,
+                "Ghoul": 1,
+                "Bone": 1
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "Obelisk": 3,
+                "Dragoon": 1,
+                "FrostMage": 1,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "Berserker": 1,
+                "Pyromancer": 1,
+                "StoneWall": 1,
+                "Ghoul": 1,
+                "Obelisk": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 2000,
+            "white_draft": {
+                "BoneLord": 1,
+                "StoneWall": 1,
+                "Berserker": 1,
+                "Obelisk": 1,
+                "Bone": 2,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Dragoon": 1,
+                "Trickster": 1,
+                "Cleric": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Trickster": 1,
+                "Phantom": 1,
+                "StoneWall": 1,
+                "Obelisk": 1,
+                "Bone": 2,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "Trickster": 1,
+                "Lich": 1,
+                "Bone": 2,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Sentry": 1,
+                "Templar": 1,
+                "StoneWall": 2,
+                "Bone": 2,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Sentry": 1,
+                "Pyromancer": 1,
+                "Ghoul": 1,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Geomancer": 1,
+                "Phantom": 1,
+                "Bone": 1,
+                "Trickster": 1,
+                "Obelisk": 2,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Sentry": 1,
+                "StoneWall": 1,
+                "Bone": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Trickster": 1,
+                "Berserker": 1,
+                "Obelisk": 1,
+                "StoneWall": 3,
+                "Ranger": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Ghoul": 2,
+                "Ranger": 2,
+                "Geomancer": 1,
+                "Berserker": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Dragoon": 1,
+                "Lich": 1,
+                "Bone": 3,
+                "StoneWall": 3,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Sentry": 1,
+                "Obelisk": 2,
+                "Bone": 3,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 900,
+            "white_draft": {
+                "Obelisk": 1,
+                "Berserker": 1,
+                "Dragoon": 1,
+                "Ranger": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Lich": 1,
+                "Cleric": 1,
+                "Ghoul": 1,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 100,
+            "white_draft": {
+                "BoneLord": 1,
+                "Obelisk": 1,
+                "Cleric": 1,
+                "Phantom": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Trickster": 1,
+                "Ghoul": 3,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "StoneWall": 3,
+                "Nightshade": 1,
+                "Trickster": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Obelisk": 1,
+                "Geomancer": 1,
+                "Nightshade": 1,
+                "Bone": 3,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 900,
+            "white_draft": {
+                "Sentry": 1,
+                "Templar": 1,
+                "Ranger": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "BoneLord": 1,
+                "Sentry": 1,
+                "Bone": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Dragoon": 2,
+                "Obelisk": 1,
+                "Bone": 3
+            },
+            "black_draft": {
+                "Sentry": 1,
+                "Berserker": 1,
+                "Cleric": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Dragoon": 1,
+                "Trickster": 1,
+                "Geomancer": 1
+            },
+            "black_draft": {
+                "Cleric": 1,
+                "Trickster": 1,
+                "Phantom": 1,
+                "Geomancer": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 900,
+            "white_draft": {
+                "Pyromancer": 1,
+                "Cleric": 1,
+                "FrostMage": 1,
+                "Ghoul": 2,
+                "Obelisk": 2,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Lich": 1,
+                "Sentry": 1,
+                "Bone": 2,
+                "StoneWall": 1,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "Bone": 3,
+                "Lich": 1,
+                "Obelisk": 1,
+                "Dragoon": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Nightshade": 1,
+                "Geomancer": 1,
+                "Ghoul": 2,
+                "Bone": 2,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 2000,
+            "white_draft": {
+                "Inquisitor": 1,
+                "Sentry": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Trickster": 1,
+                "Ghoul": 4,
+                "Cleric": 1,
+                "Obelisk": 1,
+                "StoneWall": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 100,
+            "black_elo": 1500,
+            "white_draft": {
+                "Ranger": 1,
+                "Dragoon": 1,
+                "Trickster": 1,
+                "Ghoul": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Ranger": 1,
+                "Dragoon": 1,
+                "Ghoul": 2,
+                "Trickster": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Geomancer": 1,
+                "Dragoon": 1,
+                "Phantom": 1,
+                "Obelisk": 1,
+                "Bone": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Templar": 1,
+                "Obelisk": 1,
+                "Cleric": 1,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "FrostMage": 2,
+                "Pyromancer": 1,
+                "Bone": 1,
+                "Ghoul": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Bone": 1,
+                "Pyromancer": 1,
+                "StoneWall": 1,
+                "Berserker": 1,
+                "Trickster": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "FrostMage": 1,
+                "Geomancer": 1,
+                "Phantom": 1,
+                "Bone": 3,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "FrostMage": 1,
+                "Bone": 2,
+                "Inquisitor": 1,
+                "Obelisk": 1,
+                "StoneWall": 1,
+                "Ghoul": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 900,
+            "black_elo": 100,
+            "white_draft": {
+                "Obelisk": 2,
+                "FrostMage": 1,
+                "BoneLord": 1,
+                "Ghoul": 2
+            },
+            "black_draft": {
+                "Geomancer": 1,
+                "Inquisitor": 1,
+                "Bone": 3,
+                "Obelisk": 1,
+                "StoneWall": 2,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 900,
+            "white_draft": {
+                "Sentry": 1,
+                "Lich": 1,
+                "Ghoul": 2,
+                "StoneWall": 1,
+                "Obelisk": 1
+            },
+            "black_draft": {
+                "Obelisk": 1,
+                "Ghoul": 1,
+                "Sentry": 2
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 100,
+            "white_draft": {
+                "Phantom": 2,
+                "Ghoul": 1,
+                "Inquisitor": 1
+            },
+            "black_draft": {
+                "Trickster": 1,
+                "Sentry": 1,
+                "Bone": 1,
+                "Ghoul": 2,
+                "Obelisk": 2
+            },
+            "result": 1.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 1500,
+            "white_draft": {
+                "Phantom": 1,
+                "Dragoon": 1,
+                "Pyromancer": 1,
+                "Ghoul": 1,
+                "Bone": 1,
+                "StoneWall": 1
+            },
+            "black_draft": {
+                "Berserker": 1,
+                "Inquisitor": 1,
+                "Ghoul": 2,
+                "Bone": 1,
+                "Obelisk": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 1500,
+            "black_elo": 1500,
+            "white_draft": {
+                "Lich": 1,
+                "Pyromancer": 2,
+                "Bone": 2
+            },
+            "black_draft": {
+                "Inquisitor": 1,
+                "Cleric": 1,
+                "StoneWall": 4,
+                "Obelisk": 2,
+                "Ghoul": 1
+            },
+            "result": 0.5
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Berserker": 1,
+                "Inquisitor": 1,
+                "Bone": 5,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Obelisk": 2,
+                "FrostMage": 1,
+                "Geomancer": 1,
+                "Phantom": 1,
+                "Ghoul": 2,
+                "StoneWall": 1
+            },
+            "result": 0.0
+        },
+        {
+            "white_elo": 2000,
+            "black_elo": 2000,
+            "white_draft": {
+                "Cleric": 1,
+                "Bone": 1,
+                "Templar": 1,
+                "Pyromancer": 1,
+                "StoneWall": 2,
+                "Obelisk": 1,
+                "Ghoul": 1
+            },
+            "black_draft": {
+                "Obelisk": 2,
+                "Lich": 1,
+                "Phantom": 1,
+                "Ranger": 1,
+                "Ghoul": 1
+            },
+            "result": 1.0
+        }
+    ]
 }

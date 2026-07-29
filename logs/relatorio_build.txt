@@ -1,4 +1,5 @@
 RELATÓRIO DE BUILD E BALANCEAMENTO
 ==================================
 Testes: OK
-Custos Atualizados pelo MCTS:
+Telemetria: Gerada em data/estatisticas_treino.json
+Motor Económico: Executado e heroes_config.json verificado.

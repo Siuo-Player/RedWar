@@ -3,8 +3,8 @@ import json
 import os
 import math
 
-ARQUIVO_HEROES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'engine', 'heroes_config.json')
-ARQUIVO_STATS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data', 'estatisticas_treino.json')
+ARQUIVO_HEROES = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'engine', 'heroes_config.json')
+ARQUIVO_STATS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'estatisticas_treino.json')
 
 def calcular_win_esperada(elo_a, elo_b):
     """Retorna a probabilidade de vitória da equipa A sobre a B (0.0 a 1.0)."""

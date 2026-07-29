@@ -6,7 +6,7 @@ import sys
 import os
 
 # Garantir que o servidor consegue importar o motor do jogo
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from engine.game_state import GameState
 
 # Variáveis globais do servidor

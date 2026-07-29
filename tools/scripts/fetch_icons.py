@@ -13,7 +13,7 @@ from urllib.parse import quote_plus
 from urllib.request import urlopen, Request
 from urllib.error import URLError, HTTPError
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 HERO_FILE = os.path.join(ROOT, 'engine', 'heroes_config.json')
 
 

@@ -22,7 +22,7 @@ class BotAleatorio:
         acoes = get_all_moves_ordered(gs)
         return random.choice(acoes) if acoes else None
 
-ELO_FILE = os.path.join(os.path.dirname(__file__), 'elo_config.json')
+ELO_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'tools', 'analytics', 'elo_config.json')
 
 def interpolar_tempo_por_elo(elo_alvo):
     """

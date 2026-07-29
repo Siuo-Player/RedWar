@@ -34,12 +34,12 @@ jobs:
 
       - name: 1. Treino e Extração de Estatísticas
         run: |
-          python ai/trainer.py
-          python ai/auto_pricer.py
+          python tools/analytics/trainer.py
+          python tools/balance/auto_pricer.py
 
       - name: 2. Calibração da Matemática do ELO
         run: |
-          python ai/calibrate_elo_chain.py --jogos 20 --minutos 10
+          python tools/analytics/calibrate_elo_chain.py --jogos 20 --minutos 10
 
       - name: Commit e Push das Modificações
         run: |
