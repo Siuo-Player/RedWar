@@ -5,7 +5,7 @@ import math
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engine.game_state import GameState
-from ai.opening_tester import carregar_abertura_basica
+from tools.analytics.opening_tester import carregar_abertura_basica
 from ai.bot import BOT_ALEATORIO, gerar_bot_por_elo
 
 def run_fast_match(bot_brancas, bot_pretas):

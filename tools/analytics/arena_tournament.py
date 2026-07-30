@@ -7,7 +7,7 @@ import json
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engine.game_state import GameState
-from ai.opening_tester import carregar_abertura_basica
+from tools.analytics.opening_tester import carregar_abertura_basica
 from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO
 
 def verificar_promocao(vitorias_desafiante, vitorias_atual, margem=5):
