@@ -8,6 +8,7 @@ ESTRUTURA REAL DO PROJETO REDWAR
 ├── 📄 requirements.txt
 ├── 📄 setup.py
 ├── 📁 .github/
+│   ├── 📄 CODEOWNERS
 │   ├── 📁 workflows/
 │   │   ├── 📄 ai_arena.yml
 │   │   └── 📄 auto_balancer.yml

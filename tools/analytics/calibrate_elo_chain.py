@@ -9,15 +9,15 @@ import time
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engine.game_state import GameState
-from ai.opening_tester import carregar_abertura_basica
+from tools.analytics.opening_tester import carregar_abertura_basica
 from ai.bot import BotConfig, BotAleatorio
 
 ELO_FILE = os.path.join(os.path.dirname(__file__), 'elo_config.json')
 
 B_RANDOM = BotAleatorio()
-B_T1 = BotConfig("Motor (0.5s)", time_limit_seconds=0.5)
-B_T2 = BotConfig("Motor (1.0s)", time_limit_seconds=1.0)
-B_T3 = BotConfig("Motor (2.0s)", time_limit_seconds=2.0)
+B_T1 = BotConfig("Motor (Depth 2)", depth_limit=2, noise_level=150)
+B_T2 = BotConfig("Motor (Depth 4)", depth_limit=4, noise_level=50)
+B_T3 = BotConfig("Motor (Depth 6)", depth_limit=6, noise_level=0)
 
 CADEIA_BOTS = [B_RANDOM, B_T1, B_T2, B_T3]
 

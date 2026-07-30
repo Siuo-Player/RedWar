@@ -1,39 +1,58 @@
 name: RedWar AI Arena
 
 on:
-  push:
-    branches:
-      - main
+  pull_request:
+    paths:
+      - 'ai/**'
   workflow_dispatch:
-
-# Sem a diretiva 'cancel-in-progress', os torneios longos entram em fila 
-# e terminam todos de forma sequencial, garantindo que nenhum jogo é perdido.
 
 jobs:
   arena-tournament:
     runs-on: ubuntu-latest
+    
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+
     steps:
-      - name: Checkout do Repositório
-        uses: actions/checkout@v3
+    - name: Checkout Code
+      # fetch-depth: 0 é crucial para o git diff conseguir comparar as branches
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Instalar Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+    - name: 🛡️ Segurança à Porta (Jurisdição Open-Source)
+      if: github.event_name == 'pull_request' && github.actor != 'Siuo-Player'
+      run: |
+        echo "A inspecionar os ficheiros do Pull Request..."
+        # Vai buscar a branch de destino (normalmente a main)
+        git fetch origin ${{ github.base_ref }}
+        
+        # Lista todos os ficheiros alterados neste PR
+        CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+        
+        for FILE in $CHANGED_FILES; do
+          # Se o ficheiro não começar por "ai/", aborta com erro!
+          if [[ ! "$FILE" == ai/* ]]; then
+            echo "❌ ACESSO NEGADO: O Pull Request tenta alterar o ficheiro '$FILE'."
+            echo "A jurisdição open-source do RedWar limita-se ESTRITAMENTE à pasta 'ai/'."
+            echo "O PR foi bloqueado antes de entrar na Arena."
+            exit 1
+          fi
+        done
+        echo "✅ Inspeção aprovada. Todos os ficheiros pertencem ao Ares Engine (ai/)."
 
-      - name: Instalar Dependências
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
 
-      - name: Executar Torneio da Arena
-        run: |
-          python tools/analytics/arena_tournament.py --jogos 50 --margem_vitorias 5
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
 
-      - name: Commit e Push dos Resultados
-        run: |
-          git config --global user.name "RedWar Arena Bot"
-          git config --global user.email "actions@github.com"
-          git add *.json ai/*.json || true
-          git commit -m "🏆 AI Arena: Torneio de validação (50 jogos) concluído" || echo "Sem alterações para gravar"
-          git push
+    - name: Build Cython Evaluator
+      run: python setup.py build_ext --inplace
+
+    - name: Run Arena Tournament
+      run: python tools/analytics/arena_tournament.py --jogos 50 --margem_vitorias 5

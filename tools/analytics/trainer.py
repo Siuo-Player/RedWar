@@ -17,8 +17,7 @@ from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO, BOT_ALEATORIO
 POOL_BOTS = [
     (BOT_ALEATORIO, 100),
     (BOT_INICIANTE, 900),
-    (BOT_INTERMEDIO, 1500),
-    (BOT_AVANCADO, 2000)
+    (BOT_INTERMEDIO, 1500)
 ]
 
 def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
@@ -79,7 +78,7 @@ def simular_jogo_treino(seed):
         "result": resultado # 1.0 (Brancas), 0.0 (Pretas), 0.5 (Empate)
     }
 
-def gerar_estatisticas_treino(num_jogos=200):
+def gerar_estatisticas_treino(num_jogos=50):
     print(f"🧠 A gerar metadados de combate ({num_jogos} partidas heterogéneas)...")
     
     historico_partidas = []
@@ -103,4 +102,4 @@ def gerar_estatisticas_treino(num_jogos=200):
     print(f"\n✅ {caminho_stats} atualizado com metadados ELO!")
 
 if __name__ == "__main__":
-    gerar_estatisticas_treino(200)
+    gerar_estatisticas_treino(50)

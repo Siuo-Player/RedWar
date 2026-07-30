@@ -1,0 +1,13 @@
+# =====================================================================
+# REDWAR - CODEOWNERS
+# Este ficheiro garante que o dono do repositório tem controlo absoluto.
+# =====================================================================
+
+# 1. Regra Global: O dono do repositório (Siuo-Player) tem de rever tudo
+*       @Siuo-Player
+
+# 2. Reforço de Segurança nas Pastas Críticas (Closed Source)
+/engine/    @Siuo-Player
+/ui/        @Siuo-Player
+/tools/     @Siuo-Player
+/online/    @Siuo-Player

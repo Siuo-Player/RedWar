@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from engine.game_state import GameState
 from engine.config import LIMITE_TURNOS, LINHAS, COLUNAS
 from ai.bot import BOT_INTERMEDIO
-from ai.opening_tester import carregar_abertura_basica
+from tools.analytics.opening_tester import carregar_abertura_basica
 
 def simular_um_jogo(seed):
     start_time = time.time()
