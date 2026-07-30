@@ -1,4 +1,3 @@
-# ai/game_analyzer.py
 import sys
 import os
 import json
@@ -20,8 +19,6 @@ def simular_um_jogo(seed):
     gs = GameState(time_limit_seconds=99999)
     carregar_abertura_basica(gs, seed)
     
-    from engine.action_parser import ActionParser # Import do Parser
-    
     resultado = {
         "turnos": 0, "tempo_segundos": 0.0, "winner": None, "mortes_por_peca": Counter(), 
         "spawns_realizados": Counter(), "abates_por_peca": Counter(), "valor_destruido_por_peca": Counter(),
@@ -36,6 +33,12 @@ def simular_um_jogo(seed):
         
         if best_move_str:
             parsed = ActionParser.parse(best_move_str)
+            
+            # TYPE GUARD: Garante ao Pylance que parsed é 100% um dicionário a partir daqui
+            if not parsed:
+                gs.game_over, gs.winner = True, "Bloqueio (Formato IA Inválido)"
+                break
+                
             m_type = parsed["action"].lower()
             
             start_r, start_c = ActionParser.alg_to_coords(parsed["origin"], LINHAS)
@@ -47,8 +50,8 @@ def simular_um_jogo(seed):
             area_stun = []
             if m_type == "stun" and atacante:
                 stuns_validos = atacante.get_valid_stuns(start_r, start_c, gs.board, gs.tile_effects)
-                if (end_r, end_c) in stuns_validos:
-                    area_stun = stuns_validos[(end_r, end_c)]["aoe"]
+                if stuns_validos and (end_r, end_c) in stuns_validos:
+                    area_stun = stuns_validos[(end_r, end_c)].get("aoe", [])
 
             if m_type == "attack" and alvo:
                 resultado["mortes_por_peca"][alvo.name] += 1
@@ -66,11 +69,12 @@ def simular_um_jogo(seed):
                         resultado["valor_destruido_por_peca"][atacante.name] += alvo.cost
                         
             elif m_type == "spawn":
-                resultado["spawns_realizados"][parsed["hero"]] += 1
+                hero_name = parsed.get("hero", "Unknown")
+                resultado["spawns_realizados"][hero_name] += 1
 
             if m_type == "stun": gs.make_action((start_r, start_c), (end_r, end_c), "stun", affected_area=area_stun)
-            elif m_type == "spawn": gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed["hero"])
-            elif m_type == "spell": gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed["spell"])
+            elif m_type == "spawn": gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed.get("hero"))
+            elif m_type == "spell": gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed.get("spell"))
             else: gs.make_action((start_r, start_c), (end_r, end_c), m_type)
                 
             resultado["heatmap"][end_r][end_c] += 1
@@ -92,7 +96,6 @@ def simular_um_jogo(seed):
     resultado["winner"] = str(gs.winner)
     resultado["tempo_segundos"] = time.time() - start_time
     return resultado
-
 
 def correr_diagnostico_profundo(num_jogos=100):
     print(f"🔬 A INICIAR TELEMETRIA PROFUNDA ({num_jogos} Partidas)...\n")
