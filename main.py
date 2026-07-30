@@ -6,6 +6,7 @@ import threading
 from engine.game_state import GameState, coords_para_notacao
 from engine.pieces import obter_catalogo_pecas
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
+from engine.action_parser import ActionParser
 
 from ui.renderer import (
     desenhar_menu_principal, desenhar_selecao_dificuldade, 
@@ -241,20 +242,35 @@ def main():
                 thread_ia.start()
                 pygame.display.set_caption(f"RedWar - {bot_ativo.nome} a esmagar a árvore tática...")
             elif not thread_ia.is_alive():
-                best_move = resultado_ia.pop() if resultado_ia else None
-                if best_move:
-                    animar_acao(ecra, gs, best_move["start"], best_move["end"], best_move["type"], tam_casa, off_x, off_y_tab, clock)
-                    if best_move["type"] == "stun":
-                        gs.make_action(best_move["start"], best_move["end"], "stun", affected_area=best_move.get("area", []))
-                    elif best_move["type"] == "spawn":
-                        gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
-                    elif best_move["type"] == "spell":
-                        gs.make_action(best_move["start"], best_move["end"], "spell", spell_name=best_move.get("spell_name"))
-                    else:
-                        gs.make_action(best_move["start"], best_move["end"], best_move["type"])
+                best_move_str = resultado_ia.pop() if resultado_ia else None
+                if best_move_str:
+                    parsed = ActionParser.parse(best_move_str)
+                    
+                    if parsed:
+                        m_type = parsed["action"].lower()
+                        start_r, start_c = ActionParser.alg_to_coords(parsed["origin"], LINHAS)
+                        end_r, end_c = ActionParser.alg_to_coords(parsed["target"], LINHAS)
+                        
+                        animar_acao(ecra, gs, (start_r, start_c), (end_r, end_c), m_type, tam_casa, off_x, off_y_tab, clock)
+                        
+                        if m_type == "stun":
+                            atacante = gs.board[start_r][start_c]
+                            area_stun = []
+                            if atacante:
+                                stuns_validos = atacante.get_valid_stuns(start_r, start_c, gs.board, gs.tile_effects)
+                                if stuns_validos and (end_r, end_c) in stuns_validos:
+                                    area_stun = stuns_validos[(end_r, end_c)].get("aoe", [])
+                            gs.make_action((start_r, start_c), (end_r, end_c), "stun", affected_area=area_stun)
+                        elif m_type == "spawn":
+                            gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed.get("hero"))
+                        elif m_type == "spell":
+                            gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed.get("spell"))
+                        else:
+                            gs.make_action((start_r, start_c), (end_r, end_c), m_type)
+
                 pygame.display.set_caption(f"RedWar - O Teu Turno")
                 thread_ia = None
-
+                
         if fase_atual == "BATALHA" and gs.game_over and not thread_analise:
             fase_atual = "ANALISE"
             thread_analise = threading.Thread(target=analisar_historico_thread, args=(gs.move_log,))
