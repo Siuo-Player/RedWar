@@ -13,12 +13,14 @@ from engine.game_state import GameState
 from engine.config import LIMITE_TURNOS, LINHAS, COLUNAS
 from ai.bot import BOT_INTERMEDIO
 from tools.analytics.opening_tester import carregar_abertura_basica
+from engine.action_parser import ActionParser
 
 def simular_um_jogo(seed):
     start_time = time.time()
     gs = GameState(time_limit_seconds=99999)
-    # Usa o novo Opening Book caótico em vez do draft cego antigo
     carregar_abertura_basica(gs, seed)
+    
+    from engine.action_parser import ActionParser # Import do Parser
     
     resultado = {
         "turnos": 0, "tempo_segundos": 0.0, "winner": None, "mortes_por_peca": Counter(), 
@@ -30,22 +32,32 @@ def simular_um_jogo(seed):
     turnos = 0
     while not gs.game_over and turnos < LIMITE_TURNOS:
         turnos += 1
-        best_move = BOT_INTERMEDIO.play(gs)
+        best_move_str = BOT_INTERMEDIO.play(gs)
         
-        if best_move:
-            start_r, start_c = best_move["start"]
-            end_r, end_c = best_move["end"]
+        if best_move_str:
+            parsed = ActionParser.parse(best_move_str)
+            m_type = parsed["action"].lower()
+            
+            start_r, start_c = ActionParser.alg_to_coords(parsed["origin"], LINHAS)
+            end_r, end_c = ActionParser.alg_to_coords(parsed["target"], LINHAS)
+            
             atacante = gs.board[start_r][start_c]
             alvo = gs.board[end_r][end_c]
             
-            if best_move["type"] == "attack" and alvo:
+            area_stun = []
+            if m_type == "stun" and atacante:
+                stuns_validos = atacante.get_valid_stuns(start_r, start_c, gs.board, gs.tile_effects)
+                if (end_r, end_c) in stuns_validos:
+                    area_stun = stuns_validos[(end_r, end_c)]["aoe"]
+
+            if m_type == "attack" and alvo:
                 resultado["mortes_por_peca"][alvo.name] += 1
                 if atacante:
                     resultado["abates_por_peca"][atacante.name] += 1
                     resultado["valor_destruido_por_peca"][atacante.name] += alvo.cost
             
-            elif best_move["type"] == "stun":
-                resultado["stuns_aplicados"] += len(best_move.get("area", []))
+            elif m_type == "stun":
+                resultado["stuns_aplicados"] += len(area_stun)
                 if alvo and alvo.stun_timer > 0:
                     resultado["mortes_por_peca"][alvo.name] += 1
                     resultado["mortes_por_stun"] += 1
@@ -53,12 +65,13 @@ def simular_um_jogo(seed):
                         resultado["abates_por_peca"][atacante.name] += 1
                         resultado["valor_destruido_por_peca"][atacante.name] += alvo.cost
                         
-            elif best_move["type"] == "spawn":
-                resultado["spawns_realizados"][best_move.get("spawn_name")] += 1
+            elif m_type == "spawn":
+                resultado["spawns_realizados"][parsed["hero"]] += 1
 
-            if best_move["type"] == "stun": gs.make_action(best_move["start"], best_move["end"], "stun", best_move.get("area", []))
-            elif best_move["type"] == "spawn": gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
-            else: gs.make_action(best_move["start"], best_move["end"], best_move["type"])
+            if m_type == "stun": gs.make_action((start_r, start_c), (end_r, end_c), "stun", affected_area=area_stun)
+            elif m_type == "spawn": gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed["hero"])
+            elif m_type == "spell": gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed["spell"])
+            else: gs.make_action((start_r, start_c), (end_r, end_c), m_type)
                 
             resultado["heatmap"][end_r][end_c] += 1
         else:
@@ -79,6 +92,7 @@ def simular_um_jogo(seed):
     resultado["winner"] = str(gs.winner)
     resultado["tempo_segundos"] = time.time() - start_time
     return resultado
+
 
 def correr_diagnostico_profundo(num_jogos=100):
     print(f"🔬 A INICIAR TELEMETRIA PROFUNDA ({num_jogos} Partidas)...\n")

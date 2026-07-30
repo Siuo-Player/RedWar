@@ -39,8 +39,8 @@ def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
 def simular_jogo_treino(seed):
     random.seed(seed)
     gs = GameState(time_limit_seconds=99999)
+    from engine.action_parser import ActionParser
     
-    # Sorteia dois bots diferentes ou iguais para a partida
     bot_brancas, elo_brancas = random.choice(POOL_BOTS)
     bot_pretas, elo_pretas = random.choice(POOL_BOTS)
     
@@ -50,17 +50,28 @@ def simular_jogo_treino(seed):
     turnos = 0
     while not gs.game_over and turnos < LIMITE_TURNOS:
         turnos += 1
-        best_move = bot_brancas.play(gs) if gs.white_to_move else bot_pretas.play(gs)
+        best_move_str = bot_brancas.play(gs) if gs.white_to_move else bot_pretas.play(gs)
         
-        if best_move:
-            if best_move["type"] == "stun":
-                gs.make_action(best_move["start"], best_move["end"], "stun", affected_area=best_move.get("area", []))
-            elif best_move["type"] == "spawn":
-                gs.make_action(best_move["start"], best_move["end"], "spawn", spawn_name=best_move.get("spawn_name"))
-            elif best_move["type"] == "spell":
-                gs.make_action(best_move["start"], best_move["end"], "spell", spell_name=best_move.get("spell_name"))
+        if best_move_str:
+            parsed = ActionParser.parse(best_move_str)
+            m_type = parsed["action"].lower()
+            start_r, start_c = ActionParser.alg_to_coords(parsed["origin"], LINHAS)
+            end_r, end_c = ActionParser.alg_to_coords(parsed["target"], LINHAS)
+
+            if m_type == "stun":
+                atacante = gs.board[start_r][start_c]
+                area_stun = []
+                if atacante:
+                    stuns_validos = atacante.get_valid_stuns(start_r, start_c, gs.board, gs.tile_effects)
+                    if (end_r, end_c) in stuns_validos:
+                        area_stun = stuns_validos[(end_r, end_c)]["aoe"]
+                gs.make_action((start_r, start_c), (end_r, end_c), "stun", affected_area=area_stun)
+            elif m_type == "spawn":
+                gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed["hero"])
+            elif m_type == "spell":
+                gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed["spell"])
             else:
-                gs.make_action(best_move["start"], best_move["end"], best_move["type"])
+                gs.make_action((start_r, start_c), (end_r, end_c), m_type)
         else:
             gs.check_game_over()
             if not gs.game_over: gs.game_over, gs.winner = True, "Bloqueio Total"
@@ -75,8 +86,9 @@ def simular_jogo_treino(seed):
         "black_elo": elo_pretas,
         "white_draft": comp_brancas,
         "black_draft": comp_pretas,
-        "result": resultado # 1.0 (Brancas), 0.0 (Pretas), 0.5 (Empate)
+        "result": resultado
     }
+
 
 def gerar_estatisticas_treino(num_jogos=50):
     print(f"🧠 A gerar metadados de combate ({num_jogos} partidas heterogéneas)...")
