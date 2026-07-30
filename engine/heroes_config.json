@@ -22,7 +22,7 @@
         }
     },
     "Ghoul": {
-        "cost": 5,
+        "cost": 9,
         "acronym": "Gh",
         "descricao": "Vanguarda agressiva invocada.",
         "passiva": "Avança letalmente. Desintegra-se após 5 turnos.",
@@ -85,7 +85,7 @@
         }
     },
     "Phantom": {
-        "cost": 42,
+        "cost": 48,
         "acronym": "Ph",
         "descricao": "Assassino espectral.",
         "passiva": "Salta em L.",
@@ -100,7 +100,7 @@
         }
     },
     "Sentry": {
-        "cost": 96,
+        "cost": 102,
         "acronym": "Se",
         "descricao": "Atirador.",
         "passiva": "Ataque em linha reta.",
@@ -134,7 +134,7 @@
         }
     },
     "FrostMage": {
-        "cost": 63,
+        "cost": 70,
         "acronym": "FM",
         "descricao": "Mago de controlo.",
         "draftable": true,
@@ -150,7 +150,7 @@
         }
     },
     "Lich": {
-        "cost": 83,
+        "cost": 65,
         "acronym": "Li",
         "descricao": "Invocador Sombrio.",
         "draftable": true,
@@ -167,7 +167,7 @@
         }
     },
     "BoneLord": {
-        "cost": 92,
+        "cost": 89,
         "acronym": "BL",
         "descricao": "Comandante Necromante.",
         "draftable": true,
@@ -231,7 +231,7 @@
         }
     },
     "Ranger": {
-        "cost": 33,
+        "cost": 36,
         "acronym": "Ra",
         "descricao": "Atirador de precisão.",
         "draftable": true,
@@ -265,7 +265,7 @@
         }
     },
     "Templar": {
-        "cost": 62,
+        "cost": 58,
         "acronym": "Te",
         "descricao": "Vanguarda inquebrável.",
         "passiva": "Escudo Divino: Ignora o primeiro ataque/stun.",
@@ -282,7 +282,7 @@
         }
     },
     "Berserker": {
-        "cost": 62,
+        "cost": 61,
         "acronym": "Be",
         "descricao": "Guerreiro furioso.",
         "passiva": "Varredura: Destrói inimigos adjacentes ao alvo.",
@@ -299,7 +299,7 @@
         }
     },
     "Pyromancer": {
-        "cost": 59,
+        "cost": 65,
         "acronym": "Py",
         "descricao": "Mestre do Fogo.",
         "draftable": true,
@@ -311,7 +311,7 @@
         }
     },
     "Dragoon": {
-        "cost": 81,
+        "cost": 84,
         "acronym": "Dr",
         "descricao": "Assalto aéreo.",
         "draftable": true,
@@ -323,7 +323,7 @@
         }
     },
     "Cleric": {
-        "cost": 41,
+        "cost": 42,
         "acronym": "Cl",
         "descricao": "Curandeiro.",
         "passiva": "Purificar: Remove Stun de aliados.",
@@ -336,7 +336,7 @@
         }
     },
     "Trickster": {
-        "cost": 64,
+        "cost": 61,
         "acronym": "Tr",
         "descricao": "Ilusionista.",
         "passiva": "Troca de posição com aliados.",
@@ -348,7 +348,7 @@
         }
     },
     "Geomancer": {
-        "cost": 51,
+        "cost": 49,
         "acronym": "Ge",
         "descricao": "Manipulador da Terra.",
         "draftable": true,
@@ -360,7 +360,7 @@
         }
     },
     "StoneWall": {
-        "cost": 5,
+        "cost": 8,
         "acronym": "SW",
         "descricao": "Barricada física.",
         "passiva": "Impenetrável, dura 3 turnos.",
@@ -376,7 +376,7 @@
         }
     },
     "Nightshade": {
-        "cost": 113,
+        "cost": 116,
         "acronym": "Ni",
         "descricao": "Assassino furtivo.",
         "passiva": "Atravessa peças ao mover.",
@@ -394,7 +394,7 @@
         }
     },
     "Inquisitor": {
-        "cost": 105,
+        "cost": 102,
         "acronym": "In",
         "descricao": "Anti-magia.",
         "passiva": "Aura de Silêncio: Inimigos adjacentes não usam magia.",
