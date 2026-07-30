@@ -21,7 +21,7 @@ jobs:
         fetch-depth: 0
 
     - name: 🛡️ Segurança à Porta (Jurisdição Open-Source)
-      if: github.event_name == 'pull_request'
+      if: github.event_name == 'pull_request' && github.actor != 'Siuo-Player'
       run: |
         echo "A inspecionar os ficheiros do Pull Request..."
         # Vai buscar a branch de destino (normalmente a main)
