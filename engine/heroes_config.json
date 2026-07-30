@@ -1,6 +1,6 @@
 {
     "Bone": {
-        "cost": 9,
+        "cost": 5,
         "acronym": "Bo",
         "descricao": "Infantaria invocada.",
         "passiva": "Desintegra-se após 5 turnos.",
@@ -100,7 +100,7 @@
         }
     },
     "Sentry": {
-        "cost": 125,
+        "cost": 116,
         "acronym": "Se",
         "descricao": "Atirador.",
         "passiva": "Ataque em linha reta.",
@@ -134,7 +134,7 @@
         }
     },
     "FrostMage": {
-        "cost": 64,
+        "cost": 62,
         "acronym": "FM",
         "descricao": "Mago de controlo.",
         "draftable": true,
@@ -231,7 +231,7 @@
         }
     },
     "Ranger": {
-        "cost": 38,
+        "cost": 41,
         "acronym": "Ra",
         "descricao": "Atirador de precisão.",
         "draftable": true,
@@ -265,7 +265,7 @@
         }
     },
     "Templar": {
-        "cost": 54,
+        "cost": 49,
         "acronym": "Te",
         "descricao": "Vanguarda inquebrável.",
         "passiva": "Escudo Divino: Ignora o primeiro ataque/stun.",
@@ -282,7 +282,7 @@
         }
     },
     "Berserker": {
-        "cost": 50,
+        "cost": 51,
         "acronym": "Be",
         "descricao": "Guerreiro furioso.",
         "passiva": "Varredura: Destrói inimigos adjacentes ao alvo.",
@@ -299,7 +299,7 @@
         }
     },
     "Pyromancer": {
-        "cost": 68,
+        "cost": 69,
         "acronym": "Py",
         "descricao": "Mestre do Fogo.",
         "draftable": true,
@@ -311,7 +311,7 @@
         }
     },
     "Dragoon": {
-        "cost": 75,
+        "cost": 92,
         "acronym": "Dr",
         "descricao": "Assalto aéreo.",
         "draftable": true,
@@ -336,7 +336,7 @@
         }
     },
     "Trickster": {
-        "cost": 60,
+        "cost": 72,
         "acronym": "Tr",
         "descricao": "Ilusionista.",
         "passiva": "Troca de posição com aliados.",
@@ -348,7 +348,7 @@
         }
     },
     "Geomancer": {
-        "cost": 43,
+        "cost": 39,
         "acronym": "Ge",
         "descricao": "Manipulador da Terra.",
         "draftable": true,
@@ -360,7 +360,7 @@
         }
     },
     "StoneWall": {
-        "cost": 6,
+        "cost": 5,
         "acronym": "SW",
         "descricao": "Barricada física.",
         "passiva": "Impenetrável, dura 3 turnos.",
@@ -376,7 +376,7 @@
         }
     },
     "Nightshade": {
-        "cost": 115,
+        "cost": 122,
         "acronym": "Ni",
         "descricao": "Assassino furtivo.",
         "passiva": "Atravessa peças ao mover.",
@@ -394,7 +394,7 @@
         }
     },
     "Inquisitor": {
-        "cost": 97,
+        "cost": 91,
         "acronym": "In",
         "descricao": "Anti-magia.",
         "passiva": "Aura de Silêncio: Inimigos adjacentes não usam magia.",
