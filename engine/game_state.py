@@ -10,7 +10,6 @@ from engine.config import LINHAS, COLUNAS
 ZOBRIST_TABLE = {}
 TEAMS = ["brancas", "pretas"]
 
-# Load hero names from heroes_config.json so Zobrist covers all pieces
 HEROES_FILE = os.path.join(os.path.dirname(__file__), 'heroes_config.json')
 try:
     with open(HEROES_FILE, 'r', encoding='utf-8') as hf:
@@ -29,7 +28,7 @@ for r in range(LINHAS):
 ZOBRIST_WTM = random.getrandbits(64)
 
 def coords_para_notacao(r, c):
-    letras = "abcdefghijklmnopqrstuvwxyz" # Expandido para não crashar em tabuleiros gigantes
+    letras = "abcdefghijklmnopqrstuvwxyz"
     return f"{letras[c]}{LINHAS-r}"
 
 class GameState:
@@ -76,8 +75,6 @@ class GameState:
         if p: self.current_hash ^= ZOBRIST_TABLE[(r, c, p.name, p.team, p.stun_timer)]
 
     def fast_clone(self):
-        # Usado apenas para a UI guardar a fotografia gráfica para o histórico visual.
-        # Completamente erradicado da árvore de pesquisa da IA.
         novo_gs = GameState.__new__(GameState)
         novo_gs.white_time = self.white_time
         novo_gs.black_time = self.black_time
@@ -104,13 +101,9 @@ class GameState:
                     novo_gs.board[r][c] = nova_peca
                 ef = novo_gs.tile_effects[r][c]
                 if ef: novo_gs.tile_effects[r][c] = ef.copy()
-        # snapshots should not carry evaluator cache
         novo_gs.current_score = None
         return novo_gs
 
-    # =====================================================================
-    # MAKE / UNMAKE CORE (Alta Performance para Pesquisa da IA)
-    # =====================================================================
     def make_simulation_action(self, acao):
         if not self._hash_valid: self.compute_initial_hash()
         undo = {
@@ -149,12 +142,10 @@ class GameState:
         self.state_history = undo["history"]
         self.last_move = undo["last_move"]
         
-        # Recuperamos o relógio atómico das peças alteradas no futuro simulado
         for p, stun, life, cd in undo["pieces"]:
             p.stun_timer = stun
             if life is not None: p.lifespan = life
             if cd > 0 or hasattr(p, 'spawn_cooldown'): p.spawn_cooldown = cd
-        # Invalidate cached evaluator score after restoring state
         self.current_score = None
 
     def make_null_move(self):
@@ -180,7 +171,6 @@ class GameState:
         self.current_hash ^= ZOBRIST_WTM
         self.update_timers()
         self.turns_without_capture += 1
-        # Atualiza cache do avaliador após alteração de turno
         try:
             self.recompute_score()
         except Exception:
@@ -196,9 +186,6 @@ class GameState:
 
     unmake_null_move = unmake_simulation_action
 
-    # =====================================================================
-    # NÚCLEO TÁTICO
-    # =====================================================================
     def make_action(self, start_pos, end_pos, action_type="move", affected_area=None, spawn_name=None, spell_name=None, is_simulation=False):
         if self.game_over: return
         if not self._hash_valid: self.compute_initial_hash()
@@ -281,7 +268,8 @@ class GameState:
 
         ef_destino = self.tile_effects[end_row][end_col]
         peca_destino = self.board[end_row][end_col]
-        if peca_destino and ef_destino and ef_destino["type"] == "fire":
+        # TYPE GUARD (usando .get() para segurança total)
+        if peca_destino and ef_destino and ef_destino.get("type") == "fire":
             if peca_destino.stun_timer < 2:
                 self.remove_piece_hash(end_row, end_col)
                 peca_destino.stun_timer = 2
@@ -295,7 +283,6 @@ class GameState:
         
         self.update_timers()
         self.check_game_over()
-        # Se não for simulação, atualiza cache do avaliador para refletir novo estado
         if not is_simulation:
             try:
                 self.recompute_score()
@@ -323,8 +310,9 @@ class GameState:
                             self.board[r][c] = None
 
                 ef = self.tile_effects[r][c]
-                if ef and ef["team"] == equipa_atual:
-                    ef["timer"] -= 1
+                # TYPE GUARD para o Tile Effect
+                if ef and ef.get("team") == equipa_atual:
+                    ef["timer"] = ef.get("timer", 1) - 1
                     if ef["timer"] <= 0:
                         self.tile_effects[r][c] = None
 
@@ -340,7 +328,7 @@ class GameState:
         if action_type == "move": short = f"{piece.acronym} {s_alg}-{e_alg}"
         elif action_type == "attack": short = f"{piece.acronym} {s_alg}x{e_alg}"
         elif action_type == "stun": short = f"{piece.acronym} * {e_alg}"
-        elif action_type == "spawn": short = f"{piece.acronym} + {spawn_name[:2]} {e_alg}"
+        elif action_type == "spawn": short = f"{piece.acronym} + {spawn_name[:2] if spawn_name else ''} {e_alg}"
         elif action_type == "spell" and spell_name:
             short = f"{piece.acronym} {spell_name.upper()} {e_alg}"
         else: short = "?"
@@ -398,7 +386,9 @@ class GameState:
                         tem_jogada = True
                     else:
                         stuns = p.get_valid_stuns(r, c, self.board, self.tile_effects)
-                        if any(info["has_enemy"] for info in stuns.values()): tem_jogada = True
+                        # TYPE GUARD iterativo para evitar erros de leitura em stuns vazios
+                        if stuns and any(info and info.get("has_enemy") for info in stuns.values()): 
+                            tem_jogada = True
                 if tem_jogada: break
             if tem_jogada: break
 
