@@ -94,7 +94,7 @@ def simular_jogo_treino(seed):
         "result": resultado
     }
 
-def gerar_estatisticas_treino(num_jogos=200):
+def gerar_estatisticas_treino(num_jogos=50):
     print(f"🧠 A gerar metadados de combate ({num_jogos} partidas heterogéneas)...")
     
     historico_partidas = []
@@ -118,4 +118,4 @@ def gerar_estatisticas_treino(num_jogos=200):
     print(f"\n✅ {caminho_stats} atualizado com metadados ELO!")
 
 if __name__ == "__main__":
-    gerar_estatisticas_treino(200)
+    gerar_estatisticas_treino(50)
