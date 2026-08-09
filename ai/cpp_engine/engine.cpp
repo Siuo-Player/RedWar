@@ -5,6 +5,7 @@
 #include <fstream>
 #include <iterator>
 #include <unordered_map>
+#include <map>
 #include <algorithm>
 #include <cstdlib>
 #include "nlohmann/json.hpp"
@@ -41,8 +42,78 @@ struct HeroBehavior {
     vector<MoveVector> attack_black;
 };
 
+struct Move {
+    int sr = 0;
+    int sc = 0;
+    int er = 0;
+    int ec = 0;
+    string type = "MOVE";
+
+    string to_uci() const {
+        char s_letra = 'A' + sc, e_letra = 'A' + ec;
+        return type + " " + string(1, s_letra) + to_string(LINHAS - sr) + " " + string(1, e_letra) + to_string(LINHAS - er);
+    }
+};
+
+struct BoardState {
+    Piece pieces[LINHAS][COLUNAS];
+    char turn = 'W';
+    int twc = 0;
+    uint64_t hash = 0;
+};
+
+struct UndoInfo {
+    Piece target_piece;
+    Piece actor_piece;
+};
+
+// --- PASSO 4: Estruturas da Transposition Table ---
+enum TTFlag { TT_EXACT, TT_LOWERBOUND, TT_UPPERBOUND };
+
+struct TTEntry {
+    uint64_t zobrist_key = 0;
+    int depth = -1;
+    int value = 0;
+    TTFlag flag = TT_EXACT;
+    Move best_move;
+    bool occupied = false;
+};
+
+const int TT_SIZE_POWER = 20;
+const uint64_t TT_SIZE = 1ULL << TT_SIZE_POWER;
+const uint64_t TT_MASK = TT_SIZE - 1;
+std::vector<TTEntry> transposition_table(TT_SIZE);
+
+BoardState board;
+
 static unordered_map<string, HeroBehavior> HERO_BEHAVIORS;
 static bool HERO_BEHAVIORS_LOADED = false;
+
+// --- PASSO 1: Chave Zobrist por peça ---
+static std::map<std::string, uint64_t> ZOBRIST_CACHE;
+static uint64_t ZOBRIST_SIDE_TO_MOVE = 0;
+
+static uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
+    std::string key = std::to_string(r) + "_" + std::to_string(c) + "_" + p.name + "_"
+        + std::string(1, p.team) + "_" + std::to_string(p.stun_timer) + "_"
+        + std::to_string(p.lifespan) + "_" + std::to_string(p.spawn_cooldown);
+    auto it = ZOBRIST_CACHE.find(key);
+    if (it != ZOBRIST_CACHE.end()) return it->second;
+    uint64_t val = ((uint64_t)rand() << 32) ^ ((uint64_t)rand() << 16) ^ (uint64_t)rand();
+    ZOBRIST_CACHE[key] = val;
+    return val;
+}
+
+// --- PASSO 2: Função Compute Initial Hash ---
+uint64_t compute_initial_hash() {
+    uint64_t h = 0;
+    if (board.turn == 'W') h ^= ZOBRIST_SIDE_TO_MOVE;
+    for (int r = 0; r < LINHAS; ++r)
+        for (int c = 0; c < COLUNAS; ++c)
+            if (!board.pieces[r][c].is_empty)
+                h ^= get_piece_zobrist_key(r, c, board.pieces[r][c]);
+    return h;
+}
 
 static string read_file_contents(const string& path) {
     ifstream f(path, ios::binary);
@@ -117,7 +188,6 @@ static vector<MoveVector> flip_forward_vectors(const vector<MoveVector>& src) {
 
 static vector<MoveVector> compile_move_behavior(const json& mv_json) {
     vector<MoveVector> result;
-    // nlohmann::json não converte implicitamente para bool como o parser antigo — usa sempre .is_null()
     if (mv_json.is_null()) return result;
     string type = mv_json.value("type", "");
     int max_steps = mv_json.value("max_steps", 1);
@@ -163,14 +233,13 @@ static vector<MoveVector> compile_move_behavior(const json& mv_json) {
         }
     }
     if (forward_by_team) {
-        return result; // forwarding handled in compile_behavior
+        return result; 
     }
     return result;
 }
 
 static vector<MoveVector> compile_attack_behavior(const json& atk_json) {
     vector<MoveVector> result;
-    // nlohmann::json não converte implicitamente para bool como o parser antigo — usa sempre .is_null()
     if (atk_json.is_null()) return result;
     string type = atk_json.value("type", "");
     int max_steps = atk_json.value("max_steps", 1);
@@ -214,7 +283,6 @@ static vector<MoveVector> compile_attack_behavior(const json& atk_json) {
 
 static HeroBehavior compile_behavior(const json& beh) {
     HeroBehavior result;
-    // nlohmann::json não converte implicitamente para bool como o parser antigo — usa sempre .is_null()
     if (beh.is_null()) return result;
     bool shared_forward_by_team = beh.value("forward_dir_by_team", false);
     json mv = beh.contains("movement") ? beh["movement"] : (beh.contains("move") ? beh["move"] : json());
@@ -301,6 +369,11 @@ static string find_hero_config_path() {
 
 static void ensure_hero_behaviors_loaded() {
     if (HERO_BEHAVIORS_LOADED) return;
+    
+    // Seed the RNG for consistent Zobrist Key generation on fresh start
+    srand(12345);
+    ZOBRIST_SIDE_TO_MOVE = ((uint64_t)rand() << 32) ^ ((uint64_t)rand() << 16) ^ (uint64_t)rand();
+
     string config_path = find_hero_config_path();
     string text = read_file_contents(config_path);
     if (text.empty()) {
@@ -325,32 +398,6 @@ static void ensure_hero_behaviors_loaded() {
     }
     HERO_BEHAVIORS_LOADED = true;
 }
-
-struct Move {
-    int sr = 0;
-    int sc = 0;
-    int er = 0;
-    int ec = 0;
-    string type = "MOVE";
-
-    string to_uci() const {
-        char s_letra = 'A' + sc, e_letra = 'A' + ec;
-        return type + " " + string(1, s_letra) + to_string(LINHAS - sr) + " " + string(1, e_letra) + to_string(LINHAS - er);
-    }
-};
-
-struct BoardState {
-    Piece pieces[LINHAS][COLUNAS];
-    char turn = 'W';
-    int twc = 0;
-};
-
-BoardState board;
-
-struct UndoInfo {
-    Piece target_piece;
-    Piece actor_piece;
-};
 
 vector<string> split_string(const string& s, char delimiter) {
     vector<string> tokens; string token;
@@ -383,21 +430,36 @@ void parse_rwen(const string& rwen) {
             }
         }
     }
+    
+    // Injeção após o parse do tabuleiro original: 
+    board.hash = compute_initial_hash();
 }
 
-// Movimentação em O(1) na matriz nativa
+// --- PASSO 3: make_move e unmake_move com Hashing ---
 UndoInfo make_move(const Move& m) {
     UndoInfo undo = { board.pieces[m.er][m.ec], board.pieces[m.sr][m.sc] };
-    
+
+    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+    if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
+
     board.pieces[m.er][m.ec] = board.pieces[m.sr][m.sc];
     board.pieces[m.sr][m.sc].is_empty = true;
-    
+
+    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+    board.hash ^= ZOBRIST_SIDE_TO_MOVE;
+
     return undo;
 }
 
 void unmake_move(const Move& m, const UndoInfo& undo) {
+    board.hash ^= ZOBRIST_SIDE_TO_MOVE;
+    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+
     board.pieces[m.sr][m.sc] = undo.actor_piece;
     board.pieces[m.er][m.ec] = undo.target_piece;
+
+    if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
+    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
 }
 
 static const HeroBehavior DEFAULT_BEHAVIOR = {
@@ -483,37 +545,55 @@ int evaluate_board() {
     return score;
 }
 
+// --- PASSO 5: Função alpha_beta com Transposition Table ---
 int alpha_beta(int depth, int alpha, int beta, char current_turn) {
-    if (depth == 0) return evaluate_board(); 
-    
-    vector<Move> moves = generate_valid_moves(current_turn);
+    uint64_t key = board.hash;
+    TTEntry& slot = transposition_table[key & TT_MASK];
+    if (slot.occupied && slot.zobrist_key == key && slot.depth >= depth) {
+        if (slot.flag == TT_EXACT) return slot.value;
+        if (slot.flag == TT_LOWERBOUND) alpha = std::max(alpha, slot.value);
+        else if (slot.flag == TT_UPPERBOUND) beta = std::min(beta, slot.value);
+        if (alpha >= beta) return slot.value;
+    }
+
+    if (depth == 0) return evaluate_board();
+
+    std::vector<Move> moves = generate_valid_moves(current_turn);
     if (moves.empty()) return (current_turn == 'W') ? -INFINITO + (100 - depth) : INFINITO - (100 - depth);
-    
+
+    int original_alpha = alpha, original_beta = beta;
+    Move best_move_found = moves[0];
+    int result;
+
     if (current_turn == 'W') {
         int max_eval = -INFINITO;
         for (const Move& m : moves) {
             UndoInfo undo = make_move(m);
             int eval = alpha_beta(depth - 1, alpha, beta, 'B');
             unmake_move(m, undo);
-            
-            max_eval = max(max_eval, eval);
-            alpha = max(alpha, eval);
+            if (eval > max_eval) { max_eval = eval; best_move_found = m; }
+            alpha = std::max(alpha, eval);
             if (beta <= alpha) break;
         }
-        return max_eval;
+        result = max_eval;
     } else {
         int min_eval = INFINITO;
         for (const Move& m : moves) {
             UndoInfo undo = make_move(m);
             int eval = alpha_beta(depth - 1, alpha, beta, 'W');
             unmake_move(m, undo);
-            
-            min_eval = min(min_eval, eval);
-            beta = min(beta, eval);
+            if (eval < min_eval) { min_eval = eval; best_move_found = m; }
+            beta = std::min(beta, eval);
             if (beta <= alpha) break;
         }
-        return min_eval;
+        result = min_eval;
     }
+
+    TTFlag flag = (current_turn == 'W')
+        ? ((result <= original_alpha) ? TT_UPPERBOUND : (result >= original_beta) ? TT_LOWERBOUND : TT_EXACT)
+        : ((result >= original_beta) ? TT_LOWERBOUND : (result <= original_alpha) ? TT_UPPERBOUND : TT_EXACT);
+    slot = { key, depth, result, flag, best_move_found, true };
+    return result;
 }
 
 string search_best_move(int depth) {
