@@ -4,9 +4,6 @@ import os
 from typing import Any
 from engine.config import LINHAS, COLUNAS
 
-# =====================================================================
-# ZOBRIST HASHING (Pré-calculado no arranque)
-# =====================================================================
 ZOBRIST_TABLE = {}
 TEAMS = ["brancas", "pretas"]
 
@@ -18,14 +15,22 @@ try:
 except Exception:
     PIECES = ["Bone", "Ghoul", "Obelisk", "Phantom", "Sentry", "FrostMage", "Lich", "BoneLord"]
 
-for r in range(LINHAS):
-    for c in range(COLUNAS):
-        for p in PIECES:
-            for t in TEAMS:
-                for s in range(6):
-                    ZOBRIST_TABLE[(r, c, p, t, s)] = random.getrandbits(64)
-                    
 ZOBRIST_WTM = random.getrandbits(64)
+
+def get_piece_zobrist_key(r, c, p):
+    """
+    Devolve a chave Zobrist de 64 bits para esta peça nesta casa, gerando-a
+    na primeira vez que esta combinação exata aparece (e reutilizando depois).
+    Antes disto pré-computava-se TODAS as combinações possíveis de
+    (r, c, nome, equipa, stun, lifespan, cooldown) no arranque -- cerca de
+    1.5M entradas na RAM, a maioria delas nunca usada numa partida real.
+    """
+    lifespan = p.lifespan if getattr(p, 'lifespan', None) is not None else -1
+    cd = p.spawn_cooldown if getattr(p, 'spawn_cooldown', 0) is not None else 0
+    key = (r, c, p.name, p.team, p.stun_timer, lifespan, cd)
+    if key not in ZOBRIST_TABLE:
+        ZOBRIST_TABLE[key] = random.getrandbits(64)
+    return ZOBRIST_TABLE[key]
 
 def coords_para_notacao(r, c):
     letras = "abcdefghijklmnopqrstuvwxyz"
@@ -36,21 +41,22 @@ class GameState:
                  'turns_without_capture', 'move_log', 'last_move',
                  'white_time', 'black_time', 'state_history', 'current_hash', '_hash_valid', 'current_score')
 
-    def __init__(self, time_limit_seconds=600):
+    # CORREÇÃO PYLANCE: Tipagem explícita para float
+    def __init__(self, time_limit_seconds: float = 600.0):
         self.board: list[list[Any]] = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
         self.tile_effects: list[list[Any]] = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
-        self.white_to_move = True
-        self.game_over = False
+        self.white_to_move: bool = True
+        self.game_over: bool = False
         self.winner: str | None = None
-        self.turns_without_capture = 0
-        self.move_log = []
-        self.last_move = None
-        self.white_time = time_limit_seconds
-        self.black_time = time_limit_seconds
-        self.state_history = {}
-        self.current_hash = 0
-        self._hash_valid = False
-        self.current_score = None
+        self.turns_without_capture: int = 0
+        self.move_log: list = []
+        self.last_move: dict | None = None
+        self.white_time: float = float(time_limit_seconds)
+        self.black_time: float = float(time_limit_seconds)
+        self.state_history: dict = {}
+        self.current_hash: int = 0
+        self._hash_valid: bool = False
+        self.current_score: float | int | None = None
 
     def compute_initial_hash(self):
         h = 0
@@ -58,9 +64,24 @@ class GameState:
         for r in range(LINHAS):
             for c in range(COLUNAS):
                 p = self.board[r][c]
-                if p: h ^= ZOBRIST_TABLE[(r, c, p.name, p.team, p.stun_timer)]
+                if p:
+                    h ^= get_piece_zobrist_key(r, c, p)
         self.current_hash = h
         self._hash_valid = True
+
+    def _get_attack_spawn_piece(self, piece):
+        if not piece:
+            return None
+        behavior = HERO_DEFS.get(piece.name, {}).get("behavior", {}) or {}
+        for passive in behavior.get("passives", []):
+            if passive.get("trigger") == "on_kill" and passive.get("effect") == "spawn_unit":
+                params = passive.get("params", {})
+                if params.get("spawn_location") == "target_square":
+                    unit_name = params.get("unit_name")
+                    if unit_name:
+                        from engine.pieces import criar_peca_por_nome
+                        return criar_peca_por_nome(unit_name, piece.team)
+        return None
 
     def get_state_hash(self):
         if not self._hash_valid:
@@ -69,10 +90,12 @@ class GameState:
 
     def remove_piece_hash(self, r, c):
         p = self.board[r][c]
-        if p: self.current_hash ^= ZOBRIST_TABLE[(r, c, p.name, p.team, p.stun_timer)]
+        if p:
+            self.current_hash ^= get_piece_zobrist_key(r, c, p)
 
     def add_piece_hash(self, r, c, p):
-        if p: self.current_hash ^= ZOBRIST_TABLE[(r, c, p.name, p.team, p.stun_timer)]
+        if p:
+            self.current_hash ^= get_piece_zobrist_key(r, c, p)
 
     def fast_clone(self):
         novo_gs = GameState.__new__(GameState)
@@ -104,87 +127,26 @@ class GameState:
         novo_gs.current_score = None
         return novo_gs
 
-    def make_simulation_action(self, acao):
-        if not self._hash_valid: self.compute_initial_hash()
-        undo = {
-            "wtm": self.white_to_move,
-            "twc": self.turns_without_capture,
-            "go": self.game_over,
-            "win": self.winner,
-            "hash": self.current_hash,
-            "board": [row[:] for row in self.board],
-            "tiles": [[ef.copy() if ef else None for ef in row] for row in self.tile_effects],
-            "history": self.state_history.copy(),
-            "last_move": self.last_move,
-            "pieces": []
-        }
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
-                p = self.board[r][c]
-                if p:
-                    undo["pieces"].append((p, p.stun_timer, getattr(p, 'lifespan', None), getattr(p, 'spawn_cooldown', 0)))
-
-        self.make_action(
-            acao["start"], acao["end"], acao["type"],
-            acao.get("area"), acao.get("spawn_name"), acao.get("spell_name"),
-            is_simulation=True
-        )
-        return undo
-
-    def unmake_simulation_action(self, undo):
-        self.white_to_move = undo["wtm"]
-        self.turns_without_capture = undo["twc"]
-        self.game_over = undo["go"]
-        self.winner = undo["win"]
-        self.current_hash = undo["hash"]
-        self.board = undo["board"]
-        self.tile_effects = undo["tiles"]
-        self.state_history = undo["history"]
-        self.last_move = undo["last_move"]
+    def execute_action(self, acao_dict):
+        """DELEGAÇÃO: O GameState absorve o dicionário abstrato e resolve a física toda."""
+        m_type = acao_dict.get("type", "move")
+        start_pos = acao_dict["start"]
+        end_pos = acao_dict["end"]
         
-        for p, stun, life, cd in undo["pieces"]:
-            p.stun_timer = stun
-            if life is not None: p.lifespan = life
-            if cd > 0 or hasattr(p, 'spawn_cooldown'): p.spawn_cooldown = cd
-        self.current_score = None
-
-    def make_null_move(self):
-        if not self._hash_valid: self.compute_initial_hash()
-        undo = {
-            "wtm": self.white_to_move,
-            "twc": self.turns_without_capture,
-            "go": self.game_over,
-            "win": self.winner,
-            "hash": self.current_hash,
-            "board": [row[:] for row in self.board],
-            "tiles": [[ef.copy() if ef else None for ef in row] for row in self.tile_effects],
-            "history": self.state_history.copy(),
-            "last_move": self.last_move,
-            "pieces": []
-        }
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
-                p = self.board[r][c]
-                if p: undo["pieces"].append((p, p.stun_timer, getattr(p, 'lifespan', None), getattr(p, 'spawn_cooldown', 0)))
-
-        self.white_to_move = not self.white_to_move
-        self.current_hash ^= ZOBRIST_WTM
-        self.update_timers()
-        self.turns_without_capture += 1
-        try:
-            self.recompute_score()
-        except Exception:
-            self.current_score = None
-        return undo
-
-    def recompute_score(self):
-        try:
-            from ai.evaluator import avaliador_mestre
-            self.current_score = avaliador_mestre(self)
-        except Exception:
-            self.current_score = 0
-
-    unmake_null_move = unmake_simulation_action
+        area_stun = acao_dict.get("area", [])
+        if m_type == "stun" and not area_stun:
+            atacante = self.board[start_pos[0]][start_pos[1]]
+            if atacante:
+                stuns_validos = atacante.get_valid_stuns(start_pos[0], start_pos[1], self.board, self.tile_effects)
+                if stuns_validos and end_pos in stuns_validos:
+                    area_stun = stuns_validos[end_pos].get("aoe", [])
+                    
+        self.make_action(
+            start_pos, end_pos, m_type, 
+            affected_area=area_stun, 
+            spawn_name=acao_dict.get("spawn_name"), 
+            spell_name=acao_dict.get("spell_name")
+        )
 
     def make_action(self, start_pos, end_pos, action_type="move", affected_area=None, spawn_name=None, spell_name=None, is_simulation=False):
         if self.game_over: return
@@ -210,8 +172,9 @@ class GameState:
                         captured_something = True
                     else:
                         self.remove_piece_hash(ar, ac)
-                        alvo.stun_timer = 3 
+                        alvo.stun_timer = 2 
                         self.add_piece_hash(ar, ac, alvo)
+                        
         elif action_type == "spawn" and spawn_name and piece:
             from engine.pieces import criar_peca_por_nome
             nova_peca = criar_peca_por_nome(spawn_name, piece.team)
@@ -222,9 +185,13 @@ class GameState:
             piece.stun_timer = 1 
             self.add_piece_hash(start_row, start_col, piece)
             if hasattr(piece, 'spawn_cooldown'): piece.spawn_cooldown = 4 
+            
         elif action_type == "spell" and spell_name and piece:
             if spell_name == "ignite":
-                self.tile_effects[end_row][end_col] = {"type": "fire", "timer": 3, "team": piece.team}
+                for adr, adc in [(0,0), (-1,0), (1,0), (0,-1), (0,1)]:
+                    fr, fc = end_row + adr, end_col + adc
+                    if 0 <= fr < LINHAS and 0 <= fc < COLUNAS:
+                        self.tile_effects[fr][fc] = {"type": "fire", "timer": 3, "team": piece.team}
             elif spell_name == "purify":
                 alvo = self.board[end_row][end_col]
                 if alvo and alvo.team == piece.team:
@@ -244,31 +211,32 @@ class GameState:
                 barr = StoneWall(piece.team)
                 self.board[end_row][end_col] = barr
                 self.add_piece_hash(end_row, end_col, barr)
+                
         elif action_type == "move":
             self.remove_piece_hash(start_row, start_col)
             self.board[start_row][start_col] = None
             self.board[end_row][end_col] = piece
             self.add_piece_hash(end_row, end_col, piece)
+            
         elif action_type == "attack":
             captured_something = True
-            if piece.name == "BoneLord":
-                from engine.pieces import Bone
-                self.remove_piece_hash(start_row, start_col)
-                self.remove_piece_hash(end_row, end_col)
-                novo_osso = Bone(piece.team)
-                self.board[end_row][end_col] = novo_osso
-                self.add_piece_hash(end_row, end_col, novo_osso)
+            self.remove_piece_hash(end_row, end_col)
+            self.remove_piece_hash(start_row, start_col)
+            spawn_piece = None
+            if piece:
+                spawn_piece = self._get_attack_spawn_piece(piece)
+            if spawn_piece:
+                self.board[start_row][start_col] = piece
+                self.board[end_row][end_col] = spawn_piece
                 self.add_piece_hash(start_row, start_col, piece)
+                self.add_piece_hash(end_row, end_col, spawn_piece)
             else:
-                self.remove_piece_hash(start_row, start_col)
-                self.remove_piece_hash(end_row, end_col)
                 self.board[start_row][start_col] = None
                 self.board[end_row][end_col] = piece 
                 self.add_piece_hash(end_row, end_col, piece)
 
         ef_destino = self.tile_effects[end_row][end_col]
         peca_destino = self.board[end_row][end_col]
-        # TYPE GUARD (usando .get() para segurança total)
         if peca_destino and ef_destino and ef_destino.get("type") == "fire":
             if peca_destino.stun_timer < 2:
                 self.remove_piece_hash(end_row, end_col)
@@ -284,10 +252,7 @@ class GameState:
         self.update_timers()
         self.check_game_over()
         if not is_simulation:
-            try:
-                self.recompute_score()
-            except Exception:
-                self.current_score = None
+            self.current_score = None
 
     def update_timers(self):
         equipa_atual = 'brancas' if self.white_to_move else 'pretas'
@@ -310,13 +275,13 @@ class GameState:
                             self.board[r][c] = None
 
                 ef = self.tile_effects[r][c]
-                # TYPE GUARD para o Tile Effect
                 if ef and ef.get("team") == equipa_atual:
                     ef["timer"] = ef.get("timer", 1) - 1
                     if ef["timer"] <= 0:
                         self.tile_effects[r][c] = None
 
-    def gerar_notacao(self, piece, start_pos, end_pos, action_type, spawn_name=None, spell_name=None, affected_area=None):
+    def gerar_notacao(self, piece, start_pos, end_pos, action_type, spawn_name=None, spell_name=None):
+        if not piece: return
         sr, sc = start_pos
         er, ec = end_pos
         s_alg = coords_para_notacao(sr, sc)
@@ -345,7 +310,6 @@ class GameState:
                 "type": action_type,
                 "spell_name": spell_name,
                 "spawn_name": spawn_name,
-                "area": affected_area
             }
         })
 
@@ -366,14 +330,14 @@ class GameState:
             
         if self.turns_without_capture >= 50: 
             self.game_over = True
-            self.winner = f"{adversario_vencedor} Vencem (Oponente esgotou limite tático)"
+            self.winner = f"{adversario_vencedor} Vencem (Limite tático)"
             return
             
         current_hash = self.get_state_hash()
         self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1
         if self.state_history[current_hash] >= 3:
             self.game_over = True
-            self.winner = f"{adversario_vencedor} Vencem (Oponente forçou repetição)"
+            self.winner = f"{adversario_vencedor} Vencem (Repetição)"
             return
 
         tem_jogada = False
@@ -386,7 +350,6 @@ class GameState:
                         tem_jogada = True
                     else:
                         stuns = p.get_valid_stuns(r, c, self.board, self.tile_effects)
-                        # TYPE GUARD iterativo para evitar erros de leitura em stuns vazios
                         if stuns and any(info and info.get("has_enemy") for info in stuns.values()): 
                             tem_jogada = True
                 if tem_jogada: break
@@ -394,4 +357,30 @@ class GameState:
 
         if not tem_jogada:
             self.game_over = True
-            self.winner = f"{adversario_vencedor} Vencem (Oponente ficou sem movimentos)"
+            self.winner = f"{adversario_vencedor} Vencem (Oponente sem lances)"
+
+    def to_rwen(self) -> str:
+        linhas_str = []
+        for r in range(LINHAS):
+            casas_str = []
+            for c in range(COLUNAS):
+                p = self.board[r][c]
+                ef = self.tile_effects[r][c]
+                
+                if not p: p_str = "."
+                else:
+                    team = "W" if p.team == 'brancas' else "B"
+                    nome = p.name.replace(" ", "")
+                    vida = str(p.lifespan) if hasattr(p, 'lifespan') and p.lifespan is not None else "N"
+                    cd = str(p.spawn_cooldown) if hasattr(p, 'spawn_cooldown') else "0"
+                    p_str = f"{team}_{nome}_{p.stun_timer}_{vida}_{cd}"
+                
+                if not ef: e_str = "."
+                else:
+                    e_team = "W" if ef.get("team") == 'brancas' else "B"
+                    e_str = f"{e_team}_{ef.get('type', 'none')}_{ef.get('timer', 0)}"
+                    
+                casas_str.append(f"{p_str}:{e_str}")
+            linhas_str.append(",".join(casas_str))
+            
+        return f"{'/'.join(linhas_str)} {'W' if self.white_to_move else 'B'} {self.turns_without_capture}"

@@ -49,10 +49,10 @@ def simular_jogo_treino(seed):
     turnos = 0
     while not gs.game_over and turnos < LIMITE_TURNOS:
         turnos += 1
-        best_move_str = bot_brancas.play(gs) if gs.white_to_move else bot_pretas.play(gs)
+        parsed = bot_brancas.escolher_jogada(gs) if gs.white_to_move else bot_pretas.escolher_jogada(gs)
         
-        if best_move_str:
-            parsed = ActionParser.parse(best_move_str)
+        if parsed:
+            
             
             # TYPE GUARD para o Pylance
             if not parsed:

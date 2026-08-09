@@ -32,7 +32,7 @@ def simular_um_jogo(seed):
         best_move_str = BOT_INTERMEDIO.play(gs)
         
         if best_move_str:
-            parsed = ActionParser.parse(best_move_str)
+            parsed = BOT_INTERMEDIO.play(gs)
             
             # TYPE GUARD: Garante ao Pylance que parsed é 100% um dicionário a partir daqui
             if not parsed:

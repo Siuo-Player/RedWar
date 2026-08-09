@@ -39,6 +39,7 @@ class ActionParser:
             
         return None
 
+    
     @staticmethod
     def alg_to_coords(alg: str, total_linhas: int) -> tuple[int, int]:
         """Converte Notação Algébrica (Ex: A8) para índices de matriz (linha, coluna)."""

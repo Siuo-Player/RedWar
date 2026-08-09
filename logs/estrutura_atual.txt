@@ -15,13 +15,19 @@ ESTRUTURA REAL DO PROJETO REDWAR
 ├── 📁 ai/
 │   ├── 📄 __init__.py
 │   ├── 📄 bot.py
-│   ├── 📄 evaluator.c
 │   ├── 📄 evaluator.cp312-win_amd64.pyd
 │   ├── 📄 evaluator.pyi
 │   ├── 📄 evaluator.pyx
-│   ├── 📄 game_analyzer.py
 │   ├── 📄 search.py
-│   └── 📄 trainer.py
+│   ├── 📁 cpp_engine/
+│   │   ├── 📄 SmokeTest.cpp
+│   │   ├── 📄 SmokeTest.exe
+│   │   ├── 📄 SmokeTest.obj
+│   │   ├── 📄 engine.cpp
+│   │   ├── 📄 engine.exe
+│   │   ├── 📄 engine.obj
+│   │   ├── 📁 nlohmann/
+│   │   │   └── 📄 json.hpp
 ├── 📁 data/
 │   └── 📄 estatisticas_treino.json
 ├── 📁 deploy/
@@ -29,11 +35,13 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   │   ├── 📄 RedWar_Online.spec
 │   │   └── 📄 main.spec
 ├── 📁 docs/
+│   ├── 📄 COPILOT_BACKLOG.md
 │   ├── 📄 Documento_Design_Jogo.md
 │   └── 📄 Estrutura_Projeto.md
 ├── 📁 engine/
 │   ├── 📄 HEROES_SCHEMA.md
 │   ├── 📄 __init__.py
+│   ├── 📄 action_parser.py
 │   ├── 📄 config.py
 │   ├── 📄 game_state.py
 │   ├── 📄 heroes_config.json
@@ -68,6 +76,7 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   │   ├── 📄 auto_pricer.py
 │   │   └── 📄 color_balancer.py
 │   ├── 📁 scripts/
+│   │   ├── 📄 build_cpp_engine.py
 │   │   ├── 📄 build_pipeline.py
 │   │   ├── 📄 fetch_icons.py
 │   │   ├── 📄 gerar_estrutura.py
@@ -79,11 +88,22 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   ├── 📄 renderer.py
 │   ├── 📄 test_screenshot.png
 │   ├── 📁 assets/
+│   │   ├── 📄 berserker.png
 │   │   ├── 📄 bone.png
 │   │   ├── 📄 bonelord.png
+│   │   ├── 📄 cleric.png
+│   │   ├── 📄 dragoon.png
 │   │   ├── 📄 frostmage.png
+│   │   ├── 📄 geomancer.png
 │   │   ├── 📄 ghoul.png
+│   │   ├── 📄 inquisitor.png
 │   │   ├── 📄 lich.png
+│   │   ├── 📄 nightshade.png
 │   │   ├── 📄 obelisk.png
 │   │   ├── 📄 phantom.png
-│   │   └── 📄 sentry.png
+│   │   ├── 📄 pyromancer.png
+│   │   ├── 📄 ranger.png
+│   │   ├── 📄 sentry.png
+│   │   ├── 📄 stonewall.png
+│   │   ├── 📄 templar.png
+│   │   └── 📄 trickster.png

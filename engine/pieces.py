@@ -202,6 +202,15 @@ class DataPiece(Piece):
         acronym = data.get('acronym', name[:2])
         super().__init__(team, name, cost, acronym)
 
+        self.descricao = data.get('descricao', "Unidade misteriosa.")
+        self.passiva = data.get('passiva', "Sem passiva.")
+        
+        # --- A CORREÇÃO: LER AS MECÂNICAS ESCONDIDAS NO JSON ---
+        self.draftable = data.get('draftable', True)
+        self.lifespan = data.get('lifespan', None)
+        self.spawn_cooldown = data.get('spawn_cooldown', 0)
+        # -------------------------------------------------------
+
         compiled = BehaviorCompiler.compile(name, data.get('behavior', {}))
         if team == 'brancas':
             self._move_vectors = compiled.get('move_white', [])

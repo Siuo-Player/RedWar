@@ -13,24 +13,17 @@ C_VERMELHO = (255, 50, 50)
 _CACHE_IMAGENS = {}
 _BOARD_BG_CACHE = {}
 
-
-
 def desenhar_coordenadas(ecra, tam_casa, off_x, off_y):
     fonte = pygame.font.SysFont("arial", 14, bold=True)
     letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    
-    # Eixo X (Letras no fundo)
     for c in range(COLUNAS):
         txt = fonte.render(letras[c], True, (150, 150, 150))
         ecra.blit(txt, (off_x + c * tam_casa + tam_casa//2 - txt.get_width()//2, off_y + LINHAS * tam_casa + 5))
-        
-    # Eixo Y (Números na esquerda)
     for r in range(LINHAS):
         txt = fonte.render(str(LINHAS - r), True, (150, 150, 150))
         ecra.blit(txt, (off_x - txt.get_width() - 8, off_y + r * tam_casa + tam_casa//2 - txt.get_height()//2))
 
 def desenhar_painel_heroi(ecra, peca, off_x, off_y, width, height):
-    """Substitui o log de batalha quando passas o rato sobre uma peça."""
     pygame.draw.rect(ecra, (25, 25, 35), (off_x, off_y, width, height), border_radius=10)
     pygame.draw.rect(ecra, (150, 150, 200), (off_x, off_y, width, height), 2, border_radius=10)
 
@@ -38,7 +31,6 @@ def desenhar_painel_heroi(ecra, peca, off_x, off_y, width, height):
     fonte_sub = pygame.font.SysFont("arial", 18, italic=True)
     fonte_desc = pygame.font.SysFont("arial", 16)
 
-    # Avatar / imagem da peça
     tam_avatar = min(96, int(width * 0.22))
     img = carregar_imagem_peca(peca.name, peca.team, tam_avatar)
     if img:
@@ -49,17 +41,13 @@ def desenhar_painel_heroi(ecra, peca, off_x, off_y, width, height):
     else:
         pygame.draw.rect(ecra, (60, 60, 70), (off_x + width - tam_avatar - 16, off_y + 16, tam_avatar, tam_avatar), border_radius=8)
 
-    # Cabeçalho
     cor_nome = (150, 200, 255) if peca.team == 'brancas' else (255, 120, 120)
     ecra.blit(fonte_tit.render(peca.name, True, cor_nome), (off_x + 20, off_y + 18))
     ecra.blit(fonte_sub.render(f"Facção: {peca.team.capitalize()}", True, (150, 150, 150)), (off_x + 20, off_y + 50))
 
-    # Stats Fixas
-    y = off_x + 20
     y_pix = off_y + 90
     ecra.blit(fonte_desc.render(f"Custo: {peca.cost} pts", True, C_BRANCO), (off_x + 20, y_pix))
 
-    # Status Dinâmico (Debuffs/Cooldowns)
     y_pix += 30
     if peca.stun_timer > 0:
         ecra.blit(fonte_desc.render(f"⚠️ ATORDOADO ({peca.stun_timer} turnos)", True, (255, 200, 50)), (off_x + 20, y_pix))
@@ -68,26 +56,40 @@ def desenhar_painel_heroi(ecra, peca, off_x, off_y, width, height):
         ecra.blit(fonte_desc.render(f"⏳ Vida restante: {peca.lifespan} turnos", True, (255, 100, 100)), (off_x + 20, y_pix))
         y_pix += 26
 
-    # Separador e descrição curta
     pygame.draw.line(ecra, (100, 100, 100), (off_x + 16, y_pix + 8), (off_x + width - tam_avatar - 32, y_pix + 8))
     y_pix += 18
     desc = getattr(peca, 'descricao', 'Unidade padrão.')
-    # quebra simples de linha
+    
+    # Processa os \n na descrição para desenhar em várias linhas
     ecra.blit(fonte_sub.render("Descrição:", True, (200, 200, 200)), (off_x + 20, y_pix))
-    ecra.blit(fonte_desc.render(desc, True, C_BRANCO), (off_x + 20, y_pix + 22))
+    y_pix += 22
+    for linha in str(desc).split('\n'):
+        ecra.blit(fonte_desc.render(linha, True, C_BRANCO), (off_x + 20, y_pix))
+        y_pix += 18
 
-    y_pix += 56
+    y_pix += 20
     ecra.blit(fonte_sub.render("Passiva:", True, (200, 200, 200)), (off_x + 20, y_pix))
-    ecra.blit(fonte_desc.render(getattr(peca, 'passiva', 'Nenhuma.'), True, (140, 255, 160)), (off_x + 20, y_pix + 22))
+    
+    # Textwrap super simples para a passiva caso seja longa
+    passiva_txt = getattr(peca, 'passiva', 'Nenhuma.')
+    y_pix += 22
+    words = passiva_txt.split(' ')
+    linha_atual = ""
+    for w in words:
+        if fonte_desc.size(linha_atual + w)[0] < width - 40:
+            linha_atual += w + " "
+        else:
+            ecra.blit(fonte_desc.render(linha_atual, True, (140, 255, 160)), (off_x + 20, y_pix))
+            y_pix += 18
+            linha_atual = w + " "
+    ecra.blit(fonte_desc.render(linha_atual, True, (140, 255, 160)), (off_x + 20, y_pix))
 
 def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa, off_x, off_y):
-    """Versão modernizada com pulsação temporal baseada no ticks do Pygame."""
     if not casa_selecionada: return
     r, c = casa_selecionada
     p = gs.board[r][c]
     if not p: return
 
-    # Matemática de pulsação (valor entre 0 e 1)
     ticks = pygame.time.get_ticks()
     pulsar = (math.sin(ticks / 300.0) + 1.0) / 2.0
 
@@ -95,7 +97,6 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
     ataques = p.get_valid_attacks(r, c, gs.board, gs.tile_effects)
     stuns = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
 
-    # Destacar movimentos (verde pulsante)
     s_move = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
     for mr, mc in movimentos:
         alpha = int(80 + 120 * (1.0 if hover_pos == (mr, mc) else pulsar))
@@ -104,13 +105,11 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
         if hover_pos == (mr, mc):
             pygame.draw.rect(ecra, (200, 255, 150), (off_x + mc * tam_casa, off_y + mr * tam_casa, tam_casa, tam_casa), 3)
 
-    # Destacar ataques (vermelho com crosshair pulsante)
     s_atk = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
     for ar, ac in ataques:
         alpha = int(90 + 120 * pulsar) if hover_pos == (ar, ac) else int(60 + 80 * pulsar)
         s_atk.fill((255, 40, 40, alpha))
         ecra.blit(s_atk, (off_x + ac * tam_casa, off_y + ar * tam_casa))
-        # retícula pulsante
         cx = off_x + ac * tam_casa + tam_casa // 2
         cy = off_y + ar * tam_casa + tam_casa // 2
         thickness = max(1, int(2 + 3 * pulsar))
@@ -118,11 +117,9 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
         pygame.draw.line(ecra, (255, 20, 20), (cx - leng, cy), (cx + leng, cy), thickness)
         pygame.draw.line(ecra, (255, 20, 20), (cx, cy - leng), (cx, cy + leng), thickness)
 
-    # Areas de efeito (stuns) com pulsação e textos flutuantes
     font_vfx = pygame.font.SysFont("arial", max(12, int(tam_casa * 0.28)), bold=True)
     for foco, info in stuns.items():
         foco_r, foco_c = foco
-        # overlay pulsante para area
         for (aoe_r, aoe_c) in info["aoe"]:
             s_aoe = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
             base_alpha = 60 if info["has_enemy"] else 30
@@ -130,23 +127,19 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
             color = (0, 200, 255) if info["has_enemy"] else (100, 120, 150)
             s_aoe.fill((*color, alpha))
             ecra.blit(s_aoe, (off_x + aoe_c * tam_casa, off_y + aoe_r * tam_casa))
-        # Texto flutuante indicando STUN / ALERT
         if info["has_enemy"]:
             txt = font_vfx.render("STUN", True, (255, 255, 255))
         else:
             txt = font_vfx.render("AOE", True, (220, 220, 220))
-        # oscilação vertical
         osc = int(math.sin((ticks + (foco_r * 13 + foco_c * 7)) / 280.0) * (tam_casa * 0.12))
         tx = off_x + foco_c * tam_casa + tam_casa // 2 - txt.get_width() // 2
         ty = off_y + foco_r * tam_casa - txt.get_height() - 6 + osc
         vfx_surf = pygame.Surface((txt.get_width(), txt.get_height()), pygame.SRCALPHA)
         vfx_surf.fill((0, 0, 0, 0))
         vfx_surf.blit(txt, (0, 0))
-        # translúcido
         vfx_surf.set_alpha(int(160 + 95 * pulsar))
         ecra.blit(vfx_surf, (tx, ty))
 
-    # Areas de Feitico (Spells) com cor roxa e oscilacao
     if hasattr(p, 'get_valid_spells'):
         for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
             tr, tc = spell["target"]
@@ -165,13 +158,9 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
             vfx_surf.set_alpha(int(160 + 95 * pulsar))
             ecra.blit(vfx_surf, (tx, ty))
 
-
-
 def carregar_imagem_peca(nome_peca, team, tam):
     chave = (nome_peca, team, tam)
     if chave in _CACHE_IMAGENS: return _CACHE_IMAGENS[chave]
-    
-    # PROTEÇÃO PYINSTALLER: Descobre se estamos a correr num .exe ou em código fonte
     if getattr(sys, 'frozen', False):
         caminho_base = sys._MEIPASS #type: ignore
     else:
@@ -182,7 +171,7 @@ def carregar_imagem_peca(nome_peca, team, tam):
 
     if os.path.exists(caminho_completo):
         img = pygame.image.load(caminho_completo).convert_alpha()
-        img = pygame.transform.smoothscale(img, (int(tam * 0.8), int(tam * 0.8)))
+        img = pygame.transform.smoothscale(img, (int(tam * 0.65), int(tam * 0.65)))
         if team == 'pretas': img.fill((40, 40, 40, 255), special_flags=pygame.BLEND_RGBA_MULT)
         else: img.fill((240, 245, 255, 255), special_flags=pygame.BLEND_RGBA_MULT)
         _CACHE_IMAGENS[chave] = img
@@ -208,20 +197,13 @@ def desenhar_menu_principal(ecra, w, h):
     
     return btn_start, btn_info
 
-# MUDANÇA APENAS NA FUNÇÃO desenhar_selecao_dificuldade DENTRO DE ui/renderer.py
-
 def desenhar_selecao_dificuldade(ecra, w, h, elo_atual):
-    """
-    Substitui a função anterior no ficheiro ui/renderer.py.
-    Mostra apenas o slider do ELO, visto que o tempo é calculado com base nele.
-    """
     ecra.fill(C_FUNDO)
     fonte = pygame.font.SysFont("arial", 36)
     
     txt_tit = fonte.render("Configurar Adversário (IA)", True, C_BRANCO)
     ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, 50))
     
-    # ELO Slider Representativo (100 a 2600)
     pygame.draw.rect(ecra, (50, 50, 50), (w//2 - 200, 150, 400, 20))
     x_elo = w//2 - 200 + int(((elo_atual - 100) / 2500) * 400)
     rect_elo_drag = pygame.Rect(x_elo - 10, 140, 20, 40)
@@ -229,7 +211,6 @@ def desenhar_selecao_dificuldade(ecra, w, h, elo_atual):
     txt_elo = fonte.render(f"Rating ELO Desejado: {elo_atual}", True, C_BRANCO)
     ecra.blit(txt_elo, (w//2 - txt_elo.get_width()//2, 100))
     
-    # Calcula o tempo e limite visualmente para apresentar ao jogador
     if elo_atual <= 300:
         tempo_aprox = 0.05
     else:
@@ -250,31 +231,37 @@ def desenhar_selecao_dificuldade(ecra, w, h, elo_atual):
     
     return rect_elo_drag, btn_confirmar
 
-def desenhar_analise(ecra, off_x_log, off_y, width, height, move_log, best_moves_dict):
-    """
-    O Painel de Análise de Xadrez que é atualizado em tempo real pela Thread Pós-Jogo.
-    """
+def desenhar_analise(ecra, off_x_log, off_y, width, height, move_log, best_moves_dict, selected_idx=None):
     pygame.draw.rect(ecra, (20, 20, 30), (off_x_log, off_y, width, height), border_radius=10)
     pygame.draw.rect(ecra, (100, 100, 255), (off_x_log, off_y, width, height), 2, border_radius=10)
     
-    fonte_tit = pygame.font.SysFont("arial", 24, bold=True)
-    fonte_txt = pygame.font.SysFont("arial", 16)
-    fonte_best = pygame.font.SysFont("arial", 16, bold=True)
+    fonte_tit = pygame.font.SysFont("arial", 22, bold=True)
+    fonte_txt = pygame.font.SysFont("arial", 15)
+    fonte_best = pygame.font.SysFont("arial", 15, bold=True)
     
-    tit = fonte_tit.render("Análise do Motor (Stockfish-like)", True, (150, 200, 255))
-    ecra.blit(tit, (off_x_log + 20, off_y + 20))
+    tit = fonte_tit.render("Análise do Motor (Stockfish)", True, (150, 200, 255))
+    ecra.blit(tit, (off_x_log + 15, off_y + 15))
     
-    y = off_y + 60
-    # Desliza para mostrar os últimos turnos se o histórico for grande
-    mostrar_log = move_log[-8:] if len(move_log) > 8 else move_log
+    y = off_y + 50
+    mostrar_log = move_log[-7:] if len(move_log) > 7 else move_log
+    offset_base = len(move_log) - len(mostrar_log)
+    
+    rects_clicaveis = []
     
     for i, log in enumerate(mostrar_log):
-        id_jogada = len(move_log) - len(mostrar_log) + i
-        cor_txt = C_BRANCO
-        txt_short = fonte_tit.render(log["short"], True, cor_txt)
-        ecra.blit(txt_short, (off_x_log + 20, y))
+        id_jogada = offset_base + i
+        rect_item = pygame.Rect(off_x_log + 10, y - 2, width - 20, 48)
         
-        # Procura se a Thread de Análise já processou este turno
+        if selected_idx == id_jogada:
+            pygame.draw.rect(ecra, (50, 50, 80), rect_item, border_radius=5)
+            pygame.draw.rect(ecra, (100, 200, 255), rect_item, 1, border_radius=5)
+            
+        rects_clicaveis.append((rect_item, id_jogada))
+        
+        cor_txt = (255, 255, 255)
+        txt_short = fonte_tit.render(log["short"], True, cor_txt)
+        ecra.blit(txt_short, (off_x_log + 15, y))
+        
         if id_jogada in best_moves_dict:
             dados_analise = best_moves_dict[id_jogada]
             if dados_analise["forced_mate"]:
@@ -282,18 +269,17 @@ def desenhar_analise(ecra, off_x_log, off_y, width, height, move_log, best_moves
             else:
                 txt_analise = fonte_best.render(f"Melhor: {dados_analise['best_move_str']} (Score: {dados_analise['score']})", True, (100, 255, 100))
         else:
-            txt_analise = fonte_txt.render("A analisar com profundidade...", True, (150, 150, 150))
+            txt_analise = fonte_txt.render("A analisar profundidade...", True, (150, 150, 150))
             
-        ecra.blit(txt_analise, (off_x_log + 20, y + 25))
-        y += 60
+        ecra.blit(txt_analise, (off_x_log + 15, y + 22))
+        y += 52
 
-# ================= As funções de Renderização Normais mantêm-se iguais =================
+    return rects_clicaveis
+
 def desenhar_tabuleiro(ecra, gs, tam_casa, off_x, off_y):
-    # Use cached background surface for static squares to reduce per-frame draw cost
     key = (tam_casa, LINHAS, COLUNAS)
     bg = _BOARD_BG_CACHE.get(key)
     if bg is None:
-        # build background surface
         bg = pygame.Surface((COLUNAS * tam_casa, LINHAS * tam_casa))
         for r in range(LINHAS):
             for c in range(COLUNAS):
@@ -304,7 +290,6 @@ def desenhar_tabuleiro(ecra, gs, tam_casa, off_x, off_y):
 
     ecra.blit(bg, (off_x, off_y))
 
-    # draw dynamic highlights (last move) and tile effects on top of the static background
     luzes_chess = []
     if hasattr(gs, 'last_move') and gs.last_move:
         luzes_chess.append(gs.last_move["start"])
@@ -330,62 +315,7 @@ def desenhar_tabuleiro(ecra, gs, tam_casa, off_x, off_y):
                     ecra.blit(s, (rect.x, rect.y))
 
 def desenhar_destaques(ecra, gs, casa_selecionada, tam_casa, off_x, off_y):
-    if not casa_selecionada: return
-    r, c = casa_selecionada
-    p = gs.board[r][c]
-    if not p: return
-
-    movimentos = p.get_valid_moves(r, c, gs.board, gs.tile_effects)
-    ataques = p.get_valid_attacks(r, c, gs.board, gs.tile_effects)
-    ameacas = p.get_threat_area(r, c, gs.board, gs.tile_effects)
-    stuns = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
-    spawns = p.get_valid_spawns(r, c, gs.board, gs.tile_effects)
-
-    s_move = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-    s_move.fill((50, 255, 50, 80))  
-    for mr, mc in movimentos:
-        ecra.blit(s_move, (off_x + mc * tam_casa, off_y + mr * tam_casa))
-        pygame.draw.rect(ecra, (50, 255, 50), (off_x + mc * tam_casa, off_y + mr * tam_casa, tam_casa, tam_casa), 2)
-
-    s_threat = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-    s_threat.fill((255, 150, 0, 40))
-    for tr, tc in ameacas:
-        if (tr, tc) not in ataques:
-            ecra.blit(s_threat, (off_x + tc * tam_casa, off_y + tr * tam_casa))
-            pygame.draw.rect(ecra, (255, 150, 0, 150), (off_x + tc * tam_casa, off_y + tr * tam_casa, tam_casa, tam_casa), 2)
-
-    s_atk = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-    s_atk.fill((255, 0, 0, 100))
-    for ar, ac in ataques:
-        ecra.blit(s_atk, (off_x + ac * tam_casa, off_y + ar * tam_casa))
-        pygame.draw.rect(ecra, (255, 0, 0), (off_x + ac * tam_casa, off_y + ar * tam_casa, tam_casa, tam_casa), 4)
-
-    s_spawn = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-    s_spawn.fill((255, 215, 0, 120)) 
-    for sr, sc, sname in spawns:
-        cx = off_x + sc * tam_casa + tam_casa // 2
-        cy = off_y + sr * tam_casa + tam_casa // 2
-        ecra.blit(s_spawn, (off_x + sc * tam_casa, off_y + sr * tam_casa))
-        pygame.draw.rect(ecra, (255, 215, 0), (off_x + sc * tam_casa, off_y + sr * tam_casa, tam_casa, tam_casa), 4)
-        pygame.draw.line(ecra, (255, 255, 255), (cx - 10, cy), (cx + 10, cy), 3)
-        pygame.draw.line(ecra, (255, 255, 255), (cx, cy - 10), (cx, cy + 10), 3)
-
-    for foco_r, foco_c in stuns.keys():
-        info = stuns[(foco_r, foco_c)]
-        cx = off_x + foco_c * tam_casa + tam_casa // 2
-        cy = off_y + foco_r * tam_casa + tam_casa // 2
-        compr = tam_casa // 4
-        cor_cruz = (0, 255, 255) if info["has_enemy"] else (100, 120, 150)
-        bg_alpha = 80 if info["has_enemy"] else 30
-        espessura = 5 if info["has_enemy"] else 2
-        s_stun = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
-        s_stun.fill((*cor_cruz[:3], bg_alpha))
-        ecra.blit(s_stun, (off_x + foco_c * tam_casa, off_y + foco_r * tam_casa))
-        pygame.draw.line(ecra, cor_cruz, (cx - compr, cy), (cx + compr, cy), espessura)
-        pygame.draw.line(ecra, cor_cruz, (cx, cy - compr), (cx, cy + compr), espessura)
-        for (aoe_r, aoe_c) in info["aoe"]:
-            rect_aoe = pygame.Rect(off_x + aoe_c * tam_casa + 2, off_y + aoe_r * tam_casa + 2, tam_casa - 4, tam_casa - 4)
-            pygame.draw.rect(ecra, cor_cruz, rect_aoe, max(1, espessura - 2))
+    pass # Removido, substituido por hover no main loop
 
 def desenhar_pecas(ecra, board, tam_casa, off_x, off_y):
     fonte = pygame.font.SysFont("arial", int(tam_casa * 0.4))
@@ -428,24 +358,62 @@ def desenhar_log(ecra, gs, off_x_log, off_y, width, height):
         ecra.blit(pygame.font.SysFont("arial", 24, bold=True).render(log["short"], True, cor_txt), (off_x_log + 20, y))
         y += 40
 
-def desenhar_loja_dinamica(ecra, w, h, catalogo, pontos, peca_selecionada, off_y):
-    fonte_tit = pygame.font.SysFont("arial", 36)
-    fonte_item = pygame.font.SysFont("arial", 24)
-    ecra.blit(fonte_tit.render(f"Orçamento Restante: {pontos} pts", True, C_BRANCO), (20, off_y))
+def desenhar_loja_dinamica(ecra, off_x, off_y, width, height, catalogo, pontos, peca_selecionada):
+    pygame.draw.rect(ecra, (30, 30, 40), (off_x, off_y, width, height), border_radius=10)
+    pygame.draw.rect(ecra, (100, 150, 200), (off_x, off_y, width, height), 2, border_radius=10)
+
+    fonte_tit = pygame.font.SysFont("arial", 24, bold=True)
+    fonte_item = pygame.font.SysFont("arial", 18, bold=True)
+    fonte_pts = pygame.font.SysFont("arial", 16)
+
+    txt_tit = fonte_tit.render(f"Orçamento: {pontos} pts", True, (255, 215, 0))
+    ecra.blit(txt_tit, (off_x + 20, off_y + 20))
+    pygame.draw.line(ecra, (100, 100, 100), (off_x + 20, off_y + 55), (off_x + width - 20, off_y + 55), 2)
+
     botoes = {}
+    colunas = 2
+    largura_btn = (width - 60) // colunas
+    altura_btn = 45
+    espaco_y = 10
+    espaco_x = 20
+    start_y = off_y + 70
+
     for i, item in enumerate(catalogo):
-        x, y = 20 + (i % 6) * 110, off_y + 40 + (i // 6) * 60
-        cor_btn = (150, 50, 50) if item["cost"] > pontos else ((100, 200, 100) if item["name"] == peca_selecionada else (80, 80, 80))
-        rect = pygame.Rect(x, y, 100, 50)
-        pygame.draw.rect(ecra, cor_btn, rect, border_radius=5)
-        ecra.blit(fonte_item.render(item["name"], True, C_BRANCO), (x + 5, y + 5))
-        ecra.blit(fonte_item.render(f"{item['cost']} pts", True, C_BRANCO), (x + 5, y + 25))
-        if item["cost"] <= pontos: botoes[item["name"]] = rect
-            
-    btn_r = pygame.Rect(w - 150, off_y, 130, 40)
-    pygame.draw.rect(ecra, (50, 150, 250), btn_r, border_radius=5)
-    ecra.blit(fonte_tit.render("Pronto!", True, C_BRANCO), (btn_r.x + 20, btn_r.y + 10))
-    return botoes, btn_r, pygame.Rect(0,0,0,0)
+        col = i % colunas
+        row = i // colunas
+        x = off_x + 20 + col * (largura_btn + espaco_x)
+        y = start_y + row * (altura_btn + espaco_y)
+
+        if item["cost"] > pontos:
+            cor_btn = (60, 40, 40)
+            cor_txt = (120, 120, 120)
+        elif item["name"] == peca_selecionada:
+            cor_btn = (100, 200, 100)
+            cor_txt = C_BRANCO
+        else:
+            cor_btn = (60, 60, 80)
+            cor_txt = (220, 220, 220)
+
+        rect = pygame.Rect(x, y, largura_btn, altura_btn)
+        pygame.draw.rect(ecra, cor_btn, rect, border_radius=6)
+        if item["cost"] <= pontos:
+            pygame.draw.rect(ecra, (100, 100, 150), rect, 1, border_radius=6)
+        
+        txt_nome = fonte_item.render(item["name"], True, cor_txt)
+        txt_custo = fonte_pts.render(f"{item['cost']} pts", True, (150, 255, 150) if item["cost"] <= pontos else cor_txt)
+        
+        ecra.blit(txt_nome, (x + 8, y + 5))
+        ecra.blit(txt_custo, (x + 8, y + 24))
+
+        if item["cost"] <= pontos:
+            botoes[item["name"]] = rect
+
+    btn_r = pygame.Rect(off_x + 20, off_y + height - 70, width - 40, 50)
+    pygame.draw.rect(ecra, C_AZUL, btn_r, border_radius=8)
+    txt_pronto = fonte_tit.render("Batalhar! (Pronto)", True, C_BRANCO)
+    ecra.blit(txt_pronto, (btn_r.x + btn_r.width//2 - txt_pronto.get_width()//2, btn_r.y + 12))
+
+    return botoes, btn_r, None
 
 def desenhar_enciclopedia(ecra, w, h, catalogo):
     btn_voltar = pygame.Rect(w//2 - 60, h - 60, 120, 40)
@@ -453,12 +421,7 @@ def desenhar_enciclopedia(ecra, w, h, catalogo):
     ecra.blit(pygame.font.SysFont("arial", 32).render("Voltar", True, C_BRANCO), (btn_voltar.x + 25, btn_voltar.y + 10))
     return btn_voltar
 
-
 def desenhar_hud_jogadores(ecra, off_x, off_y_top, off_y_bot, tam_casa, bot_name, gs):
-    """Desenha banners superior (inimigo) e inferior (jogador) com relógios e material.
-    Agora recebe as posições Y separadas para evitar sobreposição com o tabuleiro.
-    """
-    # Top banner (inimigo)
     altura = 36
     rect_top = pygame.Rect(off_x, off_y_top, COLUNAS * tam_casa, altura)
     pygame.draw.rect(ecra, (20, 20, 24), rect_top)
@@ -466,13 +429,12 @@ def desenhar_hud_jogadores(ecra, off_x, off_y_top, off_y_bot, tam_casa, bot_name
     fonte = pygame.font.SysFont("arial", 18, bold=True)
     txt_top = fonte.render(f"Inimigo: {bot_name}", True, C_BRANCO)
     ecra.blit(txt_top, (rect_top.x + 8, rect_top.y + 6))
-    # relógios
+
     clock_left = fonte.render(f"Brancas: {int(getattr(gs, 'white_time', 0))}s", True, (200,200,200))
     clock_right = fonte.render(f"Pretas: {int(getattr(gs, 'black_time', 0))}s", True, (200,200,200))
     ecra.blit(clock_left, (rect_top.x + 220, rect_top.y + 6))
     ecra.blit(clock_right, (rect_top.x + 420, rect_top.y + 6))
 
-    # Material / custo total no tabuleiro
     white_mat = 0
     black_mat = 0
     for r in range(LINHAS):
@@ -488,7 +450,6 @@ def desenhar_hud_jogadores(ecra, off_x, off_y_top, off_y_bot, tam_casa, bot_name
     ecra.blit(mat_txt_w, (rect_top.x + 600, rect_top.y + 6))
     ecra.blit(mat_txt_b, (rect_top.x + 700, rect_top.y + 6))
 
-    # Bottom banner (jogador)
     rect_bot = pygame.Rect(off_x, off_y_bot, COLUNAS * tam_casa, altura)
     pygame.draw.rect(ecra, (18, 18, 22), rect_bot)
     pygame.draw.rect(ecra, (80, 80, 90), rect_bot, 1)
@@ -496,11 +457,7 @@ def desenhar_hud_jogadores(ecra, off_x, off_y_top, off_y_bot, tam_casa, bot_name
     ecra.blit(txt_bot, (rect_bot.x + 8, rect_bot.y + 6))
     return rect_top, rect_bot
 
-
 def desenhar_eval_bar(ecra, gs, off_x, altura_tabuleiro, off_y_tab):
-    """Desenha a barra de avaliação vertical usando cache `GameState.current_score`.
-    Não importa nem recalcula o avaliador aqui — apenas lê a cache.
-    """
     score = getattr(gs, 'current_score', 0)
     if score is None: score = 0
 

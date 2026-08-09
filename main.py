@@ -1,8 +1,7 @@
-# main.py
 import pygame
-import time
-import random
 import threading
+import random
+import time
 from engine.game_state import GameState, coords_para_notacao
 from engine.pieces import obter_catalogo_pecas
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
@@ -13,342 +12,340 @@ from ui.renderer import (
     desenhar_tabuleiro, desenhar_pecas, 
     desenhar_loja_dinamica, desenhar_enciclopedia, desenhar_log, desenhar_analise,
     desenhar_coordenadas, desenhar_painel_heroi, desenhar_destaques_com_hover,
-    C_FUNDO, C_VERMELHO, C_BRANCO, C_PRETO, C_AZUL, carregar_imagem_peca,
+    C_FUNDO, C_VERMELHO, C_BRANCO, carregar_imagem_peca,
     desenhar_hud_jogadores, desenhar_eval_bar
 )
 
-from ai.bot import gerar_bot_por_elo
-from ai.search import find_best_move
-from ai.evaluator import avaliador_mestre
+from ai.bot import CppEngineBot
+from ai.search import analisar_posicao_continuamente
 
-def auto_draft_ia(gs, orcamento):
-    pontos = orcamento
-    cat = obter_catalogo_pecas()
-    for r in range(2):
-        for c in range(COLUNAS):
-            validas = [p for p in cat if p["cost"] <= pontos]
-            if not validas: break
-            esc = random.choice(validas)
-            gs.board[r][c] = esc["class"]('pretas')
-            pontos -= esc["cost"]
+class JogoController:
+    def __init__(self):
+        pygame.init()
+        self.ecra = pygame.display.set_mode((1300, 800), pygame.RESIZABLE)
+        pygame.display.set_caption("RedWar - Combat Engine")
+        self.clock = pygame.time.Clock()
+        
+        self.fase_atual = "MENU"
+        self.gs = GameState(time_limit_seconds=180.0)
+        self.catalogo = obter_catalogo_pecas()
+        
+        self.pontos_jogador = ORCAMENTO_BRANCAS
+        self.peca_loja = None
+        self.casa_selecionada = None
+        self.hover_pos = None
+        
+        self.elo_escolhido = 1500
+        self.bot_ativo = CppEngineBot(depth=4)
+        
+        self.thread_ia = None
+        self.resultado_ia = []
+        
+        self.thread_analise = None
+        self.analise_resultados_top5 = []
+        self.analise_depth_atual = 0
+        self.review_index = 0
+        self.display_gs = None
+        
+        self.botoes_loja = {}
+        self.btn_ready = pygame.Rect(0,0,0,0)
+        self.btn_start = pygame.Rect(0,0,0,0)
+        self.btn_info = pygame.Rect(0,0,0,0)
+        self.btn_confirmar = pygame.Rect(0,0,0,0)
+        self.rect_elo = pygame.Rect(0,0,0,0)
+        self.btn_prev = pygame.Rect(0,0,0,0)
+        self.btn_next = pygame.Rect(0,0,0,0)
+        self.item_rects_analise = []
+        
+        self.arrastando_elo = False
 
-def animar_acao(ecra, gs, start_pos, end_pos, action_type, tam_casa, off_x, off_y, clock):
-    sr, sc = start_pos
-    er, ec = end_pos
-    piece = gs.board[sr][sc]
-    sx, sy = off_x + sc * tam_casa + tam_casa // 2, off_y + sr * tam_casa + tam_casa // 2
-    ex, ey = off_x + ec * tam_casa + tam_casa // 2, off_y + er * tam_casa + tam_casa // 2
-    
-    if action_type in ["move", "attack"]: gs.board[sr][sc] = None
-    for i in range(16):
-        t = i / 15
-        cx, cy = sx + (ex - sx) * t, sy + (ey - sy) * t
-        ecra.fill(C_FUNDO)
-        
-        desenhar_tabuleiro(ecra, gs, tam_casa, off_x, off_y)
-        desenhar_coordenadas(ecra, tam_casa, off_x, off_y)
-        desenhar_pecas(ecra, gs.board, tam_casa, off_x, off_y)
-        desenhar_log(ecra, gs, off_x + COLUNAS*tam_casa + 30, 20, 350, ecra.get_height() - 40)
-        
-        if action_type in ["move", "attack"]:
-            img = carregar_imagem_peca(piece.name, piece.team, tam_casa)
-            if img: ecra.blit(img, img.get_rect(center=(cx, cy)))
-            else: pygame.draw.circle(ecra, (200,200,200), (cx, cy), int(tam_casa * 0.38))
-        elif action_type == "stun": pygame.draw.circle(ecra, (0, 200, 255), (int(cx), int(cy)), 12)
-        elif action_type == "spawn": pygame.draw.circle(ecra, (200, 100, 255), (int(cx), int(cy)), 12)
-        elif action_type == "spell": pygame.draw.circle(ecra, (200, 50, 255), (int(cx), int(cy)), 12)
-        pygame.display.flip()
-        clock.tick(60)
-    if action_type in ["move", "attack"]: gs.board[sr][sc] = piece
+    def auto_draft_inimigo(self, orcamento: int):
+        pts = orcamento
+        for r in range(2):
+            for c in range(COLUNAS):
+                validas = [p for p in self.catalogo if p["cost"] <= pts]
+                if validas:
+                    esc = random.choice(validas)
+                    self.gs.board[r][c] = esc["class"]('pretas')
+                    pts -= esc["cost"]
 
+    def extrair_acao_valida(self, gs, sr, sc, r, c):
+        p = gs.board[sr][sc]
+        if not p: return None
+        
+        acao = {"type": None, "start": (sr, sc), "end": (r, c)}
+        if (r, c) in p.get_valid_moves(sr, sc, gs.board, gs.tile_effects):
+            acao["type"] = "move"
+        elif (r, c) in p.get_valid_attacks(sr, sc, gs.board, gs.tile_effects):
+            acao["type"] = "attack"
+        else:
+            stuns = p.get_valid_stuns(sr, sc, gs.board, gs.tile_effects)
+            if (r, c) in stuns and stuns[(r, c)]["has_enemy"]:
+                acao["type"] = "stun"
+            else:
+                for sp in p.get_valid_spawns(sr, sc, gs.board, gs.tile_effects):
+                    if (r, c) == (sp[0], sp[1]):
+                        acao["type"] = "spawn"
+                        acao["spawn_name"] = sp[2]
+                        return acao
+                if hasattr(p, 'get_valid_spells'):
+                    for spell in p.get_valid_spells(sr, sc, gs.board, gs.tile_effects):
+                        if (r, c) == spell["target"]:
+                            acao["type"] = "spell"
+                            acao["spell_name"] = spell["spell_type"]
+                            return acao
+        return acao if acao["type"] else None
 
-resultados_analise = {}
-
-def analisar_historico_thread(move_log):
-    for id_jogada, log in enumerate(move_log):
-        estado_congelado = log["estado_anterior"]
-        melhor_jogada = find_best_move(estado_congelado, evaluator_func=avaliador_mestre, depth_limit=3, noise_level=150)
-        if not melhor_jogada: continue
+    def desenhar_animacao(self, gs, start_pos, end_pos, action_type, tam_casa, off_x, off_y):
+        sr, sc = start_pos
+        er, ec = end_pos
+        piece = gs.board[sr][sc] if gs.board[sr][sc] else gs.board[er][ec]
         
-        s_alg = coords_para_notacao(*melhor_jogada["start"])
-        e_alg = coords_para_notacao(*melhor_jogada["end"])
-        str_jogada = f"{s_alg}-{e_alg}"
+        sx, sy = off_x + sc * tam_casa + tam_casa // 2, off_y + sr * tam_casa + tam_casa // 2
+        ex, ey = off_x + ec * tam_casa + tam_casa // 2, off_y + er * tam_casa + tam_casa // 2
         
-        gs_temp = estado_congelado.fast_clone()
-        gs_temp.make_action(melhor_jogada["start"], melhor_jogada["end"], melhor_jogada["type"])
-        score = avaliador_mestre(gs_temp)
-        
-        forced_mate = None
-        if score > 90000 or score < -90000:
-            forced_mate = "1" 
+        if action_type in ["move", "attack"]: 
+            gs.board[sr][sc] = None
             
-        resultados_analise[id_jogada] = {
-            "best_move_str": str_jogada,
-            "score": round(score, 1),
-            "forced_mate": forced_mate
-        }
+        for i in range(16):
+            t = i / 15
+            cx, cy = sx + (ex - sx) * t, sy + (ey - sy) * t
+            self.ecra.fill(C_FUNDO)
+            
+            desenhar_tabuleiro(self.ecra, gs, tam_casa, off_x, off_y)
+            desenhar_coordenadas(self.ecra, tam_casa, off_x, off_y)
+            desenhar_pecas(self.ecra, gs.board, tam_casa, off_x, off_y)
+            
+            if action_type in ["move", "attack"] and piece:
+                img = carregar_imagem_peca(piece.name, piece.team, tam_casa)
+                if img: self.ecra.blit(img, img.get_rect(center=(cx, cy)))
+                else: pygame.draw.circle(self.ecra, (200,200,200), (cx, cy), int(tam_casa * 0.38))
+            elif action_type == "stun": pygame.draw.circle(self.ecra, (0, 200, 255), (int(cx), int(cy)), 12)
+            elif action_type == "spawn": pygame.draw.circle(self.ecra, (200, 100, 255), (int(cx), int(cy)), 12)
+            elif action_type == "spell": pygame.draw.circle(self.ecra, (200, 50, 255), (int(cx), int(cy)), 12)
+            
+            pygame.display.flip()
+            self.clock.tick(60)
+            
+        if action_type in ["move", "attack"]: 
+            gs.board[sr][sc] = piece
 
-def main():
-    pygame.init()
-    ecra = pygame.display.set_mode((1300, 800), pygame.RESIZABLE)
-    pygame.display.set_caption("RedWar - Combat Engine")
-    clock = pygame.time.Clock()
-    
-    fase_atual = "MENU" 
-    gs = GameState(time_limit_seconds=180)
-    pontos_jogador = ORCAMENTO_BRANCAS
-    peca_loja = casa_selecionada = hover_pos = None
-    catalogo = obter_catalogo_pecas()
-    
-    elo_escolhido = 1500
-    bot_ativo = gerar_bot_por_elo(elo_escolhido)
-    
-    # === VARIÁVEIS MULTITHREADING ===
-    thread_analise = None
-    thread_ia = None 
-    resultado_ia = []
-    review_index = 0
-    display_gs = None
-
-    def pensar_ia(bot, estado):
-        move = bot.play(estado)
-        resultado_ia.append(move)
-    
-    arrastando_elo = False
-    botoes_loja = {}
-    btn_voltar = btn_ready = pygame.Rect(0,0,0,0)
-    btn_start = btn_info = pygame.Rect(0,0,0,0)
-    btn_confirmar = rect_elo = pygame.Rect(0,0,0,0)
-    btn_prev = btn_next = pygame.Rect(0,0,0,0)
-    
-    correr = True
-    while correr:
-        w, h = ecra.get_size()
-        # Anchor the board with fixed offsets (prevents HUD overlap)
+    def get_ui_metrics(self):
+        w, h = self.ecra.get_size()
         off_y_tab = 80
         off_x = 60
-        # Compute tile size fitting the anchored area
         available_h = h - off_y_tab - 120
         tam_casa = min(w // (COLUNAS + 1), max(8, available_h // LINHAS))
-        painel_x = off_x + COLUNAS * tam_casa + 30
+        return off_y_tab, off_x, tam_casa
 
-        # === CAPTURA DE HOVER CONTÍNUA ===
-        mx, my = pygame.mouse.get_pos()
-        hover_pos = None
-        if off_y_tab <= my < off_y_tab + LINHAS*tam_casa and off_x <= mx < off_x + COLUNAS*tam_casa:
-            hover_pos = ((my - off_y_tab) // tam_casa, (mx - off_x) // tam_casa)
+    def thread_de_analise(self, estado_congelado):
+        for depth, top_moves in analisar_posicao_continuamente(estado_congelado):
+            self.analise_depth_atual = depth
+            self.analise_resultados_top5 = top_moves
 
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT: correr = False
-            elif evento.type == pygame.VIDEORESIZE: ecra = pygame.display.set_mode((evento.w, evento.h), pygame.RESIZABLE)
-            elif evento.type == pygame.MOUSEBUTTONUP:
-                arrastando_elo = False
-            elif evento.type == pygame.MOUSEBUTTONDOWN:
-                if evento.button == 1:
-                    if fase_atual == "MENU":
-                        if btn_start.collidepoint(mx, my): fase_atual = "DIFICULDADE"
-                        elif btn_info.collidepoint(mx, my): fase_atual = "INFO"
-                    
-                    elif fase_atual == "DIFICULDADE":
-                        if rect_elo.collidepoint(mx, my): arrastando_elo = True
-                        elif btn_confirmar.collidepoint(mx, my):
-                            bot_ativo = gerar_bot_por_elo(elo_escolhido)
-                            fase_atual = "DRAFT"
-                            pygame.display.set_caption(f"RedWar - A Jogar contra: {bot_ativo.nome}")
-                            # recompute evaluator cache on new game start
-                            gs.current_score = None
-                    
-                    elif fase_atual == "INFO":
-                        if btn_voltar.collidepoint(mx, my): fase_atual = "MENU"
-                        
-                    elif fase_atual == "DRAFT":
-                        if my >= off_y_tab + (LINHAS * tam_casa) + 20:
-                            for nome, rect in botoes_loja.items():
-                                if rect.collidepoint(mx, my): peca_loja = nome
-                            if btn_ready.collidepoint(mx, my):
-                                auto_draft_ia(gs, ORCAMENTO_PRETAS)
-                                fase_atual = "BATALHA"
-                    elif fase_atual == "ANALISE":
-                        # Prev/Next review controls (set in render, handled here on clicks)
-                        if btn_prev and btn_prev.collidepoint(evento.pos):
-                            review_index = max(0, review_index - 1)
-                            if 0 <= review_index < len(gs.move_log):
-                                display_gs = gs.move_log[review_index]["estado_anterior"].fast_clone()
-                            else:
-                                display_gs = None
-                        if btn_next and btn_next.collidepoint(evento.pos):
-                            review_index = min(len(gs.move_log) - 1, review_index + 1) if gs.move_log else 0
-                            if 0 <= review_index < len(gs.move_log):
-                                display_gs = gs.move_log[review_index]["estado_anterior"].fast_clone()
-                            else:
-                                display_gs = None
-                        elif peca_loja and hover_pos:
-                            r, c = hover_pos
-                            # Permite colocar apenas nas últimas duas linhas do teu lado do tabuleiro
-                            if 0 <= c < COLUNAS and r >= LINHAS - 2 and gs.board[r][c] is None:
-                                p_data = next((p for p in catalogo if p["name"] == peca_loja), None)
-                                if p_data and p_data["cost"] <= pontos_jogador:
-                                    gs.board[r][c] = p_data["class"]('brancas')
-                                    pontos_jogador -= p_data["cost"]
-                                    peca_loja = None
+    def run(self):
+        while True:
+            dt = self.clock.tick(60) / 1000.0 
+            if self.fase_atual == "BATALHA" and not self.gs.game_over:
+                if self.gs.white_to_move:
+                    self.gs.white_time = max(0.0, self.gs.white_time - dt)
+                else:
+                    self.gs.black_time = max(0.0, self.gs.black_time - dt)
+            
+            off_y_tab, off_x, tam_casa = self.get_ui_metrics()
+            painel_x = off_x + COLUNAS * tam_casa + 30
+            mx, my = pygame.mouse.get_pos()
+            
+            self.hover_pos = None
+            if off_y_tab <= my < off_y_tab + LINHAS*tam_casa and off_x <= mx < off_x + COLUNAS*tam_casa:
+                self.hover_pos = ((my - off_y_tab) // tam_casa, (mx - off_x) // tam_casa)
 
-                    elif fase_atual == "BATALHA" and gs.white_to_move and not gs.game_over:
-                        if hover_pos:
-                            r, c = hover_pos
-                            if not casa_selecionada:
-                                if gs.board[r][c] and gs.board[r][c].team == 'brancas': 
-                                    casa_selecionada = (r, c)
-                            else:
-                                sr, sc = casa_selecionada
-                                p = gs.board[sr][sc]
-                                if p:
-                                    if (r, c) in p.get_valid_moves(sr, sc, gs.board, gs.tile_effects):
-                                        animar_acao(ecra, gs, (sr, sc), (r, c), "move", tam_casa, off_x, off_y_tab, clock)
-                                        gs.make_action((sr, sc), (r, c), "move")
-                                    elif (r, c) in p.get_valid_attacks(sr, sc, gs.board, gs.tile_effects):
-                                        animar_acao(ecra, gs, (sr, sc), (r, c), "attack", tam_casa, off_x, off_y_tab, clock)
-                                        gs.make_action((sr, sc), (r, c), "attack")
-                                    else:
-                                        stuns = p.get_valid_stuns(sr, sc, gs.board, gs.tile_effects)
-                                        if (r, c) in stuns and stuns[(r, c)]["has_enemy"]:
-                                            animar_acao(ecra, gs, (sr, sc), (r, c), "stun", tam_casa, off_x, off_y_tab, clock)
-                                            gs.make_action((sr, sc), (r, c), "stun", affected_area=stuns[(r, c)]["aoe"])
-                                        else:
-                                            spawn_found = False
-                                            for sp in p.get_valid_spawns(sr, sc, gs.board, gs.tile_effects):
-                                                if (r, c) == (sp[0], sp[1]):
-                                                    animar_acao(ecra, gs, (sr, sc), (r, c), "spawn", tam_casa, off_x, off_y_tab, clock)
-                                                    gs.make_action((sr, sc), (r, c), "spawn", spawn_name=sp[2])
-                                                    spawn_found = True
-                                                    break
-                                            if not spawn_found and hasattr(p, 'get_valid_spells'):
-                                                for spell in p.get_valid_spells(sr, sc, gs.board, gs.tile_effects):
-                                                    if (r, c) == spell["target"]:
-                                                        animar_acao(ecra, gs, (sr, sc), (r, c), "spell", tam_casa, off_x, off_y_tab, clock)
-                                                        gs.make_action((sr, sc), (r, c), "spell", spell_name=spell["spell_type"])
-                                                        break
-                                casa_selecionada = None
+            for evento in pygame.event.get():
+                if evento.type == pygame.QUIT:
+                    pygame.quit()
+                    return
+                elif evento.type == pygame.VIDEORESIZE:
+                    self.ecra = pygame.display.set_mode((evento.w, evento.h), pygame.RESIZABLE)
+                elif evento.type == pygame.MOUSEBUTTONUP:
+                    self.arrastando_elo = False
+                elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
+                    self.tratar_cliques(mx, my, evento.pos)
+                elif evento.type == pygame.MOUSEMOTION:
+                    if self.arrastando_elo:
+                        perc = max(0.0, min(1.0, (mx - (self.ecra.get_width()//2 - 200)) / 400.0))
+                        self.elo_escolhido = int(100 + perc * 2500)
 
-            elif evento.type == pygame.MOUSEMOTION:
-                if arrastando_elo:
-                    perc = max(0.0, min(1.0, (mx - (w//2 - 200)) / 400.0))
-                    elo_escolhido = int(100 + perc * 2500)
+            self.processar_ia()
+            self.renderizar(w=self.ecra.get_width(), h=self.ecra.get_height(), off_x=off_x, off_y_tab=off_y_tab, tam_casa=tam_casa, painel_x=painel_x)
+            pygame.display.flip()
 
-        # === GESTÃO ASSÍNCRONA DA IA (Sem Bloquear Ecrã) ===
-        if fase_atual == "BATALHA" and not gs.white_to_move and not gs.game_over:
-            if thread_ia is None:
-                thread_ia = threading.Thread(target=pensar_ia, args=(bot_ativo, gs.fast_clone()))
-                thread_ia.daemon = True
-                thread_ia.start()
-                pygame.display.set_caption(f"RedWar - {bot_ativo.nome} a esmagar a árvore tática...")
-            elif not thread_ia.is_alive():
-                best_move_str = resultado_ia.pop() if resultado_ia else None
-                if best_move_str:
-                    parsed = ActionParser.parse(best_move_str)
-                    
-                    if parsed:
-                        m_type = parsed["action"].lower()
-                        start_r, start_c = ActionParser.alg_to_coords(parsed["origin"], LINHAS)
-                        end_r, end_c = ActionParser.alg_to_coords(parsed["target"], LINHAS)
-                        
-                        animar_acao(ecra, gs, (start_r, start_c), (end_r, end_c), m_type, tam_casa, off_x, off_y_tab, clock)
-                        
-                        if m_type == "stun":
-                            atacante = gs.board[start_r][start_c]
-                            area_stun = []
-                            if atacante:
-                                stuns_validos = atacante.get_valid_stuns(start_r, start_c, gs.board, gs.tile_effects)
-                                if stuns_validos and (end_r, end_c) in stuns_validos:
-                                    area_stun = stuns_validos[(end_r, end_c)].get("aoe", [])
-                            gs.make_action((start_r, start_c), (end_r, end_c), "stun", affected_area=area_stun)
-                        elif m_type == "spawn":
-                            gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed.get("hero"))
-                        elif m_type == "spell":
-                            gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed.get("spell"))
-                        else:
-                            gs.make_action((start_r, start_c), (end_r, end_c), m_type)
-
-                pygame.display.set_caption(f"RedWar - O Teu Turno")
-                thread_ia = None
+    def tratar_cliques(self, mx, my, pos):
+        if self.fase_atual == "MENU":
+            if self.btn_start.collidepoint(mx, my): self.fase_atual = "DIFICULDADE"
+            elif self.btn_info.collidepoint(mx, my): self.fase_atual = "INFO"
+            
+        elif self.fase_atual == "DIFICULDADE":
+            if self.rect_elo.collidepoint(mx, my): self.arrastando_elo = True
+            elif self.btn_confirmar.collidepoint(mx, my):
+                self.bot_ativo = CppEngineBot(depth=4)
+                self.fase_atual = "DRAFT"
+                pygame.display.set_caption(f"RedWar - VS {self.bot_ativo.nome}")
+                self.gs.current_score = None
                 
-        if fase_atual == "BATALHA" and gs.game_over and not thread_analise:
-            fase_atual = "ANALISE"
-            thread_analise = threading.Thread(target=analisar_historico_thread, args=(gs.move_log,))
-            thread_analise.daemon = True
-            thread_analise.start()
-
-        # === RENDERIZAÇÃO ===
-        if fase_atual == "MENU":
-            btn_start, btn_info = desenhar_menu_principal(ecra, w, h)
-        elif fase_atual == "DIFICULDADE":
-            rect_elo, btn_confirmar = desenhar_selecao_dificuldade(ecra, w, h, elo_escolhido)
-        elif fase_atual == "INFO":
-            btn_voltar = desenhar_enciclopedia(ecra, w, h, catalogo)
-        else:
-            ecra.fill(C_FUNDO)
+        elif self.fase_atual == "INFO":
+            pass 
             
-            # HUD e Eval Bar (use cached score; do not call evaluator per-frame)
-            try:
-                desenhar_eval_bar(ecra, gs, off_x - 30, LINHAS * tam_casa, off_y_tab)
-            except Exception:
-                pass
-            desenhar_hud_jogadores(ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, bot_ativo.nome, gs)
+        elif self.fase_atual == "DRAFT":
+            for nome, rect in self.botoes_loja.items():
+                if rect.collidepoint(mx, my): self.peca_loja = nome
+            if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < ORCAMENTO_BRANCAS:
+                self.auto_draft_inimigo(ORCAMENTO_PRETAS)
+                self.fase_atual = "BATALHA"
+                self.peca_loja = None
+            elif self.peca_loja and self.hover_pos:
+                r, c = self.hover_pos
+                if 0 <= c < COLUNAS and r >= LINHAS - 2 and self.gs.board[r][c] is None:
+                    p_data = next((p for p in self.catalogo if p["name"] == self.peca_loja), None)
+                    if p_data and p_data["cost"] <= self.pontos_jogador:
+                        self.gs.board[r][c] = p_data["class"]('brancas')
+                        self.pontos_jogador -= p_data["cost"]
+                        self.peca_loja = None
 
-            # Tabuleiro base
-            # Em modo ANÁLISE usamos a posição do índice de revisão se existir
-            to_draw_gs = display_gs if (fase_atual == "ANALISE" and display_gs is not None) else gs
-            desenhar_tabuleiro(ecra, to_draw_gs, tam_casa, off_x, off_y_tab)
-            desenhar_coordenadas(ecra, tam_casa, off_x, off_y_tab)
-            
-            # Painel Lateral Dinâmico (Log de Batalha vs Info do Herói)
-            if fase_atual == "ANALISE":
-                # desenha painel de análise e controles Prev/Next
-                desenhar_analise(ecra, painel_x, 20, 350, h - 40, gs.move_log, resultados_analise)
-                # controls
-                btn_prev = pygame.Rect(painel_x + 20, h - 80, 80, 40)
-                btn_next = pygame.Rect(painel_x + 120, h - 80, 80, 40)
-                pygame.draw.rect(ecra, (80,80,80), btn_prev, border_radius=6)
-                pygame.draw.rect(ecra, (80,80,80), btn_next, border_radius=6)
-                fbtn = pygame.font.SysFont("arial", 20, bold=True)
-                ecra.blit(fbtn.render("Anterior", True, C_BRANCO), (btn_prev.x + 6, btn_prev.y + 8))
-                ecra.blit(fbtn.render("Próximo", True, C_BRANCO), (btn_next.x + 6, btn_next.y + 8))
-                # set display_gs from current review_index
-                if 0 <= review_index < len(gs.move_log):
-                    display_gs = gs.move_log[review_index]["estado_anterior"].fast_clone()
+        elif self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
+            if self.hover_pos:
+                r, c = self.hover_pos
+                if not self.casa_selecionada:
+                    if self.gs.board[r][c] and self.gs.board[r][c].team == 'brancas': 
+                        self.casa_selecionada = (r, c)
                 else:
-                    display_gs = None
+                    sr, sc = self.casa_selecionada
+                    acao = self.extrair_acao_valida(self.gs, sr, sc, r, c)
+                    if acao:
+                        _, off_x, tam_casa = self.get_ui_metrics()
+                        self.desenhar_animacao(self.gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
+                        self.gs.execute_action(acao)
+                    self.casa_selecionada = None
+
+        elif self.fase_atual == "ANALISE":
+            total_estados = len(self.gs.move_log)
+            if self.btn_prev.collidepoint(pos) and self.review_index > 0:
+                estado_antigo = self.display_gs
+                self.review_index -= 1
+                if self.review_index == total_estados: self.display_gs = self.gs
+                else: self.display_gs = self.gs.move_log[self.review_index]["estado_anterior"].fast_clone()
+                acao = self.gs.move_log[self.review_index]["acao_escolhida"]
+                _, off_x, tam_casa = self.get_ui_metrics()
+                self.desenhar_animacao(estado_antigo, acao["end"], acao["start"], acao["type"], tam_casa, off_x, 80)
+                
+            elif self.btn_next.collidepoint(pos) and self.review_index < total_estados:
+                acao = self.gs.move_log[self.review_index]["acao_escolhida"]
+                _, off_x, tam_casa = self.get_ui_metrics()
+                self.desenhar_animacao(self.display_gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
+                self.review_index += 1
+                if self.review_index == total_estados: self.display_gs = self.gs
+                else: self.display_gs = self.gs.move_log[self.review_index]["estado_anterior"].fast_clone()
             else:
-                if hover_pos and gs.board[hover_pos[0]][hover_pos[1]]:
-                    desenhar_painel_heroi(ecra, gs.board[hover_pos[0]][hover_pos[1]], painel_x, 20, 350, h - 40)
+                if self.hover_pos and self.display_gs:
+                    r, c = self.hover_pos
+                    if not self.casa_selecionada and self.display_gs.board[r][c]:
+                        self.casa_selecionada = (r, c)
+                    elif self.casa_selecionada:
+                        acao = self.extrair_acao_valida(self.display_gs, self.casa_selecionada[0], self.casa_selecionada[1], r, c)
+                        if acao:
+                            _, off_x, tam_casa = self.get_ui_metrics()
+                            self.desenhar_animacao(self.display_gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
+                            self.display_gs.execute_action(acao)
+                            self.analise_resultados_top5 = []
+                            self.analise_depth_atual = 0
+                            self.thread_analise = threading.Thread(target=self.thread_de_analise, args=(self.display_gs.fast_clone(),))
+                            self.thread_analise.daemon = True
+                            self.thread_analise.start()
+                        self.casa_selecionada = None
+
+    def processar_ia(self):
+        if self.fase_atual == "BATALHA" and not self.gs.white_to_move and not self.gs.game_over:
+            if self.thread_ia is None:
+                def pensar(bot, estado):
+                    self.resultado_ia.append(bot.escolher_jogada(estado))
+                self.thread_ia = threading.Thread(target=pensar, args=(self.bot_ativo, self.gs.fast_clone()))
+                self.thread_ia.daemon = True
+                self.thread_ia.start()
+                pygame.display.set_caption(f"RedWar - {self.bot_ativo.nome} a esmagar a árvore tática...")
+            elif not self.thread_ia.is_alive():
+                parsed = self.resultado_ia.pop() if self.resultado_ia else None
+                if parsed:
+                    _, off_x, tam_casa = self.get_ui_metrics()
+                    self.desenhar_animacao(self.gs, parsed["start"], parsed["end"], parsed["type"], tam_casa, off_x, 80)
+                    self.gs.execute_action(parsed)
+                pygame.display.set_caption("RedWar - O Teu Turno")
+                self.thread_ia = None
+                
+        if self.fase_atual == "BATALHA" and self.gs.game_over and not self.thread_analise:
+            self.fase_atual = "ANALISE"
+            self.review_index = len(self.gs.move_log)
+            self.display_gs = self.gs.fast_clone()
+            self.thread_analise = threading.Thread(target=self.thread_de_analise, args=(self.display_gs.fast_clone(),))
+            self.thread_analise.daemon = True
+            self.thread_analise.start()
+
+    def renderizar(self, w, h, off_x, off_y_tab, tam_casa, painel_x):
+        if self.fase_atual == "MENU":
+            self.btn_start, self.btn_info = desenhar_menu_principal(self.ecra, w, h)
+        elif self.fase_atual == "DIFICULDADE":
+            self.rect_elo, self.btn_confirmar = desenhar_selecao_dificuldade(self.ecra, w, h, self.elo_escolhido)
+        elif self.fase_atual == "INFO":
+            pass 
+        else:
+            self.ecra.fill(C_FUNDO)
+            try: desenhar_eval_bar(self.ecra, self.gs, off_x - 30, LINHAS * tam_casa, off_y_tab)
+            except Exception: pass
+            
+            desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, self.bot_ativo.nome if self.bot_ativo else "StockWar", self.gs)
+
+            # Faixa Fim de Jogo limpa no topo
+            if self.gs.game_over:
+                fonte_fim = pygame.font.SysFont("arial", 24, bold=True)
+                txt = fonte_fim.render(f"FIM DE JOGO: {self.gs.winner}", True, C_VERMELHO)
+                self.ecra.blit(txt, (off_x, off_y_tab - 35))
+
+            to_draw = self.display_gs if (self.fase_atual == "ANALISE" and self.display_gs) else self.gs
+            desenhar_tabuleiro(self.ecra, to_draw, tam_casa, off_x, off_y_tab)
+            desenhar_coordenadas(self.ecra, tam_casa, off_x, off_y_tab)
+            
+            if self.fase_atual == "DRAFT":
+                self.botoes_loja, self.btn_ready, _ = desenhar_loja_dinamica(self.ecra, painel_x, 20, 350, h - 40, self.catalogo, self.pontos_jogador, self.peca_loja)
+            elif self.fase_atual == "ANALISE":
+                pygame.draw.rect(self.ecra, (20, 20, 30), (painel_x, 20, 350, h - 40), border_radius=10)
+                self.ecra.blit(pygame.font.SysFont("arial", 22, bold=True).render(f"Análise (Profundidade: {self.analise_depth_atual})", True, (150, 200, 255)), (painel_x + 15, 35))
+                
+                f_top = pygame.font.SysFont("arial", 16)
+                yy = 80
+                for rank, mv in enumerate(self.analise_resultados_top5):
+                    c = C_BRANCO if rank == 0 else (180, 180, 180)
+                    str_alg = f"{coords_para_notacao(*mv['start'])}-{coords_para_notacao(*mv['end'])}"
+                    txt = f"{rank+1}. {str_alg} (Score: {mv['score']:.1f})"
+                    self.ecra.blit(f_top.render(txt, True, c), (painel_x + 20, yy))
+                    yy += 30
+                    
+                self.btn_prev = pygame.Rect(painel_x + 20, h - 80, 80, 40)
+                self.btn_next = pygame.Rect(painel_x + 120, h - 80, 80, 40)
+                pygame.draw.rect(self.ecra, (80,80,80), self.btn_prev, border_radius=6)
+                pygame.draw.rect(self.ecra, (80,80,80), self.btn_next, border_radius=6)
+                fbtn = pygame.font.SysFont("arial", 20, bold=True)
+                self.ecra.blit(fbtn.render("Anterior", True, C_BRANCO), (self.btn_prev.x + 6, self.btn_prev.y + 8))
+                self.ecra.blit(fbtn.render("Próximo", True, C_BRANCO), (self.btn_next.x + 6, self.btn_next.y + 8))
+            else:
+                if self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:
+                    desenhar_painel_heroi(self.ecra, self.gs.board[self.hover_pos[0]][self.hover_pos[1]], painel_x, 20, 350, h - 40)
                 else:
-                    desenhar_log(ecra, gs, painel_x, 20, 350, h - 40)
+                    desenhar_log(self.ecra, self.gs, painel_x, 20, 350, h - 40)
             
-            # Destaques e Previsão de Movimento (Hover Intent)
-            if casa_selecionada and fase_atual == "BATALHA":
-                desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa, off_x, off_y_tab)
-                r, c = casa_selecionada
-                pygame.draw.rect(ecra, (255, 255, 50), (off_x + c * tam_casa, off_y_tab + r * tam_casa, tam_casa, tam_casa), 3)
+            if self.casa_selecionada:
+                desenhar_destaques_com_hover(self.ecra, to_draw, self.casa_selecionada, self.hover_pos, tam_casa, off_x, off_y_tab)
+                pygame.draw.rect(self.ecra, (255, 255, 50), (off_x + self.casa_selecionada[1] * tam_casa, off_y_tab + self.casa_selecionada[0] * tam_casa, tam_casa, tam_casa), 3)
 
-            # Desenha as Peças por cima de tudo
-            desenhar_pecas(ecra, gs.board, tam_casa, off_x, off_y_tab)
-            
-            if fase_atual == "DRAFT":
-                botoes_loja, btn_ready, _ = desenhar_loja_dinamica(ecra, w, h, catalogo, pontos_jogador, peca_loja, off_y_tab + (LINHAS * tam_casa) + 20)
-            
-            elif gs.game_over:
-                fonte_fim = pygame.font.SysFont("arial", 48, bold=True)
-                txt = fonte_fim.render(f"FIM: {gs.winner}", True, C_VERMELHO)
-                s_fim = pygame.Surface((txt.get_width() + 40, txt.get_height() + 20), pygame.SRCALPHA)
-                s_fim.fill((0, 0, 0, 200))
-                centro_x = off_x + (COLUNAS * tam_casa) // 2
-                centro_y = off_y_tab + (LINHAS * tam_casa) // 2
-                ecra.blit(s_fim, (centro_x - s_fim.get_width()//2, centro_y - s_fim.get_height()//2))
-                ecra.blit(txt, (centro_x - txt.get_width()//2, centro_y - txt.get_height()//2))
-
-        pygame.display.flip()
-        clock.tick(60)
-
-    pygame.quit()
+            desenhar_pecas(self.ecra, to_draw.board, tam_casa, off_x, off_y_tab)
 
 if __name__ == "__main__":
-    main()
+    app = JogoController()
+    app.run()

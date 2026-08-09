@@ -43,19 +43,22 @@ ai/
 ├── bot.py          # Orquestração de bots, presets ELO e dificuldade dinâmica
 ├── search.py       # Minimax + Alpha-Beta, Move Ordering, TT, Iterative Deepening
 ├── evaluator.pyx   # Avaliador posicional (Cython — hot path compilado)
-├── trainer.py      # Geração de telemetria para calibração
-└── game_analyzer.py # Deteção de gridlocks e anomalias táticas
+└── cpp_engine/     # Motor C++ UCI + interface nativa de busca
 ```
 
 ### Stack Algorítmica
 
 - **Minimax com Alpha-Beta Pruning** — poda agressiva para maximizar profundidade de busca
 - **Move Ordering heurístico** — capturas, stuns e ameaças avaliados primeiro
-- **Zobrist Hashing + Tabela de Transposição** — cache de posições com limpeza inteligente por profundidade
+- **Zobrist Hashing + Tabela de Transposição** — cache de posições com limpeza inteligente por profundidade no motor Python; a implementação de TT real em C++ ainda não está presente
 - **Iterative Deepening** — profundidade crescente dentro do limite de tempo
 - **Killer Moves & Quiescence** — estabilidade tática em posições voláteis
 - **Avaliador Cython** (`evaluator.pyx`) — avaliação posicional compilada para NPS elevado
 - **Simulação completa de Feitiços** — *ignite*, *purify*, *barricade*, *swap* integrados no `game_state.py` e na árvore de busca
+
+### 🧩 Sistema Declarativo de Passivas
+
+O motor suporta `behavior.passives` em `engine/heroes_config.json`, como documentado em `engine/HEROES_SCHEMA.md`. Este esquema permite definir efeitos automáticos por evento (`on_kill`, `on_attack`, `on_attacked`, `aura_passive`) sem espalhar lógica de herói em código ad hoc. O BoneLord já está migrado para `behavior.passives`; Templar, Berserker, Inquisitor e outros heróis ainda estão planeados para migração.
 
 ### Calibração ELO
 
@@ -74,6 +77,8 @@ Presets oficiais da Arena:
 | `BOT_INTERMEDIO` | 200 | Desafiante padrão da Arena |
 | `BOT_AVANCADO` | 250 | Campeão atual |
 | `BOT_MESTRE` | 300 | Teto calibrado empiricamente |
+
+<!-- TODO: confirmar escala de ELO -->
 
 ---
 
@@ -158,8 +163,7 @@ RedWar/
 │   ├── bot.py
 │   ├── search.py
 │   ├── evaluator.pyx
-│   ├── trainer.py
-│   └── game_analyzer.py
+│   └── cpp_engine/
 │
 ├── engine/             # 🔒 Motor de jogo — regras, estado, peças
 │   ├── game_state.py   #    make/unmake, Zobrist, feitiços, stuns
@@ -176,7 +180,11 @@ RedWar/
 │   └── network/
 │
 ├── tools/              # 🔒 Laboratório privado
-│   ├── analytics/      #    Arena, calibração ELO, opening tester
+│   ├── analytics/      #    Arena, calibração ELO, geração de telemetria
+│   │   ├── arena_tournament.py
+│   │   ├── calibrate_elo.py
+│   │   ├── trainer.py
+│   │   └── game_analyzer.py
 │   ├── balance/        #    Auto-Pricer, color balancer
 │   └── scripts/        #    Build pipeline, hooks, utilitários
 │
@@ -233,7 +241,7 @@ python online/client/multiplayer_main.py <IP_DO_SERVIDOR>
 pytest tests/                                    # Testes unitários rápidos
 python tools/scripts/build_pipeline.py           # Pipeline completo (testes + telemetria + balance)
 python tools/analytics/arena_tournament.py       # Simular torneio da Arena localmente
-python ai/game_analyzer.py                       # Detetar gridlocks e anomalias
+python tools/analytics/game_analyzer.py           # Detetar gridlocks e anomalias
 ```
 
 ---
@@ -245,12 +253,14 @@ python ai/game_analyzer.py                       # Detetar gridlocks e anomalias
 | Frente | Estado | Descrição |
 |--------|--------|-----------|
 | **Modelo Matemático de ELO** | 🟡 Pendente | Abandonar limites de tempo como proxy de dificuldade. Implementar **Miopia** (`Depth = max(1, ⌊ELO/400⌋)`) e **Roleta de Blunders** (ruído probabilístico na raiz para ELOs baixos) — modelo Stockfish/Chess.com |
-| **Cythonização Extrema** | 🟡 Pendente | Além do `evaluator.pyx`: converter geração de movimentos, make/unmake e regras de `game_state.py` para C++ — objetivo: explodir NPS |
-| **Multijogador Real** | 🟡 Scaffolding | Infraestrutura em `online/` para partidas humano vs humano via WebSockets |
+| **Heróis Modulares** | 🟡 Em curso | Migrar `behavior`/`passives` para um sistema data-driven e reduzir cases hardcoded nas unidades |
+| **IA completa em C++** | 🟡 Pendente | Integrar todos os ficheiros de `ai/` no motor nativo com otimizações inspiradas em Stockfish |
+| **Ajustes de jogo** | 🟡 Se necessário | Ajustes no tabuleiro e nas regras apenas após a estabilidade da IA nativa |
+| **Multijogador + packaging** | 🟡 Scaffolding | Cliente/servidor, `main.spec` e deployment final |
 
 ### ✅ Concluído Recentemente
 
-- Zobrist Hashing + Tabela de Transposição com limpeza por profundidade
+- Zobrist hashing no motor Python; a implementação de Tabela de Transposição em C++ ainda está pendente
 - Feitiços integrados na IA e na UI (VFX roxos, cliques corretos)
 - Pipeline DevOps: pre-push hooks com pytest + simulações pesadas na CI
 - Refatoração cirúrgica: separação `ai/` (cérebro) vs `tools/` (laboratório)

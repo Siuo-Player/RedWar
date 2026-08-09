@@ -1,58 +1,127 @@
-import random
-from ai.search import find_best_move, get_all_moves_ordered
+# ai/bot.py
+import subprocess
+import os
+from engine.action_parser import ActionParser
 from engine.config import LINHAS
 
-def coords_para_alg(r, c):
-    """Converte (r, c) em Notação Algébrica"""
-    return f"{chr(65 + c)}{LINHAS - r}"
+class CppEngineBot:
+    """
+    Controlador do Bot baseado no motor externo C++ (Arquitetura UCI).
+    Comunica via Standard I/O ignorando o GIL do Python para máxima performance.
+    """
+    def __init__(self, depth=4):
+        self.depth = depth
+        self.nome = "StockWar C++" # <--- O Pylance agora já reconhece o nome!
+        
+        # Aponta para o Cérebro nativo e correto
+        exe_path = os.path.join(os.path.dirname(__file__), "cpp_engine", "engine.exe")
+        
+        if not os.path.exists(exe_path):
+            raise FileNotFoundError(f"Executável C++ não encontrado em: {exe_path}. Usa o script de build primeiro!")
 
-def format_agnostic_string(move_dict):
-    """Traduz o dicionário do motor para a String Agnóstica."""
-    if not move_dict:
+        project_root = os.path.dirname(os.path.dirname(__file__))
+        self.process = subprocess.Popen(
+            [exe_path],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding='utf-8',
+            cwd=project_root
+        )
+        
+        self._send_command("isready")
+
+    def play(self, game_state):
+        # Alias para suportar scripts antigos de analytics
+        return self.escolher_jogada(game_state)
+        
+    def _send_command(self, cmd: str):
+        if self.process.poll() is not None or not self.process.stdin:
+            return
+        self.process.stdin.write(cmd + "\n")
+        self.process.stdin.flush()
+        
+    def _read_response(self) -> str | None:
+        if self.process.poll() is not None or not self.process.stdout:
+            return None
+        return self.process.stdout.readline().strip()
+
+    def escolher_jogada(self, game_state):
+        rwen_str = game_state.to_rwen()
+        
+        self._send_command(f"position rwen {rwen_str}")
+        self._send_command(f"go depth {self.depth}")
+        
+        while True:
+            response = self._read_response()
+            if not response:
+                break
+            
+            if response.startswith("bestmove"):
+                parts = response.split(" ", 1)
+                if len(parts) > 1:
+                    raw_action = parts[1].strip()
+                    
+                    # 1. ActionParser extrai o dicionário bruto Agnóstico (ex: {"action": "MOVE", "origin": "A2", "target": "A3"})
+                    parsed = ActionParser.parse(raw_action)
+                    if not parsed:
+                        return None
+                        
+                    # 2. Converter coordenadas Algébricas (A2) para índices de matriz (R, C) para o GameState consumir
+                    final_action = {
+                        "type": parsed["action"].lower(),
+                        "start": ActionParser.alg_to_coords(parsed["origin"], LINHAS),
+                        "end": ActionParser.alg_to_coords(parsed["target"], LINHAS)
+                    }
+                    
+                    # Se transportar nomes de spells/spawns, mantemos no dicionário
+                    if "spell" in parsed:
+                        final_action["spell_name"] = parsed["spell"]
+                    if "hero" in parsed:
+                        final_action["spawn_name"] = parsed["hero"]
+                        
+                    # (Nota: As ações de 'stun' baseadas em área (affected_area) são calculadas em C++ puro.
+                    #  O Python apenas precisa de saber o ponto de focagem "end", e a validação do board resolve a área).
+                    return final_action
+                        
         return None
-        
-    sr, sc = move_dict["start"]
-    er, ec = move_dict["end"]
-    start_alg = coords_para_alg(sr, sc)
-    end_alg = coords_para_alg(er, ec)
-    
-    m_type = move_dict["type"]
-    
-    if m_type == "move": return f"MOVE {start_alg} {end_alg}"
-    elif m_type == "attack": return f"ATTACK {start_alg} {end_alg}"
-    elif m_type == "stun": return f"STUN {start_alg} {end_alg}"
-    elif m_type == "spawn": return f"SPAWN {move_dict['spawn_name']} {start_alg} {end_alg}"
-    elif m_type == "spell": return f"SPELL {move_dict['spell_name']} {start_alg} {end_alg}"
-        
-    return None
 
+    def __del__(self):
+        try:
+            self._send_command("quit")
+            self.process.terminate()
+        except Exception:
+            pass
+
+
+
+
+# --- BLOCO DE RETROCOMPATIBILIDADE PARA FERRAMENTAS DE ANALYTICS ---
 class BotConfig:
-    def __init__(self, nome, depth_limit, noise_level):
-        self.nome = nome
-        self.depth_limit = depth_limit
-        self.noise_level = noise_level
-
-    def play(self, gs):
-        raw_move = find_best_move(gs, depth_limit=self.depth_limit, noise_level=self.noise_level)
-        return format_agnostic_string(raw_move)
+    def __init__(self, *args, **kwargs):
+        pass
 
 class BotAleatorio:
     def __init__(self):
-        self.nome = "Macaco Aleatório (100 ELO)"
-
+        self.nome = "Bot Bebado"
     def play(self, gs):
-        acoes = get_all_moves_ordered(gs)
-        if not acoes: return None
-        return format_agnostic_string(random.choice(acoes))
+        return None
+    def escolher_jogada(self, gs):
+        return None
+        
+BOT_ALEATORIO = BotAleatorio()
+BOT_INICIANTE = CppEngineBot(depth=2)
+BOT_INICIANTE.nome = "StockWar Iniciante (D2)"
+
+BOT_INTERMEDIO = CppEngineBot(depth=4)
+BOT_INTERMEDIO.nome = "StockWar Intermédio (D4)"
+
+BOT_AVANCADO = CppEngineBot(depth=6)
+BOT_AVANCADO.nome = "StockWar Avançado (D6)"
 
 def gerar_bot_por_elo(elo):
-    if elo <= 100: return BotAleatorio()
-    depth_limit = max(1, elo // 400)
-    noise_level = max(0, (3000 - elo) / 10)
-    return BotConfig(f"Motor Dinâmico (ELO {int(elo)})", depth_limit=depth_limit, noise_level=noise_level)
-
-BOT_ALEATORIO = BotAleatorio()
-BOT_INICIANTE = gerar_bot_por_elo(900)
-BOT_INTERMEDIO = gerar_bot_por_elo(1500)
-BOT_AVANCADO = gerar_bot_por_elo(2000)
-BOT_MESTRE = gerar_bot_por_elo(2500)
+    if elo < 800: return BOT_ALEATORIO
+    if elo < 1400: return BOT_INICIANTE
+    if elo < 1900: return BOT_INTERMEDIO
+    return BOT_AVANCADO
