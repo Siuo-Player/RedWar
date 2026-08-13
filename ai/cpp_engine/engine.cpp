@@ -8,6 +8,7 @@
 #include <map>
 #include <algorithm>
 #include <cstdlib>
+#include <chrono> // NOVO: Relógio Interno
 #include "nlohmann/json.hpp"
 #include <random>
 
@@ -18,6 +19,12 @@ const int LINHAS = 8;
 const int COLUNAS = 8;
 const int INFINITO = 9999999;
 
+// --- GESTÃO DE TEMPO E LIMITES ---
+static bool abort_search = false;
+static int nodes_evaluated = 0;
+static auto search_start_time = std::chrono::steady_clock::now();
+static double time_limit_ms = 3000.0; // 3 Segundos de Limite Absoluto
+
 struct Piece {
     bool is_empty = true;
     char team = '.';
@@ -26,7 +33,7 @@ struct Piece {
     int lifespan = 999;
     int spawn_cooldown = 0;
     int cost = 0;
-    int id = 0; // NOVO: ID numérico para Zobrist
+    int id = 0; 
 };
 
 struct MoveVector {
@@ -50,10 +57,19 @@ struct Move {
     int er = 0;
     int ec = 0;
     string type = "MOVE";
+    int score = 0; 
 
     string to_uci() const {
         char s_letra = 'A' + sc, e_letra = 'A' + ec;
         return type + " " + string(1, s_letra) + to_string(LINHAS - sr) + " " + string(1, e_letra) + to_string(LINHAS - er);
+    }
+    
+    bool operator<(const Move& other) const {
+        return score > other.score; 
+    }
+    
+    bool operator==(const Move& other) const {
+        return sr == other.sr && sc == other.sc && er == other.er && ec == other.ec && type == other.type;
     }
 };
 
@@ -69,7 +85,6 @@ struct UndoInfo {
     Piece actor_piece;
 };
 
-// --- PASSO 4: Estruturas da Transposition Table ---
 enum TTFlag { TT_EXACT, TT_LOWERBOUND, TT_UPPERBOUND };
 
 struct TTEntry {
@@ -86,6 +101,9 @@ const uint64_t TT_SIZE = 1ULL << TT_SIZE_POWER;
 const uint64_t TT_MASK = TT_SIZE - 1;
 std::vector<TTEntry> transposition_table(TT_SIZE);
 
+// NOVO: Killer Heuristic Array [Profundidade][Slot]
+static Move killer_moves[100][2];
+
 BoardState board;
 
 static unordered_map<string, HeroBehavior> HERO_BEHAVIORS;
@@ -99,22 +117,30 @@ static uint64_t Z_CD[LINHAS][COLUNAS][8];
 static uint64_t ZOBRIST_SIDE_TO_MOVE = 0;
 
 static unordered_map<string, int> PIECE_IDS;
+static int PIECE_COSTS[MAX_HEROES] = {0}; 
 static int next_piece_id = 0;
 
+// Verifica o tempo para evitar que o C++ bloqueie o Python
+inline void check_time() {
+    if ((nodes_evaluated & 2047) == 0) { // Verifica a cada 2048 nós usando bitwise genialmente rápido
+        auto now = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double, std::milli>(now - search_start_time).count();
+        if (elapsed >= time_limit_ms) {
+            abort_search = true;
+        }
+    }
+}
 
 static uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
     int team_idx = (p.team == 'W') ? 0 : 1;
-    
-    // Failsafe do ID da peça
     int p_id = p.id;
     if (p_id < 0 || p_id >= MAX_HEROES) p_id = MAX_HEROES - 1; 
 
-    // Clamping Seguro
-    int life_idx = 0; // Reservado EXCLUSIVAMENTE para 999 (permanente)
+    int life_idx = 0; 
     if (p.lifespan != 999) {
-        life_idx = p.lifespan + 2; // lifespan -1 vai para índice 1; lifespan 0 para índice 2, etc.
-        if (life_idx < 1) life_idx = 1;   // Failsafe inferior (nunca toca no 0)
-        if (life_idx > 14) life_idx = 14; // Clamping seguro no teto
+        life_idx = p.lifespan + 2; 
+        if (life_idx < 1) life_idx = 1;   
+        if (life_idx > 14) life_idx = 14; 
     }
     
     int cd_idx = p.spawn_cooldown;
@@ -125,20 +151,15 @@ static uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
     if (stun_idx < 0) stun_idx = 0;
     if (stun_idx > 5) stun_idx = 5;
 
-    return Z_PIECE[r][c][p_id][team_idx] 
-         ^ Z_STUN[r][c][stun_idx] 
-         ^ Z_LIFE[r][c][life_idx] 
-         ^ Z_CD[r][c][cd_idx];
+    return Z_PIECE[r][c][p_id][team_idx] ^ Z_STUN[r][c][stun_idx] ^ Z_LIFE[r][c][life_idx] ^ Z_CD[r][c][cd_idx];
 }
 
-// --- PASSO 2: Função Compute Initial Hash ---
 uint64_t compute_initial_hash() {
     uint64_t h = 0;
     if (board.turn == 'W') h ^= ZOBRIST_SIDE_TO_MOVE;
     for (int r = 0; r < LINHAS; ++r)
         for (int c = 0; c < COLUNAS; ++c)
-            if (!board.pieces[r][c].is_empty)
-                h ^= get_piece_zobrist_key(r, c, board.pieces[r][c]);
+            if (!board.pieces[r][c].is_empty) h ^= get_piece_zobrist_key(r, c, board.pieces[r][c]);
     return h;
 }
 
@@ -155,18 +176,14 @@ static string read_file_contents(const string& path) {
 static vector<int> json_array_to_ints(const json& arr) {
     vector<int> result;
     if (!arr.is_array()) return result;
-    for (auto& item : arr) {
-        result.push_back(item.is_number() ? item.get<int>() : 0);
-    }
+    for (auto& item : arr) result.push_back(item.is_number() ? item.get<int>() : 0);
     return result;
 }
 
 static vector<vector<int>> json_array_of_arrays(const json& arr) {
     vector<vector<int>> result;
     if (!arr.is_array()) return result;
-    for (auto& item : arr) {
-        result.push_back(json_array_to_ints(item));
-    }
+    for (auto& item : arr) result.push_back(json_array_to_ints(item));
     return result;
 }
 
@@ -175,10 +192,7 @@ static vector<MoveVector> normalize_vectors(const vector<vector<int>>& raw, int 
     for (auto& v : raw) {
         if (v.size() < 3) continue;
         MoveVector mv;
-        mv.dr = v[0];
-        mv.dc = v[1];
-        mv.max_steps = v[2];
-        mv.min_steps = min_steps;
+        mv.dr = v[0]; mv.dc = v[1]; mv.max_steps = v[2]; mv.min_steps = min_steps;
         if (v.size() > 3) mv.min_steps = v[3];
         mv.ghost = ghost;
         if (v.size() > 4) mv.ghost = (v[4] != 0);
@@ -220,23 +234,17 @@ static vector<MoveVector> compile_move_behavior(const json& mv_json) {
     int max_steps = mv_json.value("max_steps", 1);
     bool ghost = mv_json.value("ghost_move", false);
     bool forward_by_team = mv_json.value("forward_dir_by_team", false);
-    if (type == "orthogonal") {
-        result = normalize_vectors({{-1,0,max_steps},{1,0,max_steps},{0,-1,max_steps},{0,1,max_steps}}, 1, ghost);
-    } else if (type == "diagonal") {
-        result = normalize_vectors({{-1,-1,max_steps},{-1,1,max_steps},{1,-1,max_steps},{1,1,max_steps}}, 1, ghost);
-    } else if (type == "adjacent" || type == "adj") {
-        result = normalize_vectors({{-1,-1,1},{-1,0,1},{-1,1,1},{0,-1,1},{0,1,1},{1,-1,1},{1,0,1},{1,1,1}}, 1, ghost);
-    } else if (type == "knight") {
-        result = normalize_vectors({{-2,-1,1},{-2,1,1},{-1,-2,1},{-1,2,1},{1,-2,1},{1,2,1},{2,-1,1},{2,1,1}}, 1, ghost);
-    } else if (type == "ray") {
+    if (type == "orthogonal") result = normalize_vectors({{-1,0,max_steps},{1,0,max_steps},{0,-1,max_steps},{0,1,max_steps}}, 1, ghost);
+    else if (type == "diagonal") result = normalize_vectors({{-1,-1,max_steps},{-1,1,max_steps},{1,-1,max_steps},{1,1,max_steps}}, 1, ghost);
+    else if (type == "adjacent" || type == "adj") result = normalize_vectors({{-1,-1,1},{-1,0,1},{-1,1,1},{0,-1,1},{0,1,1},{1,-1,1},{1,0,1},{1,1,1}}, 1, ghost);
+    else if (type == "knight") result = normalize_vectors({{-2,-1,1},{-2,1,1},{-1,-2,1},{-1,2,1},{1,-2,1},{1,2,1},{2,-1,1},{2,1,1}}, 1, ghost);
+    else if (type == "ray") {
         json dirs = mv_json.contains("dirs") ? mv_json["dirs"] : (mv_json.contains("deltas") ? mv_json["deltas"] : json());
         if (!dirs.is_null()) {
             auto raw = json_array_of_arrays(dirs);
             vector<vector<int>> expanded;
             int max_range = max(LINHAS, COLUNAS);
-            for (auto& d : raw) {
-                if (d.size() >= 2) expanded.push_back({d[0], d[1], max_range});
-            }
+            for (auto& d : raw) if (d.size() >= 2) expanded.push_back({d[0], d[1], max_range});
             result = normalize_vectors(expanded, mv_json.value("min_steps", 1), ghost);
         }
     } else if (type == "none") {
@@ -253,14 +261,9 @@ static vector<MoveVector> compile_move_behavior(const json& mv_json) {
         if (mv_json.contains("deltas")) {
             auto raw = json_array_of_arrays(mv_json["deltas"]);
             vector<vector<int>> expanded;
-            for (auto& d : raw) {
-                if (d.size() >= 2) expanded.push_back({d[0], d[1], max_steps});
-            }
+            for (auto& d : raw) if (d.size() >= 2) expanded.push_back({d[0], d[1], max_steps});
             result = normalize_vectors(expanded, 1, ghost);
         }
-    }
-    if (forward_by_team) {
-        return result; 
     }
     return result;
 }
@@ -271,37 +274,28 @@ static vector<MoveVector> compile_attack_behavior(const json& atk_json) {
     string type = atk_json.value("type", "");
     int max_steps = atk_json.value("max_steps", 1);
     int min_steps = atk_json.value("min_steps", 1);
-    if (type == "orthogonal") {
-        result = normalize_vectors({{-1,0,max_steps},{1,0,max_steps},{0,-1,max_steps},{0,1,max_steps}}, min_steps, false);
-    } else if (type == "diagonal") {
-        result = normalize_vectors({{-1,-1,max_steps},{-1,1,max_steps},{1,-1,max_steps},{1,1,max_steps}}, min_steps, false);
-    } else if (type == "knight") {
-        result = normalize_vectors({{-2,-1,1},{-2,1,1},{-1,-2,1},{-1,2,1},{1,-2,1},{1,2,1},{2,-1,1},{2,1,1}}, min_steps, false);
-    } else if (type == "ray") {
+    if (type == "orthogonal") result = normalize_vectors({{-1,0,max_steps},{1,0,max_steps},{0,-1,max_steps},{0,1,max_steps}}, min_steps, false);
+    else if (type == "diagonal") result = normalize_vectors({{-1,-1,max_steps},{-1,1,max_steps},{1,-1,max_steps},{1,1,max_steps}}, min_steps, false);
+    else if (type == "knight") result = normalize_vectors({{-2,-1,1},{-2,1,1},{-1,-2,1},{-1,2,1},{1,-2,1},{1,2,1},{2,-1,1},{2,1,1}}, min_steps, false);
+    else if (type == "ray") {
         json dirs = atk_json.contains("dirs") ? atk_json["dirs"] : (atk_json.contains("deltas") ? atk_json["deltas"] : json());
         if (!dirs.is_null()) {
             auto raw = json_array_of_arrays(dirs);
             vector<vector<int>> expanded;
             int max_range = max(LINHAS, COLUNAS);
-            for (auto& d : raw) {
-                if (d.size() >= 2) expanded.push_back({d[0], d[1], max_range});
-            }
+            for (auto& d : raw) if (d.size() >= 2) expanded.push_back({d[0], d[1], max_range});
             result = normalize_vectors(expanded, min_steps, false);
         }
     } else if (type == "pattern") {
         auto raw = json_array_of_arrays(atk_json.contains("deltas") ? atk_json["deltas"] : json());
         vector<vector<int>> expanded;
-        for (auto& d : raw) {
-            if (d.size() >= 2) expanded.push_back({d[0], d[1], max_steps});
-        }
+        for (auto& d : raw) if (d.size() >= 2) expanded.push_back({d[0], d[1], max_steps});
         result = normalize_vectors(expanded, min_steps, false);
     } else {
         if (atk_json.contains("deltas")) {
             auto raw = json_array_of_arrays(atk_json["deltas"]);
             vector<vector<int>> expanded;
-            for (auto& d : raw) {
-                if (d.size() >= 2) expanded.push_back({d[0], d[1], max_steps});
-            }
+            for (auto& d : raw) if (d.size() >= 2) expanded.push_back({d[0], d[1], max_steps});
             result = normalize_vectors(expanded, min_steps, false);
         }
     }
@@ -323,8 +317,7 @@ static HeroBehavior compile_behavior(const json& beh) {
             result.move_white = result.move_black = vecs;
         }
         if (mv.value("type", "") == "forward_cone") {
-            result.move_white.clear();
-            result.move_black.clear();
+            result.move_white.clear(); result.move_black.clear();
             auto raw = json_array_of_arrays(mv.contains("deltas") ? mv["deltas"] : json());
             int max_steps = mv.value("max_steps", 1);
             bool ghost = mv.value("ghost_move", false);
@@ -341,8 +334,7 @@ static HeroBehavior compile_behavior(const json& beh) {
         bool forward_by_team = atk.value("forward_dir_by_team", shared_forward_by_team);
         vector<MoveVector> vecs = compile_attack_behavior(atk);
         if (atk.value("type", "") == "forward_cone") {
-            result.attack_white.clear();
-            result.attack_black.clear();
+            result.attack_white.clear(); result.attack_black.clear();
             auto raw = json_array_of_arrays(atk.contains("deltas") ? atk["deltas"] : json());
             int max_steps = atk.value("max_steps", 1);
             bool ghost = atk.value("ghost_move", false);
@@ -375,21 +367,11 @@ static const string DEFAULT_HERO_CONFIG = "engine/heroes_config.json";
 
 static string find_hero_config_path() {
     const char* env_path = std::getenv("HERO_CONFIG_PATH");
-    if (env_path && env_path[0]) {
-        return string(env_path);
-    }
-
-    vector<string> candidates = {
-        DEFAULT_HERO_CONFIG,
-        "../engine/heroes_config.json",
-        "../../engine/heroes_config.json"
-    };
-
+    if (env_path && env_path[0]) return string(env_path);
+    vector<string> candidates = { DEFAULT_HERO_CONFIG, "../engine/heroes_config.json", "../../engine/heroes_config.json" };
     for (const string& path : candidates) {
         ifstream f(path);
-        if (f.is_open()) {
-            return path;
-        }
+        if (f.is_open()) return path;
     }
     return DEFAULT_HERO_CONFIG;
 }
@@ -397,15 +379,13 @@ static string find_hero_config_path() {
 static void ensure_hero_behaviors_loaded() {
     if (HERO_BEHAVIORS_LOADED) return;
     
-    // Seed the RNG for consistent Zobrist Key generation on fresh start
     std::mt19937_64 rng(12345);
     ZOBRIST_SIDE_TO_MOVE = rng();
 
     for(int r = 0; r < LINHAS; ++r) {
         for(int c = 0; c < COLUNAS; ++c) {
             for(int h = 0; h < MAX_HEROES; ++h) {
-                Z_PIECE[r][c][h][0] = rng();
-                Z_PIECE[r][c][h][1] = rng();
+                Z_PIECE[r][c][h][0] = rng(); Z_PIECE[r][c][h][1] = rng();
             }
             for(int s = 0; s < 6; ++s) Z_STUN[r][c][s] = rng();
             for(int l = 0; l < 15; ++l) Z_LIFE[r][c][l] = rng();
@@ -416,21 +396,16 @@ static void ensure_hero_behaviors_loaded() {
     string config_path = find_hero_config_path();
     string text = read_file_contents(config_path);
     if (text.empty()) {
-        std::cerr << "FALHA CRITICA: heroes_config.json nao encontrado ou vazio (caminho tentado: "
-                   << config_path << "). O motor nao arranca sem isto.\n";
+        std::cerr << "FALHA CRITICA: heroes_config.json nao encontrado ou vazio.\n";
         std::exit(1);
     }
     try {
         json root = json::parse(text);
         for (auto& item : root.items()) {
             const string& name = item.key();
-            
-            // Popula os IDs de todos os heróis listados no JSON
-            if (PIECE_IDS.find(name) == PIECE_IDS.end()) {
-                PIECE_IDS[name] = next_piece_id++;
-            }
-            
+            if (PIECE_IDS.find(name) == PIECE_IDS.end()) PIECE_IDS[name] = next_piece_id++;
             const json& hero_json = item.value();
+            PIECE_COSTS[PIECE_IDS[name]] = hero_json.value("cost", 50); 
             json beh = hero_json.contains("behavior") ? hero_json["behavior"] : json();
             HERO_BEHAVIORS[name] = compile_behavior(beh);
         }
@@ -438,7 +413,7 @@ static void ensure_hero_behaviors_loaded() {
         std::cerr << "FALHA CRITICA: erro ao processar heroes_config.json: " << ex.what() << "\n";
         std::exit(1);
     } catch (...) {
-        std::cerr << "FALHA CRITICA: erro desconhecido ao processar heroes_config.json.\n";
+        std::cerr << "FALHA CRITICA: erro desconhecido.\n";
         std::exit(1);
     }
     HERO_BEHAVIORS_LOADED = true;
@@ -473,25 +448,17 @@ void parse_rwen(const string& rwen) {
                 board.pieces[r][c].stun_timer = stoi(p_data[2]);
                 if (p_data[3] != "N") board.pieces[r][c].lifespan = stoi(p_data[3]);
                 
-                // Mapeamento blindado com .find()
                 auto it = PIECE_IDS.find(board.pieces[r][c].name);
-                if (it != PIECE_IDS.end()) {
-                    board.pieces[r][c].id = it->second;
-                } else {
-                    board.pieces[r][c].id = MAX_HEROES - 1; // Envia para ID reservado de segurança
-                }
+                if (it != PIECE_IDS.end()) board.pieces[r][c].id = it->second;
+                else board.pieces[r][c].id = MAX_HEROES - 1; 
             }
         }
     }
-    
-    // Injeção após o parse do tabuleiro original: 
     board.hash = compute_initial_hash();
 }
 
-// --- PASSO 3: make_move e unmake_move com Hashing ---
 UndoInfo make_move(const Move& m) {
     UndoInfo undo = { board.pieces[m.er][m.ec], board.pieces[m.sr][m.sc] };
-
     if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
     if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
 
@@ -500,7 +467,6 @@ UndoInfo make_move(const Move& m) {
 
     if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
-
     return undo;
 }
 
@@ -540,31 +506,25 @@ vector<Move> generate_valid_moves(char current_turn) {
 
             for (const MoveVector& mv : move_vecs) {
                 for (int step = 1; step <= mv.max_steps; ++step) {
-                    int nr = r + mv.dr * step;
-                    int nc = c + mv.dc * step;
+                    int nr = r + mv.dr * step; int nc = c + mv.dc * step;
                     if (nr < 0 || nr >= LINHAS || nc < 0 || nc >= COLUNAS) break;
                     Piece& target = board.pieces[nr][nc];
                     if (!target.is_empty) {
                         if (mv.ghost) continue;
                         break;
                     }
-                    if (step >= mv.min_steps) {
-                        moves.push_back({r, c, nr, nc, "MOVE"});
-                    }
+                    if (step >= mv.min_steps) moves.push_back({r, c, nr, nc, "MOVE", 0});
                 }
             }
 
             for (const MoveVector& mv : attack_vecs) {
                 for (int step = 1; step <= mv.max_steps; ++step) {
-                    int nr = r + mv.dr * step;
-                    int nc = c + mv.dc * step;
+                    int nr = r + mv.dr * step; int nc = c + mv.dc * step;
                     if (nr < 0 || nr >= LINHAS || nc < 0 || nc >= COLUNAS) break;
                     Piece& target = board.pieces[nr][nc];
-                    if (target.is_empty) {
-                        continue;
-                    }
+                    if (target.is_empty) continue;
                     if (target.team != current_turn && step >= mv.min_steps) {
-                        moves.push_back({r, c, nr, nc, "ATTACK"});
+                        moves.push_back({r, c, nr, nc, "ATTACK", 0});
                     }
                     break;
                 }
@@ -574,45 +534,103 @@ vector<Move> generate_valid_moves(char current_turn) {
     return moves;
 }
 
+// Otimizado: Recebe Ply para a Killer Heuristic
+static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply) {
+    for (Move& m : moves) {
+        if (m == tt_move) {
+            m.score = 1000000; 
+            continue;
+        }
+        if (m.type == "ATTACK") {
+            int victim_val = PIECE_COSTS[board.pieces[m.er][m.ec].id];
+            int attacker_val = PIECE_COSTS[board.pieces[m.sr][m.sc].id];
+            if (victim_val == 0) victim_val = 50;
+            if (attacker_val == 0) attacker_val = 50;
+            m.score = 10000 + (victim_val * 10) - attacker_val;
+        } else {
+            // Usa a Killer Heuristic se for um lance pacífico
+            if (ply >= 0 && ply < 100) {
+                if (m == killer_moves[ply][0]) m.score = 9000;
+                else if (m == killer_moves[ply][1]) m.score = 8000;
+                else m.score = 0;
+            } else {
+                m.score = 0; 
+            }
+        }
+    }
+}
+
 int evaluate_board() {
     int score = 0;
+    int white_pieces = 0;
+    int black_pieces = 0;
+    
     for (int r = 0; r < LINHAS; ++r) {
         for (int c = 0; c < COLUNAS; ++c) {
             Piece& p = board.pieces[r][c];
             if (!p.is_empty) {
-                int valor_base = 50; 
-                if (p.name == "Phantom" || p.name == "FrostMage") valor_base = 60;
-                else if (p.name == "Sentry") valor_base = 110;
+                if (p.team == 'W') white_pieces++;
+                else black_pieces++;
                 
-                if (p.stun_timer > 0) {
-                    valor_base *= 0.2;
-                    if (p.team == 'W') score -= 25; 
-                    else score += 25;
-                }
+                int valor_base = PIECE_COSTS[p.id]; 
+                if (valor_base == 0) valor_base = 50; 
+                if (p.stun_timer > 0) valor_base = valor_base * 0.2; 
                 
                 if (p.team == 'W') score += valor_base;
                 else score -= valor_base;
             }
         }
     }
+    
+    // --- NOVO: Early Mate Detection ---
+    if (white_pieces == 0) return -INFINITO + 100; // Pretas ganham
+    if (black_pieces == 0) return INFINITO - 100;  // Brancas ganham
+    
     return score;
 }
 
-// --- PASSO 5: Função alpha_beta com Transposition Table ---
-int alpha_beta(int depth, int alpha, int beta, char current_turn) {
+int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
+    nodes_evaluated++;
+    check_time();
+    if (abort_search) return 0; // Descartado em segurança na raiz
+
     uint64_t key = board.hash;
     TTEntry& slot = transposition_table[key & TT_MASK];
-    if (slot.occupied && slot.zobrist_key == key && slot.depth >= depth) {
-        if (slot.flag == TT_EXACT) return slot.value;
-        if (slot.flag == TT_LOWERBOUND) alpha = std::max(alpha, slot.value);
-        else if (slot.flag == TT_UPPERBOUND) beta = std::min(beta, slot.value);
-        if (alpha >= beta) return slot.value;
+    
+    Move tt_best_move; 
+    if (slot.occupied && slot.zobrist_key == key) {
+        if (slot.depth >= depth) {
+            if (slot.flag == TT_EXACT) return slot.value;
+            if (slot.flag == TT_LOWERBOUND) alpha = std::max(alpha, slot.value);
+            else if (slot.flag == TT_UPPERBOUND) beta = std::min(beta, slot.value);
+            if (alpha >= beta) return slot.value;
+        }
+        tt_best_move = slot.best_move; 
     }
 
-    if (depth == 0) return evaluate_board();
+    int eval_score = evaluate_board();
+    // Condição de Mate no nó atual!
+    if (eval_score >= INFINITO - 200 || eval_score <= -INFINITO + 200) {
+        return eval_score;
+    }
+    if (depth == 0) return eval_score;
+
+    if (depth >= 3) {
+        char next_turn = (current_turn == 'W') ? 'B' : 'W';
+        board.hash ^= ZOBRIST_SIDE_TO_MOVE; 
+        int null_eval = alpha_beta(depth - 3, alpha, beta, next_turn, ply + 1);
+        board.hash ^= ZOBRIST_SIDE_TO_MOVE; 
+        
+        if (abort_search) return 0;
+        if (current_turn == 'W' && null_eval >= beta) return beta;
+        if (current_turn == 'B' && null_eval <= alpha) return alpha;
+    }
 
     std::vector<Move> moves = generate_valid_moves(current_turn);
     if (moves.empty()) return (current_turn == 'W') ? -INFINITO + (100 - depth) : INFINITO - (100 - depth);
+
+    score_moves(moves, tt_best_move, ply);
+    std::sort(moves.begin(), moves.end());
 
     int original_alpha = alpha, original_beta = beta;
     Move best_move_found = moves[0];
@@ -622,22 +640,41 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn) {
         int max_eval = -INFINITO;
         for (const Move& m : moves) {
             UndoInfo undo = make_move(m);
-            int eval = alpha_beta(depth - 1, alpha, beta, 'B');
+            int eval = alpha_beta(depth - 1, alpha, beta, 'B', ply + 1);
             unmake_move(m, undo);
+            
+            if (abort_search) return 0;
+
             if (eval > max_eval) { max_eval = eval; best_move_found = m; }
             alpha = std::max(alpha, eval);
-            if (beta <= alpha) break;
+            if (beta <= alpha) {
+                // Guarda o Killer Move se não for ataque
+                if (m.type != "ATTACK" && ply >= 0 && ply < 100) {
+                    killer_moves[ply][1] = killer_moves[ply][0];
+                    killer_moves[ply][0] = m;
+                }
+                break; 
+            }
         }
         result = max_eval;
     } else {
         int min_eval = INFINITO;
         for (const Move& m : moves) {
             UndoInfo undo = make_move(m);
-            int eval = alpha_beta(depth - 1, alpha, beta, 'W');
+            int eval = alpha_beta(depth - 1, alpha, beta, 'W', ply + 1);
             unmake_move(m, undo);
+            
+            if (abort_search) return 0;
+
             if (eval < min_eval) { min_eval = eval; best_move_found = m; }
             beta = std::min(beta, eval);
-            if (beta <= alpha) break;
+            if (beta <= alpha) {
+                if (m.type != "ATTACK" && ply >= 0 && ply < 100) {
+                    killer_moves[ply][1] = killer_moves[ply][0];
+                    killer_moves[ply][0] = m;
+                }
+                break; 
+            }
         }
         result = min_eval;
     }
@@ -649,29 +686,76 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn) {
     return result;
 }
 
-string search_best_move(int depth) {
-    vector<Move> moves = generate_valid_moves(board.turn);
-    if (moves.empty()) return "";
-
-    Move best_move = moves[0];
-    int best_val = (board.turn == 'W') ? -INFINITO : INFINITO;
+string search_best_move(int max_depth) {
+    // Reset da gestão de tempo e prioridades
+    abort_search = false;
+    nodes_evaluated = 0;
+    search_start_time = std::chrono::steady_clock::now();
     
-    for (const Move& m : moves) {
-        UndoInfo undo = make_move(m);
-        char next_turn = (board.turn == 'W') ? 'B' : 'W';
-        int val = alpha_beta(depth - 1, -INFINITO, INFINITO, next_turn);
-        unmake_move(m, undo);
+    for(int i = 0; i < 100; ++i) { 
+        killer_moves[i][0] = Move(); 
+        killer_moves[i][1] = Move(); 
+    }
+
+    vector<Move> root_moves = generate_valid_moves(board.turn);
+    if (root_moves.empty()) return "";
+
+    Move best_overall_move = root_moves[0];
+
+    for (int d = 1; d <= max_depth; ++d) {
+        uint64_t key = board.hash;
+        TTEntry& slot = transposition_table[key & TT_MASK];
+        Move tt_best_move;
+        if (slot.occupied && slot.zobrist_key == key) {
+            tt_best_move = slot.best_move;
+        }
         
-        if (board.turn == 'W' && val > best_val) {
-            best_val = val;
-            best_move = m;
-        } else if (board.turn == 'B' && val < best_val) {
-            best_val = val;
-            best_move = m;
+        score_moves(root_moves, tt_best_move, 0);
+        std::sort(root_moves.begin(), root_moves.end());
+
+        int best_val = (board.turn == 'W') ? -INFINITO : INFINITO;
+        int alpha = -INFINITO;
+        int beta = INFINITO;
+        Move best_move_this_depth = root_moves[0];
+        
+        for (const Move& m : root_moves) {
+            UndoInfo undo = make_move(m);
+            char next_turn = (board.turn == 'W') ? 'B' : 'W';
+            int val = alpha_beta(d - 1, alpha, beta, next_turn, 1);
+            unmake_move(m, undo);
+            
+            if (abort_search) break; 
+            
+            // --- NOVO: Atualiza a decisão do motor EM TEMPO REAL ---
+            if (board.turn == 'W') {
+                if (val > best_val) {
+                    best_val = val;
+                    best_move_this_depth = m;
+                    best_overall_move = m; // Safa-se imediatamente!
+                }
+                alpha = std::max(alpha, best_val);
+            } else {
+                if (val < best_val) {
+                    best_val = val;
+                    best_move_this_depth = m;
+                    best_overall_move = m; // Safa-se imediatamente!
+                }
+                beta = std::min(beta, best_val);
+            }
+        }
+        
+        if (abort_search) break; 
+        
+        transposition_table[key & TT_MASK] = { key, d, best_val, TT_EXACT, best_move_this_depth, true };
+        best_overall_move = best_move_this_depth;
+        
+        // Se já viu o Mate, não há necessidade de continuar a queimar os 3 segundos
+        if (best_val >= INFINITO - 200 || best_val <= -INFINITO + 200) {
+            break;
         }
     }
     
-    return best_move.to_uci();
+    return best_overall_move.to_uci();
 }
 
 #ifndef RUN_SMOKE_TESTS

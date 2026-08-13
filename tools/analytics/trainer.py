@@ -3,14 +3,14 @@ import os
 import json
 from collections import Counter
 import random
-import concurrent.futures
+import time
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LIMITE_TURNOS, LINHAS, COLUNAS
-from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO, BOT_ALEATORIO
+from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_ALEATORIO
 from engine.action_parser import ActionParser
 
 POOL_BOTS = [
@@ -35,7 +35,7 @@ def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
             
     return dict(composicao)
 
-def simular_jogo_treino(seed):
+def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
     random.seed(seed)
     gs = GameState(time_limit_seconds=99999)
     
@@ -48,16 +48,32 @@ def simular_jogo_treino(seed):
     turnos = 0
     while not gs.game_over and turnos < LIMITE_TURNOS:
         turnos += 1
+        global_stats["turnos_totais"] += 1
+        
+        # --- TELEMETRIA POR TURNO NO TERMINAL ---
+        decorrido = time.time() - global_stats["start_time"]
+        t_medio_turno = decorrido / max(1, global_stats["turnos_totais"])
+        
+        # O Max ETA assume o pior cenário: todos os jogos restantes chegam ao limite de 150 turnos
+        turnos_restantes_max = (total_jogos * LIMITE_TURNOS) - global_stats["turnos_totais"]
+        eta_max_minutos = (turnos_restantes_max * t_medio_turno) / 60.0
+        
+        nome_b = bot_brancas.nome[:10]
+        nome_p = bot_pretas.nome[:10]
+        
+        sys.stdout.write(
+            f"\r[Jogo {jogo_idx}/{total_jogos}] "
+            f"Turno {turnos}/{LIMITE_TURNOS} | "
+            f"B:{nome_b} vs P:{nome_p} | "
+            f"T/Turno: {t_medio_turno:.2f}s | "
+            f"Max ETA: {eta_max_minutos:.1f}m   "
+        )
+        sys.stdout.flush()
+        # ----------------------------------------
+
         parsed = bot_brancas.escolher_jogada(gs) if gs.white_to_move else bot_pretas.escolher_jogada(gs)
         
         if parsed:
-            
-            
-            # TYPE GUARD para o Pylance
-            if not parsed:
-                gs.game_over, gs.winner = True, "Bloqueio Total (Formato Inválido)"
-                break
-                
             m_type = parsed["type"].lower()
             start_r, start_c = parsed["start"]
             end_r, end_c = parsed["end"]
@@ -97,12 +113,14 @@ def gerar_estatisticas_treino(num_jogos=20):
     print(f"🧠 A gerar metadados de combate ({num_jogos} partidas heterogéneas, sequencial)...")
     
     historico_partidas = []
+    global_stats = {
+        "start_time": time.time(),
+        "turnos_totais": 0
+    }
     
     for i in range(num_jogos):
-        resultado = simular_jogo_treino(random.randint(1, 999999) + i)
+        resultado = simular_jogo_treino(random.randint(1, 999999) + i, i + 1, num_jogos, global_stats)
         historico_partidas.append(resultado)
-        sys.stdout.write(f"\rProgresso: {i+1}/{num_jogos}  ")
-        sys.stdout.flush()
 
     stats = {
         "total_matches": num_jogos,
@@ -113,7 +131,9 @@ def gerar_estatisticas_treino(num_jogos=20):
     caminho_stats = os.path.join("data", "estatisticas_treino.json")
     with open(caminho_stats, "w") as f:
         json.dump(stats, f, indent=4)
-    print(f"\n✅ {caminho_stats} atualizado com metadados ELO!")
+        
+    tempo_total = time.time() - global_stats["start_time"]
+    print(f"\n✅ {caminho_stats} atualizado em {tempo_total/60:.1f} minutos!")
 
 if __name__ == "__main__":
     gerar_estatisticas_treino(20)
