@@ -16,8 +16,7 @@ from engine.action_parser import ActionParser
 POOL_BOTS = [
     (BOT_ALEATORIO, 100),
     (BOT_INICIANTE, 900),
-    (BOT_INTERMEDIO, 1500),
-    (BOT_AVANCADO, 2000)
+    (BOT_INTERMEDIO, 1500)
 ]
 
 def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
@@ -94,17 +93,16 @@ def simular_jogo_treino(seed):
         "result": resultado
     }
 
-def gerar_estatisticas_treino(num_jogos=50):
-    print(f"🧠 A gerar metadados de combate ({num_jogos} partidas heterogéneas)...")
+def gerar_estatisticas_treino(num_jogos=20):
+    print(f"🧠 A gerar metadados de combate ({num_jogos} partidas heterogéneas, sequencial)...")
     
     historico_partidas = []
     
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        futuros = [executor.submit(simular_jogo_treino, random.randint(1, 999999) + i) for i in range(num_jogos)]
-        for i, futuro in enumerate(concurrent.futures.as_completed(futuros)):
-            historico_partidas.append(futuro.result())
-            sys.stdout.write(f"\rProgresso: {i+1}/{num_jogos}")
-            sys.stdout.flush()
+    for i in range(num_jogos):
+        resultado = simular_jogo_treino(random.randint(1, 999999) + i)
+        historico_partidas.append(resultado)
+        sys.stdout.write(f"\rProgresso: {i+1}/{num_jogos}  ")
+        sys.stdout.flush()
 
     stats = {
         "total_matches": num_jogos,
@@ -118,4 +116,4 @@ def gerar_estatisticas_treino(num_jogos=50):
     print(f"\n✅ {caminho_stats} atualizado com metadados ELO!")
 
 if __name__ == "__main__":
-    gerar_estatisticas_treino(50)
+    gerar_estatisticas_treino(20)
