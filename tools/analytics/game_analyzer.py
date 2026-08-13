@@ -39,16 +39,15 @@ def simular_um_jogo(seed):
                 gs.game_over, gs.winner = True, "Bloqueio (Formato IA Inválido)"
                 break
                 
-            m_type = parsed["action"].lower()
-            
-            start_r, start_c = ActionParser.alg_to_coords(parsed["origin"], LINHAS)
-            end_r, end_c = ActionParser.alg_to_coords(parsed["target"], LINHAS)
+            m_type = parsed["type"].lower()
+            start_r, start_c = parsed["start"]
+            end_r, end_c = parsed["end"]
             
             atacante = gs.board[start_r][start_c]
             alvo = gs.board[end_r][end_c]
             
-            area_stun = []
-            if m_type == "stun" and atacante:
+            area_stun = parsed.get("area", [])
+            if m_type == "stun" and not area_stun and atacante:
                 stuns_validos = atacante.get_valid_stuns(start_r, start_c, gs.board, gs.tile_effects)
                 if stuns_validos and (end_r, end_c) in stuns_validos:
                     area_stun = stuns_validos[(end_r, end_c)].get("aoe", [])
@@ -69,12 +68,12 @@ def simular_um_jogo(seed):
                         resultado["valor_destruido_por_peca"][atacante.name] += alvo.cost
                         
             elif m_type == "spawn":
-                hero_name = parsed.get("hero", "Unknown")
+                hero_name = parsed.get("spawn_name", "Unknown")
                 resultado["spawns_realizados"][hero_name] += 1
 
             if m_type == "stun": gs.make_action((start_r, start_c), (end_r, end_c), "stun", affected_area=area_stun)
-            elif m_type == "spawn": gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed.get("hero"))
-            elif m_type == "spell": gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed.get("spell"))
+            elif m_type == "spawn": gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed.get("spawn_name"))
+            elif m_type == "spell": gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed.get("spell_name"))
             else: gs.make_action((start_r, start_c), (end_r, end_c), m_type)
                 
             resultado["heatmap"][end_r][end_c] += 1

@@ -59,22 +59,22 @@ def simular_jogo_treino(seed):
                 gs.game_over, gs.winner = True, "Bloqueio Total (Formato Inválido)"
                 break
                 
-            m_type = parsed["action"].lower()
-            start_r, start_c = ActionParser.alg_to_coords(parsed["origin"], LINHAS)
-            end_r, end_c = ActionParser.alg_to_coords(parsed["target"], LINHAS)
+            m_type = parsed["type"].lower()
+            start_r, start_c = parsed["start"]
+            end_r, end_c = parsed["end"]
 
             if m_type == "stun":
                 atacante = gs.board[start_r][start_c]
-                area_stun = []
-                if atacante:
+                area_stun = parsed.get("area", [])
+                if not area_stun and atacante:
                     stuns_validos = atacante.get_valid_stuns(start_r, start_c, gs.board, gs.tile_effects)
                     if stuns_validos and (end_r, end_c) in stuns_validos:
                         area_stun = stuns_validos[(end_r, end_c)].get("aoe", [])
                 gs.make_action((start_r, start_c), (end_r, end_c), "stun", affected_area=area_stun)
             elif m_type == "spawn":
-                gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed.get("hero"))
+                gs.make_action((start_r, start_c), (end_r, end_c), "spawn", spawn_name=parsed.get("spawn_name"))
             elif m_type == "spell":
-                gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed.get("spell"))
+                gs.make_action((start_r, start_c), (end_r, end_c), "spell", spell_name=parsed.get("spell_name"))
             else:
                 gs.make_action((start_r, start_c), (end_r, end_c), m_type)
         else:

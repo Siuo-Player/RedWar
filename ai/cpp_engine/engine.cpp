@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include "nlohmann/json.hpp"
+#include <random>
 
 using namespace std;
 using nlohmann::json;
@@ -25,6 +26,7 @@ struct Piece {
     int lifespan = 999;
     int spawn_cooldown = 0;
     int cost = 0;
+    int id = 0; // NOVO: ID numérico para Zobrist
 };
 
 struct MoveVector {
@@ -89,19 +91,44 @@ BoardState board;
 static unordered_map<string, HeroBehavior> HERO_BEHAVIORS;
 static bool HERO_BEHAVIORS_LOADED = false;
 
-// --- PASSO 1: Chave Zobrist por peça ---
-static std::map<std::string, uint64_t> ZOBRIST_CACHE;
+const int MAX_HEROES = 64; 
+static uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2];
+static uint64_t Z_STUN[LINHAS][COLUNAS][6];
+static uint64_t Z_LIFE[LINHAS][COLUNAS][15]; 
+static uint64_t Z_CD[LINHAS][COLUNAS][8];
 static uint64_t ZOBRIST_SIDE_TO_MOVE = 0;
 
+static unordered_map<string, int> PIECE_IDS;
+static int next_piece_id = 0;
+
+
 static uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
-    std::string key = std::to_string(r) + "_" + std::to_string(c) + "_" + p.name + "_"
-        + std::string(1, p.team) + "_" + std::to_string(p.stun_timer) + "_"
-        + std::to_string(p.lifespan) + "_" + std::to_string(p.spawn_cooldown);
-    auto it = ZOBRIST_CACHE.find(key);
-    if (it != ZOBRIST_CACHE.end()) return it->second;
-    uint64_t val = ((uint64_t)rand() << 32) ^ ((uint64_t)rand() << 16) ^ (uint64_t)rand();
-    ZOBRIST_CACHE[key] = val;
-    return val;
+    int team_idx = (p.team == 'W') ? 0 : 1;
+    
+    // Failsafe do ID da peça
+    int p_id = p.id;
+    if (p_id < 0 || p_id >= MAX_HEROES) p_id = MAX_HEROES - 1; 
+
+    // Clamping Seguro
+    int life_idx = 0; // Reservado EXCLUSIVAMENTE para 999 (permanente)
+    if (p.lifespan != 999) {
+        life_idx = p.lifespan + 2; // lifespan -1 vai para índice 1; lifespan 0 para índice 2, etc.
+        if (life_idx < 1) life_idx = 1;   // Failsafe inferior (nunca toca no 0)
+        if (life_idx > 14) life_idx = 14; // Clamping seguro no teto
+    }
+    
+    int cd_idx = p.spawn_cooldown;
+    if (cd_idx < 0) cd_idx = 0;
+    if (cd_idx > 7) cd_idx = 7;
+    
+    int stun_idx = p.stun_timer;
+    if (stun_idx < 0) stun_idx = 0;
+    if (stun_idx > 5) stun_idx = 5;
+
+    return Z_PIECE[r][c][p_id][team_idx] 
+         ^ Z_STUN[r][c][stun_idx] 
+         ^ Z_LIFE[r][c][life_idx] 
+         ^ Z_CD[r][c][cd_idx];
 }
 
 // --- PASSO 2: Função Compute Initial Hash ---
@@ -371,8 +398,20 @@ static void ensure_hero_behaviors_loaded() {
     if (HERO_BEHAVIORS_LOADED) return;
     
     // Seed the RNG for consistent Zobrist Key generation on fresh start
-    srand(12345);
-    ZOBRIST_SIDE_TO_MOVE = ((uint64_t)rand() << 32) ^ ((uint64_t)rand() << 16) ^ (uint64_t)rand();
+    std::mt19937_64 rng(12345);
+    ZOBRIST_SIDE_TO_MOVE = rng();
+
+    for(int r = 0; r < LINHAS; ++r) {
+        for(int c = 0; c < COLUNAS; ++c) {
+            for(int h = 0; h < MAX_HEROES; ++h) {
+                Z_PIECE[r][c][h][0] = rng();
+                Z_PIECE[r][c][h][1] = rng();
+            }
+            for(int s = 0; s < 6; ++s) Z_STUN[r][c][s] = rng();
+            for(int l = 0; l < 15; ++l) Z_LIFE[r][c][l] = rng();
+            for(int cd = 0; cd < 8; ++cd) Z_CD[r][c][cd] = rng();
+        }
+    }
 
     string config_path = find_hero_config_path();
     string text = read_file_contents(config_path);
@@ -385,6 +424,12 @@ static void ensure_hero_behaviors_loaded() {
         json root = json::parse(text);
         for (auto& item : root.items()) {
             const string& name = item.key();
+            
+            // Popula os IDs de todos os heróis listados no JSON
+            if (PIECE_IDS.find(name) == PIECE_IDS.end()) {
+                PIECE_IDS[name] = next_piece_id++;
+            }
+            
             const json& hero_json = item.value();
             json beh = hero_json.contains("behavior") ? hero_json["behavior"] : json();
             HERO_BEHAVIORS[name] = compile_behavior(beh);
@@ -427,6 +472,14 @@ void parse_rwen(const string& rwen) {
                 board.pieces[r][c].name = p_data[1];
                 board.pieces[r][c].stun_timer = stoi(p_data[2]);
                 if (p_data[3] != "N") board.pieces[r][c].lifespan = stoi(p_data[3]);
+                
+                // Mapeamento blindado com .find()
+                auto it = PIECE_IDS.find(board.pieces[r][c].name);
+                if (it != PIECE_IDS.end()) {
+                    board.pieces[r][c].id = it->second;
+                } else {
+                    board.pieces[r][c].id = MAX_HEROES - 1; // Envia para ID reservado de segurança
+                }
             }
         }
     }

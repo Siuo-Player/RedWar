@@ -95,10 +95,37 @@ int main() {
     auto ghoul_attack_back = generate_valid_moves('W');
     bool ghoul_backward_attack_ok = !contains_move(ghoul_attack_back, 5, 4, "ATTACK");
 
-    bool all_ok = phantom_ok && sentry_ok && ghoul_ok && ghoul_forward_attack_ok && ghoul_backward_attack_ok;
+    // TESTE DE REVERSIBILIDADE DO ZOBRIST (Permanente)
+    clear_board();
+    board.pieces[6][1] = {false, 'W', "Ghoul", 0, 3, 0, 0}; 
+    board.pieces[6][1].id = PIECE_IDS.find("Ghoul") != PIECE_IDS.end() ? PIECE_IDS["Ghoul"] : MAX_HEROES - 1;
+    board.pieces[1][1] = {false, 'B', "Ghoul", 0, 3, 0, 0};
+    board.pieces[1][1].id = PIECE_IDS.find("Ghoul") != PIECE_IDS.end() ? PIECE_IDS["Ghoul"] : MAX_HEROES - 1;
+    board.turn = 'W';
+    
+    board.hash = compute_initial_hash();
+    uint64_t h0 = board.hash;
+    
+    auto zobrist_moves = generate_valid_moves('W');
+    bool zobrist_ok = false;
+    if (!zobrist_moves.empty()) {
+        Move m = zobrist_moves[0];
+        UndoInfo undo = make_move(m);
+        uint64_t h1 = board.hash;
+        unmake_move(m, undo);
+        uint64_t h2 = board.hash;
+        
+        zobrist_ok = (h0 != h1 && h0 == h2);
+    }
+
+    bool all_ok = phantom_ok && sentry_ok && ghoul_ok && ghoul_forward_attack_ok && ghoul_backward_attack_ok && zobrist_ok;
+    
     std::cout << "Phantom: " << (phantom_ok ? "PASS" : "FAIL") << "\n";
     std::cout << "Sentry: " << (sentry_ok ? "PASS" : "FAIL") << "\n";
     std::cout << "Ghoul: " << (ghoul_ok ? "PASS" : "FAIL") << "\n";
+    std::cout << "Zobrist Reversivel: " << (zobrist_ok ? "PASS" : "FAIL") << "\n";
     std::cout << "SMOKE_RESULT " << (all_ok ? "PASS" : "FAIL") << "\n";
+
     return all_ok ? 0 : 1;
+
 }

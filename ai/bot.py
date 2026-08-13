@@ -1,4 +1,5 @@
 # ai/bot.py
+import random
 import subprocess
 import os
 from engine.action_parser import ActionParser
@@ -105,9 +106,32 @@ class BotConfig:
 class BotAleatorio:
     def __init__(self):
         self.nome = "Bot Bebado"
+        
     def play(self, gs):
-        return None
+        return self.escolher_jogada(gs)
+        
     def escolher_jogada(self, gs):
+        acoes = []
+        current_team = 'brancas' if gs.white_to_move else 'pretas'
+        for r in range(8):
+            for c in range(8):
+                p = gs.board[r][c]
+                if p and p.team == current_team and getattr(p, 'stun_timer', 0) == 0:
+                    for mv in p.get_valid_moves(r, c, gs.board, gs.tile_effects):
+                        acoes.append({"type": "move", "start": (r, c), "end": mv})
+                    for at in p.get_valid_attacks(r, c, gs.board, gs.tile_effects):
+                        acoes.append({"type": "attack", "start": (r, c), "end": at})
+                    stuns = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
+                    for alvo, info in stuns.items():
+                        if info.get("has_enemy"):
+                            acoes.append({"type": "stun", "start": (r, c), "end": alvo, "area": info["aoe"]})
+                    for sp in p.get_valid_spawns(r, c, gs.board, gs.tile_effects):
+                        acoes.append({"type": "spawn", "start": (r, c), "end": (sp[0], sp[1]), "spawn_name": sp[2]})
+                    if hasattr(p, 'get_valid_spells'):
+                        for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
+                            acoes.append({"type": "spell", "start": (r, c), "end": spell["target"], "spell_name": spell["spell_type"]})
+        if acoes:
+            return random.choice(acoes)
         return None
         
 BOT_ALEATORIO = BotAleatorio()
