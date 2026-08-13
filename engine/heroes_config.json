@@ -1,116 +1,258 @@
 {
     "Bone": {
-        "cost": 5, "acronym": "Bo", "draftable": false, "lifespan": 5,
+        "cost": 8,
+        "acronym": "Bo",
+        "draftable": false,
+        "lifespan": 5,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: 1 casa ortogonal.",
         "passiva": "Fragmentação: Volta ao pó após 5 turnos."
     },
     "Ghoul": {
-        "cost": 5, "acronym": "Gh", "draftable": false, "lifespan": 5,
+        "cost": 5,
+        "acronym": "Gh",
+        "draftable": false,
+        "lifespan": 5,
         "descricao": "Movimento: 1 casa (Diagonal-Frente ou Frente).\nAtaque: Igual ao movimento.",
         "passiva": "Fome: Desintegra-se após 5 turnos.",
         "behavior": {
             "forward_dir_by_team": true,
-            "movement": { "type": "forward_cone", "deltas": [[1,-1],[1,0],[1,1]] },
-            "attack": { "type": "forward_cone", "deltas": [[1,-1],[1,0],[1,1]] }
+            "movement": {
+                "type": "forward_cone",
+                "deltas": [
+                    [
+                        1,
+                        -1
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ]
+            },
+            "attack": {
+                "type": "forward_cone",
+                "deltas": [
+                    [
+                        1,
+                        -1
+                    ],
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        1,
+                        1
+                    ]
+                ]
+            }
         }
     },
     "Obelisk": {
-        "cost": 8, "acronym": "Ob", "draftable": true,
+        "cost": 5,
+        "acronym": "Ob",
+        "draftable": true,
         "descricao": "Movimento: Nenhum (Imóvel).\nAtaque: 1 casa ortogonal.",
         "passiva": "Vigia de Pedra: Peça defensiva impenetrável.",
         "behavior": {
-            "movement": { "type": "none" },
-            "attack": { "type": "orthogonal", "max_steps": 1 }
+            "movement": {
+                "type": "none"
+            },
+            "attack": {
+                "type": "orthogonal",
+                "max_steps": 1
+            }
         }
     },
     "Phantom": {
-        "cost": 59, "acronym": "Ph", "draftable": true,
+        "cost": 77,
+        "acronym": "Ph",
+        "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nAtaque: Em 'L'.",
         "passiva": "Espectral: Salta por cima das peças no caminho.",
         "behavior": {
-            "movement": { "type": "knight", "ghost_move": true },
-            "attack": { "type": "knight" }
+            "movement": {
+                "type": "knight",
+                "ghost_move": true
+            },
+            "attack": {
+                "type": "knight"
+            }
         }
     },
     "Sentry": {
-        "cost": 116, "acronym": "Se", "draftable": true,
+        "cost": 161,
+        "acronym": "Se",
+        "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta Infinita (Raio).",
         "passiva": "Sentinela: Projeta ameaça massiva à distância.",
         "behavior": {
-            "movement": { "type": "orthogonal", "max_steps": 1 },
-            "attack": { "type": "ray", "dirs": [[1,0],[-1,0],[0,1],[0,-1]] }
+            "movement": {
+                "type": "orthogonal",
+                "max_steps": 1
+            },
+            "attack": {
+                "type": "ray",
+                "dirs": [
+                    [
+                        1,
+                        0
+                    ],
+                    [
+                        -1,
+                        0
+                    ],
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        0,
+                        -1
+                    ]
+                ]
+            }
         }
     },
     "FrostMage": {
-        "cost": 62, "acronym": "FM", "draftable": true,
+        "cost": 56,
+        "acronym": "FM",
+        "draftable": true,
         "descricao": "Movimento: Até 2 casas diagonais.\nAtaque: Nenhum.",
         "passiva": "Nevada: Lança atordoamento (Stun) em área num alcance de 3 casas."
     },
     "Lich": {
-        "cost": 61, "acronym": "Li", "draftable": true, "spawn_cooldown": 0,
+        "cost": 55,
+        "acronym": "Li",
+        "draftable": true,
+        "spawn_cooldown": 0,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Invoca (Spawn).",
         "passiva": "Pacto: Traz Ghouls para as casas à sua frente."
     },
     "BoneLord": {
-        "cost": 88, "acronym": "BL", "draftable": true,
+        "cost": 61,
+        "acronym": "BL",
+        "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: Padrão complexo em 'V'.",
         "passiva": "Rei: Transforma baixas inimigas em Bones (Ossos).",
-        "behavior": { "passives": [ { "trigger": "on_kill", "effect": "spawn_unit", "params": { "unit_name": "Bone", "spawn_location": "target_square" } } ] }
+        "behavior": {
+            "passives": [
+                {
+                    "trigger": "on_kill",
+                    "effect": "spawn_unit",
+                    "params": {
+                        "unit_name": "Bone",
+                        "spawn_location": "target_square"
+                    }
+                }
+            ]
+        }
     },
     "Ranger": {
-        "cost": 41, "acronym": "Ra", "draftable": true,
+        "cost": 44,
+        "acronym": "Ra",
+        "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta (Longo Alcance).",
         "passiva": "Mira: SÓ pode atacar alvos a 2 ou mais casas de distância."
     },
     "Templar": {
-        "cost": 49, "acronym": "Te", "draftable": true,
+        "cost": 25,
+        "acronym": "Te",
+        "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: 1 casa ortogonal.",
         "passiva": "Escudo Divino: Reflete ataques (Mecânica em desenvolvimento).",
-        "behavior": { "passives": [ { "trigger": "on_attacked", "effect": "redirect_damage", "params": { "target": "attacker", "cooldown_turns": 3 } } ] }
+        "behavior": {
+            "passives": [
+                {
+                    "trigger": "on_attacked",
+                    "effect": "redirect_damage",
+                    "params": {
+                        "target": "attacker",
+                        "cooldown_turns": 3
+                    }
+                }
+            ]
+        }
     },
     "Berserker": {
-        "cost": 51, "acronym": "Be", "draftable": true,
+        "cost": 27,
+        "acronym": "Be",
+        "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: 1 casa (Todas as direções).",
         "passiva": "Fúria: Varre unidades agrupadas (AoE).",
-        "behavior": { "passives": [ { "trigger": "on_attack", "effect": "aoe_damage", "params": { "pattern": "adjacent", "friendly_fire": false } } ] }
+        "behavior": {
+            "passives": [
+                {
+                    "trigger": "on_attack",
+                    "effect": "aoe_damage",
+                    "params": {
+                        "pattern": "adjacent",
+                        "friendly_fire": false
+                    }
+                }
+            ]
+        }
     },
     "Pyromancer": {
-        "cost": 69, "acronym": "Py", "draftable": true,
+        "cost": 69,
+        "acronym": "Py",
+        "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Incendiar (Ignite).",
         "passiva": "Incêndio: Cria Fogo em cruz (Alcance 3). Ataca atordoados para Insta-Kill."
     },
     "Dragoon": {
-        "cost": 92, "acronym": "Dr", "draftable": true, "jump_max": 2,
+        "cost": 89,
+        "acronym": "Dr",
+        "draftable": true,
+        "jump_max": 2,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Salto.",
         "passiva": "Salto Dracónico: Pode saltar 2 casas por cima de 1 obstáculo."
     },
     "Cleric": {
-        "cost": 47, "acronym": "Cl", "draftable": true,
+        "cost": 56,
+        "acronym": "Cl",
+        "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Purificar.",
         "passiva": "Purificar: Remove Stun de aliados até 2 casas de distância."
     },
     "Trickster": {
-        "cost": 72, "acronym": "Tr", "draftable": true,
+        "cost": 57,
+        "acronym": "Tr",
+        "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nFeitiço: Troca (Swap).",
         "passiva": "Mão Leve: Troca de lugar com um aliado (Alcance Máximo: 3 casas)."
     },
     "Geomancer": {
-        "cost": 39, "acronym": "Ge", "draftable": true,
+        "cost": 21,
+        "acronym": "Ge",
+        "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Barricada.",
         "passiva": "Tetónica: Ergue uma Parede de Pedra nas casas adjacentes."
     },
     "StoneWall": {
-        "cost": 5, "acronym": "SW", "draftable": false, "lifespan": 3,
+        "cost": 8,
+        "acronym": "SW",
+        "draftable": false,
+        "lifespan": 3,
         "descricao": "Movimento: Imóvel.\nAtaque: Nenhum.",
         "passiva": "Barricada: Bloqueia ataques. Colapsa em 3 turnos."
     },
     "Nightshade": {
-        "cost": 122, "acronym": "Ni", "draftable": true,
+        "cost": 137,
+        "acronym": "Ni",
+        "draftable": true,
         "descricao": "Movimento: Até 4 casas ortogonais.\nAtaque: 1 casa ortogonal.",
         "passiva": "Sombra: Atravessa (Ghosting) outras peças ao mover-se."
     },
     "Inquisitor": {
-        "cost": 91, "acronym": "In", "draftable": true, "aura_radius": 2,
+        "cost": 91,
+        "acronym": "In",
+        "draftable": true,
+        "aura_radius": 2,
         "descricao": "Movimento: 1 casa (Todas as direções).\nAtaque: Igual ao movimento.",
         "passiva": "Silêncio: Desativa magias num raio de 2 casas."
     }

@@ -36,14 +36,12 @@ class CppEngineBot:
             self._send_command("isready", ensure_running=False)
 
     def play(self, game_state):
-        # Alias para suportar scripts antigos de analytics
         return self.escolher_jogada(game_state)
         
     def _send_command(self, cmd: str, ensure_running=True):
         if ensure_running:
             self._ensure_engine_running()
             
-        # Type Guard explícito para o Pylance: se for None, aborta antes de chamar .poll()
         if self.process is None or self.process.poll() is not None or not self.process.stdin:
             return
             
@@ -53,35 +51,44 @@ class CppEngineBot:
     def _read_response(self) -> str | None:
         self._ensure_engine_running()
         
-        # Type Guard explícito para o Pylance
         if self.process is None or self.process.poll() is not None or not self.process.stdout:
             return None
             
         return self.process.stdout.readline().strip()
 
-    def escolher_jogada(self, gs):
-        acoes = []
-        current_team = 'brancas' if gs.white_to_move else 'pretas'
-        for r in range(8):
-            for c in range(8):
-                p = gs.board[r][c]
-                if p and p.team == current_team and getattr(p, 'stun_timer', 0) == 0:
-                    for mv in p.get_valid_moves(r, c, gs.board, gs.tile_effects):
-                        acoes.append({"type": "move", "start": (r, c), "end": mv})
-                    for at in p.get_valid_attacks(r, c, gs.board, gs.tile_effects):
-                        acoes.append({"type": "attack", "start": (r, c), "end": at})
-                    stuns = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
-                    for alvo, info in stuns.items():
-                        if info.get("has_enemy"):
-                            acoes.append({"type": "stun", "start": (r, c), "end": alvo, "area": info["aoe"]})
-                    for sp in p.get_valid_spawns(r, c, gs.board, gs.tile_effects):
-                        acoes.append({"type": "spawn", "start": (r, c), "end": (sp[0], sp[1]), "spawn_name": sp[2]})
-                    if hasattr(p, 'get_valid_spells'):
-                        for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
-                            # Correção: Ler o tuplo por índices (0: linha, 1: coluna, 2: nome)
-                            acoes.append({"type": "spell", "start": (r, c), "end": (spell[0], spell[1]), "spell_name": spell[2]})
-        if acoes:
-            return random.choice(acoes)
+    def escolher_jogada(self, game_state):
+        rwen_str = game_state.to_rwen()
+        
+        self._send_command(f"position rwen {rwen_str}")
+        self._send_command(f"go depth {self.depth}")
+        
+        while True:
+            response = self._read_response()
+            if not response:
+                break
+            
+            if response.startswith("bestmove"):
+                parts = response.split(" ", 1)
+                if len(parts) > 1:
+                    raw_action = parts[1].strip()
+                    
+                    parsed = ActionParser.parse(raw_action)
+                    if not parsed:
+                        return None
+                        
+                    final_action = {
+                        "type": parsed["action"].lower(),
+                        "start": ActionParser.alg_to_coords(parsed["origin"], LINHAS),
+                        "end": ActionParser.alg_to_coords(parsed["target"], LINHAS)
+                    }
+                    
+                    if "spell" in parsed:
+                        final_action["spell_name"] = parsed["spell"]
+                    if "hero" in parsed:
+                        final_action["spawn_name"] = parsed["hero"]
+                        
+                    return final_action
+                        
         return None
 
     def __del__(self):
@@ -119,19 +126,26 @@ class BotAleatorio:
                     stuns = p.get_valid_stuns(r, c, gs.board, gs.tile_effects)
                     for alvo, info in stuns.items():
                         if info.get("has_enemy"):
-                            acoes.append({"type": "stun", "start": (r, c), "end": alvo, "area": info["aoe"]})
+                            acoes.append({"type": "stun", "start": (r, c), "end": alvo, "area": info.get("aoe", [])})
                     for sp in p.get_valid_spawns(r, c, gs.board, gs.tile_effects):
                         acoes.append({"type": "spawn", "start": (r, c), "end": (sp[0], sp[1]), "spawn_name": sp[2]})
                     if hasattr(p, 'get_valid_spells'):
                         for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
-                            acoes.append({"type": "spell", "start": (r, c), "end": spell["target"], "spell_name": spell["spell_type"]})
+                            # TYPE GUARD ROBUSTO
+                            if isinstance(spell, dict):
+                                end_pos = spell.get("target", (r, c))
+                                spell_name = spell.get("spell_type", "Unknown")
+                            else:
+                                end_pos = (spell[0], spell[1]) if len(spell) >= 2 else (r, c)
+                                spell_name = spell[2] if len(spell) >= 3 else "Unknown"
+                            
+                            acoes.append({"type": "spell", "start": (r, c), "end": end_pos, "spell_name": spell_name})
         if acoes:
             return random.choice(acoes)
         return None
         
 BOT_ALEATORIO = BotAleatorio()
 
-# As instâncias já não abrem N processos em simultâneo graças ao Lazy Load
 BOT_INICIANTE = CppEngineBot(depth=2)
 BOT_INICIANTE.nome = "StockWar Iniciante (D2)"
 
