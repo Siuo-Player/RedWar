@@ -51,25 +51,27 @@ struct HeroBehavior {
     vector<MoveVector> attack_black;
 };
 
+// --- FASE 3: ESTRUTURA DE LANCES ATUALIZADA ---
 struct Move {
-    int sr = 0;
-    int sc = 0;
-    int er = 0;
-    int ec = 0;
+    int sr = 0, sc = 0, er = 0, ec = 0;
     string type = "MOVE";
+    string spell_name = "";
+    string spawn_name = "";
     int score = 0; 
 
     string to_uci() const {
         char s_letra = 'A' + sc, e_letra = 'A' + ec;
-        return type + " " + string(1, s_letra) + to_string(LINHAS - sr) + " " + string(1, e_letra) + to_string(LINHAS - er);
+        string origin = string(1, s_letra) + to_string(LINHAS - sr);
+        string target = string(1, e_letra) + to_string(LINHAS - er);
+        
+        if (type == "SPAWN") return "SPAWN " + spawn_name + " " + origin + " " + target;
+        if (type == "SPELL") return "SPELL " + spell_name + " " + origin + " " + target;
+        return type + " " + origin + " " + target;
     }
     
-    bool operator<(const Move& other) const {
-        return score > other.score; 
-    }
-    
+    bool operator<(const Move& other) const { return score > other.score; }
     bool operator==(const Move& other) const {
-        return sr == other.sr && sc == other.sc && er == other.er && ec == other.ec && type == other.type;
+        return sr == other.sr && sc == other.sc && er == other.er && ec == other.ec && type == other.type && spell_name == other.spell_name && spawn_name == other.spawn_name;
     }
 };
 
@@ -80,9 +82,20 @@ struct BoardState {
     uint64_t hash = 0;
 };
 
+// --- FASE 3: BACKUP DE ESTADO COMPLEXO PARA UNDO ---
+struct StunRecord {
+    int r, c;
+    Piece p;
+};
+
 struct UndoInfo {
+    string move_type = "MOVE";
     Piece target_piece;
     Piece actor_piece;
+    int twc_backup = 0;
+    
+    StunRecord aoe_victims[5];
+    int num_victims = 0;
 };
 
 enum TTFlag { TT_EXACT, TT_LOWERBOUND, TT_UPPERBOUND };
@@ -448,6 +461,9 @@ void parse_rwen(const string& rwen) {
                 board.pieces[r][c].stun_timer = stoi(p_data[2]);
                 if (p_data[3] != "N") board.pieces[r][c].lifespan = stoi(p_data[3]);
                 
+                // --- NOVO: Lê o cooldown do Python ---
+                board.pieces[r][c].spawn_cooldown = stoi(p_data[4]);
+                
                 auto it = PIECE_IDS.find(board.pieces[r][c].name);
                 if (it != PIECE_IDS.end()) board.pieces[r][c].id = it->second;
                 else board.pieces[r][c].id = MAX_HEROES - 1; 
@@ -457,22 +473,104 @@ void parse_rwen(const string& rwen) {
     board.hash = compute_initial_hash();
 }
 
+// Helper para invocar peças via SPAWN/SPELL
+Piece create_piece(const string& name, char team) {
+    Piece p; p.name = name; p.team = team; p.is_empty = false;
+    p.id = PIECE_IDS.count(name) ? PIECE_IDS[name] : MAX_HEROES - 1;
+    if(name == "StoneWall") p.lifespan = 3;
+    if(name == "Ghoul" || name == "Bone") p.lifespan = 5;
+    return p;
+}
+
+// --- FASE 3: A MÁQUINA DE ESTADOS COMPLEXA ---
 UndoInfo make_move(const Move& m) {
-    UndoInfo undo = { board.pieces[m.er][m.ec], board.pieces[m.sr][m.sc] };
-    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
-    if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
+    UndoInfo undo;
+    undo.move_type = m.type;
+    undo.actor_piece = board.pieces[m.sr][m.sc];
+    undo.target_piece = board.pieces[m.er][m.ec];
+    undo.twc_backup = board.twc;
 
-    board.pieces[m.er][m.ec] = board.pieces[m.sr][m.sc];
-    board.pieces[m.sr][m.sc].is_empty = true;
-
+    board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
     if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+
+    if (m.type == "MOVE" || m.type == "ATTACK") {
+        board.pieces[m.er][m.ec] = board.pieces[m.sr][m.sc];
+        board.pieces[m.sr][m.sc].is_empty = true;
+        if (m.type == "ATTACK") board.twc = 0; else board.twc++;
+    } 
+    else if (m.type == "STUN") {
+        board.twc++;
+        int dr[5] = {0, -1, 1, 0, 0}, dc[5] = {0, 0, 0, -1, 1};
+        for (int i=0; i<5; ++i) {
+            int ar = m.er + dr[i], ac = m.ec + dc[i];
+            if (ar >= 0 && ar < LINHAS && ac >= 0 && ac < COLUNAS) {
+                Piece& t = board.pieces[ar][ac];
+                if (!t.is_empty && t.team != undo.actor_piece.team) {
+                    undo.aoe_victims[undo.num_victims++] = {ar, ac, t};
+                    board.hash ^= get_piece_zobrist_key(ar, ac, t);
+                    
+                    if (t.stun_timer > 0) { // Blood in the Water (Kill)
+                        t.is_empty = true;
+                        board.twc = 0;
+                    } else {
+                        t.stun_timer = 2;
+                        board.hash ^= get_piece_zobrist_key(ar, ac, t);
+                    }
+                }
+            }
+        }
+        board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]); 
+    }
+    else if (m.type == "SPAWN") {
+        board.twc++;
+        board.pieces[m.er][m.ec] = create_piece(m.spawn_name, undo.actor_piece.team);
+        board.pieces[m.sr][m.sc].stun_timer = 1;
+        board.pieces[m.sr][m.sc].spawn_cooldown = 4;
+        board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]); 
+    }
+    else if (m.type == "SPELL") {
+        board.twc++;
+        if (m.spell_name == "purify") {
+            board.pieces[m.er][m.ec].stun_timer = 0;
+            board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]); 
+        } 
+        else if (m.spell_name == "swap") {
+            std::swap(board.pieces[m.sr][m.sc], board.pieces[m.er][m.ec]);
+            board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]); 
+        }
+        else if (m.spell_name == "barricade") {
+            board.pieces[m.er][m.ec] = create_piece("StoneWall", undo.actor_piece.team);
+            board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
+        }
+    }
+
+    if (!board.pieces[m.er][m.ec].is_empty && m.type != "STUN") {
+        board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+    }
+    board.turn = (board.turn == 'W') ? 'B' : 'W';
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
+
     return undo;
 }
 
 void unmake_move(const Move& m, const UndoInfo& undo) {
+    board.turn = (board.turn == 'W') ? 'B' : 'W';
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
+    board.twc = undo.twc_backup;
+
+    if (m.type == "STUN") {
+        for (int i=0; i<undo.num_victims; ++i) {
+            int ar = undo.aoe_victims[i].r;
+            int ac = undo.aoe_victims[i].c;
+            if (!board.pieces[ar][ac].is_empty) board.hash ^= get_piece_zobrist_key(ar, ac, board.pieces[ar][ac]);
+            board.pieces[ar][ac] = undo.aoe_victims[i].p;
+            if (!board.pieces[ar][ac].is_empty) board.hash ^= get_piece_zobrist_key(ar, ac, board.pieces[ar][ac]);
+        }
+        return; 
+    }
+
     if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+    if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
 
     board.pieces[m.sr][m.sc] = undo.actor_piece;
     board.pieces[m.er][m.ec] = undo.target_piece;
@@ -491,6 +589,7 @@ static const HeroBehavior& get_piece_behavior(const Piece& p) {
     return DEFAULT_BEHAVIOR;
 }
 
+// --- FASE 3: GERAÇÃO DE MAGIAS, STUNS E SPAWNS ---
 vector<Move> generate_valid_moves(char current_turn) {
     ensure_hero_behaviors_loaded();
     vector<Move> moves;
@@ -500,33 +599,92 @@ vector<Move> generate_valid_moves(char current_turn) {
         for (int c = 0; c < COLUNAS; ++c) {
             Piece& p = board.pieces[r][c];
             if (p.is_empty || p.team != current_turn || p.stun_timer != 0) continue;
+            
             const HeroBehavior& beh = get_piece_behavior(p);
             const vector<MoveVector>& move_vecs = (p.team == 'W') ? beh.move_white : beh.move_black;
             const vector<MoveVector>& attack_vecs = (p.team == 'W') ? beh.attack_white : beh.attack_black;
 
             for (const MoveVector& mv : move_vecs) {
                 for (int step = 1; step <= mv.max_steps; ++step) {
-                    int nr = r + mv.dr * step; int nc = c + mv.dc * step;
+                    int nr = r + mv.dr * step, nc = c + mv.dc * step;
                     if (nr < 0 || nr >= LINHAS || nc < 0 || nc >= COLUNAS) break;
-                    Piece& target = board.pieces[nr][nc];
-                    if (!target.is_empty) {
-                        if (mv.ghost) continue;
-                        break;
-                    }
-                    if (step >= mv.min_steps) moves.push_back({r, c, nr, nc, "MOVE", 0});
+                    if (!board.pieces[nr][nc].is_empty) { if (mv.ghost) continue; break; }
+                    if (step >= mv.min_steps) moves.push_back({r, c, nr, nc, "MOVE", "", "", 0});
                 }
             }
 
             for (const MoveVector& mv : attack_vecs) {
                 for (int step = 1; step <= mv.max_steps; ++step) {
-                    int nr = r + mv.dr * step; int nc = c + mv.dc * step;
+                    int nr = r + mv.dr * step, nc = c + mv.dc * step;
                     if (nr < 0 || nr >= LINHAS || nc < 0 || nc >= COLUNAS) break;
-                    Piece& target = board.pieces[nr][nc];
-                    if (target.is_empty) continue;
-                    if (target.team != current_turn && step >= mv.min_steps) {
-                        moves.push_back({r, c, nr, nc, "ATTACK", 0});
+                    if (board.pieces[nr][nc].is_empty) continue;
+                    if (board.pieces[nr][nc].team != current_turn && step >= mv.min_steps) {
+                        moves.push_back({r, c, nr, nc, "ATTACK", "", "", 0});
                     }
                     break;
+                }
+            }
+
+            // Lógicas Especiais (Fase 3)
+            if (p.name == "Lich" && p.spawn_cooldown == 0) {
+                int dir_frente = (p.team == 'W') ? -1 : 1;
+                for (int dc = -1; dc <= 1; ++dc) {
+                    int nr = r + dir_frente, nc = c + dc;
+                    if (nr >= 0 && nr < LINHAS && nc >= 0 && nc < COLUNAS && board.pieces[nr][nc].is_empty) {
+                        moves.push_back({r, c, nr, nc, "SPAWN", "", "Ghoul", 0});
+                    }
+                }
+            }
+            else if (p.name == "FrostMage") {
+                for (int dr = -3; dr <= 3; ++dr) {
+                    for (int dc = -3; dc <= 3; ++dc) {
+                        if (abs(dr) + abs(dc) <= 3) {
+                            int foco_r = r + dr, foco_c = c + dc;
+                            if (foco_r >= 0 && foco_r < LINHAS && foco_c >= 0 && foco_c < COLUNAS) {
+                                bool has_enemy = false;
+                                int dx[5] = {0, -1, 1, 0, 0}, dy[5] = {0, 0, 0, -1, 1};
+                                for(int i=0; i<5; ++i) {
+                                    int ar = foco_r + dx[i], ac = foco_c + dy[i];
+                                    if(ar>=0 && ar<LINHAS && ac>=0 && ac<COLUNAS) {
+                                        if(!board.pieces[ar][ac].is_empty && board.pieces[ar][ac].team != p.team) has_enemy = true;
+                                    }
+                                }
+                                if (has_enemy) moves.push_back({r, c, foco_r, foco_c, "STUN", "", "", 0});
+                            }
+                        }
+                    }
+                }
+            }
+            else if (p.name == "Cleric") {
+                for (int dr = -2; dr <= 2; ++dr) {
+                    for (int dc = -2; dc <= 2; ++dc) {
+                        int nr = r + dr, nc = c + dc;
+                        if (nr >= 0 && nr < LINHAS && nc >= 0 && nc < COLUNAS) {
+                            Piece& t = board.pieces[nr][nc];
+                            if (!t.is_empty && t.team == p.team && t.stun_timer > 0)
+                                moves.push_back({r, c, nr, nc, "SPELL", "purify", "", 0});
+                        }
+                    }
+                }
+            }
+            else if (p.name == "Trickster") {
+                for (int dr = -3; dr <= 3; ++dr) {
+                    for (int dc = -3; dc <= 3; ++dc) {
+                        int nr = r + dr, nc = c + dc;
+                        if (nr >= 0 && nr < LINHAS && nc >= 0 && nc < COLUNAS) {
+                            Piece& t = board.pieces[nr][nc];
+                            if (!t.is_empty && t.team == p.team && (nr != r || nc != c))
+                                moves.push_back({r, c, nr, nc, "SPELL", "swap", "", 0});
+                        }
+                    }
+                }
+            }
+            else if (p.name == "Geomancer") {
+                int dx[8] = {-1,1,0,0,-1,-1,1,1}, dy[8] = {0,0,-1,1,-1,1,-1,1};
+                for(int i=0; i<8; ++i) {
+                    int nr = r + dx[i], nc = c + dy[i];
+                    if (nr >= 0 && nr < LINHAS && nc >= 0 && nc < COLUNAS && board.pieces[nr][nc].is_empty)
+                        moves.push_back({r, c, nr, nc, "SPELL", "barricade", "", 0});
                 }
             }
         }
@@ -534,31 +692,30 @@ vector<Move> generate_valid_moves(char current_turn) {
     return moves;
 }
 
-// Otimizado: Recebe Ply para a Killer Heuristic
 static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply) {
     for (Move& m : moves) {
-        if (m == tt_move) {
-            m.score = 1000000; 
-            continue;
-        }
+        if (m == tt_move) { m.score = 1000000; continue; }
+        
         if (m.type == "ATTACK") {
             int victim_val = PIECE_COSTS[board.pieces[m.er][m.ec].id];
-            int attacker_val = PIECE_COSTS[board.pieces[m.sr][m.sc].id];
             if (victim_val == 0) victim_val = 50;
-            if (attacker_val == 0) attacker_val = 50;
-            m.score = 10000 + (victim_val * 10) - attacker_val;
+            m.score = 10000 + (victim_val * 10);
+        } else if (m.type == "STUN") {
+            m.score = 8000; 
+        } else if (m.type == "SPELL") {
+            m.score = 6000;
+        } else if (m.type == "SPAWN") {
+            m.score = 5000;
         } else {
-            // Usa a Killer Heuristic se for um lance pacífico
             if (ply >= 0 && ply < 100) {
-                if (m == killer_moves[ply][0]) m.score = 9000;
-                else if (m == killer_moves[ply][1]) m.score = 8000;
+                if (m == killer_moves[ply][0]) m.score = 4000;
+                else if (m == killer_moves[ply][1]) m.score = 3000;
                 else m.score = 0;
-            } else {
-                m.score = 0; 
-            }
+            } else m.score = 0; 
         }
     }
 }
+
 
 int evaluate_board() {
     int score = 0;
