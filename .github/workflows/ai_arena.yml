@@ -53,7 +53,7 @@ jobs:
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        g++ -std=c++17 -O3 engine.cpp -o engine
+        g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
         chmod +x engine
 
     - name: Run Arena Tournament
