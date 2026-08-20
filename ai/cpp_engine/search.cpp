@@ -22,6 +22,71 @@ static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply) 
     }
 }
 
+// --- FASE 5: PESQUISA DE APAZIGUAMENTO (QUIESCENCE SEARCH) ---
+int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_depth) {
+    nodes_evaluated++; check_time();
+    if (abort_search) return 0;
+
+    int eval_score = evaluate_board();
+
+    // Stand Pat: O lado a jogar pode simplesmente recusar-se a atacar se o estado atual já for excelente.
+    if (current_turn == 'W') {
+        if (eval_score >= beta) return beta;
+        alpha = std::max(alpha, eval_score);
+    } else {
+        if (eval_score <= alpha) return alpha;
+        beta = std::min(beta, eval_score);
+    }
+
+    // Limite de segurança para evitar loops infinitos de invocações (Blood in the water)
+    if (q_depth >= 5) return eval_score;
+
+    std::vector<Move> moves = generate_valid_moves(current_turn);
+    std::vector<Move> captures;
+    captures.reserve(16);
+    
+    // Filtramos APENAS lances ruidosos (Capturas, ou Stuns letais)
+    for (const Move& m : moves) {
+        if (m.type == "ATTACK" || (m.type == "STUN" && board.pieces[m.er][m.ec].stun_timer > 0)) {
+            captures.push_back(m);
+        }
+    }
+
+    // Se o tabuleiro estiver calmo, devolve a pontuação atual
+    if (captures.empty()) return eval_score;
+
+    score_moves(captures, Move(), ply);
+    std::sort(captures.begin(), captures.end());
+
+    int result = (current_turn == 'W') ? -INFINITO : INFINITO;
+
+    if (current_turn == 'W') {
+        for (const Move& m : captures) {
+            UndoInfo undo = make_move(m);
+            int eval = quiescence_search(alpha, beta, 'B', ply + 1, q_depth + 1);
+            unmake_move(m, undo);
+            if (abort_search) return 0;
+
+            if (eval > result) result = eval;
+            alpha = std::max(alpha, eval);
+            if (beta <= alpha) break;
+        }
+        return std::max(result, eval_score);
+    } else {
+        for (const Move& m : captures) {
+            UndoInfo undo = make_move(m);
+            int eval = quiescence_search(alpha, beta, 'W', ply + 1, q_depth + 1);
+            unmake_move(m, undo);
+            if (abort_search) return 0;
+
+            if (eval < result) result = eval;
+            beta = std::min(beta, eval);
+            if (beta <= alpha) break;
+        }
+        return std::min(result, eval_score);
+    }
+}
+
 int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     nodes_evaluated++; check_time();
     if (abort_search) return 0;
@@ -40,7 +105,9 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     int eval_score = evaluate_board();
     if (eval_score >= INFINITO - 200 || eval_score <= -INFINITO + 200) return eval_score;
-    if (depth == 0) return eval_score;
+    
+    // --- NOVO: Em vez de parar, entra no Quiescence Search ---
+    if (depth == 0) return quiescence_search(alpha, beta, current_turn, ply, 0);
 
     if (depth >= 3) {
         board.hash ^= ZOBRIST_SIDE_TO_MOVE; 
