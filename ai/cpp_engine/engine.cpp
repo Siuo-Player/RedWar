@@ -765,6 +765,13 @@ int main() {
     string command;
     
     while (getline(cin, command)) {
+        // --- A CURA PARA O ENVENENAMENTO DO WINDOWS ---
+        if (!command.empty() && command.back() == '\r') {
+            command.pop_back(); 
+        }
+        if (command.empty()) continue; // Ignora linhas vazias espúrias
+        // ----------------------------------------------
+
         if (command == "quit") {
             break;
         } else if (command.rfind("position rwen ", 0) == 0) {
@@ -772,7 +779,11 @@ int main() {
         } else if (command.rfind("go depth ", 0) == 0) {
             int depth = 4;
             try { depth = stoi(command.substr(9)); } catch (...) {}
-            cout << "bestmove " << search_best_move(depth) << "\n";
+            
+            string move = search_best_move(depth);
+            if (move.empty()) move = "0000"; // Failsafe estrutural
+            
+            cout << "bestmove " << move << "\n";
             cout.flush();
         } else if (command == "isready") {
             ensure_hero_behaviors_loaded();

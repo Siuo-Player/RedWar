@@ -28,7 +28,7 @@ class CppEngineBot:
                 [self.exe_path],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.DEVNULL, # <--- A CURA PARA O DEADLOCK DO OS
                 text=True,
                 encoding='utf-8',
                 cwd=project_root
