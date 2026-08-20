@@ -57,4 +57,4 @@ jobs:
         chmod +x engine
 
     - name: Run Arena Tournament
-      run: python tools/analytics/arena_tournament.py --jogos 50 --margem_vitorias 5
+      run: python tools/analytics/arena_tournament.py --jogos 250 --margem_vitorias 25

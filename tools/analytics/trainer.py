@@ -10,13 +10,15 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LIMITE_TURNOS, LINHAS, COLUNAS
-from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_ALEATORIO
+from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO, BOT_ALEATORIO
 from engine.action_parser import ActionParser
 
+# --- FASE 4: O REGRESSO DO D6 À ARENA ---
 POOL_BOTS = [
     (BOT_ALEATORIO, 100),
     (BOT_INICIANTE, 900),
-    (BOT_INTERMEDIO, 1500)
+    (BOT_INTERMEDIO, 1500),
+    (BOT_AVANCADO, 2000)
 ]
 
 def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
@@ -50,11 +52,9 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
         turnos += 1
         global_stats["turnos_totais"] += 1
         
-        # --- TELEMETRIA POR TURNO NO TERMINAL ---
         decorrido = time.time() - global_stats["start_time"]
         t_medio_turno = decorrido / max(1, global_stats["turnos_totais"])
         
-        # O Max ETA assume o pior cenário: todos os jogos restantes chegam ao limite de 150 turnos
         turnos_restantes_max = (total_jogos * LIMITE_TURNOS) - global_stats["turnos_totais"]
         eta_max_minutos = (turnos_restantes_max * t_medio_turno) / 60.0
         
@@ -69,7 +69,6 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
             f"Max ETA: {eta_max_minutos:.1f}m   "
         )
         sys.stdout.flush()
-        # ----------------------------------------
 
         parsed = bot_brancas.escolher_jogada(gs) if gs.white_to_move else bot_pretas.escolher_jogada(gs)
         
@@ -109,7 +108,7 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
         "result": resultado
     }
 
-def gerar_estatisticas_treino(num_jogos=20):
+def gerar_estatisticas_treino(num_jogos=200):
     print(f"🧠 A gerar metadados de combate ({num_jogos} partidas heterogéneas, sequencial)...")
     
     historico_partidas = []
@@ -136,4 +135,5 @@ def gerar_estatisticas_treino(num_jogos=20):
     print(f"\n✅ {caminho_stats} atualizado em {tempo_total/60:.1f} minutos!")
 
 if __name__ == "__main__":
-    gerar_estatisticas_treino(20)
+    # Multiplicador 10x aplicado aqui: de 20 para 200 jogos
+    gerar_estatisticas_treino(200)
