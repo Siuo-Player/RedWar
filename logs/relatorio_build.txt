@@ -1,5 +1,5 @@
-RELATÓRIO DE BUILD E BALANCEAMENTO
+RELATÓRIO DE BUILD E VALIDAÇÃO LOCAL
 ==================================
-Testes: OK
-Telemetria: Gerada em data/estatisticas_treino.json
-Motor Económico: Executado e heroes_config.json verificado.
+Compilação C++: OK
+Testes Unitários: OK
+Telemetria & Balanceamento: Delegados para a Cloud (GitHub Actions).

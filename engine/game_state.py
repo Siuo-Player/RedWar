@@ -211,6 +211,14 @@ class GameState:
                 barr = StoneWall(piece.team)
                 self.board[end_row][end_col] = barr
                 self.add_piece_hash(end_row, end_col, barr)
+            elif spell_name == "jump":
+                captured_something = bool(self.board[end_row][end_col])
+                if captured_something:
+                    self.remove_piece_hash(end_row, end_col)
+                self.remove_piece_hash(start_row, start_col)
+                self.board[start_row][start_col] = None
+                self.board[end_row][end_col] = piece
+                self.add_piece_hash(end_row, end_col, piece)
                 
         elif action_type == "move":
             self.remove_piece_hash(start_row, start_col)
@@ -220,12 +228,16 @@ class GameState:
             
         elif action_type == "attack":
             captured_something = True
+            
+            # Deteta passivas dinâmicas via JSON
+            attacker_beh = HERO_DEFS.get(piece.name, {}).get("behavior", {})
+            has_aoe = any(p.get("trigger") == "on_attack" and p.get("effect") == "aoe_damage" for p in attacker_beh.get("passives", []))
+            
             self.remove_piece_hash(end_row, end_col)
             self.remove_piece_hash(start_row, start_col)
-            spawn_piece = None
-            if piece:
-                spawn_piece = self._get_attack_spawn_piece(piece)
-            if spawn_piece:
+            
+            spawn_piece = self._get_attack_spawn_piece(piece)
+            if spawn_piece: # Lógica do BoneLord
                 self.board[start_row][start_col] = piece
                 self.board[end_row][end_col] = spawn_piece
                 self.add_piece_hash(start_row, start_col, piece)
@@ -234,6 +246,17 @@ class GameState:
                 self.board[start_row][start_col] = None
                 self.board[end_row][end_col] = piece 
                 self.add_piece_hash(end_row, end_col, piece)
+                
+                # Lógica do Berserker (Cleave)
+                if has_aoe:
+                    for dr, dc in [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]:
+                        ar, ac = end_row + dr, end_col + dc
+                        if 0 <= ar < LINHAS and 0 <= ac < COLUNAS:
+                            t = self.board[ar][ac]
+                            if t and t.team != piece.team:
+                                self.remove_piece_hash(ar, ac)
+                                self.board[ar][ac] = None
+
 
         ef_destino = self.tile_effects[end_row][end_col]
         peca_destino = self.board[end_row][end_col]
