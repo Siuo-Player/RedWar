@@ -53,7 +53,7 @@
         }
     },
     "Obelisk": {
-        "cost": 8,
+        "cost": 14,
         "acronym": "Ob",
         "draftable": true,
         "descricao": "Movimento: Nenhum (Imóvel).\nAtaque: 1 casa ortogonal.",
@@ -69,7 +69,7 @@
         }
     },
     "Phantom": {
-        "cost": 43,
+        "cost": 24,
         "acronym": "Ph",
         "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nAtaque: Em 'L'.",
@@ -85,7 +85,7 @@
         }
     },
     "Sentry": {
-        "cost": 130,
+        "cost": 110,
         "acronym": "Se",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta Infinita (Raio).",
@@ -119,14 +119,14 @@
         }
     },
     "FrostMage": {
-        "cost": 47,
+        "cost": 34,
         "acronym": "FM",
         "draftable": true,
         "descricao": "Movimento: Até 2 casas diagonais.\nAtaque: Nenhum.",
         "passiva": "Nevada: Lança atordoamento (Stun) em área num alcance de 3 casas."
     },
     "Lich": {
-        "cost": 17,
+        "cost": 5,
         "acronym": "Li",
         "draftable": true,
         "spawn_cooldown": 0,
@@ -134,7 +134,7 @@
         "passiva": "Pacto: Traz Ghouls para as casas à sua frente."
     },
     "BoneLord": {
-        "cost": 88,
+        "cost": 96,
         "acronym": "BL",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: Padrão complexo em 'V'.",
@@ -153,7 +153,7 @@
         }
     },
     "Ranger": {
-        "cost": 43,
+        "cost": 46,
         "acronym": "Ra",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta (Longo Alcance).",
@@ -179,7 +179,7 @@
         }
     },
     "Berserker": {
-        "cost": 24,
+        "cost": 29,
         "acronym": "Be",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: 1 casa (Todas as direções).",
@@ -198,14 +198,14 @@
         }
     },
     "Pyromancer": {
-        "cost": 52,
+        "cost": 55,
         "acronym": "Py",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Incendiar (Ignite).",
         "passiva": "Incêndio: Cria Fogo em cruz (Alcance 3). Ataca atordoados para Insta-Kill."
     },
     "Dragoon": {
-        "cost": 136,
+        "cost": 148,
         "acronym": "Dr",
         "draftable": true,
         "jump_max": 2,
@@ -213,21 +213,21 @@
         "passiva": "Salto Dracónico: Pode saltar 2 casas por cima de 1 obstáculo."
     },
     "Cleric": {
-        "cost": 55,
+        "cost": 59,
         "acronym": "Cl",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Purificar.",
         "passiva": "Purificar: Remove Stun de aliados até 2 casas de distância."
     },
     "Trickster": {
-        "cost": 54,
+        "cost": 48,
         "acronym": "Tr",
         "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nFeitiço: Troca (Swap).",
         "passiva": "Mão Leve: Troca de lugar com um aliado (Alcance Máximo: 3 casas)."
     },
     "Geomancer": {
-        "cost": 26,
+        "cost": 25,
         "acronym": "Ge",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Barricada.",
@@ -249,7 +249,7 @@
         "passiva": "Sombra: Atravessa (Ghosting) outras peças ao mover-se."
     },
     "Inquisitor": {
-        "cost": 89,
+        "cost": 93,
         "acronym": "In",
         "draftable": true,
         "aura_radius": 2,

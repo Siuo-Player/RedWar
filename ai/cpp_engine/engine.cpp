@@ -75,17 +75,30 @@ struct Move {
     }
 };
 
+// --- FASE 4: EFEITOS DE TERRENO ---
+struct TileEffect {
+    bool is_empty = true;
+    char team = '.';
+    string type = "";
+    int timer = 0;
+};
+
 struct BoardState {
     Piece pieces[LINHAS][COLUNAS];
+    TileEffect effects[LINHAS][COLUNAS]; // O mapa térmico
     char turn = 'W';
     int twc = 0;
     uint64_t hash = 0;
 };
 
-// --- FASE 3: BACKUP DE ESTADO COMPLEXO PARA UNDO ---
 struct StunRecord {
     int r, c;
     Piece p;
+};
+
+struct EffectRecord {
+    int r, c;
+    TileEffect ef;
 };
 
 struct UndoInfo {
@@ -96,6 +109,9 @@ struct UndoInfo {
     
     StunRecord aoe_victims[5];
     int num_victims = 0;
+    
+    EffectRecord overwritten_effects[5]; // Para reverter o Ignite
+    int num_effects = 0;
 };
 
 enum TTFlag { TT_EXACT, TT_LOWERBOUND, TT_UPPERBOUND };
@@ -127,6 +143,8 @@ static uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2];
 static uint64_t Z_STUN[LINHAS][COLUNAS][6];
 static uint64_t Z_LIFE[LINHAS][COLUNAS][15]; 
 static uint64_t Z_CD[LINHAS][COLUNAS][8];
+// NOVO: [row][col][team][type: 0=fire, 1=ice][timer]
+static uint64_t Z_EFFECT[LINHAS][COLUNAS][2][2][4]; 
 static uint64_t ZOBRIST_SIDE_TO_MOVE = 0;
 
 static unordered_map<string, int> PIECE_IDS;
@@ -165,6 +183,35 @@ static uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
     if (stun_idx > 5) stun_idx = 5;
 
     return Z_PIECE[r][c][p_id][team_idx] ^ Z_STUN[r][c][stun_idx] ^ Z_LIFE[r][c][life_idx] ^ Z_CD[r][c][cd_idx];
+}
+
+static uint64_t get_effect_zobrist_key(int r, int c, const TileEffect& ef) {
+    if (ef.is_empty) return 0;
+    
+    int type_idx = -1;
+    if (ef.type == "fire") type_idx = 0;
+    else if (ef.type == "ice") type_idx = 1;
+    
+    if (type_idx == -1) return 0; // Previne crashes com efeitos futuros
+
+    int team_idx = (ef.team == 'W') ? 0 : 1;
+    int t = ef.timer;
+    if (t < 0) t = 0;
+    if (t > 3) t = 3;
+    
+    return Z_EFFECT[r][c][team_idx][type_idx][t];
+}
+
+uint64_t compute_initial_hash() {
+    uint64_t h = 0;
+    if (board.turn == 'W') h ^= ZOBRIST_SIDE_TO_MOVE;
+    for (int r = 0; r < LINHAS; ++r) {
+        for (int c = 0; c < COLUNAS; ++c) {
+            if (!board.pieces[r][c].is_empty) h ^= get_piece_zobrist_key(r, c, board.pieces[r][c]);
+            if (!board.effects[r][c].is_empty) h ^= get_effect_zobrist_key(r, c, board.effects[r][c]);
+        }
+    }
+    return h;
 }
 
 uint64_t compute_initial_hash() {
@@ -403,6 +450,12 @@ static void ensure_hero_behaviors_loaded() {
             for(int s = 0; s < 6; ++s) Z_STUN[r][c][s] = rng();
             for(int l = 0; l < 15; ++l) Z_LIFE[r][c][l] = rng();
             for(int cd = 0; cd < 8; ++cd) Z_CD[r][c][cd] = rng();
+            
+            // NOVO: Inicializa as chaves do Fogo (0) e Gelo (1)
+            for(int t = 0; t < 2; ++t) 
+                for(int type = 0; type < 2; ++type)
+                    for(int tm = 0; tm < 4; ++tm) 
+                        Z_EFFECT[r][c][t][type][tm] = rng();
         }
     }
 
@@ -451,6 +504,8 @@ void parse_rwen(const string& rwen) {
         vector<string> cols = split_string(rows[r], ',');
         for (int c = 0; c < cols.size(); ++c) {
             vector<string> cell_parts = split_string(cols[c], ':'); 
+            
+            // 1. LER PEÇAS
             if (cell_parts[0] == ".") {
                 board.pieces[r][c].is_empty = true;
             } else {
@@ -460,18 +515,28 @@ void parse_rwen(const string& rwen) {
                 board.pieces[r][c].name = p_data[1];
                 board.pieces[r][c].stun_timer = stoi(p_data[2]);
                 if (p_data[3] != "N") board.pieces[r][c].lifespan = stoi(p_data[3]);
-                
-                // --- NOVO: Lê o cooldown do Python ---
                 board.pieces[r][c].spawn_cooldown = stoi(p_data[4]);
-                
                 auto it = PIECE_IDS.find(board.pieces[r][c].name);
-                if (it != PIECE_IDS.end()) board.pieces[r][c].id = it->second;
-                else board.pieces[r][c].id = MAX_HEROES - 1; 
+                board.pieces[r][c].id = (it != PIECE_IDS.end()) ? it->second : MAX_HEROES - 1; 
+            }
+            
+            // 2. LER FOGO (NOVO)
+            if (cell_parts.size() > 1) {
+                if (cell_parts[1] == ".") {
+                    board.effects[r][c].is_empty = true;
+                } else {
+                    vector<string> e_data = split_string(cell_parts[1], '_');
+                    board.effects[r][c].is_empty = false;
+                    board.effects[r][c].team = e_data[0][0];
+                    board.effects[r][c].type = e_data[1];
+                    board.effects[r][c].timer = stoi(e_data[2]);
+                }
             }
         }
     }
     board.hash = compute_initial_hash();
 }
+
 
 // Helper para invocar peças via SPAWN/SPELL
 Piece create_piece(const string& name, char team) {
@@ -528,7 +593,7 @@ UndoInfo make_move(const Move& m) {
         board.pieces[m.sr][m.sc].spawn_cooldown = 4;
         board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]); 
     }
-    else if (m.type == "SPELL") {
+else if (m.type == "SPELL") {
         board.twc++;
         if (m.spell_name == "purify") {
             board.pieces[m.er][m.ec].stun_timer = 0;
@@ -542,11 +607,36 @@ UndoInfo make_move(const Move& m) {
             board.pieces[m.er][m.ec] = create_piece("StoneWall", undo.actor_piece.team);
             board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
         }
+        // --- NOVO: CRIAR FOGO ---
+        else if (m.spell_name == "ignite") {
+            int dr[5] = {0, -1, 1, 0, 0}, dc[5] = {0, 0, 0, -1, 1};
+            for(int i=0; i<5; ++i) {
+                int fr = m.er + dr[i], fc = m.ec + dc[i];
+                if(fr>=0 && fr<LINHAS && fc>=0 && fc<COLUNAS) {
+                    undo.overwritten_effects[undo.num_effects++] = {fr, fc, board.effects[fr][fc]};
+                    if(!board.effects[fr][fc].is_empty && board.effects[fr][fc].type == "fire") 
+                        board.hash ^= get_effect_zobrist_key(fr, fc, board.effects[fr][fc]);
+                    
+                    board.effects[fr][fc] = {false, undo.actor_piece.team, "fire", 3};
+                    board.hash ^= get_effect_zobrist_key(fr, fc, board.effects[fr][fc]);
+                }
+            }
+            board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]); 
+        }
     }
 
+    // --- NOVO: A ARMADILHA TÉRMICA ---
     if (!board.pieces[m.er][m.ec].is_empty && m.type != "STUN") {
-        board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+        TileEffect& ef = board.effects[m.er][m.ec];
+        Piece& p = board.pieces[m.er][m.ec];
+        
+        // Se aterrares no fogo, levas Stun instantâneo
+        if (!ef.is_empty && ef.type == "fire" && p.stun_timer < 2) {
+            p.stun_timer = 2; 
+        }
+        board.hash ^= get_piece_zobrist_key(m.er, m.ec, p);
     }
+    
     board.turn = (board.turn == 'W') ? 'B' : 'W';
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
 
@@ -569,6 +659,21 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
         return; 
     }
 
+    // Adiciona este bloco no unmake_move (por exemplo, abaixo do if (m.type == "STUN"))
+    if (m.spell_name == "ignite") {
+        for (int i=0; i<undo.num_effects; ++i) {
+            int fr = undo.overwritten_effects[i].r;
+            int fc = undo.overwritten_effects[i].c;
+            if(!board.effects[fr][fc].is_empty && board.effects[fr][fc].type == "fire") 
+                board.hash ^= get_effect_zobrist_key(fr, fc, board.effects[fr][fc]);
+                
+            board.effects[fr][fc] = undo.overwritten_effects[i].ef;
+            
+            if(!board.effects[fr][fc].is_empty && board.effects[fr][fc].type == "fire") 
+                board.hash ^= get_effect_zobrist_key(fr, fc, board.effects[fr][fc]);
+        }
+    }
+
     if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
     if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
 
@@ -589,7 +694,7 @@ static const HeroBehavior& get_piece_behavior(const Piece& p) {
     return DEFAULT_BEHAVIOR;
 }
 
-// --- FASE 3: GERAÇÃO DE MAGIAS, STUNS E SPAWNS ---
+// --- FASE 3/4: GERAÇÃO DE LANCES COM FÍSICA DE TERRENO ---
 vector<Move> generate_valid_moves(char current_turn) {
     ensure_hero_behaviors_loaded();
     vector<Move> moves;
@@ -608,6 +713,10 @@ vector<Move> generate_valid_moves(char current_turn) {
                 for (int step = 1; step <= mv.max_steps; ++step) {
                     int nr = r + mv.dr * step, nc = c + mv.dc * step;
                     if (nr < 0 || nr >= LINHAS || nc < 0 || nc >= COLUNAS) break;
+                    
+                    // --- NOVO: O Gelo atua como parede de bloqueio ---
+                    if (!board.effects[nr][nc].is_empty && board.effects[nr][nc].type == "ice") break;
+                    
                     if (!board.pieces[nr][nc].is_empty) { if (mv.ghost) continue; break; }
                     if (step >= mv.min_steps) moves.push_back({r, c, nr, nc, "MOVE", "", "", 0});
                 }
@@ -617,6 +726,10 @@ vector<Move> generate_valid_moves(char current_turn) {
                 for (int step = 1; step <= mv.max_steps; ++step) {
                     int nr = r + mv.dr * step, nc = c + mv.dc * step;
                     if (nr < 0 || nr >= LINHAS || nc < 0 || nc >= COLUNAS) break;
+                    
+                    // --- NOVO: O Gelo bloqueia linha de ataque ---
+                    if (!board.effects[nr][nc].is_empty && board.effects[nr][nc].type == "ice") break;
+                    
                     if (board.pieces[nr][nc].is_empty) continue;
                     if (board.pieces[nr][nc].team != current_turn && step >= mv.min_steps) {
                         moves.push_back({r, c, nr, nc, "ATTACK", "", "", 0});
@@ -630,8 +743,11 @@ vector<Move> generate_valid_moves(char current_turn) {
                 int dir_frente = (p.team == 'W') ? -1 : 1;
                 for (int dc = -1; dc <= 1; ++dc) {
                     int nr = r + dir_frente, nc = c + dc;
-                    if (nr >= 0 && nr < LINHAS && nc >= 0 && nc < COLUNAS && board.pieces[nr][nc].is_empty) {
-                        moves.push_back({r, c, nr, nc, "SPAWN", "", "Ghoul", 0});
+                    if (nr >= 0 && nr < LINHAS && nc >= 0 && nc < COLUNAS) {
+                        if (!board.effects[nr][nc].is_empty && board.effects[nr][nc].type == "ice") continue;
+                        if (board.pieces[nr][nc].is_empty) {
+                            moves.push_back({r, c, nr, nc, "SPAWN", "", "Ghoul", 0});
+                        }
                     }
                 }
             }
@@ -641,11 +757,14 @@ vector<Move> generate_valid_moves(char current_turn) {
                         if (abs(dr) + abs(dc) <= 3) {
                             int foco_r = r + dr, foco_c = c + dc;
                             if (foco_r >= 0 && foco_r < LINHAS && foco_c >= 0 && foco_c < COLUNAS) {
+                                if (!board.effects[foco_r][foco_c].is_empty && board.effects[foco_r][foco_c].type == "ice") continue;
+                                
                                 bool has_enemy = false;
                                 int dx[5] = {0, -1, 1, 0, 0}, dy[5] = {0, 0, 0, -1, 1};
                                 for(int i=0; i<5; ++i) {
                                     int ar = foco_r + dx[i], ac = foco_c + dy[i];
                                     if(ar>=0 && ar<LINHAS && ac>=0 && ac<COLUNAS) {
+                                        if (!board.effects[ar][ac].is_empty && board.effects[ar][ac].type == "ice") continue;
                                         if(!board.pieces[ar][ac].is_empty && board.pieces[ar][ac].team != p.team) has_enemy = true;
                                     }
                                 }
@@ -691,6 +810,7 @@ vector<Move> generate_valid_moves(char current_turn) {
     }
     return moves;
 }
+
 
 static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply) {
     for (Move& m : moves) {
