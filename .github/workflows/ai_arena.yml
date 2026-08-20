@@ -15,7 +15,6 @@ jobs:
 
     steps:
     - name: Checkout Code
-      # fetch-depth: 0 é crucial para o git diff conseguir comparar as branches
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
@@ -24,14 +23,11 @@ jobs:
       if: github.event_name == 'pull_request' && github.actor != 'Siuo-Player'
       run: |
         echo "A inspecionar os ficheiros do Pull Request..."
-        # Vai buscar a branch de destino (normalmente a main)
         git fetch origin ${{ github.base_ref }}
         
-        # Lista todos os ficheiros alterados neste PR
         CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
         
         for FILE in $CHANGED_FILES; do
-          # Se o ficheiro não começar por "ai/", aborta com erro!
           if [[ ! "$FILE" == ai/* ]]; then
             echo "❌ ACESSO NEGADO: O Pull Request tenta alterar o ficheiro '$FILE'."
             echo "A jurisdição open-source do RedWar limita-se ESTRITAMENTE à pasta 'ai/'."
@@ -53,6 +49,12 @@ jobs:
 
     - name: Build Cython Evaluator
       run: python setup.py build_ext --inplace
+
+    - name: Build C++ Engine (Linux)
+      run: |
+        cd ai/cpp_engine
+        g++ -std=c++17 -O3 engine.cpp -o engine
+        chmod +x engine
 
     - name: Run Arena Tournament
       run: python tools/analytics/arena_tournament.py --jogos 50 --margem_vitorias 5

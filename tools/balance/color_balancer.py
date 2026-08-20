@@ -50,7 +50,7 @@ def jogar_batalha_simulada(orcamento_brancas, orcamento_pretas):
 
     return gs.winner
 
-def testar_equilibrio_de_cor(jogos_por_teste=50):
+def testar_equilibrio_de_cor(jogos_por_teste=500):
     print("--- INICIAR TESTE DE HANDICAP DINÂMICO ---")
     orcamento_pretas = 200
     testes_brancas = [200, 190, 180, 170, 160, 150]
@@ -80,4 +80,4 @@ def testar_equilibrio_de_cor(jogos_por_teste=50):
             break
 
 if __name__ == "__main__":
-    testar_equilibrio_de_cor(jogos_por_teste=50)
+    testar_equilibrio_de_cor(jogos_por_teste=500)

@@ -3,13 +3,12 @@ name: RedWar Auto-Balancer & ELO Calibration
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Permite forçar o balanceamento manualmente na aba Actions
+  workflow_dispatch:
 
 jobs:
   auto-balance:
     runs-on: ubuntu-latest
     
-    # Necessário para que o bot possa fazer push do novo heroes_config.json
     permissions:
       contents: write
 
@@ -32,6 +31,12 @@ jobs:
 
     - name: Build Cython Evaluator
       run: python setup.py build_ext --inplace
+
+    - name: Build C++ Engine (Linux)
+      run: |
+        cd ai/cpp_engine
+        g++ -std=c++17 -O3 engine.cpp -o engine
+        chmod +x engine
 
     - name: Generate Telemetry (Trainer)
       run: python tools/analytics/trainer.py

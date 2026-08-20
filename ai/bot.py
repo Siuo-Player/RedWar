@@ -2,6 +2,7 @@
 import random
 import subprocess
 import os
+import sys
 from engine.action_parser import ActionParser
 from engine.config import LINHAS
 
@@ -14,7 +15,14 @@ class CppEngineBot:
     def __init__(self, depth=4):
         self.depth = depth
         self.nome = f"StockWar C++ (D{depth})"
-        self.exe_path = os.path.join(os.path.dirname(__file__), "cpp_engine", "engine.exe")
+        
+        # --- VERIFICAÇÃO CROSS-PLATFORM ---
+        if sys.platform == "win32":
+            binary_name = "engine.exe" # No teu PC
+        else:
+            binary_name = "engine"     # No GitHub (Linux)
+            
+        self.exe_path = os.path.join(os.path.dirname(__file__), "cpp_engine", binary_name)
         self.process = None
 
     def _ensure_engine_running(self):
@@ -28,7 +36,7 @@ class CppEngineBot:
                 [self.exe_path],
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL, # <--- A CURA PARA O DEADLOCK DO OS
+                stderr=subprocess.DEVNULL,
                 text=True,
                 encoding='utf-8',
                 cwd=project_root
