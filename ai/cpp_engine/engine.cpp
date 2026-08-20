@@ -214,14 +214,7 @@ uint64_t compute_initial_hash() {
     return h;
 }
 
-uint64_t compute_initial_hash() {
-    uint64_t h = 0;
-    if (board.turn == 'W') h ^= ZOBRIST_SIDE_TO_MOVE;
-    for (int r = 0; r < LINHAS; ++r)
-        for (int c = 0; c < COLUNAS; ++c)
-            if (!board.pieces[r][c].is_empty) h ^= get_piece_zobrist_key(r, c, board.pieces[r][c]);
-    return h;
-}
+
 
 static string read_file_contents(const string& path) {
     ifstream f(path, ios::binary);
