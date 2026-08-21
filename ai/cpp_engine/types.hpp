@@ -13,6 +13,7 @@ const int MAX_HEROES = 64;
 const int TT_SIZE_POWER = 20;
 const uint64_t TT_SIZE = 1ULL << TT_SIZE_POWER;
 const uint64_t TT_MASK = TT_SIZE - 1;
+extern uint64_t node_limit;
 
 struct Piece {
     bool is_empty = true;

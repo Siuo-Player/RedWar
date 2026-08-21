@@ -1,13 +1,20 @@
 #include "types.hpp"
 #include <algorithm>
 
-inline void check_time() {
+inline void check_limits() {
+    // 1. O limite de nós é absoluto e verificado a CADA nó.
+    if (node_limit > 0 && nodes_evaluated >= node_limit) {
+        abort_search = true;
+    }
+    
+    // 2. O tempo só é verificado a cada 2048 nós para não atrasar o CPU.
     if ((nodes_evaluated & 2047) == 0) { 
         auto now = std::chrono::steady_clock::now();
         double elapsed = std::chrono::duration<double, std::milli>(now - search_start_time).count();
         if (elapsed >= time_limit_ms) abort_search = true;
     }
 }
+
 
 static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply) {
     for (Move& m : moves) {
@@ -24,7 +31,7 @@ static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply) 
 
 // --- FASE 5: PESQUISA DE APAZIGUAMENTO (QUIESCENCE SEARCH) ---
 int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_depth) {
-    nodes_evaluated++; check_time();
+    nodes_evaluated++; check_limits();
     if (abort_search) return 0;
 
     int eval_score = evaluate_board();
@@ -88,7 +95,7 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
 }
 
 int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
-    nodes_evaluated++; check_time();
+    nodes_evaluated++; check_limits();
     if (abort_search) return 0;
 
     uint64_t key = board.hash; TTEntry& slot = transposition_table[key & TT_MASK];
@@ -158,6 +165,7 @@ std::string search_best_move(int max_depth) {
     Move best_overall_move = root_moves[0];
 
     for (int d = 1; d <= max_depth; ++d) {
+        if (nodes_evaluated >= node_limit) break;
         uint64_t key = board.hash; TTEntry& slot = transposition_table[key & TT_MASK];
         score_moves(root_moves, (slot.occupied && slot.zobrist_key == key) ? slot.best_move : Move(), 0);
         std::sort(root_moves.begin(), root_moves.end());

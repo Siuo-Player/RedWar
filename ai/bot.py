@@ -12,9 +12,9 @@ class CppEngineBot:
     Comunica via Standard I/O ignorando o GIL do Python para máxima performance.
     Implementa Lazy-Loading e Auto-Healing para não criar processos zombie.
     """
-    def __init__(self, depth=4):
-        self.depth = depth
-        self.nome = f"StockWar C++ (D{depth})"
+    def __init__(self, nodes=10000):
+        self.nodes = nodes
+        self.nome = f"StockWar C++ (N{nodes})"
         
         # --- VERIFICAÇÃO CROSS-PLATFORM ---
         if sys.platform == "win32":
@@ -66,9 +66,8 @@ class CppEngineBot:
 
     def escolher_jogada(self, game_state):
         rwen_str = game_state.to_rwen()
-        
         self._send_command(f"position rwen {rwen_str}")
-        self._send_command(f"go depth {self.depth}")
+        self._send_command(f"go nodes {self.nodes}")
         
         while True:
             response = self._read_response()
@@ -154,13 +153,11 @@ class BotAleatorio:
         
 BOT_ALEATORIO = BotAleatorio()
 
-BOT_INICIANTE = CppEngineBot(depth=2)
+BOT_INICIANTE = CppEngineBot(nodes=5000)
+BOT_INTERMEDIO = CppEngineBot(nodes=50000) 
+BOT_AVANCADO = CppEngineBot(nodes=250000)
 BOT_INICIANTE.nome = "StockWar Iniciante (D2)"
-
-BOT_INTERMEDIO = CppEngineBot(depth=4)
 BOT_INTERMEDIO.nome = "StockWar Intermédio (D4)"
-
-BOT_AVANCADO = CppEngineBot(depth=6)
 BOT_AVANCADO.nome = "StockWar Avançado (D6)"
 
 def gerar_bot_por_elo(elo):
