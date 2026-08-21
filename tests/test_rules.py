@@ -60,4 +60,4 @@ def test_game_over_annihilation():
     gs.make_action((0, 0), (1, 0), "attack")
     
     assert gs.game_over == True
-    assert gs.winner == "Aniquilação - Brancas Vencem"
+    assert gs.winner == "Aniquilação (Brancas Vencem)"
