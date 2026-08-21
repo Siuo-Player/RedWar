@@ -85,7 +85,7 @@
         }
     },
     "Sentry": {
-        "cost": 91,
+        "cost": 89,
         "acronym": "Se",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta Infinita (Raio).",
@@ -134,7 +134,7 @@
         "passiva": "Pacto: Traz Ghouls para as casas à sua frente."
     },
     "BoneLord": {
-        "cost": 102,
+        "cost": 103,
         "acronym": "BL",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: Padrão complexo em 'V'.",
@@ -153,7 +153,7 @@
         }
     },
     "Ranger": {
-        "cost": 24,
+        "cost": 25,
         "acronym": "Ra",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta (Longo Alcance).",
@@ -179,7 +179,7 @@
         }
     },
     "Berserker": {
-        "cost": 25,
+        "cost": 23,
         "acronym": "Be",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: 1 casa (Todas as direções).",
@@ -198,14 +198,14 @@
         }
     },
     "Pyromancer": {
-        "cost": 26,
+        "cost": 27,
         "acronym": "Py",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Incendiar (Ignite).",
         "passiva": "Incêndio: Cria Fogo em cruz (Alcance 3). Ataca atordoados para Insta-Kill."
     },
     "Dragoon": {
-        "cost": 187,
+        "cost": 188,
         "acronym": "Dr",
         "draftable": true,
         "jump_max": 2,
@@ -223,7 +223,7 @@
         }
     },
     "Nightshade": {
-        "cost": 185,
+        "cost": 190,
         "acronym": "Ni",
         "draftable": true,
         "descricao": "Movimento: Até 4 casas ortogonais.\nAtaque: 1 casa ortogonal.",
@@ -241,7 +241,7 @@
         }
     },
     "Cleric": {
-        "cost": 62,
+        "cost": 61,
         "acronym": "Cl",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Purificar.",
@@ -255,7 +255,7 @@
         "passiva": "Mão Leve: Troca de lugar com um aliado (Alcance Máximo: 3 casas)."
     },
     "Geomancer": {
-        "cost": 17,
+        "cost": 13,
         "acronym": "Ge",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Barricada.",
@@ -270,7 +270,7 @@
         "passiva": "Barricada: Bloqueia ataques. Colapsa em 3 turnos."
     },
     "Inquisitor": {
-        "cost": 131,
+        "cost": 133,
         "acronym": "In",
         "draftable": true,
         "aura_radius": 2,
