@@ -9,7 +9,7 @@ import concurrent.futures
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from engine.game_state import GameState
-from engine.config import LIMITE_TURNOS, LINHAS, COLUNAS
+from engine.config import  LINHAS, COLUNAS
 from ai.bot import BOT_INTERMEDIO
 from tools.analytics.opening_tester import carregar_abertura_basica
 from engine.action_parser import ActionParser
@@ -27,7 +27,7 @@ def simular_um_jogo(seed):
     }
     
     turnos = 0
-    while not gs.game_over and turnos < LIMITE_TURNOS:
+    while not gs.game_over:
         turnos += 1
         best_move_str = BOT_INTERMEDIO.play(gs)
         
@@ -82,14 +82,7 @@ def simular_um_jogo(seed):
             if not gs.game_over: gs.game_over, gs.winner = True, "Bloqueio Total"
             break
             
-    if turnos >= LIMITE_TURNOS:
-        board_str = f"--- JOGO ENCRAVADO (Seed: {seed}) ---\n"
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
-                p = gs.board[r][c]
-                board_str += f"{p.acronym:^3}" if p else " . "
-            board_str += "\n"
-        resultado["tabuleiro_encravado"] = board_str
+    
 
     resultado["turnos"] = turnos
     resultado["winner"] = str(gs.winner)

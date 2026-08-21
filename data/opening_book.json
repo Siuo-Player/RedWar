@@ -1,5 +1,5 @@
 {
-    "1x Obelisk + 1x Phantom + 1x Pyromancer + 1x Sentry + 1x Trickster + 2x Lich": {
+    "1x FrostMage + 1x Inquisitor + 1x Templar + 2x Obelisk + 2x Ranger": {
         "wins": 0.0,
         "games": 1,
         "winrate": 0.0,
@@ -8,5 +8,5179 @@
             {
                 "r": 6,
                 "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Pyromancer": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Geomancer + 1x Lich + 2x FrostMage + 2x Pyromancer + 2x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Geomancer + 1x Lich + 1x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Ranger + 1x Sentry + 1x Templar + 2x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Berserker + 1x Cleric + 1x Pyromancer + 1x Ranger + 2x Phantom + 4x Geomancer": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 215,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            }
+        ]
+    },
+    "1x Lich + 1x Nightshade + 2x Phantom": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Obelisk + 1x Pyromancer + 1x Trickster + 2x Geomancer + 2x Lich + 2x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 215,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 1,
                 "name": "Trickster",
-                "class": 
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Obelisk + 1x Ranger + 1x Trickster + 2x Geomancer + 3x Phantom + 5x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 3,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 7,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 7,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 7,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Geomancer + 1x Nightshade + 2x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Ranger + 1x Sentry + 1x Trickster + 2x Berserker": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x BoneLord + 1x FrostMage + 1x Lich + 1x Phantom + 2x Geomancer + 2x Obelisk + 2x Pyromancer": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Obelisk + 1x Pyromancer + 1x Ranger + 1x Templar + 1x Trickster + 2x Phantom": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Nightshade": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 215,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Inquisitor + 1x Obelisk + 1x Pyromancer + 1x Trickster + 2x Lich": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Geomancer + 1x Pyromancer + 1x Ranger + 1x Templar + 2x Obelisk + 3x Trickster + 4x Phantom": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 4,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Lich + 1x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Phantom + 1x Pyromancer + 1x Ranger + 1x Templar + 2x Cleric": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Geomancer + 1x Lich + 1x Obelisk + 1x Phantom + 1x Pyromancer + 1x Ranger + 1x Templar + 2x Berserker + 2x Trickster": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Cleric + 1x FrostMage + 2x Ranger": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Geomancer + 2x Sentry": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 199,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            }
+        ]
+    },
+    "1x Berserker + 1x Cleric + 1x FrostMage + 1x Pyromancer + 1x Sentry + 1x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Berserker + 1x BoneLord + 1x Templar + 2x Pyromancer + 3x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 199,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Cleric + 1x Geomancer + 1x Lich + 1x Pyromancer + 2x FrostMage + 2x Phantom + 3x Ranger + 3x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 4,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 1,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Inquisitor + 1x Obelisk + 1x Ranger + 1x Templar + 1x Trickster": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Inquisitor + 1x Lich + 1x Phantom + 1x Pyromancer + 2x Obelisk + 2x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Cleric + 1x Phantom + 1x Sentry + 1x Trickster + 2x Lich": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Berserker + 1x Dragoon + 1x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x BoneLord + 1x FrostMage + 1x Pyromancer + 1x Ranger + 1x Templar + 1x Trickster + 2x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            }
+        ]
+    },
+    "1x Cleric + 1x Geomancer + 1x Lich + 1x Phantom + 1x Pyromancer + 1x Trickster + 2x FrostMage + 2x Ranger + 3x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Berserker + 1x Geomancer + 1x Phantom + 1x Ranger + 1x Sentry + 1x Templar + 3x FrostMage + 3x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 7,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Lich + 1x Nightshade + 1x Ranger": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Berserker + 1x Inquisitor + 1x Lich + 1x Phantom + 2x Geomancer": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Lich + 1x Obelisk + 1x Pyromancer + 1x Sentry + 2x Phantom + 2x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Geomancer + 1x Inquisitor + 1x Templar + 1x Trickster + 3x Phantom": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Ranger + 1x Trickster + 2x Geomancer + 2x Templar + 3x Lich": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Geomancer + 1x Inquisitor + 1x Pyromancer + 1x Ranger": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Phantom + 1x Ranger + 2x Lich + 2x Obelisk + 4x Berserker": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Lich + 1x Phantom": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Geomancer + 1x Obelisk + 1x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Dragoon + 1x FrostMage + 1x Phantom": {
+        "wins": 0.0,
+        "games": 2,
+        "winrate": 0.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Nightshade + 1x Ranger": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            }
+        ]
+    },
+    "1x Dragoon + 2x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x BoneLord + 1x FrostMage + 1x Geomancer + 1x Templar + 2x Obelisk + 2x Phantom + 2x Pyromancer + 3x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 4,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Nightshade + 1x Obelisk + 2x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Cleric + 1x Phantom + 1x Trickster + 2x Lich + 2x Obelisk": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Berserker + 1x Geomancer + 1x Phantom + 1x Pyromancer + 1x Trickster + 4x Ranger": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            }
+        ]
+    },
+    "1x Inquisitor + 1x Lich + 1x Ranger + 1x Templar + 1x Trickster + 2x Obelisk + 2x Phantom": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Nightshade + 1x Phantom + 2x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Trickster + 2x Lich + 2x Phantom + 2x Pyromancer + 3x Obelisk": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Cleric + 1x Pyromancer + 2x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Nightshade + 1x Obelisk + 1x Phantom + 1x Templar + 2x Lich": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 215,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Dragoon + 1x FrostMage + 1x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Geomancer + 1x Phantom + 1x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x Berserker + 1x BoneLord + 1x FrostMage + 1x Phantom + 2x Pyromancer + 2x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 199,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Pyromancer + 1x Sentry + 2x Phantom + 3x Ranger + 3x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Geomancer + 1x Pyromancer + 1x Templar + 2x Phantom + 2x Trickster + 3x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 7,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Cleric + 1x Pyromancer + 1x Ranger + 1x Sentry + 2x Obelisk": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Lich + 1x Obelisk + 1x Phantom + 1x Sentry + 1x Templar + 2x Trickster": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Geomancer + 1x Nightshade + 1x Obelisk + 1x Phantom + 1x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Cleric + 1x Lich + 1x Obelisk + 1x Ranger + 2x FrostMage + 2x Templar + 3x Trickster": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Ranger + 1x Trickster + 2x Lich + 2x Pyromancer": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Nightshade + 1x Templar + 2x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 200,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Berserker + 1x BoneLord + 1x Geomancer + 1x Obelisk + 1x Pyromancer + 1x Ranger + 3x Phantom": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Lich + 1x Obelisk + 1x Phantom + 1x Trickster + 2x Pyromancer": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Berserker + 1x Cleric + 1x FrostMage + 1x Phantom + 1x Templar + 2x Geomancer + 2x Obelisk + 2x Pyromancer + 3x Lich": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 1,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Inquisitor + 1x Lich + 1x Templar + 1x Trickster": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 199,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Obelisk + 2x BoneLord": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Lich + 2x Obelisk + 2x Pyromancer + 3x Phantom + 3x Trickster": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 7,
+                "c": 4,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Lich + 1x Obelisk + 1x Phantom + 1x Ranger + 1x Sentry + 3x Trickster": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Dragoon + 1x FrostMage + 1x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Nightshade + 1x Obelisk + 1x Ranger": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Lich + 1x Obelisk + 1x Ranger + 1x Sentry + 1x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Inquisitor + 1x Obelisk + 1x Ranger + 1x Templar + 1x Trickster + 2x FrostMage + 2x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Cleric + 1x Geomancer + 1x Ranger + 1x Sentry + 2x Lich + 2x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x Cleric + 1x Geomancer + 1x Ranger + 1x Templar + 1x Trickster + 2x Phantom + 2x Pyromancer": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Inquisitor + 1x Lich + 1x Pyromancer + 2x Berserker": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Lich + 1x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Phantom + 1x Pyromancer + 1x Ranger + 1x Sentry + 1x Templar + 1x Trickster + 2x Geomancer": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            }
+        ]
+    },
+    "1x Berserker + 1x BoneLord + 1x Cleric + 1x Phantom + 1x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 199,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Geomancer + 1x Lich + 1x Pyromancer + 1x Trickster + 2x Templar + 5x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Geomancer + 1x Pyromancer + 1x Ranger + 1x Trickster + 2x Phantom + 2x Templar + 3x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 197,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 7,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 7,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            }
+        ]
+    },
+    "1x Dragoon + 1x Phantom + 1x Ranger": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Dragoon",
+                "class_name": "Dragoon"
+            }
+        ]
+    },
+    "1x Obelisk + 1x Pyromancer + 1x Ranger + 1x Sentry + 2x Berserker": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Berserker + 1x FrostMage + 1x Pyromancer + 1x Ranger + 2x Cleric + 2x Lich": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Inquisitor + 1x Ranger + 1x Trickster + 2x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            }
+        ]
+    },
+    "1x Berserker + 1x Cleric + 1x Phantom + 1x Ranger + 1x Sentry + 2x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            }
+        ]
+    },
+    "1x Cleric + 1x Lich + 1x Phantom + 2x Ranger + 2x Trickster + 4x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Berserker + 1x Inquisitor + 1x Phantom + 1x Pyromancer + 1x Ranger + 1x Templar": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            }
+        ]
+    },
+    "1x Berserker + 1x Inquisitor + 1x Lich + 1x Trickster + 2x Obelisk": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 199,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Berserker",
+                "class_name": "Berserker"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x Cleric + 1x Pyromancer + 1x Ranger + 1x Templar + 2x Obelisk + 2x Phantom + 2x Trickster + 4x FrostMage": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 213,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 1,
+                "c": 2,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 1,
+                "c": 3,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 1,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            }
+        ]
+    },
+    "1x BoneLord + 1x FrostMage + 1x Sentry": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x Cleric + 1x Geomancer + 1x Lich + 1x Obelisk + 1x Phantom + 1x Ranger + 1x Sentry + 1x Templar": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            }
+        ]
+    },
+    "1x Cleric + 1x FrostMage + 1x Obelisk + 1x Phantom + 1x Pyromancer + 1x Ranger + 2x Trickster + 3x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 198,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 7,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 7,
+                "c": 2,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    },
+    "1x Inquisitor + 1x Ranger + 1x Templar + 2x Geomancer + 4x Phantom": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 214,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Inquisitor",
+                "class_name": "Inquisitor"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            }
+        ]
+    },
+    "1x Ranger + 1x Trickster + 2x Cleric + 2x FrostMage + 2x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Ranger",
+                "class_name": "Ranger"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Geomancer + 1x Nightshade + 2x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 217,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Nightshade",
+                "class_name": "Nightshade"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x FrostMage + 1x Lich + 1x Sentry + 1x Trickster + 2x Pyromancer + 3x Obelisk": {
+        "wins": 1.0,
+        "games": 1,
+        "winrate": 100.0,
+        "desperdicio": 196,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 1,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 3,
+                "name": "Pyromancer",
+                "class_name": "Pyromancer"
+            },
+            {
+                "r": 6,
+                "c": 4,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 6,
+                "c": 5,
+                "name": "Lich",
+                "class_name": "Lich"
+            },
+            {
+                "r": 6,
+                "c": 6,
+                "name": "Sentry",
+                "class_name": "Sentry"
+            },
+            {
+                "r": 6,
+                "c": 7,
+                "name": "Trickster",
+                "class_name": "Trickster"
+            },
+            {
+                "r": 7,
+                "c": 0,
+                "name": "FrostMage",
+                "class_name": "FrostMage"
+            }
+        ]
+    },
+    "1x BoneLord + 1x Cleric + 1x Geomancer + 1x Lich + 1x Templar + 2x Phantom + 3x Obelisk": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 216,
+        "team": [
+            {
+                "r": 0,
+                "c": 0,
+                "name": "BoneLord",
+                "class_name": "BoneLord"
+            },
+            {
+                "r": 0,
+                "c": 1,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 2,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 3,
+                "name": "Phantom",
+                "class_name": "Phantom"
+            },
+            {
+                "r": 0,
+                "c": 4,
+                "name": "Cleric",
+                "class_name": "Cleric"
+            },
+            {
+                "r": 0,
+                "c": 5,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 0,
+                "c": 6,
+                "name": "Templar",
+                "class_name": "Templar"
+            },
+            {
+                "r": 0,
+                "c": 7,
+                "name": "Obelisk",
+                "class_name": "Obelisk"
+            },
+            {
+                "r": 1,
+                "c": 0,
+                "name": "Geomancer",
+                "class_name": "Geomancer"
+            },
+            {
+                "r": 1,
+                "c": 1,
+                "name": "Lich",
+                "class_name": "Lich"
+            }
+        ]
+    }
+}

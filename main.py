@@ -1,8 +1,11 @@
 import pygame
 import threading
 import random
+import os
+import json
+from collections import Counter
 from engine.game_state import GameState, coords_para_notacao
-from engine.pieces import obter_catalogo_pecas
+from engine.pieces import obter_catalogo_pecas, criar_peca_por_nome
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
 
 from ui.renderer import (
@@ -38,7 +41,7 @@ class JogoController:
         self.elo_escolhido = 1500
         self.modo_predador = False
         self.pondering_active = False
-        self.bot_ativo = None # Vai ser instanciado dinamicamente antes do DRAFT
+        self.bot_ativo = None 
         # ---------------------------
         
         self.thread_ia = None
@@ -69,18 +72,59 @@ class JogoController:
         return 250000
 
     def auto_draft_inimigo(self, orcamento: int):
-        from collections import Counter 
+        livro_path = os.path.join("data", "opening_book.json")
+        aberturas_pretas = []
         
-        # A IA usa a sua inteligência matemática para formar a equipa
+        # 1. Tentar ler o Livro de Aberturas
+        if os.path.exists(livro_path):
+            try:
+                with open(livro_path, 'r', encoding='utf-8') as f:
+                    livro = json.load(f)
+                
+                for assinatura, dados in livro.items():
+                    equipa = dados.get("team", [])
+                    if not equipa: continue
+                    
+                    is_pretas = all(pos["r"] in [0, 1] for pos in equipa)
+                    if is_pretas and dados.get("games", 0) > 0:
+                        aberturas_pretas.append(dados)
+                        
+            except Exception as e:
+                print(f"⚠️ Erro ao ler Opening Book: {e}")
+
+        # 2. Se houver aberturas testadas, escolhe a estatisticamente mais forte
+        if aberturas_pretas:
+            aberturas_pretas.sort(key=lambda x: x["winrate"], reverse=True)
+            melhores = aberturas_pretas[:min(3, len(aberturas_pretas))]
+            abertura_escolhida = random.choice(melhores)
+            
+            nome_ia = self.bot_ativo.nome if self.bot_ativo else "StockWar"
+            print(f"\n--- 📚 LIVRO DE ABERTURAS (IA: {nome_ia}) ---")
+            print(f"Winrate Histórico: {abertura_escolhida['winrate']}% (em {abertura_escolhida['games']} jogos)")
+            
+            equipa = abertura_escolhida["team"]
+            nomes_herois = []
+            
+            for pos in equipa:
+                peca = criar_peca_por_nome(pos["class_name"], 'pretas')
+                if peca:
+                    self.gs.board[pos["r"]][pos["c"]] = peca
+                    nomes_herois.append(peca.name)
+                    
+            contagem = Counter(nomes_herois)
+            equipa_str = " + ".join([f"{qtd}x {nome}" for nome, qtd in contagem.items()])
+            print(f"Composição:        {equipa_str}")
+            print("------------------------------------------------------\n")
+            return
+
+        # 3. Fallback: Knapsack (Cérebro Matemático Intacto) caso o livro não exista
         if self.bot_ativo and hasattr(self.bot_ativo, 'gerar_draft_inteligente'):
             resultado = self.bot_ativo.gerar_draft_inteligente(orcamento, self.catalogo, 'pretas')
             
-            # Contar a composição da equipa escolhida
             nomes_herois = [pos["piece_class"].__name__ for pos in resultado["draft"]]
             contagem = Counter(nomes_herois)
             equipa_str = " + ".join([f"{qtd}x {nome}" for nome, qtd in contagem.items()])
             
-            # Validação e Estatísticas Impressas no Terminal
             print(f"\n--- 🧠 ESTATÍSTICAS DE DRAFT DA IA ({self.bot_ativo.nome}) ---")
             print(f"Tempo de Cálculo: {resultado['tempo_ms']:.2f} ms")
             print(f"Pontos Gastos:    {resultado['pontos_gastos']}/{orcamento}")
@@ -88,11 +132,9 @@ class JogoController:
             print(f"Composição:       {equipa_str}")
             print("------------------------------------------------------\n")
             
-            # Aplicar ao Tabuleiro
             for pos in resultado["draft"]:
                 self.gs.board[pos["r"]][pos["c"]] = pos["piece_class"]('pretas')
         else:
-            # Fallback de segurança
             pts = orcamento
             for r in range(2):
                 for c in range(COLUNAS):
@@ -244,7 +286,7 @@ class JogoController:
                 self.gs.current_score = None
                 
         elif self.fase_atual == "INFO":
-            pass # TODO
+            pass 
             
         elif self.fase_atual == "DRAFT":
             for nome, rect in self.botoes_loja.items():
@@ -272,7 +314,7 @@ class JogoController:
                     sr, sc = self.casa_selecionada
                     acao = self.extrair_acao_valida(self.gs, sr, sc, r, c)
                     if acao:
-                        # --- CORTAR O PONDERING DO MODO PREDADOR (Safeguard para Pylance) ---
+                        # --- CORTAR O PONDERING DO MODO PREDADOR ---
                         if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'stop_pondering'):
                             self.bot_ativo.stop_pondering()
                             self.pondering_active = False
@@ -302,7 +344,7 @@ class JogoController:
                 if self.review_index == total_estados: self.display_gs = self.gs
                 else: self.display_gs = self.gs.move_log[self.review_index]["estado_anterior"].fast_clone()
             
-            # --- NOVO BLOCO PARA SAIR DO JOGO ---
+            # --- SAIR DO JOGO ---
             elif self.btn_voltar_menu.collidepoint(pos):
                 self.fase_atual = "MENU"
                 self.gs = GameState(time_limit_seconds=180.0)
@@ -332,7 +374,7 @@ class JogoController:
                         self.casa_selecionada = None
 
     def processar_ia(self):
-        # --- LANÇAR O PONDERING DO MODO PREDADOR DURANTE O TURNO DO HUMANO (Safeguard para Pylance) ---
+        # --- LANÇAR O PONDERING DO MODO PREDADOR DURANTE O TURNO DO HUMANO ---
         if self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
             if self.modo_predador and not self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'start_pondering'):
                 self.bot_ativo.start_pondering(self.gs)
@@ -408,11 +450,11 @@ class JogoController:
                     
                 self.btn_prev = pygame.Rect(painel_x + 20, h - 80, 80, 40)
                 self.btn_next = pygame.Rect(painel_x + 110, h - 80, 80, 40)
-                self.btn_voltar_menu = pygame.Rect(painel_x + 200, h - 80, 130, 40) # NOVO BOTÃO
+                self.btn_voltar_menu = pygame.Rect(painel_x + 200, h - 80, 130, 40) # DESENHAR
                 
                 pygame.draw.rect(self.ecra, (80,80,80), self.btn_prev, border_radius=6)
                 pygame.draw.rect(self.ecra, (80,80,80), self.btn_next, border_radius=6)
-                pygame.draw.rect(self.ecra, C_VERMELHO, self.btn_voltar_menu, border_radius=6) # DESENHAR
+                pygame.draw.rect(self.ecra, C_VERMELHO, self.btn_voltar_menu, border_radius=6) 
                 
                 fbtn = pygame.font.SysFont("arial", 20, bold=True)
                 self.ecra.blit(fbtn.render("Anterior", True, C_BRANCO), (self.btn_prev.x + 6, self.btn_prev.y + 8))

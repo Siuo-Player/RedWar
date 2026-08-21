@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
-from engine.pieces import obter_catalogo_pecas
+from engine.pieces import obter_catalogo_pecas, criar_peca_por_nome
 from ai.bot import BOT_INTERMEDIO # Usamos o Intermédio para gerar o livro mais depressa
 
 ARQUIVO_LIVRO = os.path.join("data", "opening_book.json")
@@ -44,9 +44,11 @@ def simular_duelo_aberturas(draft_brancas, draft_pretas, seed):
     random.seed(seed)
     gs = GameState(time_limit_seconds=99999)
     
-    # Aplicar aberturas no tabuleiro
-    for pos in draft_brancas: gs.board[pos["r"]][pos["c"]] = pos["class_name"]('brancas')
-    for pos in draft_pretas: gs.board[pos["r"]][pos["c"]] = pos["class"]('pretas')
+    # Aplicar aberturas no tabuleiro convertendo o texto de volta para Peça
+    for pos in draft_brancas: 
+        gs.board[pos["r"]][pos["c"]] = criar_peca_por_nome(pos["class_name"], 'brancas')
+    for pos in draft_pretas: 
+        gs.board[pos["r"]][pos["c"]] = criar_peca_por_nome(pos["class_name"], 'pretas')
 
     turnos = 0
     while not gs.game_over and turnos < 150:

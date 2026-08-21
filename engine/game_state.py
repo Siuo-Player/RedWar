@@ -155,7 +155,9 @@ class GameState:
         start_row, start_col = start_pos
         end_row, end_col = end_pos
         piece = self.board[start_row][start_col]
-        captured_something = False
+        
+        # NOVA LÓGICA: Só faz reset ao temporizador de empate se matar uma "Peça Real"
+        captured_real_piece = False
 
         if not is_simulation:
             self.gerar_notacao(piece, start_pos, end_pos, action_type, spawn_name, spell_name)
@@ -167,9 +169,11 @@ class GameState:
                 alvo = self.board[ar][ac]
                 if alvo and alvo.team != piece.team:
                     if alvo.stun_timer > 0:
+                        # Verifica se é uma peça permanente (lifespan é None)
+                        if getattr(alvo, 'lifespan', None) is None:
+                            captured_real_piece = True
                         self.remove_piece_hash(ar, ac)
                         self.board[ar][ac] = None 
-                        captured_something = True
                     else:
                         self.remove_piece_hash(ar, ac)
                         alvo.stun_timer = 2 
@@ -212,8 +216,10 @@ class GameState:
                 self.board[end_row][end_col] = barr
                 self.add_piece_hash(end_row, end_col, barr)
             elif spell_name == "jump":
-                captured_something = bool(self.board[end_row][end_col])
-                if captured_something:
+                target_piece = self.board[end_row][end_col]
+                if target_piece:
+                    if getattr(target_piece, 'lifespan', None) is None:
+                        captured_real_piece = True
                     self.remove_piece_hash(end_row, end_col)
                 self.remove_piece_hash(start_row, start_col)
                 self.board[start_row][start_col] = None
@@ -227,7 +233,9 @@ class GameState:
             self.add_piece_hash(end_row, end_col, piece)
             
         elif action_type == "attack":
-            captured_something = True
+            target_piece = self.board[end_row][end_col]
+            if target_piece and getattr(target_piece, 'lifespan', None) is None:
+                captured_real_piece = True
             
             # Deteta passivas dinâmicas via JSON
             attacker_beh = HERO_DEFS.get(piece.name, {}).get("behavior", {})
@@ -254,6 +262,8 @@ class GameState:
                         if 0 <= ar < LINHAS and 0 <= ac < COLUNAS:
                             t = self.board[ar][ac]
                             if t and t.team != piece.team:
+                                if getattr(t, 'lifespan', None) is None:
+                                    captured_real_piece = True
                                 self.remove_piece_hash(ar, ac)
                                 self.board[ar][ac] = None
 
@@ -266,7 +276,8 @@ class GameState:
                 peca_destino.stun_timer = 2
                 self.add_piece_hash(end_row, end_col, peca_destino)
 
-        if captured_something: self.turns_without_capture = 0
+        # Regra Anti-Stalling: Morte de Invocações não conta como captura válida
+        if captured_real_piece: self.turns_without_capture = 0
         else: self.turns_without_capture += 1
 
         self.white_to_move = not self.white_to_move
@@ -276,6 +287,7 @@ class GameState:
         self.check_game_over()
         if not is_simulation:
             self.current_score = None
+
 
     def update_timers(self):
         equipa_atual = 'brancas' if self.white_to_move else 'pretas'
@@ -340,29 +352,43 @@ class GameState:
         white_alive = any(p.team == 'brancas' for row in self.board for p in row if p)
         black_alive = any(p.team == 'pretas' for row in self.board for p in row if p)
         
+        # 1. Aniquilação 
         if not white_alive and not black_alive: 
-            self.game_over, self.winner = True, "Empate (Aniquilação Mútua)"
+            self.game_over, self.winner = True, "Aniquilação Mútua (Pretas Vencem no Desempate)"
         elif not white_alive: 
-            self.game_over, self.winner = True, "Aniquilação - Pretas Vencem"
+            self.game_over, self.winner = True, "Aniquilação (Pretas Vencem)"
         elif not black_alive: 
-            self.game_over, self.winner = True, "Aniquilação - Brancas Vencem"
+            self.game_over, self.winner = True, "Aniquilação (Brancas Vencem)"
             
         if self.game_over: return
 
         adversario_vencedor = 'Brancas' if self.white_to_move else 'Pretas'
+
+        # Helper: Calcula quem ganha baseando-se no valor de mercado (cost)
+        # Se os valores forem EXATAMENTE iguais, a vantagem do desempate vai para as Pretas!
+        def resolver_por_material():
+            white_mat = sum(getattr(p, 'cost', 0) for row in self.board for p in row if p and p.team == 'brancas')
+            black_mat = sum(getattr(p, 'cost', 0) for row in self.board for p in row if p and p.team == 'pretas')
+            if white_mat > black_mat:
+                return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem"
+            else:
+                return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate"
             
+        # 2. Regra Anti-Stalling (50 turnos rigorosos)
         if self.turns_without_capture >= 50: 
             self.game_over = True
-            self.winner = f"{adversario_vencedor} Vencem (Limite tático)"
+            self.winner = resolver_por_material()
             return
             
+        # 3. Regra Anti-Loop (Repetição de Posição 3 vezes)
         current_hash = self.get_state_hash()
         self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1
         if self.state_history[current_hash] >= 3:
             self.game_over = True
-            self.winner = f"{adversario_vencedor} Vencem (Repetição)"
+            self.winner = resolver_por_material()
             return
 
+        # 4. Asfixia Tática (Jogador atual não tem lances legais)
         tem_jogada = False
         equipa_atual = 'brancas' if self.white_to_move else 'pretas'
         for r in range(LINHAS):
@@ -380,7 +406,9 @@ class GameState:
 
         if not tem_jogada:
             self.game_over = True
-            self.winner = f"{adversario_vencedor} Vencem (Oponente sem lances)"
+            # Quem ficou encurralado sem lances perde a partida
+            self.winner = f"{adversario_vencedor} Vencem (Oponente Bloqueado)"
+
 
     def to_rwen(self) -> str:
         linhas_str = []

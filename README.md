@@ -274,6 +274,14 @@ python tools/analytics/game_analyzer.py           # Detetar gridlocks e anomalia
 - Documentação de contribution dedicada em `docs/`
 - Tabuleiro 10×10 com coordenadas algébricas (A–J / 1–10)
 
+### 💡 Game Design & Modos Alternativos (Em Análise)
+
+| Conceito | Estado | Descrição |
+|----------|--------|-----------|
+| **Desempate por Material** | 🟡 Em estudo | Se o limite de turnos for atingido, vence quem tiver o maior valor (custo total) de Heróis vivos no tabuleiro. Obriga a "first blood" para quem quiser fazer *stalling*. |
+| **Terrenos Especiais** | 🟡 Em estudo | Evolução do sistema de efeitos: casas que conferem `+1 Alcance` permanente, ou casas que convertem habilidades de *Stun* em *Ataque/AoE*. |
+| **Modo Battle Royale** | 🔵 Planeado | Variante onde as bordas do tabuleiro começam a arder após X turnos, encolhendo a arena e forçando os exércitos para o centro (anula totalmente táticas de fuga). |
+
 ---
 
 ## 📐 Referência Rápida — Fórmulas ELO
