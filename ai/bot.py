@@ -129,6 +129,67 @@ class CppEngineBot:
             except Exception:
                 pass
 
+    def gerar_draft_inteligente(self, orcamento, catalogo, equipa):
+        """
+        Resolve o Problema da Mochila (Unbounded Knapsack DP) para encontrar
+        a equipa perfeita que gasta o máximo de pontos possíveis, limitando a 16 peças.
+        """
+        import time
+        start_time = time.time()
+        
+        pecas_validas = [p for p in catalogo if p.get("cost", 9999) <= orcamento]
+        
+        # dp[w] = (max_pontos_gastos, lista_de_pecas)
+        dp = [(0, []) for _ in range(orcamento + 1)]
+        limite_pecas = 16 # O limite físico da zona de draft (2 linhas x 8 colunas)
+        
+        for w in range(1, orcamento + 1):
+            melhor_gasto = dp[w-1][0]
+            melhor_lista = dp[w-1][1]
+            
+            for p in pecas_validas:
+                c = p["cost"]
+                if w >= c:
+                    gasto_anterior, lista_anterior = dp[w - c]
+                    # Garante que não compra mais peças do que o espaço no tabuleiro
+                    if len(lista_anterior) < limite_pecas:
+                        novo_gasto = gasto_anterior + c
+                        if novo_gasto > melhor_gasto:
+                            melhor_gasto = novo_gasto
+                            melhor_lista = lista_anterior + [p]
+            
+            dp[w] = (melhor_gasto, melhor_lista)
+            
+        pontos_gastos, equipa_escolhida = dp[orcamento]
+        tempo_gasto = (time.time() - start_time) * 1000.0 # em milissegundos
+        
+        # --- POSICIONAMENTO TÁTICO ---
+        # Ordenamos a equipa: Peças mais caras/Tanques primeiro (vão para a linha da frente)
+        equipa_escolhida = sorted(equipa_escolhida, key=lambda x: x["cost"], reverse=True)
+        
+        # Determinar as linhas de draft consoante a fação
+        if equipa == 'brancas':
+            linhas = [6, 7] # Linha 6 é a Frente, 7 é a Retaguarda
+        else:
+            linhas = [1, 0] # Linha 1 é a Frente, 0 é a Retaguarda
+            
+        posicoes = []
+        idx = 0
+        for r in linhas:
+            for c in range(8):
+                if idx < len(equipa_escolhida):
+                    posicoes.append({
+                        "r": r, "c": c,
+                        "piece_class": equipa_escolhida[idx]["class"]
+                    })
+                    idx += 1
+                    
+        return {
+            "pontos_gastos": pontos_gastos,
+            "pontos_desperdicados": orcamento - pontos_gastos,
+            "tempo_ms": tempo_gasto,
+            "draft": posicoes
+        }
 
 # --- BLOCO DE RETROCOMPATIBILIDADE PARA FERRAMENTAS DE ANALYTICS ---
 class BotConfig:

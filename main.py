@@ -56,6 +56,7 @@ class JogoController:
         self.btn_vs_ia = self.btn_multi = self.btn_voltar_modo = pygame.Rect(0,0,0,0)
         self.btn_ia_normal = self.btn_ia_predador = self.btn_voltar_tipo = pygame.Rect(0,0,0,0)
         self.btn_voltar_dificuldade = self.rect_elo = self.btn_prev = self.btn_next = pygame.Rect(0,0,0,0)
+        self.btn_voltar_menu = pygame.Rect(0,0,0,0)
         
         self.arrastando_elo = False
 
@@ -68,14 +69,39 @@ class JogoController:
         return 250000
 
     def auto_draft_inimigo(self, orcamento: int):
-        pts = orcamento
-        for r in range(2):
-            for c in range(COLUNAS):
-                validas = [p for p in self.catalogo if p["cost"] <= pts]
-                if validas:
-                    esc = random.choice(validas)
-                    self.gs.board[r][c] = esc["class"]('pretas')
-                    pts -= esc["cost"]
+        from collections import Counter 
+        
+        # A IA usa a sua inteligência matemática para formar a equipa
+        if self.bot_ativo and hasattr(self.bot_ativo, 'gerar_draft_inteligente'):
+            resultado = self.bot_ativo.gerar_draft_inteligente(orcamento, self.catalogo, 'pretas')
+            
+            # Contar a composição da equipa escolhida
+            nomes_herois = [pos["piece_class"].__name__ for pos in resultado["draft"]]
+            contagem = Counter(nomes_herois)
+            equipa_str = " + ".join([f"{qtd}x {nome}" for nome, qtd in contagem.items()])
+            
+            # Validação e Estatísticas Impressas no Terminal
+            print(f"\n--- 🧠 ESTATÍSTICAS DE DRAFT DA IA ({self.bot_ativo.nome}) ---")
+            print(f"Tempo de Cálculo: {resultado['tempo_ms']:.2f} ms")
+            print(f"Pontos Gastos:    {resultado['pontos_gastos']}/{orcamento}")
+            print(f"Desperdício:      {resultado['pontos_desperdicados']} pts")
+            print(f"Composição:       {equipa_str}")
+            print("------------------------------------------------------\n")
+            
+            # Aplicar ao Tabuleiro
+            for pos in resultado["draft"]:
+                self.gs.board[pos["r"]][pos["c"]] = pos["piece_class"]('pretas')
+        else:
+            # Fallback de segurança
+            pts = orcamento
+            for r in range(2):
+                for c in range(COLUNAS):
+                    validas = [p for p in self.catalogo if p["cost"] <= pts]
+                    if validas:
+                        esc = random.choice(validas)
+                        self.gs.board[r][c] = esc["class"]('pretas')
+                        pts -= esc["cost"]
+
 
     def extrair_acao_valida(self, gs, sr, sc, r, c):
         p = gs.board[sr][sc]
@@ -95,9 +121,17 @@ class JogoController:
                         return acao
                 if hasattr(p, 'get_valid_spells'):
                     for spell in p.get_valid_spells(sr, sc, gs.board, gs.tile_effects):
-                        if (r, c) == spell["target"]:
+                        # TYPE GUARD: Trata Dicionários (Pyromancer) e Tuplos (Dragoon)
+                        if isinstance(spell, dict):
+                            target_pos = spell.get("target")
+                            spell_name = spell.get("spell_type", "spell")
+                        else:
+                            target_pos = spell
+                            spell_name = "spell"
+                            
+                        if (r, c) == target_pos:
                             acao["type"] = "spell"
-                            acao["spell_name"] = spell["spell_type"]
+                            acao["spell_name"] = spell_name
                             return acao
         return acao if acao["type"] else None
 
@@ -267,6 +301,18 @@ class JogoController:
                 self.review_index += 1
                 if self.review_index == total_estados: self.display_gs = self.gs
                 else: self.display_gs = self.gs.move_log[self.review_index]["estado_anterior"].fast_clone()
+            
+            # --- NOVO BLOCO PARA SAIR DO JOGO ---
+            elif self.btn_voltar_menu.collidepoint(pos):
+                self.fase_atual = "MENU"
+                self.gs = GameState(time_limit_seconds=180.0)
+                self.casa_selecionada = None
+                self.hover_pos = None
+                self.pontos_jogador = ORCAMENTO_BRANCAS
+                self.bot_ativo = None
+                self.thread_ia = None
+                self.thread_analise = None
+            # ------------------------------------
             else:
                 if self.hover_pos and self.display_gs:
                     r, c = self.hover_pos
@@ -361,12 +407,17 @@ class JogoController:
                     yy += 30
                     
                 self.btn_prev = pygame.Rect(painel_x + 20, h - 80, 80, 40)
-                self.btn_next = pygame.Rect(painel_x + 120, h - 80, 80, 40)
+                self.btn_next = pygame.Rect(painel_x + 110, h - 80, 80, 40)
+                self.btn_voltar_menu = pygame.Rect(painel_x + 200, h - 80, 130, 40) # NOVO BOTÃO
+                
                 pygame.draw.rect(self.ecra, (80,80,80), self.btn_prev, border_radius=6)
                 pygame.draw.rect(self.ecra, (80,80,80), self.btn_next, border_radius=6)
+                pygame.draw.rect(self.ecra, C_VERMELHO, self.btn_voltar_menu, border_radius=6) # DESENHAR
+                
                 fbtn = pygame.font.SysFont("arial", 20, bold=True)
                 self.ecra.blit(fbtn.render("Anterior", True, C_BRANCO), (self.btn_prev.x + 6, self.btn_prev.y + 8))
                 self.ecra.blit(fbtn.render("Próximo", True, C_BRANCO), (self.btn_next.x + 6, self.btn_next.y + 8))
+                self.ecra.blit(fbtn.render("Sair / Menu", True, C_BRANCO), (self.btn_voltar_menu.x + 12, self.btn_voltar_menu.y + 8)) # TEXTO
             else:
                 if self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:
                     desenhar_painel_heroi(self.ecra, self.gs.board[self.hover_pos[0]][self.hover_pos[1]], painel_x, 20, 350, h - 40)

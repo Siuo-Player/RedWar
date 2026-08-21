@@ -1,0 +1,12 @@
+{
+    "1x Obelisk + 1x Phantom + 1x Pyromancer + 1x Sentry + 1x Trickster + 2x Lich": {
+        "wins": 0.0,
+        "games": 1,
+        "winrate": 0.0,
+        "desperdicio": 199,
+        "team": [
+            {
+                "r": 6,
+                "c": 0,
+                "name": "Trickster",
+                "class": 
