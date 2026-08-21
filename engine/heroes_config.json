@@ -210,7 +210,22 @@
         "draftable": true,
         "jump_max": 2,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Salto.",
-        "passiva": "Salto Dracónico: Pode saltar 2 casas por cima de 1 obstáculo."
+        "passiva": "Salto Dracónico: Pode saltar 2 casas por cima de 1 obstáculo.",
+        "behavior": {
+            "movement": { "type": "orthogonal", "max_steps": 1 },
+            "attack": { "type": "orthogonal", "max_steps": 1 }
+        }
+    },
+    "Nightshade": {
+        "cost": 200,
+        "acronym": "Ni",
+        "draftable": true,
+        "descricao": "Movimento: Até 4 casas ortogonais.\nAtaque: 1 casa ortogonal.",
+        "passiva": "Sombra: Atravessa (Ghosting) outras peças ao mover-se.",
+        "behavior": {
+            "movement": { "type": "orthogonal", "max_steps": 4, "ghost_move": true },
+            "attack": { "type": "orthogonal", "max_steps": 1 }
+        }
     },
     "Cleric": {
         "cost": 60,
@@ -240,13 +255,6 @@
         "lifespan": 3,
         "descricao": "Movimento: Imóvel.\nAtaque: Nenhum.",
         "passiva": "Barricada: Bloqueia ataques. Colapsa em 3 turnos."
-    },
-    "Nightshade": {
-        "cost": 200,
-        "acronym": "Ni",
-        "draftable": true,
-        "descricao": "Movimento: Até 4 casas ortogonais.\nAtaque: 1 casa ortogonal.",
-        "passiva": "Sombra: Atravessa (Ghosting) outras peças ao mover-se."
     },
     "Inquisitor": {
         "cost": 130,
