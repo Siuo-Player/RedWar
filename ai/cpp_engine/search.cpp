@@ -2,12 +2,9 @@
 #include <algorithm>
 
 inline void check_limits() {
-    // 1. O limite de nós é absoluto e verificado a CADA nó.
     if (node_limit > 0 && nodes_evaluated >= node_limit) {
         abort_search = true;
     }
-    
-    // 2. O tempo só é verificado a cada 2048 nós para não atrasar o CPU.
     if ((nodes_evaluated & 2047) == 0) { 
         auto now = std::chrono::steady_clock::now();
         double elapsed = std::chrono::duration<double, std::milli>(now - search_start_time).count();
@@ -15,28 +12,34 @@ inline void check_limits() {
     }
 }
 
-
-static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply) {
+static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char current_turn) {
+    int team_idx = (current_turn == 'W') ? 0 : 1;
+    
     for (Move& m : moves) {
         if (m == tt_move) { m.score = 1000000; continue; }
+        
         if (m.type == "ATTACK" || (m.type == "SPELL" && m.spell_name == "jump" && !board.pieces[m.er][m.ec].is_empty)) {
             int victim_val = PIECE_COSTS[board.pieces[m.er][m.ec].id];
-            m.score = 10000 + ((victim_val == 0 ? 50 : victim_val) * 10);
-        } else if (m.type == "STUN") m.score = 8000; 
-        else if (m.type == "SPELL") m.score = 6000;
-        else if (m.type == "SPAWN") m.score = 5000;
-        else m.score = (ply >= 0 && ply < 100) ? (m == killer_moves[ply][0] ? 4000 : (m == killer_moves[ply][1] ? 3000 : 0)) : 0;
+            m.score = 50000 + ((victim_val == 0 ? 50 : victim_val) * 10);
+        } 
+        else if (m.type == "STUN") m.score = 40000; 
+        else if (m.type == "SPELL") m.score = 30000;
+        else if (m.type == "SPAWN") m.score = 20000;
+        else if (ply >= 0 && ply < 100 && m == killer_moves[ply][0]) m.score = 10000;
+        else if (ply >= 0 && ply < 100 && m == killer_moves[ply][1]) m.score = 9000;
+        else {
+            // HISTORY HEURISTIC: Usa a memória de longo prazo para avaliar lances silenciosos
+            m.score = history_table[team_idx][m.sr][m.sc][m.er][m.ec];
+        }
     }
 }
 
-// --- FASE 5: PESQUISA DE APAZIGUAMENTO (QUIESCENCE SEARCH) ---
 int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_depth) {
     nodes_evaluated++; check_limits();
     if (abort_search) return 0;
 
     int eval_score = evaluate_board();
 
-    // Stand Pat: O lado a jogar pode simplesmente recusar-se a atacar se o estado atual já for excelente.
     if (current_turn == 'W') {
         if (eval_score >= beta) return beta;
         alpha = std::max(alpha, eval_score);
@@ -45,24 +48,21 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
         beta = std::min(beta, eval_score);
     }
 
-    // Limite de segurança para evitar loops infinitos de invocações (Blood in the water)
     if (q_depth >= 5) return eval_score;
 
     std::vector<Move> moves = generate_valid_moves(current_turn);
     std::vector<Move> captures;
     captures.reserve(16);
     
-    // Filtramos APENAS lances ruidosos (Capturas, ou Stuns letais)
     for (const Move& m : moves) {
         if (m.type == "ATTACK" || (m.type == "STUN" && board.pieces[m.er][m.ec].stun_timer > 0)) {
             captures.push_back(m);
         }
     }
 
-    // Se o tabuleiro estiver calmo, devolve a pontuação atual
     if (captures.empty()) return eval_score;
 
-    score_moves(captures, Move(), ply);
+    score_moves(captures, Move(), ply, current_turn);
     std::sort(captures.begin(), captures.end());
 
     int result = (current_turn == 'W') ? -INFINITO : INFINITO;
@@ -113,7 +113,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     int eval_score = evaluate_board();
     if (eval_score >= INFINITO - 200 || eval_score <= -INFINITO + 200) return eval_score;
     
-    // --- NOVO: Em vez de parar, entra no Quiescence Search ---
     if (depth == 0) return quiescence_search(alpha, beta, current_turn, ply, 0);
 
     if (depth >= 3) {
@@ -128,7 +127,9 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     std::vector<Move> moves = generate_valid_moves(current_turn);
     if (moves.empty()) return (current_turn == 'W') ? -INFINITO + (100 - depth) : INFINITO - (100 - depth);
 
-    score_moves(moves, tt_best_move, ply); std::sort(moves.begin(), moves.end());
+    score_moves(moves, tt_best_move, ply, current_turn); 
+    std::sort(moves.begin(), moves.end());
+    
     int original_alpha = alpha, original_beta = beta, result = (current_turn == 'W') ? -INFINITO : INFINITO;
     Move best_move_found = moves[0];
 
@@ -146,7 +147,15 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
             beta = std::min(beta, eval);
         }
         if (beta <= alpha) {
-            if (m.type != "ATTACK" && ply >= 0 && ply < 100) { killer_moves[ply][1] = killer_moves[ply][0]; killer_moves[ply][0] = m; }
+            // HISTORY HEURISTIC: Aprende e regista lances bons silenciosos!
+            if (m.type == "MOVE") {
+                if (ply >= 0 && ply < 100) { 
+                    killer_moves[ply][1] = killer_moves[ply][0]; 
+                    killer_moves[ply][0] = m; 
+                }
+                int team_idx = (current_turn == 'W') ? 0 : 1;
+                history_table[team_idx][m.sr][m.sc][m.er][m.ec] += depth * depth;
+            }
             break; 
         }
     }
@@ -159,6 +168,11 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
 std::string search_best_move(int max_depth) {
     abort_search = false; nodes_evaluated = 0; search_start_time = std::chrono::steady_clock::now();
+    
+    // Zera a memória de História antes de cada lance para evitar acumular peso de turnos passados
+    for (int t=0; t<2; ++t) for(int sr=0; sr<LINHAS; ++sr) for(int sc=0; sc<COLUNAS; ++sc) for(int er=0; er<LINHAS; ++er) for(int ec=0; ec<COLUNAS; ++ec)
+        history_table[t][sr][sc][er][ec] = 0;
+
     for(int i = 0; i < 100; ++i) { killer_moves[i][0] = Move(); killer_moves[i][1] = Move(); }
     std::vector<Move> root_moves = generate_valid_moves(board.turn);
     if (root_moves.empty()) return "";
@@ -167,8 +181,10 @@ std::string search_best_move(int max_depth) {
     for (int d = 1; d <= max_depth; ++d) {
         if (nodes_evaluated >= node_limit) break;
         uint64_t key = board.hash; TTEntry& slot = transposition_table[key & TT_MASK];
-        score_moves(root_moves, (slot.occupied && slot.zobrist_key == key) ? slot.best_move : Move(), 0);
+        
+        score_moves(root_moves, (slot.occupied && slot.zobrist_key == key) ? slot.best_move : Move(), 0, board.turn);
         std::sort(root_moves.begin(), root_moves.end());
+        
         int best_val = (board.turn == 'W') ? -INFINITO : INFINITO, alpha = -INFINITO, beta = INFINITO;
         Move best_move_this_depth = root_moves[0];
         

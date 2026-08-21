@@ -15,6 +15,7 @@ const int TT_SIZE_POWER = 20;
 const uint64_t TT_SIZE = 1ULL << TT_SIZE_POWER;
 const uint64_t TT_MASK = TT_SIZE - 1;
 extern uint64_t node_limit;
+extern int history_table[2][LINHAS][COLUNAS][LINHAS][COLUNAS];
 
 struct Piece {
     bool is_empty = true;

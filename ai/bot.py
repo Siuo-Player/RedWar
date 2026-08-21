@@ -64,6 +64,29 @@ class CppEngineBot:
             
         return self.process.stdout.readline().strip()
 
+    def start_pondering(self, game_state):
+        """
+        MODO PREDADOR: Põe a IA a calcular os infinitos futuros possíveis
+        enquanto o jogador humano está a pensar no seu turno.
+        """
+        rwen_str = game_state.to_rwen()
+        self._send_command(f"position rwen {rwen_str}")
+        self._send_command("go infinite")
+
+    def stop_pondering(self):
+        """
+        O jogador humano moveu a peça. Manda parar a especulação, 
+        absorve o lixo gerado no Standard Output e prepara o cérebro.
+        """
+        self._send_command("stop")
+        
+        # O C++ vai cuspir um "bestmove" que ele achava que o humano devia fazer.
+        # Nós consumimos e ignoramos essa linha para limpar o canal de comunicação.
+        while True:
+            response = self._read_response()
+            if response and response.startswith("bestmove"):
+                break
+
     def escolher_jogada(self, game_state):
         rwen_str = game_state.to_rwen()
         self._send_command(f"position rwen {rwen_str}")
