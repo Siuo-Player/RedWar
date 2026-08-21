@@ -1,9 +1,10 @@
 #include "types.hpp"
 #include <sstream>
+#include <atomic>
 
 // Inicialização de Globais REAIS (Onde a memória é alocada)
 BoardState board;
-bool abort_search = false;
+std::atomic<bool> abort_search{false};
 int nodes_evaluated = 0;
 std::chrono::steady_clock::time_point search_start_time;
 double time_limit_ms = 3000.0;
