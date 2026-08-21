@@ -19,6 +19,7 @@ uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2], Z_STUN[LINHAS][COLUNAS][6], Z_
 uint64_t Z_EFFECT[LINHAS][COLUNAS][2][2][4]; 
 uint64_t ZOBRIST_SIDE_TO_MOVE = 0;
 uint64_t node_limit = 0;
+int history_table[2][LINHAS][COLUNAS][LINHAS][COLUNAS] = {0};
 
 uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
     if (p.is_empty) return 0;
