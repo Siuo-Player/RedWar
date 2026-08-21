@@ -85,7 +85,7 @@
         }
     },
     "Sentry": {
-        "cost": 103,
+        "cost": 91,
         "acronym": "Se",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta Infinita (Raio).",
@@ -119,7 +119,7 @@
         }
     },
     "FrostMage": {
-        "cost": 8,
+        "cost": 5,
         "acronym": "FM",
         "draftable": true,
         "descricao": "Movimento: Até 2 casas diagonais.\nAtaque: Nenhum.",
@@ -134,7 +134,7 @@
         "passiva": "Pacto: Traz Ghouls para as casas à sua frente."
     },
     "BoneLord": {
-        "cost": 113,
+        "cost": 102,
         "acronym": "BL",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: Padrão complexo em 'V'.",
@@ -153,14 +153,14 @@
         }
     },
     "Ranger": {
-        "cost": 35,
+        "cost": 24,
         "acronym": "Ra",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta (Longo Alcance).",
         "passiva": "Mira: SÓ pode atacar alvos a 2 ou mais casas de distância."
     },
     "Templar": {
-        "cost": 13,
+        "cost": 5,
         "acronym": "Te",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: 1 casa ortogonal.",
@@ -179,7 +179,7 @@
         }
     },
     "Berserker": {
-        "cost": 30,
+        "cost": 25,
         "acronym": "Be",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: 1 casa (Todas as direções).",
@@ -198,7 +198,7 @@
         }
     },
     "Pyromancer": {
-        "cost": 30,
+        "cost": 26,
         "acronym": "Py",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Incendiar (Ignite).",
@@ -241,21 +241,21 @@
         }
     },
     "Cleric": {
-        "cost": 69,
+        "cost": 62,
         "acronym": "Cl",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Purificar.",
         "passiva": "Purificar: Remove Stun de aliados até 2 casas de distância."
     },
     "Trickster": {
-        "cost": 47,
+        "cost": 28,
         "acronym": "Tr",
         "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nFeitiço: Troca (Swap).",
         "passiva": "Mão Leve: Troca de lugar com um aliado (Alcance Máximo: 3 casas)."
     },
     "Geomancer": {
-        "cost": 28,
+        "cost": 17,
         "acronym": "Ge",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Barricada.",
@@ -270,7 +270,7 @@
         "passiva": "Barricada: Bloqueia ataques. Colapsa em 3 turnos."
     },
     "Inquisitor": {
-        "cost": 129,
+        "cost": 131,
         "acronym": "In",
         "draftable": true,
         "aura_radius": 2,
