@@ -5,6 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <chrono>
+#include <atomic>
 
 const int LINHAS = 8;
 const int COLUNAS = 8;
@@ -100,7 +101,7 @@ struct TTEntry {
 
 // Globais Exportadas
 extern BoardState board;
-extern bool abort_search;
+extern std::atomic<bool> abort_search;
 extern int nodes_evaluated;
 extern std::chrono::steady_clock::time_point search_start_time;
 extern double time_limit_ms;
