@@ -68,14 +68,39 @@ class JogoController:
         return 250000
 
     def auto_draft_inimigo(self, orcamento: int):
-        pts = orcamento
-        for r in range(2):
-            for c in range(COLUNAS):
-                validas = [p for p in self.catalogo if p["cost"] <= pts]
-                if validas:
-                    esc = random.choice(validas)
-                    self.gs.board[r][c] = esc["class"]('pretas')
-                    pts -= esc["cost"]
+        from collections import Counter # Importação necessária para contar os heróis
+        
+        # A IA usa a sua inteligência matemática para formar a equipa
+        if self.bot_ativo and hasattr(self.bot_ativo, 'gerar_draft_inteligente'):
+            resultado = self.bot_ativo.gerar_draft_inteligente(orcamento, self.catalogo, 'pretas')
+            
+            # Contar a composição da equipa escolhida
+            nomes_herois = [pos["piece_class"].__name__ for pos in resultado["draft"]]
+            contagem = Counter(nomes_herois)
+            equipa_str = " + ".join([f"{qtd}x {nome}" for nome, qtd in contagem.items()])
+            
+            # Validação e Estatísticas Impressas no Terminal
+            print(f"\n--- 🧠 ESTATÍSTICAS DE DRAFT DA IA ({self.bot_ativo.nome}) ---")
+            print(f"Tempo de Cálculo: {resultado['tempo_ms']:.2f} ms")
+            print(f"Pontos Gastos:    {resultado['pontos_gastos']}/{orcamento}")
+            print(f"Desperdício:      {resultado['pontos_desperdicados']} pts")
+            print(f"Composição:       {equipa_str}")
+            print("------------------------------------------------------\n")
+            
+            # Aplicar ao Tabuleiro
+            for pos in resultado["draft"]:
+                self.gs.board[pos["r"]][pos["c"]] = pos["piece_class"]('pretas')
+        else:
+            # Fallback de segurança (Não deve acontecer)
+            pts = orcamento
+            for r in range(2):
+                for c in range(COLUNAS):
+                    validas = [p for p in self.catalogo if p["cost"] <= pts]
+                    if validas:
+                        esc = random.choice(validas)
+                        self.gs.board[r][c] = esc["class"]('pretas')
+                        pts -= esc["cost"]
+
 
     def extrair_acao_valida(self, gs, sr, sc, r, c):
         p = gs.board[sr][sc]
@@ -95,9 +120,17 @@ class JogoController:
                         return acao
                 if hasattr(p, 'get_valid_spells'):
                     for spell in p.get_valid_spells(sr, sc, gs.board, gs.tile_effects):
-                        if (r, c) == spell["target"]:
+                        # TYPE GUARD: Trata Dicionários (Pyromancer) e Tuplos (Dragoon)
+                        if isinstance(spell, dict):
+                            target_pos = spell.get("target")
+                            spell_name = spell.get("spell_type", "spell")
+                        else:
+                            target_pos = spell
+                            spell_name = "spell"
+                            
+                        if (r, c) == target_pos:
                             acao["type"] = "spell"
-                            acao["spell_name"] = spell["spell_type"]
+                            acao["spell_name"] = spell_name
                             return acao
         return acao if acao["type"] else None
 
