@@ -6,7 +6,7 @@ import time
 from collections import Counter
 import concurrent.futures
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from engine.game_state import GameState
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
@@ -27,7 +27,11 @@ def gerar_draft_aleatorio(orcamento, linhas_validas):
             validas = [p for p in catalogo if p["cost"] <= pontos]
             if not validas: break
             escolha = random.choice(validas)
-            draft.append({"r": r, "c": c, "name": escolha["name"], "class": escolha["class"]})
+            draft.append({
+                "r": r, "c": c, 
+                "name": escolha["name"], 
+                "class_name": escolha["class"].__name__ # Guardamos o nome (string) em vez do objeto tipo
+            })
             nomes.append(escolha["name"])
             pontos -= escolha["cost"]
             
@@ -41,7 +45,7 @@ def simular_duelo_aberturas(draft_brancas, draft_pretas, seed):
     gs = GameState(time_limit_seconds=99999)
     
     # Aplicar aberturas no tabuleiro
-    for pos in draft_brancas: gs.board[pos["r"]][pos["c"]] = pos["class"]('brancas')
+    for pos in draft_brancas: gs.board[pos["r"]][pos["c"]] = pos["class_name"]('brancas')
     for pos in draft_pretas: gs.board[pos["r"]][pos["c"]] = pos["class"]('pretas')
 
     turnos = 0
@@ -76,8 +80,18 @@ def treinar_livro_aberturas(iteracoes=50):
         d_pretas, ass_p, desperdicio_p = gerar_draft_aleatorio(ORCAMENTO_PRETAS, [0, 1])
         
         # Inicializar a assinatura no livro se não existir
-        if ass_b not in livro: livro[ass_b] = {"wins": 0, "games": 0, "winrate": 0.0, "desperdicio": desperdicio_b, "team": d_brancas}
-        if ass_p not in livro: livro[ass_p] = {"wins": 0, "games": 0, "winrate": 0.0, "desperdicio": desperdicio_p, "team": d_pretas}
+        if ass_b not in livro: 
+            livro[ass_b] = {
+                "wins": 0, "games": 0, "winrate": 0.0, 
+                "desperdicio": desperdicio_b, 
+                "team": d_brancas
+                }
+        if ass_p not in livro:
+            livro[ass_p] = {
+                "wins": 0, "games": 0, "winrate": 0.0, 
+                "desperdicio": desperdicio_p, 
+                "team": d_pretas
+                }
         
         # O duelo!
         resultado = simular_duelo_aberturas(d_brancas, d_pretas, random.randint(1, 99999))

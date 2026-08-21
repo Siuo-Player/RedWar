@@ -140,13 +140,20 @@ def desenhar_destaques_com_hover(ecra, gs, casa_selecionada, hover_pos, tam_casa
 
     if hasattr(p, 'get_valid_spells'):
         for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
-            tr, tc = spell["target"]
+            # TYPE GUARD: Aceita Dicionários (Pyromancer/Cleric) ou Tuplos (Dragoon/Inquisitor)
+            if isinstance(spell, dict):
+                tr, tc = spell.get("target", (r, c))
+                nome_feitico = spell.get("spell_type", "SPELL").upper()
+            else:
+                tr, tc = spell[0], spell[1]
+                nome_feitico = "SPELL"
+
             s_spell = pygame.Surface((tam_casa, tam_casa), pygame.SRCALPHA)
             alpha = int(90 + 120 * pulsar) if hover_pos == (tr, tc) else int(60 + 80 * pulsar)
             s_spell.fill((200, 50, 255, alpha))
             ecra.blit(s_spell, (off_x + tc * tam_casa, off_y + tr * tam_casa))
             
-            txt = font_vfx.render(spell["spell_type"].upper(), True, (255, 255, 255))
+            txt = font_vfx.render(nome_feitico, True, (255, 255, 255))
             osc = int(math.sin((ticks + (tr * 13 + tc * 7)) / 280.0) * (tam_casa * 0.12))
             tx = off_x + tc * tam_casa + tam_casa // 2 - txt.get_width() // 2
             ty = off_y + tr * tam_casa - txt.get_height() - 6 + osc
