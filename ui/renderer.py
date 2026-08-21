@@ -60,7 +60,6 @@ def desenhar_painel_heroi(ecra, peca, off_x, off_y, width, height):
     y_pix += 18
     desc = getattr(peca, 'descricao', 'Unidade padrão.')
     
-    # Processa os \n na descrição para desenhar em várias linhas
     ecra.blit(fonte_sub.render("Descrição:", True, (200, 200, 200)), (off_x + 20, y_pix))
     y_pix += 22
     for linha in str(desc).split('\n'):
@@ -70,7 +69,6 @@ def desenhar_painel_heroi(ecra, peca, off_x, off_y, width, height):
     y_pix += 20
     ecra.blit(fonte_sub.render("Passiva:", True, (200, 200, 200)), (off_x + 20, y_pix))
     
-    # Textwrap super simples para a passiva caso seja longa
     passiva_txt = getattr(peca, 'passiva', 'Nenhuma.')
     y_pix += 22
     words = passiva_txt.split(' ')
@@ -187,7 +185,7 @@ def desenhar_menu_principal(ecra, w, h):
     
     btn_start = pygame.Rect(w//2 - 150, h//2, 300, 60)
     pygame.draw.rect(ecra, C_AZUL, btn_start, border_radius=10)
-    txt_s = pygame.font.SysFont("arial", 32).render("Começar Batalha", True, C_BRANCO)
+    txt_s = pygame.font.SysFont("arial", 32).render("Jogar", True, C_BRANCO)
     ecra.blit(txt_s, (w//2 - txt_s.get_width()//2, h//2 + 10))
     
     btn_info = pygame.Rect(w//2 - 150, h//2 + 80, 300, 60)
@@ -197,39 +195,94 @@ def desenhar_menu_principal(ecra, w, h):
     
     return btn_start, btn_info
 
+# --- NOVOS ECRÃS DE MENU SEPARADOS ---
+
+def desenhar_selecao_modo(ecra, w, h):
+    """ Ecrã: Escolher entre IA ou Multiplayer """
+    ecra.fill(C_FUNDO)
+    txt_tit = pygame.font.SysFont("arial", 48, bold=True).render("Selecione o Modo", True, C_BRANCO)
+    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, 100))
+
+    btn_ia = pygame.Rect(w//2 - 150, 250, 300, 60)
+    pygame.draw.rect(ecra, C_AZUL, btn_ia, border_radius=10)
+    txt_ia = pygame.font.SysFont("arial", 32).render("Jogar vs IA", True, C_BRANCO)
+    ecra.blit(txt_ia, (w//2 - txt_ia.get_width()//2, 260))
+
+    # Botão bloqueado
+    btn_multi = pygame.Rect(w//2 - 150, 340, 300, 60)
+    pygame.draw.rect(ecra, (60, 60, 60), btn_multi, border_radius=10)
+    txt_multi = pygame.font.SysFont("arial", 28).render("Multiplayer (Em Breve)", True, (120, 120, 120))
+    ecra.blit(txt_multi, (w//2 - txt_multi.get_width()//2, 355))
+
+    btn_voltar = pygame.Rect(w//2 - 100, 480, 200, 50)
+    pygame.draw.rect(ecra, C_VERMELHO, btn_voltar, border_radius=10)
+    txt_v = pygame.font.SysFont("arial", 28).render("Voltar", True, C_BRANCO)
+    ecra.blit(txt_v, (w//2 - txt_v.get_width()//2, 490))
+
+    return btn_ia, btn_multi, btn_voltar
+
+def desenhar_selecao_tipo_ia(ecra, w, h):
+    """ Ecrã: Escolher entre IA Normal ou Predador """
+    ecra.fill(C_FUNDO)
+    txt_tit = pygame.font.SysFont("arial", 48, bold=True).render("Comportamento da IA", True, C_BRANCO)
+    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, 100))
+
+    btn_normal = pygame.Rect(w//2 - 200, 230, 400, 80)
+    pygame.draw.rect(ecra, (100, 200, 100), btn_normal, border_radius=10)
+    txt_n = pygame.font.SysFont("arial", 28, bold=True).render("Modo Normal", True, C_PRETO)
+    txt_nd = pygame.font.SysFont("arial", 16).render("A IA pensa de forma tradicional, apenas no seu turno.", True, (40,40,40))
+    ecra.blit(txt_n, (w//2 - txt_n.get_width()//2, 240))
+    ecra.blit(txt_nd, (w//2 - txt_nd.get_width()//2, 280))
+
+    btn_predador = pygame.Rect(w//2 - 200, 340, 400, 80)
+    pygame.draw.rect(ecra, (200, 60, 60), btn_predador, border_radius=10)
+    txt_p = pygame.font.SysFont("arial", 28, bold=True).render("Modo Predador", True, C_BRANCO)
+    txt_pd = pygame.font.SysFont("arial", 16).render("A IA persegue os teus pensamentos e joga quase instantaneamente.", True, (255,200,200))
+    ecra.blit(txt_p, (w//2 - txt_p.get_width()//2, 350))
+    ecra.blit(txt_pd, (w//2 - txt_pd.get_width()//2, 390))
+
+    btn_voltar = pygame.Rect(w//2 - 100, 480, 200, 50)
+    pygame.draw.rect(ecra, (100, 100, 100), btn_voltar, border_radius=10)
+    txt_v = pygame.font.SysFont("arial", 28).render("Voltar", True, C_BRANCO)
+    ecra.blit(txt_v, (w//2 - txt_v.get_width()//2, 490))
+
+    return btn_normal, btn_predador, btn_voltar
+
 def desenhar_selecao_dificuldade(ecra, w, h, elo_atual):
+    """ Ecrã: Escolher o Rating ELO """
     ecra.fill(C_FUNDO)
     fonte = pygame.font.SysFont("arial", 36)
     
-    txt_tit = fonte.render("Configurar Adversário (IA)", True, C_BRANCO)
-    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, 50))
+    txt_tit = fonte.render("Definir Dificuldade ELO", True, C_BRANCO)
+    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, 80))
     
-    pygame.draw.rect(ecra, (50, 50, 50), (w//2 - 200, 150, 400, 20))
+    pygame.draw.rect(ecra, (50, 50, 50), (w//2 - 200, 180, 400, 20))
     x_elo = w//2 - 200 + int(((elo_atual - 100) / 2500) * 400)
-    rect_elo_drag = pygame.Rect(x_elo - 10, 140, 20, 40)
+    rect_elo_drag = pygame.Rect(x_elo - 10, 170, 20, 40)
     pygame.draw.rect(ecra, C_VERMELHO, rect_elo_drag)
     txt_elo = fonte.render(f"Rating ELO Desejado: {elo_atual}", True, C_BRANCO)
-    ecra.blit(txt_elo, (w//2 - txt_elo.get_width()//2, 100))
+    ecra.blit(txt_elo, (w//2 - txt_elo.get_width()//2, 130))
     
-    if elo_atual <= 300:
-        tempo_aprox = 0.05
-    else:
-        tempo_aprox = ((elo_atual - 300) / 2300.0) * 5.0
+    if elo_atual <= 300: tempo_aprox = 0.05
+    else: tempo_aprox = ((elo_atual - 300) / 2300.0) * 5.0
         
     fonte_aviso = pygame.font.SysFont("arial", 20)
-    txt_aviso = fonte_aviso.render(f"Poder Computacional Estimado: A IA vai pensar {tempo_aprox:.2f}s por turno.", True, (150, 200, 255))
-    ecra.blit(txt_aviso, (w//2 - txt_aviso.get_width()//2, 220))
+    txt_aviso = fonte_aviso.render(f"Poder Computacional Estimado: {tempo_aprox:.2f}s por turno.", True, (150, 200, 255))
+    ecra.blit(txt_aviso, (w//2 - txt_aviso.get_width()//2, 240))
     
-    if tempo_aprox > 2.0:
-        txt_alerta = fonte_aviso.render("Aviso: ELOs altos causam longos tempos de processamento do tabuleiro.", True, (255, 150, 50))
-        ecra.blit(txt_alerta, (w//2 - txt_alerta.get_width()//2, 260))
+    btn_confirmar = pygame.Rect(w//2 - 150, 330, 300, 60)
+    pygame.draw.rect(ecra, (100, 200, 100), btn_confirmar, border_radius=10)
+    txt_c = pygame.font.SysFont("arial", 28, bold=True).render("Iniciar Batalha", True, C_BRANCO)
+    ecra.blit(txt_c, (w//2 - txt_c.get_width()//2, 345))
+
+    btn_voltar = pygame.Rect(w//2 - 100, 420, 200, 50)
+    pygame.draw.rect(ecra, (100, 100, 100), btn_voltar, border_radius=10)
+    txt_v = pygame.font.SysFont("arial", 28).render("Voltar", True, C_BRANCO)
+    ecra.blit(txt_v, (w//2 - txt_v.get_width()//2, 430))
     
-    btn_confirmar = pygame.Rect(w//2 - 100, 350, 200, 50)
-    pygame.draw.rect(ecra, (100, 200, 100), btn_confirmar, border_radius=5)
-    txt_c = pygame.font.SysFont("arial", 28).render("Confirmar", True, C_BRANCO)
-    ecra.blit(txt_c, (w//2 - txt_c.get_width()//2, 360))
-    
-    return rect_elo_drag, btn_confirmar
+    return rect_elo_drag, btn_confirmar, btn_voltar
+
+# ---------------------------------------------
 
 def desenhar_analise(ecra, off_x_log, off_y, width, height, move_log, best_moves_dict, selected_idx=None):
     pygame.draw.rect(ecra, (20, 20, 30), (off_x_log, off_y, width, height), border_radius=10)
@@ -315,7 +368,7 @@ def desenhar_tabuleiro(ecra, gs, tam_casa, off_x, off_y):
                     ecra.blit(s, (rect.x, rect.y))
 
 def desenhar_destaques(ecra, gs, casa_selecionada, tam_casa, off_x, off_y):
-    pass # Removido, substituido por hover no main loop
+    pass 
 
 def desenhar_pecas(ecra, board, tam_casa, off_x, off_y):
     fonte = pygame.font.SysFont("arial", int(tam_casa * 0.4))

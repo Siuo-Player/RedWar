@@ -1,16 +1,15 @@
 import pygame
 import threading
 import random
-import time
 from engine.game_state import GameState, coords_para_notacao
 from engine.pieces import obter_catalogo_pecas
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
-from engine.action_parser import ActionParser
 
 from ui.renderer import (
-    desenhar_menu_principal, desenhar_selecao_dificuldade, 
+    desenhar_menu_principal, 
+    desenhar_selecao_modo, desenhar_selecao_tipo_ia, desenhar_selecao_dificuldade, 
     desenhar_tabuleiro, desenhar_pecas, 
-    desenhar_loja_dinamica, desenhar_enciclopedia, desenhar_log, desenhar_analise,
+    desenhar_loja_dinamica, desenhar_log, desenhar_analise,
     desenhar_coordenadas, desenhar_painel_heroi, desenhar_destaques_com_hover,
     C_FUNDO, C_VERMELHO, C_BRANCO, carregar_imagem_peca,
     desenhar_hud_jogadores, desenhar_eval_bar
@@ -35,8 +34,12 @@ class JogoController:
         self.casa_selecionada = None
         self.hover_pos = None
         
+        # --- Configurações da IA ---
         self.elo_escolhido = 1500
-        self.bot_ativo = CppEngineBot(depth=4)
+        self.modo_predador = False
+        self.pondering_active = False
+        self.bot_ativo = None # Vai ser instanciado dinamicamente antes do DRAFT
+        # ---------------------------
         
         self.thread_ia = None
         self.resultado_ia = []
@@ -47,17 +50,22 @@ class JogoController:
         self.review_index = 0
         self.display_gs = None
         
+        # Variáveis Rect UI
         self.botoes_loja = {}
-        self.btn_ready = pygame.Rect(0,0,0,0)
-        self.btn_start = pygame.Rect(0,0,0,0)
-        self.btn_info = pygame.Rect(0,0,0,0)
-        self.btn_confirmar = pygame.Rect(0,0,0,0)
-        self.rect_elo = pygame.Rect(0,0,0,0)
-        self.btn_prev = pygame.Rect(0,0,0,0)
-        self.btn_next = pygame.Rect(0,0,0,0)
-        self.item_rects_analise = []
+        self.btn_ready = self.btn_start = self.btn_info = self.btn_confirmar = pygame.Rect(0,0,0,0)
+        self.btn_vs_ia = self.btn_multi = self.btn_voltar_modo = pygame.Rect(0,0,0,0)
+        self.btn_ia_normal = self.btn_ia_predador = self.btn_voltar_tipo = pygame.Rect(0,0,0,0)
+        self.btn_voltar_dificuldade = self.rect_elo = self.btn_prev = self.btn_next = pygame.Rect(0,0,0,0)
         
         self.arrastando_elo = False
+
+    def calcular_nos_por_elo(self, elo):
+        """Traduz o rating ELO para poder computacional no C++"""
+        if elo < 500: return 2000
+        if elo < 1000: return 10000
+        if elo < 1500: return 50000
+        if elo < 2000: return 150000
+        return 250000
 
     def auto_draft_inimigo(self, orcamento: int):
         pts = orcamento
@@ -74,14 +82,11 @@ class JogoController:
         if not p: return None
         
         acao = {"type": None, "start": (sr, sc), "end": (r, c)}
-        if (r, c) in p.get_valid_moves(sr, sc, gs.board, gs.tile_effects):
-            acao["type"] = "move"
-        elif (r, c) in p.get_valid_attacks(sr, sc, gs.board, gs.tile_effects):
-            acao["type"] = "attack"
+        if (r, c) in p.get_valid_moves(sr, sc, gs.board, gs.tile_effects): acao["type"] = "move"
+        elif (r, c) in p.get_valid_attacks(sr, sc, gs.board, gs.tile_effects): acao["type"] = "attack"
         else:
             stuns = p.get_valid_stuns(sr, sc, gs.board, gs.tile_effects)
-            if (r, c) in stuns and stuns[(r, c)]["has_enemy"]:
-                acao["type"] = "stun"
+            if (r, c) in stuns and stuns[(r, c)]["has_enemy"]: acao["type"] = "stun"
             else:
                 for sp in p.get_valid_spawns(sr, sc, gs.board, gs.tile_effects):
                     if (r, c) == (sp[0], sp[1]):
@@ -104,8 +109,7 @@ class JogoController:
         sx, sy = off_x + sc * tam_casa + tam_casa // 2, off_y + sr * tam_casa + tam_casa // 2
         ex, ey = off_x + ec * tam_casa + tam_casa // 2, off_y + er * tam_casa + tam_casa // 2
         
-        if action_type in ["move", "attack"]: 
-            gs.board[sr][sc] = None
+        if action_type in ["move", "attack"]: gs.board[sr][sc] = None
             
         for i in range(16):
             t = i / 15
@@ -127,15 +131,12 @@ class JogoController:
             pygame.display.flip()
             self.clock.tick(60)
             
-        if action_type in ["move", "attack"]: 
-            gs.board[sr][sc] = piece
+        if action_type in ["move", "attack"]: gs.board[sr][sc] = piece
 
     def get_ui_metrics(self):
         w, h = self.ecra.get_size()
-        off_y_tab = 80
-        off_x = 60
-        available_h = h - off_y_tab - 120
-        tam_casa = min(w // (COLUNAS + 1), max(8, available_h // LINHAS))
+        off_y_tab, off_x = 80, 60
+        tam_casa = min(w // (COLUNAS + 1), max(8, (h - off_y_tab - 120) // LINHAS))
         return off_y_tab, off_x, tam_casa
 
     def thread_de_analise(self, estado_congelado):
@@ -147,10 +148,8 @@ class JogoController:
         while True:
             dt = self.clock.tick(60) / 1000.0 
             if self.fase_atual == "BATALHA" and not self.gs.game_over:
-                if self.gs.white_to_move:
-                    self.gs.white_time = max(0.0, self.gs.white_time - dt)
-                else:
-                    self.gs.black_time = max(0.0, self.gs.black_time - dt)
+                if self.gs.white_to_move: self.gs.white_time = max(0.0, self.gs.white_time - dt)
+                else: self.gs.black_time = max(0.0, self.gs.black_time - dt)
             
             off_y_tab, off_x, tam_casa = self.get_ui_metrics()
             painel_x = off_x + COLUNAS * tam_casa + 30
@@ -181,19 +180,37 @@ class JogoController:
 
     def tratar_cliques(self, mx, my, pos):
         if self.fase_atual == "MENU":
-            if self.btn_start.collidepoint(mx, my): self.fase_atual = "DIFICULDADE"
+            if self.btn_start.collidepoint(mx, my): self.fase_atual = "MODO_JOGO"
             elif self.btn_info.collidepoint(mx, my): self.fase_atual = "INFO"
             
+        elif self.fase_atual == "MODO_JOGO":
+            if self.btn_vs_ia.collidepoint(mx, my): self.fase_atual = "TIPO_IA"
+            elif self.btn_voltar_modo.collidepoint(mx, my): self.fase_atual = "MENU"
+            
+        elif self.fase_atual == "TIPO_IA":
+            if self.btn_ia_normal.collidepoint(mx, my):
+                self.modo_predador = False
+                self.fase_atual = "DIFICULDADE"
+            elif self.btn_ia_predador.collidepoint(mx, my):
+                self.modo_predador = True
+                self.fase_atual = "DIFICULDADE"
+            elif self.btn_voltar_tipo.collidepoint(mx, my):
+                self.fase_atual = "MODO_JOGO"
+                
         elif self.fase_atual == "DIFICULDADE":
-            if self.rect_elo.collidepoint(mx, my): self.arrastando_elo = True
+            if self.rect_elo.collidepoint(mx, my): 
+                self.arrastando_elo = True
+            elif self.btn_voltar_dificuldade.collidepoint(mx, my):
+                self.fase_atual = "TIPO_IA"
             elif self.btn_confirmar.collidepoint(mx, my):
-                self.bot_ativo = CppEngineBot(depth=4)
+                nos_adequados = self.calcular_nos_por_elo(self.elo_escolhido)
+                self.bot_ativo = CppEngineBot(nodes=nos_adequados)
                 self.fase_atual = "DRAFT"
                 pygame.display.set_caption(f"RedWar - VS {self.bot_ativo.nome}")
                 self.gs.current_score = None
                 
         elif self.fase_atual == "INFO":
-            pass 
+            pass # TODO
             
         elif self.fase_atual == "DRAFT":
             for nome, rect in self.botoes_loja.items():
@@ -221,6 +238,12 @@ class JogoController:
                     sr, sc = self.casa_selecionada
                     acao = self.extrair_acao_valida(self.gs, sr, sc, r, c)
                     if acao:
+                        # --- CORTAR O PONDERING DO MODO PREDADOR (Safeguard para Pylance) ---
+                        if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'stop_pondering'):
+                            self.bot_ativo.stop_pondering()
+                            self.pondering_active = False
+                        # --------------------------------------------------------------------
+                        
                         _, off_x, tam_casa = self.get_ui_metrics()
                         self.desenhar_animacao(self.gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
                         self.gs.execute_action(acao)
@@ -263,15 +286,22 @@ class JogoController:
                         self.casa_selecionada = None
 
     def processar_ia(self):
+        # --- LANÇAR O PONDERING DO MODO PREDADOR DURANTE O TURNO DO HUMANO (Safeguard para Pylance) ---
+        if self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
+            if self.modo_predador and not self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'start_pondering'):
+                self.bot_ativo.start_pondering(self.gs)
+                self.pondering_active = True
+        # ----------------------------------------------------------------------------------------------
+
         if self.fase_atual == "BATALHA" and not self.gs.white_to_move and not self.gs.game_over:
-            if self.thread_ia is None:
+            if self.thread_ia is None and self.bot_ativo is not None:
                 def pensar(bot, estado):
                     self.resultado_ia.append(bot.escolher_jogada(estado))
                 self.thread_ia = threading.Thread(target=pensar, args=(self.bot_ativo, self.gs.fast_clone()))
                 self.thread_ia.daemon = True
                 self.thread_ia.start()
                 pygame.display.set_caption(f"RedWar - {self.bot_ativo.nome} a esmagar a árvore tática...")
-            elif not self.thread_ia.is_alive():
+            elif self.thread_ia is not None and not self.thread_ia.is_alive():
                 parsed = self.resultado_ia.pop() if self.resultado_ia else None
                 if parsed:
                     _, off_x, tam_casa = self.get_ui_metrics()
@@ -291,8 +321,12 @@ class JogoController:
     def renderizar(self, w, h, off_x, off_y_tab, tam_casa, painel_x):
         if self.fase_atual == "MENU":
             self.btn_start, self.btn_info = desenhar_menu_principal(self.ecra, w, h)
+        elif self.fase_atual == "MODO_JOGO":
+            self.btn_vs_ia, self.btn_multi, self.btn_voltar_modo = desenhar_selecao_modo(self.ecra, w, h)
+        elif self.fase_atual == "TIPO_IA":
+            self.btn_ia_normal, self.btn_ia_predador, self.btn_voltar_tipo = desenhar_selecao_tipo_ia(self.ecra, w, h)
         elif self.fase_atual == "DIFICULDADE":
-            self.rect_elo, self.btn_confirmar = desenhar_selecao_dificuldade(self.ecra, w, h, self.elo_escolhido)
+            self.rect_elo, self.btn_confirmar, self.btn_voltar_dificuldade = desenhar_selecao_dificuldade(self.ecra, w, h, self.elo_escolhido)
         elif self.fase_atual == "INFO":
             pass 
         else:
@@ -302,7 +336,6 @@ class JogoController:
             
             desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, self.bot_ativo.nome if self.bot_ativo else "StockWar", self.gs)
 
-            # Faixa Fim de Jogo limpa no topo
             if self.gs.game_over:
                 fonte_fim = pygame.font.SysFont("arial", 24, bold=True)
                 txt = fonte_fim.render(f"FIM DE JOGO: {self.gs.winner}", True, C_VERMELHO)
