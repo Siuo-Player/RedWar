@@ -1,42 +1,116 @@
 import os
+import shutil
+from pathlib import Path
 
-# Pastas que não queremos ver no mapeamento
-PASTAS_IGNORADAS = {'.git', '__pycache__', 'venv', 'env', '.pytest_cache', '.vscode', 'dist', 'build'}
-
-def gerar_arvore(startpath):
-    tree = []
-    base_name = os.path.basename(os.path.abspath(startpath))
-    tree.append(f"📁 {base_name}/")
+MAPA_FICHEIROS = {
+    # 1. AI (Cérebros e Ferramentas ativas de jogo)
+    "bot.py": "ai",
+    "search.py": "ai",
+    "book_generator.py": "ai", # Gerador do cérebro de aberturas
     
-    for root, dirs, files in os.walk(startpath):
-        # Filtrar pastas ignoradas modificando a lista 'dirs' in-place
-        dirs[:] = [d for d in dirs if d not in PASTAS_IGNORADAS]
-        dirs.sort()
-        files.sort()
-        
-        level = root.replace(startpath, '').count(os.sep)
-        
-        if level > 0:
-            indent = '│   ' * (level - 1) + '├── '
-            folder_name = os.path.basename(root)
-            tree.append(f"{indent}📁 {folder_name}/")
-        
-        subindent = '│   ' * level + '├── '
-        for i, f in enumerate(files):
-            is_last = (i == len(files) - 1) and not dirs
-            prefix = '│   ' * level + '└── ' if is_last else subindent
-            tree.append(f"{prefix}📄 {f}")
+    # 2. TOOLS (Ferramentas de Desenvolvimento e Teste)
+    "reorganize.py": "tools/scripts",
+    "gerar_estrutura.py": "tools/scripts",
+    "fetch_icons.py": "tools/scripts",
+    "build_pipeline.py": "tools/scripts",
+    "build_cpp_engine.py": "tools/scripts",
+    "tmp_game_sim.py": "tools/scripts",
+    "tmp_ui_test.py": "tools/scripts",
+
+    "trainer.py": "tools/analytics",
+    "game_analyzer.py": "tools/analytics",
+    "arena_tournament.py": "tools/analytics",
+    "opening_tester.py": "tools/analytics",
+    "calibrate_elo.py": "tools/analytics",
+    "calibrate_elo_chain.py": "tools/analytics",
+    "elo_config.json": "tools/analytics",
+
+    "auto_pricer.py": "tools/balance",
+    "color_balancer.py": "tools/balance",
+
+    # 3. ONLINE (Multijogador e Servidor)
+    "multiplayer_main.py": "online/client",
+    "client.py": "online/network",
+    "app.py": "online/server",
+
+    # 4. DEPLOY (Empacotamento)
+    "RedWar_Online.spec": "deploy/packaging",
+    "main.spec": "deploy/packaging",
+
+    # 5. DOCS (Documentação)
+    "Documento_Design_Jogo.md": "docs",
+    "Estrutura_Projeto.md": "docs",
+    "COPILOT_BACKLOG.md": "docs",
+
+    # Ficam na sua pasta atual de raiz (se estiverem soltos, vão para o sítio certo)
+    "jogos_encravados_log.txt": "logs",
+    "relatorio_build.txt": "logs",
+    "relatorio_telemetria.txt": "logs",
+    "estrutura_atual.txt": "logs",
+    "telemetria_profunda.json": "logs",
+    "estatisticas_treino.json": "data",
+    "opening_book.json": "data"
+}
+
+def organizar_projeto():
+    base_dir = Path.cwd()
+    movidos = 0
+    print("🧹 A aplicar a Macro-Estrutura no projeto RedWar...")
+
+    # 1. Criar as pastas de destino (com subpastas)
+    for pasta in set(MAPA_FICHEIROS.values()):
+        (base_dir / pasta).mkdir(parents=True, exist_ok=True)
+
+    # 2. Procurar ficheiros em todas as pastas conhecidas
+    pastas_a_verificar = [
+        base_dir, 
+        base_dir / "ai", 
+        base_dir / "tools" / "scripts", 
+        base_dir / "tools" / "analytics", 
+        base_dir / "tools" / "balance",
+        base_dir / "online" / "network",
+        base_dir / "online" / "server",
+        base_dir / "online" / "client",
+        base_dir / "deploy" / "packaging",
+        base_dir / "docs",
+        base_dir / "logs",
+        base_dir / "data"
+    ]
+
+    for pasta_origem in pastas_a_verificar:
+        if not pasta_origem.exists():
+            continue
             
-    return '\n'.join(tree)
+        for ficheiro in pasta_origem.iterdir():
+            if ficheiro.is_file() and ficheiro.name in MAPA_FICHEIROS:
+                pasta_destino = base_dir / MAPA_FICHEIROS[ficheiro.name]
+                caminho_destino = pasta_destino / ficheiro.name
+
+                if ficheiro.absolute() == caminho_destino.absolute():
+                    continue
+
+                if caminho_destino.exists():
+                    caminho_destino.unlink()
+                    
+                shutil.move(str(ficheiro), str(caminho_destino))
+                print(f"✅ Organizado: {ficheiro.name} -> {pasta_destino}/")
+                movidos += 1
+
+    # 3. Limpar pastas antigas que ficaram vazias (opcional mas limpo)
+    for root, dirs, files in os.walk(base_dir, topdown=False):
+        for name in dirs:
+            dir_path = Path(root) / name
+            # Não apaga pastas do Git, VSCode ou raiz estrutural
+            if name not in {".git", ".vscode", "venv", "ai", "tools", "engine", "ui", "data", "logs"}:
+                try:
+                    if not any(dir_path.iterdir()):
+                        dir_path.rmdir()
+                        print(f"🗑️ Pasta vazia limpa: {dir_path.relative_to(base_dir)}")
+                except Exception:
+                    pass
+
+    if movidos == 0:
+        print("✨ A estrutura já está perfeita!")
 
 if __name__ == "__main__":
-    caminho_base = os.getcwd()
-    arvore = gerar_arvore(caminho_base)
-    
-    nome_ficheiro = "logs/estrutura_atual.txt"
-    with open(nome_ficheiro, "w", encoding="utf-8") as f:
-        f.write("ESTRUTURA REAL DO PROJETO REDWAR\n")
-        f.write("=================================\n\n")
-        f.write(arvore)
-        
-    print(f"✅ Auditoria concluída! Abre o ficheiro '{nome_ficheiro}' para veres a estrutura.")
+    organizar_projeto()

@@ -11,15 +11,28 @@ from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LIMITE_TURNOS, LINHAS, COLUNAS
 from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO, BOT_ALEATORIO
-from engine.action_parser import ActionParser
 
-# --- FASE 4: O REGRESSO DO D6 À ARENA ---
 POOL_BOTS = [
     (BOT_ALEATORIO, 100),
     (BOT_INICIANTE, 900),
     (BOT_INTERMEDIO, 1500),
     (BOT_AVANCADO, 2000)
 ]
+
+def formatar_tempo(segundos):
+    segundos = max(0, int(segundos))
+    dias = segundos // 86400
+    horas = (segundos % 86400) // 3600
+    minutos = (segundos % 3600) // 60
+    segs = segundos % 60
+    
+    parts = []
+    if dias > 0: parts.append(f"{dias}d")
+    if horas > 0: parts.append(f"{horas}h")
+    if minutos > 0: parts.append(f"{minutos}m")
+    parts.append(f"{segs}s")
+    
+    return " ".join(parts) if parts else "0s"
 
 def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
     pontos = orcamento
@@ -55,8 +68,12 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
         decorrido = time.time() - global_stats["start_time"]
         t_medio_turno = decorrido / max(1, global_stats["turnos_totais"])
         
-        turnos_restantes_max = (total_jogos * LIMITE_TURNOS) - global_stats["turnos_totais"]
-        eta_max_minutos = (turnos_restantes_max * t_medio_turno) / 60.0
+        # --- NOVO CÁLCULO DE ETA INTELIGENTE ---
+        turnos_medios_por_jogo = global_stats["turnos_totais"] / max(1, jogo_idx - 1) if jogo_idx > 1 else 100
+        turnos_estimados_restantes = max(0, (total_jogos - jogo_idx + 1) * turnos_medios_por_jogo - turnos)
+        segundos_restantes = turnos_estimados_restantes * t_medio_turno
+        
+        tempo_formatado = formatar_tempo(segundos_restantes)
         
         nome_b = bot_brancas.nome[:10]
         nome_p = bot_pretas.nome[:10]
@@ -66,7 +83,7 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
             f"Turno {turnos}/{LIMITE_TURNOS} | "
             f"B:{nome_b} vs P:{nome_p} | "
             f"T/Turno: {t_medio_turno:.2f}s | "
-            f"Max ETA: {eta_max_minutos:.1f}m   "
+            f"Falta: {tempo_formatado}   "
         )
         sys.stdout.flush()
 
@@ -135,5 +152,4 @@ def gerar_estatisticas_treino(num_jogos=200):
     print(f"\n✅ {caminho_stats} atualizado em {tempo_total/60:.1f} minutos!")
 
 if __name__ == "__main__":
-    # Multiplicador 10x aplicado aqui: de 20 para 200 jogos
     gerar_estatisticas_treino(200)

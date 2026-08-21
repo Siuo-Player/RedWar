@@ -14,6 +14,7 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   │   └── 📄 auto_balancer.yml
 ├── 📁 ai/
 │   ├── 📄 __init__.py
+│   ├── 📄 book_generator.py
 │   ├── 📄 bot.py
 │   ├── 📄 evaluator.cp312-win_amd64.pyd
 │   ├── 📄 evaluator.pyi
@@ -21,15 +22,24 @@ ESTRUTURA REAL DO PROJETO REDWAR
 │   ├── 📄 search.py
 │   ├── 📁 cpp_engine/
 │   │   ├── 📄 SmokeTest.cpp
-│   │   ├── 📄 SmokeTest.exe
 │   │   ├── 📄 SmokeTest.obj
-│   │   ├── 📄 engine.cpp
+│   │   ├── 📄 board.cpp
+│   │   ├── 📄 board.obj
 │   │   ├── 📄 engine.exe
-│   │   ├── 📄 engine.obj
+│   │   ├── 📄 evaluate.cpp
+│   │   ├── 📄 evaluate.obj
+│   │   ├── 📄 main.cpp
+│   │   ├── 📄 main.obj
+│   │   ├── 📄 movegen.cpp
+│   │   ├── 📄 movegen.obj
+│   │   ├── 📄 search.cpp
+│   │   ├── 📄 search.obj
+│   │   ├── 📄 types.hpp
 │   │   ├── 📁 nlohmann/
 │   │   │   └── 📄 json.hpp
 ├── 📁 data/
-│   └── 📄 estatisticas_treino.json
+│   ├── 📄 estatisticas_treino.json
+│   └── 📄 opening_book.json
 ├── 📁 deploy/
 │   ├── 📁 packaging/
 │   │   ├── 📄 RedWar_Online.spec
