@@ -8,7 +8,6 @@
 
 namespace {
 
-constexpr int MAX_PLY = 100;
 constexpr int QSEARCH_MAX_DEPTH = 5;
 constexpr int TT_MOVE_SCORE = 1'000'000;
 constexpr int CAPTURE_SCORE = 50'000;
