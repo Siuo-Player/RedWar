@@ -19,6 +19,9 @@ constexpr uint64_t TT_SIZE = 1ULL << TT_SIZE_POWER;
 constexpr uint64_t TT_MASK = TT_SIZE - 1;
 constexpr int MAX_UNDO_VICTIMS = 9;
 constexpr int MAX_UNDO_EFFECTS = 5;
+constexpr int MAX_TIMER_PIECES = LINHAS * COLUNAS;
+constexpr int MAX_TIMER_EFFECTS = LINHAS * COLUNAS;
+constexpr int MAX_EXPIRED_PIECES = LINHAS * COLUNAS;
 
 extern uint64_t node_limit;
 extern int history_table[2][LINHAS][COLUNAS][LINHAS][COLUNAS];
@@ -130,6 +133,26 @@ struct EffectRecord {
     TileEffect ef;
 };
 
+struct TimerPieceRecord {
+    int r = 0;
+    int c = 0;
+    int stun_timer = 0;
+    int lifespan = 999;
+    int spawn_cooldown = 0;
+};
+
+struct TimerEffectRecord {
+    int r = 0;
+    int c = 0;
+    int timer = 0;
+};
+
+struct ExpiredPieceRecord {
+    int r = 0;
+    int c = 0;
+    Piece piece;
+};
+
 struct UndoInfo {
     std::string move_type = "MOVE";
     Piece target_piece;
@@ -139,6 +162,13 @@ struct UndoInfo {
     int num_victims = 0;
     EffectRecord overwritten_effects[MAX_UNDO_EFFECTS]{};
     int num_effects = 0;
+
+    TimerPieceRecord timer_pieces[MAX_TIMER_PIECES]{};
+    int num_timer_pieces = 0;
+    TimerEffectRecord timer_effects[MAX_TIMER_EFFECTS]{};
+    int num_timer_effects = 0;
+    ExpiredPieceRecord expired_pieces[MAX_EXPIRED_PIECES]{};
+    int num_expired_pieces = 0;
 };
 
 enum TTFlag : uint8_t {
@@ -187,6 +217,9 @@ uint64_t get_effect_zobrist_key(int r, int c, const TileEffect& ef);
 void compute_initial_eval();
 void update_piece(int r, int c, const Piece& p);
 int get_piece_value(const Piece& p, int r, int c);
+
+void update_timers(UndoInfo& undo);
+void restore_timers(const UndoInfo& undo);
 
 UndoInfo make_move(const Move& m);
 void unmake_move(const Move& m, const UndoInfo& undo);
