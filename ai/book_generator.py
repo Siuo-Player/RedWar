@@ -51,7 +51,7 @@ def simular_duelo_aberturas(draft_brancas, draft_pretas, seed):
         gs.board[pos["r"]][pos["c"]] = criar_peca_por_nome(pos["class_name"], 'pretas')
 
     turnos = 0
-    while not gs.game_over and turnos < 150:
+    while not gs.game_over and turnos < 500:
         turnos += 1
         parsed = BOT_INTERMEDIO.play(gs)
         if parsed:

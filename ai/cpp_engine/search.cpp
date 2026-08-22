@@ -20,15 +20,55 @@ static void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, 
         
         if (m.type == "ATTACK" || (m.type == "SPELL" && m.spell_name == "jump" && !board.pieces[m.er][m.ec].is_empty)) {
             int victim_val = PIECE_COSTS[board.pieces[m.er][m.ec].id];
-            m.score = 50000 + ((victim_val == 0 ? 50 : victim_val) * 10);
+            if (victim_val == 0) victim_val = 50;
+            
+            int attacker_val = PIECE_COSTS[board.pieces[m.sr][m.sc].id];
+            if (attacker_val == 0) attacker_val = 50;
+            
+            // MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
+            m.score = 50000 + (victim_val * 100) - attacker_val;
         } 
-        else if (m.type == "STUN") m.score = 40000; 
-        else if (m.type == "SPELL") m.score = 30000;
+        else if (m.type == "STUN") {
+            int value_sum = 0;
+            int dr[5] = {0, -1, 1, 0, 0}, dc[5] = {0, 0, 0, -1, 1};
+            for(int i=0; i<5; ++i) {
+                int ar = m.er + dr[i], ac = m.ec + dc[i];
+                if (ar >= 0 && ar < LINHAS && ac >= 0 && ac < COLUNAS) {
+                    Piece& t = board.pieces[ar][ac];
+                    if (!t.is_empty && t.team != current_turn) {
+                        int v_val = PIECE_COSTS[t.id];
+                        if (v_val == 0) v_val = 50;
+                        if (t.stun_timer > 0) value_sum += v_val * 100;
+                        else value_sum += v_val * 60;  
+                    }
+                }
+            }
+            m.score = 40000 + value_sum; 
+        }
+        else if (m.type == "SPELL") {
+            if (m.spell_name == "ignite") {
+                int value_sum = 0;
+                int dr[5] = {0, -1, 1, 0, 0}, dc[5] = {0, 0, 0, -1, 1};
+                for(int i=0; i<5; ++i) {
+                    int ar = m.er + dr[i], ac = m.ec + dc[i];
+                    if (ar >= 0 && ar < LINHAS && ac >= 0 && ac < COLUNAS) {
+                        Piece& t = board.pieces[ar][ac];
+                        if (!t.is_empty && t.team != current_turn) {
+                            int v_val = PIECE_COSTS[t.id];
+                            if (v_val == 0) v_val = 50;
+                            value_sum += v_val * 60; 
+                        }
+                    }
+                }
+                m.score = 35000 + value_sum;
+            } else {
+                m.score = 30000;
+            }
+        }
         else if (m.type == "SPAWN") m.score = 20000;
         else if (ply >= 0 && ply < 100 && m == killer_moves[ply][0]) m.score = 10000;
         else if (ply >= 0 && ply < 100 && m == killer_moves[ply][1]) m.score = 9000;
         else {
-            // HISTORY HEURISTIC: Usa a memória de longo prazo para avaliar lances silenciosos
             m.score = history_table[team_idx][m.sr][m.sc][m.er][m.ec];
         }
     }
@@ -147,7 +187,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
             beta = std::min(beta, eval);
         }
         if (beta <= alpha) {
-            // HISTORY HEURISTIC: Aprende e regista lances bons silenciosos!
             if (m.type == "MOVE") {
                 if (ply >= 0 && ply < 100) { 
                     killer_moves[ply][1] = killer_moves[ply][0]; 
@@ -169,7 +208,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 std::string search_best_move(int max_depth) {
     abort_search = false; nodes_evaluated = 0; search_start_time = std::chrono::steady_clock::now();
     
-    // Zera a memória de História antes de cada lance para evitar acumular peso de turnos passados
     for (int t=0; t<2; ++t) for(int sr=0; sr<LINHAS; ++sr) for(int sc=0; sc<COLUNAS; ++sc) for(int er=0; er<LINHAS; ++er) for(int ec=0; ec<COLUNAS; ++ec)
         history_table[t][sr][sc][er][ec] = 0;
 

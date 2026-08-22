@@ -75,6 +75,11 @@ struct BoardState {
     char turn = 'W';
     int twc = 0;
     uint64_t hash = 0;
+    
+    // --- VARIÁVEIS INCREMENTAIS O(1) ---
+    int material_score = 0;
+    int white_pieces = 0;
+    int black_pieces = 0;
 };
 
 struct StunRecord { int r, c; Piece p; };
@@ -112,7 +117,7 @@ extern std::unordered_map<std::string, HeroBehavior> HERO_BEHAVIORS;
 extern bool HERO_BEHAVIORS_LOADED;
 extern std::unordered_map<std::string, int> PIECE_IDS;
 extern int PIECE_COSTS[MAX_HEROES]; 
-extern int next_piece_id; // <-- A VÁRIÁVEL DECLARADA AQUI
+extern int next_piece_id; 
 extern uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2], Z_STUN[LINHAS][COLUNAS][6], Z_LIFE[LINHAS][COLUNAS][15], Z_CD[LINHAS][COLUNAS][8];
 extern uint64_t Z_EFFECT[LINHAS][COLUNAS][2][2][4]; 
 extern uint64_t ZOBRIST_SIDE_TO_MOVE;
@@ -123,6 +128,11 @@ void parse_rwen(const std::string& rwen);
 uint64_t compute_initial_hash();
 uint64_t get_piece_zobrist_key(int r, int c, const Piece& p);
 uint64_t get_effect_zobrist_key(int r, int c, const TileEffect& ef);
+
+// --- MOTOR INCREMENTAL ---
+void compute_initial_eval();
+void update_piece(int r, int c, const Piece& p);
+int get_piece_value(const Piece& p, int r, int c);
 
 UndoInfo make_move(const Move& m);
 void unmake_move(const Move& m, const UndoInfo& undo);

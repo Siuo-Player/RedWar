@@ -99,16 +99,24 @@ static HeroBehavior compile_behavior(const json& beh) {
     }
     
     json atk = beh.contains("attack") ? beh["attack"] : json();
+    bool attack_is_none = false;
     if (!atk.is_null()) {
-        std::vector<MoveVector> vecs = compile_attack_behavior(atk);
-        if (atk.value("forward_dir_by_team", shared_fw)) {
-            result.attack_black = vecs;
-            for (auto& v : vecs) result.attack_white.push_back({-v.dr, v.dc, v.max_steps, v.min_steps, v.ghost});
-        } else result.attack_white = result.attack_black = vecs;
+        if (atk.value("type", "") == "none") {
+            attack_is_none = true;
+        } else {
+            std::vector<MoveVector> vecs = compile_attack_behavior(atk);
+            if (atk.value("forward_dir_by_team", shared_fw)) {
+                result.attack_black = vecs;
+                for (auto& v : vecs) result.attack_white.push_back({-v.dr, v.dc, v.max_steps, v.min_steps, v.ghost});
+            } else result.attack_white = result.attack_black = vecs;
+        }
     }
-    if (result.attack_white.empty() && !result.move_white.empty()) {
+    
+    // REDE DE SEGURANÇA CORRIGIDA: Não copia se o ataque for explicitamente "none"
+    if (result.attack_white.empty() && !result.move_white.empty() && !attack_is_none) {
         result.attack_white = result.move_white; result.attack_black = result.move_black;
     }
+    
     return result;
 }
 

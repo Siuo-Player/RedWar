@@ -18,13 +18,6 @@ except Exception:
 ZOBRIST_WTM = random.getrandbits(64)
 
 def get_piece_zobrist_key(r, c, p):
-    """
-    Devolve a chave Zobrist de 64 bits para esta peça nesta casa, gerando-a
-    na primeira vez que esta combinação exata aparece (e reutilizando depois).
-    Antes disto pré-computava-se TODAS as combinações possíveis de
-    (r, c, nome, equipa, stun, lifespan, cooldown) no arranque -- cerca de
-    1.5M entradas na RAM, a maioria delas nunca usada numa partida real.
-    """
     lifespan = p.lifespan if getattr(p, 'lifespan', None) is not None else -1
     cd = p.spawn_cooldown if getattr(p, 'spawn_cooldown', 0) is not None else 0
     key = (r, c, p.name, p.team, p.stun_timer, lifespan, cd)
@@ -41,7 +34,6 @@ class GameState:
                  'turns_without_capture', 'move_log', 'last_move',
                  'white_time', 'black_time', 'state_history', 'current_hash', '_hash_valid', 'current_score')
 
-    # CORREÇÃO PYLANCE: Tipagem explícita para float
     def __init__(self, time_limit_seconds: float = 600.0):
         self.board: list[list[Any]] = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
         self.tile_effects: list[list[Any]] = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
@@ -64,14 +56,12 @@ class GameState:
         for r in range(LINHAS):
             for c in range(COLUNAS):
                 p = self.board[r][c]
-                if p:
-                    h ^= get_piece_zobrist_key(r, c, p)
+                if p: h ^= get_piece_zobrist_key(r, c, p)
         self.current_hash = h
         self._hash_valid = True
 
     def _get_attack_spawn_piece(self, piece):
-        if not piece:
-            return None
+        if not piece: return None
         behavior = HERO_DEFS.get(piece.name, {}).get("behavior", {}) or {}
         for passive in behavior.get("passives", []):
             if passive.get("trigger") == "on_kill" and passive.get("effect") == "spawn_unit":
@@ -84,18 +74,15 @@ class GameState:
         return None
 
     def get_state_hash(self):
-        if not self._hash_valid:
-            self.compute_initial_hash()
+        if not self._hash_valid: self.compute_initial_hash()
         return self.current_hash
 
     def remove_piece_hash(self, r, c):
         p = self.board[r][c]
-        if p:
-            self.current_hash ^= get_piece_zobrist_key(r, c, p)
+        if p: self.current_hash ^= get_piece_zobrist_key(r, c, p)
 
     def add_piece_hash(self, r, c, p):
-        if p:
-            self.current_hash ^= get_piece_zobrist_key(r, c, p)
+        if p: self.current_hash ^= get_piece_zobrist_key(r, c, p)
 
     def fast_clone(self):
         novo_gs = GameState.__new__(GameState)
@@ -128,7 +115,6 @@ class GameState:
         return novo_gs
 
     def execute_action(self, acao_dict):
-        """DELEGAÇÃO: O GameState absorve o dicionário abstrato e resolve a física toda."""
         m_type = acao_dict.get("type", "move")
         start_pos = acao_dict["start"]
         end_pos = acao_dict["end"]
@@ -156,7 +142,6 @@ class GameState:
         end_row, end_col = end_pos
         piece = self.board[start_row][start_col]
         
-        # NOVA LÓGICA: Só faz reset ao temporizador de empate se matar uma "Peça Real"
         captured_real_piece = False
 
         if not is_simulation:
@@ -169,9 +154,7 @@ class GameState:
                 alvo = self.board[ar][ac]
                 if alvo and alvo.team != piece.team:
                     if alvo.stun_timer > 0:
-                        # Verifica se é uma peça permanente (lifespan é None)
-                        if getattr(alvo, 'lifespan', None) is None:
-                            captured_real_piece = True
+                        if getattr(alvo, 'lifespan', None) is None: captured_real_piece = True
                         self.remove_piece_hash(ar, ac)
                         self.board[ar][ac] = None 
                     else:
@@ -196,6 +179,14 @@ class GameState:
                     fr, fc = end_row + adr, end_col + adc
                     if 0 <= fr < LINHAS and 0 <= fc < COLUNAS:
                         self.tile_effects[fr][fc] = {"type": "fire", "timer": 3, "team": piece.team}
+                        
+                        # FOGO IMEDIATO! (Bug Corrigido)
+                        alvo = self.board[fr][fc]
+                        if alvo and alvo.stun_timer < 2:
+                            self.remove_piece_hash(fr, fc)
+                            alvo.stun_timer = 2
+                            self.add_piece_hash(fr, fc, alvo)
+                            
             elif spell_name == "purify":
                 alvo = self.board[end_row][end_col]
                 if alvo and alvo.team == piece.team:
@@ -218,8 +209,7 @@ class GameState:
             elif spell_name == "jump":
                 target_piece = self.board[end_row][end_col]
                 if target_piece:
-                    if getattr(target_piece, 'lifespan', None) is None:
-                        captured_real_piece = True
+                    if getattr(target_piece, 'lifespan', None) is None: captured_real_piece = True
                     self.remove_piece_hash(end_row, end_col)
                 self.remove_piece_hash(start_row, start_col)
                 self.board[start_row][start_col] = None
@@ -234,10 +224,8 @@ class GameState:
             
         elif action_type == "attack":
             target_piece = self.board[end_row][end_col]
-            if target_piece and getattr(target_piece, 'lifespan', None) is None:
-                captured_real_piece = True
+            if target_piece and getattr(target_piece, 'lifespan', None) is None: captured_real_piece = True
             
-            # Deteta passivas dinâmicas via JSON
             attacker_beh = HERO_DEFS.get(piece.name, {}).get("behavior", {})
             has_aoe = any(p.get("trigger") == "on_attack" and p.get("effect") == "aoe_damage" for p in attacker_beh.get("passives", []))
             
@@ -245,7 +233,7 @@ class GameState:
             self.remove_piece_hash(start_row, start_col)
             
             spawn_piece = self._get_attack_spawn_piece(piece)
-            if spawn_piece: # Lógica do BoneLord
+            if spawn_piece: 
                 self.board[start_row][start_col] = piece
                 self.board[end_row][end_col] = spawn_piece
                 self.add_piece_hash(start_row, start_col, piece)
@@ -255,18 +243,15 @@ class GameState:
                 self.board[end_row][end_col] = piece 
                 self.add_piece_hash(end_row, end_col, piece)
                 
-                # Lógica do Berserker (Cleave)
                 if has_aoe:
                     for dr, dc in [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]:
                         ar, ac = end_row + dr, end_col + dc
                         if 0 <= ar < LINHAS and 0 <= ac < COLUNAS:
                             t = self.board[ar][ac]
                             if t and t.team != piece.team:
-                                if getattr(t, 'lifespan', None) is None:
-                                    captured_real_piece = True
+                                if getattr(t, 'lifespan', None) is None: captured_real_piece = True
                                 self.remove_piece_hash(ar, ac)
                                 self.board[ar][ac] = None
-
 
         ef_destino = self.tile_effects[end_row][end_col]
         peca_destino = self.board[end_row][end_col]
@@ -276,7 +261,6 @@ class GameState:
                 peca_destino.stun_timer = 2
                 self.add_piece_hash(end_row, end_col, peca_destino)
 
-        # Regra Anti-Stalling: Morte de Invocações não conta como captura válida
         if captured_real_piece: self.turns_without_capture = 0
         else: self.turns_without_capture += 1
 
@@ -285,9 +269,7 @@ class GameState:
         
         self.update_timers()
         self.check_game_over()
-        if not is_simulation:
-            self.current_score = None
-
+        if not is_simulation: self.current_score = None
 
     def update_timers(self):
         equipa_atual = 'brancas' if self.white_to_move else 'pretas'
@@ -300,8 +282,7 @@ class GameState:
                         p.stun_timer -= 1
                         self.add_piece_hash(r, c, p)
                         
-                    if hasattr(p, 'spawn_cooldown') and p.spawn_cooldown > 0: 
-                        p.spawn_cooldown -= 1
+                    if hasattr(p, 'spawn_cooldown') and p.spawn_cooldown > 0: p.spawn_cooldown -= 1
                         
                     if hasattr(p, 'lifespan') and p.lifespan is not None:
                         p.lifespan -= 1
@@ -312,15 +293,12 @@ class GameState:
                 ef = self.tile_effects[r][c]
                 if ef and ef.get("team") == equipa_atual:
                     ef["timer"] = ef.get("timer", 1) - 1
-                    if ef["timer"] <= 0:
-                        self.tile_effects[r][c] = None
+                    if ef["timer"] <= 0: self.tile_effects[r][c] = None
 
     def gerar_notacao(self, piece, start_pos, end_pos, action_type, spawn_name=None, spell_name=None):
         if not piece: return
-        sr, sc = start_pos
-        er, ec = end_pos
-        s_alg = coords_para_notacao(sr, sc)
-        e_alg = coords_para_notacao(er, ec)
+        sr, sc = start_pos; er, ec = end_pos
+        s_alg = coords_para_notacao(sr, sc); e_alg = coords_para_notacao(er, ec)
         
         num_turno = (len(self.move_log) // 2) + 1
         prefixo = f"{num_turno}. " if piece.team == 'brancas' else f"{num_turno}... "
@@ -329,66 +307,43 @@ class GameState:
         elif action_type == "attack": short = f"{piece.acronym} {s_alg}x{e_alg}"
         elif action_type == "stun": short = f"{piece.acronym} * {e_alg}"
         elif action_type == "spawn": short = f"{piece.acronym} + {spawn_name[:2] if spawn_name else ''} {e_alg}"
-        elif action_type == "spell" and spell_name:
-            short = f"{piece.acronym} {spell_name.upper()} {e_alg}"
+        elif action_type == "spell" and spell_name: short = f"{piece.acronym} {spell_name.upper()} {e_alg}"
         else: short = "?"
             
         estado_congelado = self.fast_clone()
-        
         self.move_log.append({
-            "short": prefixo + short,
-            "team": piece.team,
-            "estado_anterior": estado_congelado,
-            "acao_escolhida": {
-                "start": start_pos,
-                "end": end_pos,
-                "type": action_type,
-                "spell_name": spell_name,
-                "spawn_name": spawn_name,
-            }
+            "short": prefixo + short, "team": piece.team, "estado_anterior": estado_congelado,
+            "acao_escolhida": {"start": start_pos, "end": end_pos, "type": action_type, "spell_name": spell_name, "spawn_name": spawn_name}
         })
 
     def check_game_over(self):
         white_alive = any(p.team == 'brancas' for row in self.board for p in row if p)
         black_alive = any(p.team == 'pretas' for row in self.board for p in row if p)
         
-        # 1. Aniquilação 
-        if not white_alive and not black_alive: 
-            self.game_over, self.winner = True, "Aniquilação Mútua (Pretas Vencem no Desempate)"
-        elif not white_alive: 
-            self.game_over, self.winner = True, "Aniquilação (Pretas Vencem)"
-        elif not black_alive: 
-            self.game_over, self.winner = True, "Aniquilação (Brancas Vencem)"
+        if not white_alive and not black_alive: self.game_over, self.winner = True, "Aniquilação Mútua (Pretas Vencem no Desempate)"
+        elif not white_alive: self.game_over, self.winner = True, "Aniquilação (Pretas Vencem)"
+        elif not black_alive: self.game_over, self.winner = True, "Aniquilação (Brancas Vencem)"
             
         if self.game_over: return
 
         adversario_vencedor = 'Brancas' if self.white_to_move else 'Pretas'
 
-        # Helper: Calcula quem ganha baseando-se no valor de mercado (cost)
-        # Se os valores forem EXATAMENTE iguais, a vantagem do desempate vai para as Pretas!
         def resolver_por_material():
             white_mat = sum(getattr(p, 'cost', 0) for row in self.board for p in row if p and p.team == 'brancas')
             black_mat = sum(getattr(p, 'cost', 0) for row in self.board for p in row if p and p.team == 'pretas')
-            if white_mat > black_mat:
-                return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem"
-            else:
-                return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate"
+            if white_mat > black_mat: return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem"
+            else: return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate"
             
-        # 2. Regra Anti-Stalling (50 turnos rigorosos)
         if self.turns_without_capture >= 50: 
-            self.game_over = True
-            self.winner = resolver_por_material()
+            self.game_over = True; self.winner = resolver_por_material()
             return
             
-        # 3. Regra Anti-Loop (Repetição de Posição 3 vezes)
         current_hash = self.get_state_hash()
         self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1
         if self.state_history[current_hash] >= 3:
-            self.game_over = True
-            self.winner = resolver_por_material()
+            self.game_over = True; self.winner = resolver_por_material()
             return
 
-        # 4. Asfixia Tática (Jogador atual não tem lances legais)
         tem_jogada = False
         equipa_atual = 'brancas' if self.white_to_move else 'pretas'
         for r in range(LINHAS):
@@ -399,16 +354,12 @@ class GameState:
                         tem_jogada = True
                     else:
                         stuns = p.get_valid_stuns(r, c, self.board, self.tile_effects)
-                        if stuns and any(info and info.get("has_enemy") for info in stuns.values()): 
-                            tem_jogada = True
+                        if stuns and any(info and info.get("has_enemy") for info in stuns.values()): tem_jogada = True
                 if tem_jogada: break
             if tem_jogada: break
 
         if not tem_jogada:
-            self.game_over = True
-            # Quem ficou encurralado sem lances perde a partida
-            self.winner = f"{adversario_vencedor} Vencem (Oponente Bloqueado)"
-
+            self.game_over = True; self.winner = f"{adversario_vencedor} Vencem (Oponente Bloqueado)"
 
     def to_rwen(self) -> str:
         linhas_str = []
@@ -417,7 +368,6 @@ class GameState:
             for c in range(COLUNAS):
                 p = self.board[r][c]
                 ef = self.tile_effects[r][c]
-                
                 if not p: p_str = "."
                 else:
                     team = "W" if p.team == 'brancas' else "B"
@@ -425,13 +375,10 @@ class GameState:
                     vida = str(p.lifespan) if hasattr(p, 'lifespan') and p.lifespan is not None else "N"
                     cd = str(p.spawn_cooldown) if hasattr(p, 'spawn_cooldown') else "0"
                     p_str = f"{team}_{nome}_{p.stun_timer}_{vida}_{cd}"
-                
                 if not ef: e_str = "."
                 else:
                     e_team = "W" if ef.get("team") == 'brancas' else "B"
                     e_str = f"{e_team}_{ef.get('type', 'none')}_{ef.get('timer', 0)}"
-                    
                 casas_str.append(f"{p_str}:{e_str}")
             linhas_str.append(",".join(casas_str))
-            
         return f"{'/'.join(linhas_str)} {'W' if self.white_to_move else 'B'} {self.turns_without_capture}"

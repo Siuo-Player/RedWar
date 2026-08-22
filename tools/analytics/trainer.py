@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
-from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LIMITE_TURNOS, LINHAS, COLUNAS
+from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
 from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO, BOT_ALEATORIO
 
 POOL_BOTS = [
@@ -61,7 +61,7 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
     comp_brancas = preencher_draft_aleatorio(gs, 'brancas', [LINHAS - 2, LINHAS - 1], ORCAMENTO_BRANCAS)
 
     turnos = 0
-    while not gs.game_over and turnos < LIMITE_TURNOS:
+    while not gs.game_over:
         turnos += 1
         global_stats["turnos_totais"] += 1
         
@@ -80,7 +80,7 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
         
         sys.stdout.write(
             f"\r[Jogo {jogo_idx}/{total_jogos}] "
-            f"Turno {turnos}/{LIMITE_TURNOS} | "
+            f"Turno {turnos} | "
             f"B:{nome_b} vs P:{nome_p} | "
             f"T/Turno: {t_medio_turno:.2f}s | "
             f"Falta: {tempo_formatado}   "
