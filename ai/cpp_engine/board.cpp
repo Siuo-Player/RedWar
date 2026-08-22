@@ -58,9 +58,7 @@ std::vector<std::string> split_string(const std::string& s, char delimiter) {
     std::vector<std::string> tokens;
     std::string token;
     std::istringstream stream(s);
-    while (std::getline(stream, token, delimiter)) {
-        tokens.push_back(token);
-    }
+    while (std::getline(stream, token, delimiter)) tokens.push_back(token);
     return tokens;
 }
 
@@ -68,9 +66,7 @@ int parse_int(const std::string& value, const char* field_name) {
     try {
         std::size_t consumed = 0;
         const int result = std::stoi(value, &consumed);
-        if (consumed != value.size()) {
-            throw std::invalid_argument("trailing characters");
-        }
+        if (consumed != value.size()) throw std::invalid_argument("trailing characters");
         return result;
     } catch (const std::exception&) {
         throw std::runtime_error(std::string("Invalid integer in RWEN field '") + field_name + "': " + value);
@@ -83,9 +79,7 @@ char parse_team(const std::string& value) {
 }
 
 void update_effect(int r, int c, const TileEffect& effect) {
-    if (!valid_square(r, c)) {
-        throw std::out_of_range("update_effect: invalid board coordinates");
-    }
+    if (!valid_square(r, c)) throw std::out_of_range("update_effect: invalid board coordinates");
 
     TileEffect& old = board.effects[r][c];
     if (!old.is_empty) board.hash ^= get_effect_zobrist_key(r, c, old);
@@ -102,30 +96,20 @@ void record_timer_piece(UndoInfo& undo, int r, int c, const Piece& piece) {
     for (int i = 0; i < undo.num_timer_pieces; ++i) {
         if (undo.timer_pieces[i].r == r && undo.timer_pieces[i].c == c) return;
     }
-    if (undo.num_timer_pieces >= MAX_TIMER_PIECES) {
-        throw std::runtime_error("UndoInfo timer-piece capacity exceeded");
-    }
-
-    undo.timer_pieces[undo.num_timer_pieces++] = {
-        r, c, piece.stun_timer, piece.lifespan, piece.spawn_cooldown
-    };
+    if (undo.num_timer_pieces >= MAX_TIMER_PIECES) throw std::runtime_error("UndoInfo timer-piece capacity exceeded");
+    undo.timer_pieces[undo.num_timer_pieces++] = {r, c, piece.stun_timer, piece.lifespan, piece.spawn_cooldown};
 }
 
 void record_timer_effect(UndoInfo& undo, int r, int c, const TileEffect& effect) {
     for (int i = 0; i < undo.num_timer_effects; ++i) {
         if (undo.timer_effects[i].r == r && undo.timer_effects[i].c == c) return;
     }
-    if (undo.num_timer_effects >= MAX_TIMER_EFFECTS) {
-        throw std::runtime_error("UndoInfo timer-effect capacity exceeded");
-    }
-
-    undo.timer_effects[undo.num_timer_effects++] = {r, c, effect.timer};
+    if (undo.num_timer_effects >= MAX_TIMER_EFFECTS) throw std::runtime_error("UndoInfo timer-effect capacity exceeded");
+    undo.timer_effects[undo.num_timer_effects++] = {r, c, effect};
 }
 
 void record_expired_piece(UndoInfo& undo, int r, int c, const Piece& piece) {
-    if (undo.num_expired_pieces >= MAX_EXPIRED_PIECES) {
-        throw std::runtime_error("UndoInfo expired-piece capacity exceeded");
-    }
+    if (undo.num_expired_pieces >= MAX_EXPIRED_PIECES) throw std::runtime_error("UndoInfo expired-piece capacity exceeded");
     undo.expired_pieces[undo.num_expired_pieces++] = {r, c, piece};
 }
 
@@ -133,9 +117,7 @@ void record_expired_piece(UndoInfo& undo, int r, int c, const Piece& piece) {
 
 uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
     if (p.is_empty) return 0;
-    if (!valid_square(r, c)) {
-        throw std::out_of_range("get_piece_zobrist_key: invalid board coordinates");
-    }
+    if (!valid_square(r, c)) throw std::out_of_range("get_piece_zobrist_key: invalid board coordinates");
 
     uint64_t h = 0xA0761D6478BD642FULL;
     h = mix_hash(h, static_cast<uint64_t>(r));
@@ -151,9 +133,7 @@ uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
 
 uint64_t get_effect_zobrist_key(int r, int c, const TileEffect& ef) {
     if (ef.is_empty) return 0;
-    if (!valid_square(r, c)) {
-        throw std::out_of_range("get_effect_zobrist_key: invalid board coordinates");
-    }
+    if (!valid_square(r, c)) throw std::out_of_range("get_effect_zobrist_key: invalid board coordinates");
 
     uint64_t h = 0xE7037ED1A0B428DBULL;
     h = mix_hash(h, static_cast<uint64_t>(r));
@@ -167,7 +147,6 @@ uint64_t get_effect_zobrist_key(int r, int c, const TileEffect& ef) {
 uint64_t compute_initial_hash() {
     uint64_t h = 0x517CC1B727220A95ULL;
     if (board.turn == 'W') h ^= ZOBRIST_SIDE_TO_MOVE;
-
     for (int r = 0; r < LINHAS; ++r) {
         for (int c = 0; c < COLUNAS; ++c) {
             h ^= get_piece_zobrist_key(r, c, board.pieces[r][c]);
@@ -178,9 +157,7 @@ uint64_t compute_initial_hash() {
 }
 
 void update_piece(int r, int c, const Piece& p) {
-    if (!valid_square(r, c)) {
-        throw std::out_of_range("update_piece: invalid board coordinates");
-    }
+    if (!valid_square(r, c)) throw std::out_of_range("update_piece: invalid board coordinates");
 
     Piece& old = board.pieces[r][c];
     if (!old.is_empty) {
@@ -214,7 +191,6 @@ void update_timers(UndoInfo& undo) {
             if (!changes_stun && !changes_cd && !changes_lifespan) continue;
 
             record_timer_piece(undo, r, c, piece);
-
             if (changes_stun) --piece.stun_timer;
             if (changes_cd) --piece.spawn_cooldown;
 
@@ -222,7 +198,6 @@ void update_timers(UndoInfo& undo) {
                 --piece.lifespan;
                 if (piece.lifespan <= 0) {
                     record_expired_piece(undo, r, c, piece);
-                    // The timer record still contains the pre-tick state.
                     update_piece(r, c, Piece{});
                     continue;
                 }
@@ -239,18 +214,12 @@ void update_timers(UndoInfo& undo) {
 
             record_timer_effect(undo, r, c, effect);
             --effect.timer;
-            if (effect.timer <= 0) {
-                update_effect(r, c, TileEffect{});
-            } else {
-                update_effect(r, c, effect);
-            }
+            update_effect(r, c, effect.timer <= 0 ? TileEffect{} : effect);
         }
     }
 }
 
 void restore_timers(const UndoInfo& undo) {
-    // Restore expired cells first so their pre-tick numeric state can then be
-    // restored by timer_pieces below.
     for (int i = undo.num_expired_pieces - 1; i >= 0; --i) {
         const auto& record = undo.expired_pieces[i];
         update_piece(record.r, record.c, record.p);
@@ -258,10 +227,7 @@ void restore_timers(const UndoInfo& undo) {
 
     for (int i = undo.num_timer_effects - 1; i >= 0; --i) {
         const auto& record = undo.timer_effects[i];
-        TileEffect effect = board.effects[record.r][record.c];
-        if (effect.is_empty) continue;
-        effect.timer = record.timer;
-        update_effect(record.r, record.c, effect);
+        update_effect(record.r, record.c, record.effect);
     }
 
     for (int i = undo.num_timer_pieces - 1; i >= 0; --i) {
@@ -277,20 +243,15 @@ void restore_timers(const UndoInfo& undo) {
 
 void parse_rwen(const std::string& rwen) {
     ensure_hero_behaviors_loaded();
-
     const auto main_parts = split_string(rwen, ' ');
-    if (main_parts.size() != 3) {
-        throw std::runtime_error("Invalid RWEN: expected '<board> <turn> <twc>'");
-    }
+    if (main_parts.size() != 3) throw std::runtime_error("Invalid RWEN: expected '<board> <turn> <twc>'");
 
     const char turn = parse_team(main_parts[1]);
     const int twc = parse_int(main_parts[2], "twc");
     if (twc < 0) throw std::runtime_error("Invalid RWEN: twc cannot be negative");
 
     const auto rows = split_string(main_parts[0], '/');
-    if (rows.size() != LINHAS) {
-        throw std::runtime_error("Invalid RWEN: expected " + std::to_string(LINHAS) + " rows");
-    }
+    if (rows.size() != LINHAS) throw std::runtime_error("Invalid RWEN: incorrect row count");
 
     board = BoardState{};
     board.turn = turn;
@@ -298,39 +259,26 @@ void parse_rwen(const std::string& rwen) {
 
     for (int r = 0; r < LINHAS; ++r) {
         const auto cols = split_string(rows[r], ',');
-        if (cols.size() != COLUNAS) {
-            throw std::runtime_error("Invalid RWEN: row " + std::to_string(r) + " has " +
-                                     std::to_string(cols.size()) + " columns");
-        }
-
+        if (cols.size() != COLUNAS) throw std::runtime_error("Invalid RWEN: incorrect column count");
         for (int c = 0; c < COLUNAS; ++c) {
             const auto cell_parts = split_string(cols[c], ':');
-            if (cell_parts.empty() || cell_parts.size() > 2) {
-                throw std::runtime_error("Invalid RWEN cell at (" + std::to_string(r) + "," +
-                                         std::to_string(c) + ")");
-            }
+            if (cell_parts.empty() || cell_parts.size() > 2) throw std::runtime_error("Invalid RWEN cell");
 
             Piece piece{};
             if (cell_parts[0] != ".") {
                 const auto data = split_string(cell_parts[0], '_');
-                if (data.size() != 5) {
-                    throw std::runtime_error("Invalid piece encoding at (" + std::to_string(r) + "," +
-                                             std::to_string(c) + ")");
-                }
-
+                if (data.size() != 5) throw std::runtime_error("Invalid RWEN piece encoding");
                 piece.is_empty = false;
                 piece.team = parse_team(data[0]);
-                if (data[1].empty()) throw std::runtime_error("Invalid empty piece name in RWEN");
                 piece.name = data[1];
                 piece.stun_timer = parse_int(data[2], "stun_timer");
-                piece.lifespan = (data[3] == "N") ? 999 : parse_int(data[3], "lifespan");
+                piece.lifespan = data[3] == "N" ? 999 : parse_int(data[3], "lifespan");
                 piece.spawn_cooldown = parse_int(data[4], "spawn_cooldown");
-
-                const auto id_it = PIECE_IDS.find(piece.name);
-                if (id_it == PIECE_IDS.end() || id_it->second < 0 || id_it->second >= MAX_HEROES) {
+                const auto it = PIECE_IDS.find(piece.name);
+                if (it == PIECE_IDS.end() || it->second < 0 || it->second >= MAX_HEROES) {
                     throw std::runtime_error("Unknown hero in RWEN: " + piece.name);
                 }
-                piece.id = id_it->second;
+                piece.id = it->second;
                 piece.cost = PIECE_COSTS[piece.id];
             }
             board.pieces[r][c] = piece;
@@ -338,10 +286,7 @@ void parse_rwen(const std::string& rwen) {
             TileEffect effect{};
             if (cell_parts.size() == 2 && cell_parts[1] != ".") {
                 const auto data = split_string(cell_parts[1], '_');
-                if (data.size() != 3) {
-                    throw std::runtime_error("Invalid effect encoding at (" + std::to_string(r) + "," +
-                                             std::to_string(c) + ")");
-                }
+                if (data.size() != 3) throw std::runtime_error("Invalid RWEN effect encoding");
                 effect.is_empty = false;
                 effect.team = parse_team(data[0]);
                 effect.type = data[1];
@@ -369,24 +314,19 @@ Piece create_piece(const std::string& name, char team) {
     piece.name = name;
     piece.id = it->second;
     piece.cost = PIECE_COSTS[piece.id];
-
     if (name == "StoneWall") piece.lifespan = 3;
     else if (name == "Ghoul" || name == "Bone") piece.lifespan = 5;
-
     return piece;
 }
 
 UndoInfo make_move(const Move& m) {
-    if (!valid_square(m.sr, m.sc) || !valid_square(m.er, m.ec)) {
-        throw std::out_of_range("make_move: invalid move coordinates");
-    }
+    if (!valid_square(m.sr, m.sc) || !valid_square(m.er, m.ec)) throw std::out_of_range("make_move: invalid move coordinates");
 
     UndoInfo undo{};
     undo.move_type = m.type;
     undo.actor_piece = board.pieces[m.sr][m.sc];
     undo.target_piece = board.pieces[m.er][m.ec];
     undo.twc_backup = board.twc;
-
     if (undo.actor_piece.is_empty) throw std::runtime_error("make_move: source square is empty");
     const Piece empty{};
 
@@ -401,18 +341,15 @@ UndoInfo make_move(const Move& m) {
         if (!behavior) throw std::runtime_error("Missing behavior for hero: " + undo.actor_piece.name);
 
         if (behavior->has_on_kill_spawn) {
-            update_piece(m.er, m.ec,
-                         create_piece(behavior->on_kill_spawn_unit, undo.actor_piece.team));
+            update_piece(m.er, m.ec, create_piece(behavior->on_kill_spawn_unit, undo.actor_piece.team));
         } else {
             update_piece(m.sr, m.sc, empty);
             update_piece(m.er, m.ec, undo.actor_piece);
-
             if (behavior->has_on_attack_aoe) {
                 constexpr int DR[8] = {-1, 1, 0, 0, -1, -1, 1, 1};
                 constexpr int DC[8] = {0, 0, -1, 1, -1, 1, -1, 1};
                 for (int i = 0; i < 8; ++i) {
-                    const int ar = m.er + DR[i];
-                    const int ac = m.ec + DC[i];
+                    const int ar = m.er + DR[i], ac = m.ec + DC[i];
                     if (!valid_square(ar, ac)) continue;
                     const Piece victim = board.pieces[ar][ac];
                     if (!victim.is_empty && victim.team != undo.actor_piece.team) {
@@ -429,15 +366,12 @@ UndoInfo make_move(const Move& m) {
         constexpr int DR[5] = {0, -1, 1, 0, 0};
         constexpr int DC[5] = {0, 0, 0, -1, 1};
         for (int i = 0; i < 5; ++i) {
-            const int ar = m.er + DR[i];
-            const int ac = m.ec + DC[i];
+            const int ar = m.er + DR[i], ac = m.ec + DC[i];
             if (!valid_square(ar, ac)) continue;
-
             const Piece target = board.pieces[ar][ac];
             if (target.is_empty || target.team == undo.actor_piece.team) continue;
             if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
             undo.aoe_victims[undo.num_victims++] = {ar, ac, target};
-
             if (target.stun_timer > 0) {
                 update_piece(ar, ac, empty);
                 board.twc = 0;
@@ -461,8 +395,7 @@ UndoInfo make_move(const Move& m) {
             board.twc = undo.target_piece.is_empty ? (board.twc + 1) : 0;
             update_piece(m.sr, m.sc, empty);
             update_piece(m.er, m.ec, undo.actor_piece);
-        }
-        else {
+        } else {
             ++board.twc;
             if (m.spell_name == "purify") {
                 Piece target = board.pieces[m.er][m.ec];
@@ -482,14 +415,11 @@ UndoInfo make_move(const Move& m) {
                 constexpr int DR[5] = {0, -1, 1, 0, 0};
                 constexpr int DC[5] = {0, 0, 0, -1, 1};
                 for (int i = 0; i < 5; ++i) {
-                    const int fr = m.er + DR[i];
-                    const int fc = m.ec + DC[i];
+                    const int fr = m.er + DR[i], fc = m.ec + DC[i];
                     if (!valid_square(fr, fc)) continue;
-
                     if (undo.num_effects >= MAX_UNDO_EFFECTS) throw std::runtime_error("UndoInfo effect capacity exceeded");
                     undo.overwritten_effects[undo.num_effects++] = {fr, fc, board.effects[fr][fc]};
                     update_effect(fr, fc, TileEffect{false, undo.actor_piece.team, "fire", 3});
-
                     const Piece target = board.pieces[fr][fc];
                     if (!target.is_empty && target.stun_timer < 2) {
                         if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
@@ -509,8 +439,7 @@ UndoInfo make_move(const Move& m) {
         throw std::runtime_error("Unknown move type: " + m.type);
     }
 
-    if (valid_square(m.er, m.ec) && !board.pieces[m.er][m.ec].is_empty &&
-        m.type != "STUN" && m.spell_name != "ignite") {
+    if (!board.pieces[m.er][m.ec].is_empty && m.type != "STUN" && m.spell_name != "ignite") {
         const TileEffect& effect = board.effects[m.er][m.ec];
         if (!effect.is_empty && effect.type == "fire" && board.pieces[m.er][m.ec].stun_timer < 2) {
             Piece target = board.pieces[m.er][m.ec];
@@ -526,17 +455,11 @@ UndoInfo make_move(const Move& m) {
 }
 
 void unmake_move(const Move& m, const UndoInfo& undo) {
-    if (!valid_square(m.sr, m.sc) || !valid_square(m.er, m.ec)) {
-        throw std::out_of_range("unmake_move: invalid move coordinates");
-    }
+    if (!valid_square(m.sr, m.sc) || !valid_square(m.er, m.ec)) throw std::out_of_range("unmake_move: invalid move coordinates");
 
     board.turn = (board.turn == 'W') ? 'B' : 'W';
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
     board.twc = undo.twc_backup;
-
-    // Timer changes belong to the position after the move and must be undone
-    // before the ordinary move rollback. If the same square was touched by the
-    // move, the regular rollback below will restore its original value.
     restore_timers(undo);
 
     if (m.spell_name == "ignite") {
