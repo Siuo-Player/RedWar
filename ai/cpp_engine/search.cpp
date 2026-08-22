@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
-#include <limits>
 #include <vector>
 
 namespace {
@@ -17,6 +16,23 @@ constexpr int SPAWN_SCORE = 20'000;
 constexpr int KILLER1_SCORE = 10'000;
 constexpr int KILLER2_SCORE = 9'000;
 
+uint64_t splitmix64(uint64_t x) {
+    x += 0x9E3779B97F4A7C15ULL;
+    x = (x ^ (x >> 30U)) * 0xBF58476D1CE4E5B9ULL;
+    x = (x ^ (x >> 27U)) * 0x94D049BB133111EBULL;
+    return x ^ (x >> 31U);
+}
+
+uint64_t twc_hash(int twc) {
+    return splitmix64(0xD4E12C7B9A3F51E7ULL ^ static_cast<uint64_t>(static_cast<int64_t>(twc)));
+}
+
+uint64_t search_position_key() {
+    // board.hash describes physical state. twc is added because it changes
+    // the 50-turn no-capture horizon and therefore the search result.
+    return board.hash ^ twc_hash(board.twc);
+}
+
 inline bool is_terminal_score(int score) {
     return score >= INFINITO - 200 || score <= -INFINITO + 200;
 }
@@ -27,45 +43,39 @@ inline void check_limits() {
         return;
     }
 
-    // Time checks do not need to run at every node. 2048 nodes is cheap enough
-    // for responsiveness while avoiding a clock read on the hot path.
     if ((nodes_evaluated & 2047) == 0) {
         const auto now = std::chrono::steady_clock::now();
         const double elapsed = std::chrono::duration<double, std::milli>(now - search_start_time).count();
-        if (elapsed >= time_limit_ms) {
-            abort_search = true;
-        }
+        if (elapsed >= time_limit_ms) abort_search = true;
     }
 }
 
 inline int piece_cost(const Piece& piece) {
     if (piece.is_empty) return 0;
-    if (piece.id >= 0 && piece.id < MAX_HEROES && PIECE_COSTS[piece.id] > 0) {
-        return PIECE_COSTS[piece.id];
-    }
+    if (piece.id >= 0 && piece.id < MAX_HEROES && PIECE_COSTS[piece.id] > 0) return PIECE_COSTS[piece.id];
     if (piece.cost > 0) return piece.cost;
     return 50;
 }
 
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
+
     if (move.type == "STUN") {
-        // A stun on an already-stunned enemy is a capture in RedWar.
-        for (int dr : {0, -1, 1, 0, 0}) {
-            for (int dc : {0, 0, 0, -1, 1}) {
-                const int r = move.er + dr;
-                const int c = move.ec + dc;
-                if (r >= 0 && r < LINHAS && c >= 0 && c < COLUNAS) {
-                    const Piece& p = board.pieces[r][c];
-                    if (!p.is_empty && p.team != board.turn && p.stun_timer > 0) return true;
-                }
+        constexpr int DR[5] = {0, -1, 1, 0, 0};
+        constexpr int DC[5] = {0, 0, 0, -1, 1};
+        for (int i = 0; i < 5; ++i) {
+            const int r = move.er + DR[i];
+            const int c = move.ec + DC[i];
+            if (r >= 0 && r < LINHAS && c >= 0 && c < COLUNAS) {
+                const Piece& p = board.pieces[r][c];
+                if (!p.is_empty && p.team != board.turn && p.stun_timer > 0) return true;
             }
         }
     }
+
     if (move.type == "SPELL") {
         if (move.spell_name == "ignite") return true;
         if (move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty) return true;
-        return false;
     }
     return false;
 }
@@ -110,9 +120,7 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
                     const int c = move.ec + DC[i];
                     if (r < 0 || r >= LINHAS || c < 0 || c >= COLUNAS) continue;
                     const Piece& target = board.pieces[r][c];
-                    if (!target.is_empty && target.team != current_turn) {
-                        value_sum += piece_cost(target) * 60;
-                    }
+                    if (!target.is_empty && target.team != current_turn) value_sum += piece_cost(target) * 60;
                 }
                 move.score = SPELL_SCORE + value_sum;
             } else {
@@ -171,13 +179,9 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
     std::vector<Move> all_moves = generate_valid_moves(current_turn);
     std::vector<Move> forcing_moves;
     forcing_moves.reserve(std::min<std::size_t>(all_moves.size(), 16));
-
     for (const Move& move : all_moves) {
-        if (is_forcing_move(move)) {
-            forcing_moves.push_back(move);
-        }
+        if (is_forcing_move(move)) forcing_moves.push_back(move);
     }
-
     if (forcing_moves.empty()) return eval_score;
 
     score_moves(forcing_moves, Move(), ply, current_turn);
@@ -190,7 +194,6 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
             const int value = quiescence_search(alpha, beta, board.turn, ply + 1, q_depth + 1);
             unmake_move(move, undo);
             if (abort_search) return 0;
-
             best = std::max(best, value);
             alpha = std::max(alpha, value);
             if (alpha >= beta) break;
@@ -204,7 +207,6 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
         const int value = quiescence_search(alpha, beta, board.turn, ply + 1, q_depth + 1);
         unmake_move(move, undo);
         if (abort_search) return 0;
-
         best = std::min(best, value);
         beta = std::min(beta, value);
         if (alpha >= beta) break;
@@ -216,12 +218,9 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     ++nodes_evaluated;
     check_limits();
     if (abort_search) return 0;
-
-    // board.turn is the authoritative side-to-move. Keeping both an argument
-    // and a board field is useful for the search API, but they must agree.
     if (board.turn != current_turn) return evaluate_board();
 
-    const uint64_t key = board.hash;
+    const uint64_t key = search_position_key();
     TTEntry& slot = transposition_table[key & TT_MASK];
     Move tt_best_move;
 
@@ -237,6 +236,7 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     const int eval_score = evaluate_board();
     if (is_terminal_score(eval_score)) return eval_score;
+    if (board.twc >= 50) return eval_score;
     if (depth <= 0) return quiescence_search(alpha, beta, current_turn, ply, 0);
 
     std::vector<Move> moves = generate_valid_moves(current_turn);
@@ -259,7 +259,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
             const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
             unmake_move(move, undo);
             if (abort_search) return 0;
-
             if (value > best_value) {
                 best_value = value;
                 best_move = move;
@@ -275,7 +274,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         TTFlag flag = TT_EXACT;
         if (best_value <= original_alpha) flag = TT_UPPERBOUND;
         else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-
         slot = {key, depth, best_value, flag, best_move, true};
         return best_value;
     }
@@ -286,7 +284,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
         unmake_move(move, undo);
         if (abort_search) return 0;
-
         if (value < best_value) {
             best_value = value;
             best_move = move;
@@ -302,7 +299,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     TTFlag flag = TT_EXACT;
     if (best_value <= original_alpha) flag = TT_UPPERBOUND;
     else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-
     slot = {key, depth, best_value, flag, best_move, true};
     return best_value;
 }
@@ -311,24 +307,18 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
 std::string search_best_move(int max_depth) {
     ensure_hero_behaviors_loaded();
-
     abort_search = false;
     nodes_evaluated = 0;
     search_start_time = std::chrono::steady_clock::now();
 
     if (max_depth < 1) return "";
 
-    for (int team = 0; team < 2; ++team) {
-        for (int sr = 0; sr < LINHAS; ++sr) {
-            for (int sc = 0; sc < COLUNAS; ++sc) {
-                for (int er = 0; er < LINHAS; ++er) {
-                    for (int ec = 0; ec < COLUNAS; ++ec) {
+    for (int team = 0; team < 2; ++team)
+        for (int sr = 0; sr < LINHAS; ++sr)
+            for (int sc = 0; sc < COLUNAS; ++sc)
+                for (int er = 0; er < LINHAS; ++er)
+                    for (int ec = 0; ec < COLUNAS; ++ec)
                         history_table[team][sr][sc][er][ec] = 0;
-                    }
-                }
-            }
-        }
-    }
 
     for (int i = 0; i < MAX_PLY; ++i) {
         killer_moves[i][0] = Move();
@@ -343,10 +333,9 @@ std::string search_best_move(int max_depth) {
     for (int depth = 1; depth <= max_depth; ++depth) {
         if (node_limit > 0 && static_cast<uint64_t>(nodes_evaluated) >= node_limit) break;
 
-        const uint64_t key = board.hash;
+        const uint64_t key = search_position_key();
         TTEntry& root_slot = transposition_table[key & TT_MASK];
-        const Move tt_move = (root_slot.occupied && root_slot.zobrist_key == key)
-                           ? root_slot.best_move : Move();
+        const Move tt_move = (root_slot.occupied && root_slot.zobrist_key == key) ? root_slot.best_move : Move();
 
         score_moves(root_moves, tt_move, 0, board.turn);
         std::sort(root_moves.begin(), root_moves.end());
@@ -378,10 +367,8 @@ std::string search_best_move(int max_depth) {
         }
 
         if (abort_search) break;
-
         best_overall_move = best_move_this_depth;
         transposition_table[key & TT_MASK] = {key, depth, best_value, TT_EXACT, best_move_this_depth, true};
-
         if (is_terminal_score(best_value)) break;
     }
 
