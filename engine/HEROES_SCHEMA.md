@@ -1,7 +1,7 @@
 HEROES_SCHEMA
 =============
 
-This document describes the `engine/heroes_config.json` schema used to drive unit metadata and (in future) behavior definitions.
+This document describes the `engine/heroes_config.json` schema used to drive unit metadata and the declarative movement/attack behavior compiler.
 
 Top-level keys
 ---------------
@@ -17,21 +17,27 @@ Common metadata fields
 - `lifespan` (int, optional): number of turns before the unit expires.
 - `spawn_cooldown` (int, optional): cooldown used by spawners.
 
-Behavior object (experimental)
--------------------------------
-The `behavior` object describes movement/attack/stun/spawn patterns in a declarative way.
-Not all fields are required; the engine will fall back to existing class logic when absent.
+Behavior object
+---------------
+The `behavior` object describes movement/attack patterns and passive abilities in declarative form.
+Missing behavior sections do not invent arbitrary movement; hero-specific classes may still provide abilities that are not yet fully data-driven.
 
 Supported behavior keys (examples):
 - `movement`: describes how the unit may move.
-  - `type`: one of `orthogonal`, `diagonal`, `adjacent`, `knight`, `ray`, `none`, `forward_cone`, `orthogonal`.
-  - `max_steps`: integer (for `orthogonal`, `diagonal`, `adjacent`).
-  - `deltas`: explicit list of [dr, dc] offsets for `pattern`-like movement.
-  - `forward_dir_by_team`: boolean; if true the engine interprets the forward direction depending on unit `team`.
+  - `type`: one of `orthogonal`, `diagonal`, `adjacent`, `knight`, `ray`, `none`, `forward_cone`.
+  - `max_steps`: integer (for range-based movement types).
+  - `deltas`: explicit list of [dr, dc] offsets for pattern-like movement.
+  - `forward_dir_by_team`: boolean; if true, the engine flips the declared forward direction for White.
+  - `ghost_move`: whether occupied squares can be crossed for movement.
 
-- `attack`: similar to `movement` but used to declare attack reach and patterns.
+- `attack`: similar to `movement`, but used to declare attack reach and patterns.
+  - `type`: `orthogonal`, `diagonal`, `knight`, `ray`, `pattern`, `forward_cone`, or `none`.
+  - `max_steps`: maximum attack distance.
+  - `min_steps`: minimum attack distance.
+  - `deltas` / `dirs`: explicit attack vectors.
+  - `forward_dir_by_team`: boolean; interpreted independently from `movement` when present.
 
-- `stun`: AoE/stun declarative definition.
+- `stun`: declarative AoE/stun metadata where supported by the unit.
   - `type`: `aoe`.
   - `radius`: integer Manhattan radius to consider for valid stun focuses.
 
@@ -39,21 +45,20 @@ Supported behavior keys (examples):
   - `unit`: string, name of unit to spawn.
   - `pattern`: string describing spawn placement (e.g. `forward_row`).
 
-- `passives`: list of automatic, event-driven abilities (not chosen by the player). Each entry:
-  - `trigger`: one of `on_kill`, `on_attack`, `on_attacked`, `on_turn_start`, `on_turn_end`, `on_death`, `aura_passive`.
-  - `effect`: one of `spawn_unit`, `aoe_damage`, `redirect_damage`, `disable_spells`.
-  - `params`: object, shape depends on `effect` (see examples below).
-  - New `trigger`/`effect` values are expected over time. Both are plain strings dispatched through a registry (name -> handler), not a closed enum, specifically so a new passive idea only needs one new handler, not changes to existing heroes. Lifespan-based decay (Bone/Ghoul/StoneWall) is not part of this list — it's already generic on any hero with a `lifespan` field, handled once in `update_timers()`.
+- `passives`: list of automatic, event-driven abilities. Each entry contains:
+  - `trigger`: e.g. `on_kill`, `on_attack`, `on_attacked`, `on_turn_start`, `on_turn_end`, `on_death`, `aura_passive`.
+  - `effect`: e.g. `spawn_unit`, `aoe_damage`, `redirect_damage`, `disable_spells`.
+  - `params`: object whose shape depends on the effect.
+  - New trigger/effect values are deliberately strings so the schema can evolve without changing every hero definition.
 
-- `spell`: for player-activated abilities (Purify, Swap, Barricade, Ignite, Jump, Silence). Same container as `movement`/`attack`, just player-targeted instead of event-triggered.
-  - `type`: name of the spell.
+- `spell`: player-activated ability metadata. Spell execution is still partly implemented in the game-state layer.
+  - `type`: spell name.
   - `radius` / `range`: reach, where applicable.
   - `target_team`: `ally`, `enemy`, or `any`.
 
 Passives — worked examples
 ---------------------------
-`BoneLord` — currently hardcoded in `game_state.py`'s `attack` branch
-(`if piece.name == "BoneLord": ...`), shown here as the declarative target:
+`BoneLord`:
 
 ```
 "BoneLord": { "behavior": { "passives": [
@@ -62,7 +67,7 @@ Passives — worked examples
 ] } }
 ```
 
-`Berserker` — no code today, text-only passive:
+`Berserker`:
 
 ```
 "Berserker": { "behavior": { "passives": [
@@ -71,12 +76,7 @@ Passives — worked examples
 ] } }
 ```
 
-`Templar` — needed the `on_attacked` trigger, which didn't exist until this
-hero required it. Deterministic by design (no `chance`/RNG field): a
-probabilistic reflect would force chance nodes into the search tree
-(expectiminimax-style), which breaks the assumption behind Zobrist/TT reuse
-that a given position + move always resolves to the same result. Cooldown
-keeps everything reproducible:
+`Templar`:
 
 ```
 "Templar": { "behavior": { "passives": [
@@ -85,8 +85,7 @@ keeps everything reproducible:
 ] } }
 ```
 
-`Inquisitor` — already has real code (`get_aura_positions`, `get_valid_spells`,
-`get_threat_area` in `pieces.py`); a migration candidate more than a new build:
+`Inquisitor`:
 
 ```
 "Inquisitor": { "behavior": { "passives": [
@@ -111,7 +110,7 @@ Examples
 
 Notes
 -----
-- This schema is intentionally permissive for now; the goal is to document a clear shape so we can progressively move behavior logic out of Python classes and into data-driven interpreters.
-- To fully support data-driven behavior we will implement a behavior interpreter that maps these declarative patterns into calls used by `get_valid_moves` / `get_valid_attacks` etc.
-- When converting classes to data-driven `DataPiece`, preserve existing behavior for parity and implement tests comparing outputs.
-- Implementation caveat found while drafting the `passives` section above: the current Zobrist hash key is `(r, c, name, team, stun_timer)` only — `lifespan` and `spawn_cooldown` are not part of it, so two positions differing only in those fields collide in the transposition table. Any new per-piece counter (e.g. Templar's `cooldown_turns`) needs to go into the hash key too, or the TT will serve stale results once passives with countdown state exist.
+- Lifespan and spawn-cooldown are generic state fields. They are part of the Python position hash and must be treated as part of the C++ position hash as well.
+- Tile effects are also part of the position identity because their type, owner and timer affect future legal moves and outcomes.
+- When migrating more hero logic into `behavior`, preserve Python/C++ parity with differential tests comparing legal moves and state transitions.
+- The current architecture intentionally retains a small amount of hero-specific Python/C++ logic for spells and special abilities while the data-driven behavior system is expanded.
