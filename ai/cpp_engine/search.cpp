@@ -28,8 +28,6 @@ uint64_t twc_hash(int twc) {
 }
 
 uint64_t search_position_key() {
-    // board.hash describes physical state. twc is added because it changes
-    // the 50-turn no-capture horizon and therefore the search result.
     return board.hash ^ twc_hash(board.twc);
 }
 
@@ -50,6 +48,13 @@ inline void check_limits() {
     }
 }
 
+inline int no_capture_terminal_score(int ply) {
+    // RedWar awards the 50-turn no-capture tiebreak to White only when White
+    // has strictly more material; ties go to Black.
+    const int margin = MAX_PLY - ply;
+    return board.material_score > 0 ? INFINITO - margin : -INFINITO + margin;
+}
+
 inline int piece_cost(const Piece& piece) {
     if (piece.is_empty) return 0;
     if (piece.id >= 0 && piece.id < MAX_HEROES && PIECE_COSTS[piece.id] > 0) return PIECE_COSTS[piece.id];
@@ -59,7 +64,6 @@ inline int piece_cost(const Piece& piece) {
 
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
-
     if (move.type == "STUN") {
         constexpr int DR[5] = {0, -1, 1, 0, 0};
         constexpr int DC[5] = {0, 0, 0, -1, 1};
@@ -72,7 +76,6 @@ bool is_forcing_move(const Move& move) {
             }
         }
     }
-
     if (move.type == "SPELL") {
         if (move.spell_name == "ignite") return true;
         if (move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty) return true;
@@ -236,7 +239,7 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     const int eval_score = evaluate_board();
     if (is_terminal_score(eval_score)) return eval_score;
-    if (board.twc >= 50) return eval_score;
+    if (board.twc >= 50) return no_capture_terminal_score(ply);
     if (depth <= 0) return quiescence_search(alpha, beta, current_turn, ply, 0);
 
     std::vector<Move> moves = generate_valid_moves(current_turn);
@@ -311,7 +314,7 @@ std::string search_best_move(int max_depth) {
     nodes_evaluated = 0;
     search_start_time = std::chrono::steady_clock::now();
 
-    if (max_depth < 1) return "";
+    if (max_depth < 1 || board.twc >= 50) return "";
 
     for (int team = 0; team < 2; ++team)
         for (int sr = 0; sr < LINHAS; ++sr)
