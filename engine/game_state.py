@@ -1,11 +1,12 @@
+import hashlib
 import json
 import os
-import random
 from typing import Any
 
 from engine.config import COLUNAS, LINHAS
 
 ZOBRIST_TABLE = {}
+ZOBRIST_EFFECT_TABLE = {}
 TEAMS = ["brancas", "pretas"]
 
 HEROES_FILE = os.path.join(os.path.dirname(__file__), "heroes_config.json")
@@ -16,16 +17,20 @@ try:
 except (OSError, json.JSONDecodeError) as exc:
     raise RuntimeError(f"Unable to load hero configuration: {HEROES_FILE}") from exc
 
-# A fixed seed makes the Python position hash reproducible between processes.
-_ZOBRIST_RNG = random.Random(0x524544574152)
-ZOBRIST_WTM = _ZOBRIST_RNG.getrandbits(64)
-ZOBRIST_EFFECT_TABLE = {}
+
+def _stable_u64(kind: str, *parts) -> int:
+    payload = repr((kind,) + parts).encode("utf-8")
+    digest = hashlib.blake2b(payload, digest_size=8, person=b"RedWarZob").digest()
+    return int.from_bytes(digest, "little", signed=False)
 
 
-def _zobrist_value(table: dict, key: tuple) -> int:
+ZOBRIST_WTM = _stable_u64("side_to_move")
+
+
+def _zobrist_value(table: dict, key: tuple, kind: str) -> int:
     value = table.get(key)
     if value is None:
-        value = _ZOBRIST_RNG.getrandbits(64)
+        value = _stable_u64(kind, *key)
         table[key] = value
     return value
 
@@ -36,17 +41,18 @@ def get_piece_zobrist_key(r, c, p):
     lifespan = p.lifespan if getattr(p, "lifespan", None) is not None else -1
     cooldown = p.spawn_cooldown if getattr(p, "spawn_cooldown", 0) is not None else 0
     key = (r, c, p.name, p.team, p.stun_timer, lifespan, cooldown)
-    return _zobrist_value(ZOBRIST_TABLE, key)
+    return _zobrist_value(ZOBRIST_TABLE, key, "piece")
 
 
 def get_effect_zobrist_key(r, c, effect) -> int:
     if not effect:
         return 0
-    effect_type = effect.get("type")
-    team = effect.get("team")
-    timer = int(effect.get("timer", 0))
-    key = (r, c, team, effect_type, timer)
-    return _zobrist_value(ZOBRIST_EFFECT_TABLE, key)
+    key = (r, c, effect.get("team"), effect.get("type"), int(effect.get("timer", 0)))
+    return _zobrist_value(ZOBRIST_EFFECT_TABLE, key, "effect")
+
+
+def get_counter_zobrist_key(turns_without_capture: int) -> int:
+    return _stable_u64("twc", int(turns_without_capture))
 
 
 def coords_para_notacao(r, c):
@@ -83,6 +89,7 @@ class GameState:
 
     def compute_initial_hash(self):
         h = ZOBRIST_WTM if self.white_to_move else 0
+        h ^= get_counter_zobrist_key(self.turns_without_capture)
         for r in range(LINHAS):
             for c in range(COLUNAS):
                 p = self.board[r][c]
@@ -186,9 +193,7 @@ class GameState:
         if m_type == "stun" and not area_stun:
             attacker = self.board[start_pos[0]][start_pos[1]]
             if attacker:
-                valid_stuns = attacker.get_valid_stuns(
-                    start_pos[0], start_pos[1], self.board, self.tile_effects
-                )
+                valid_stuns = attacker.get_valid_stuns(start_pos[0], start_pos[1], self.board, self.tile_effects)
                 if end_pos in valid_stuns:
                     area_stun = valid_stuns[end_pos].get("aoe", [])
 
@@ -266,7 +271,6 @@ class GameState:
             new_piece = criar_peca_por_nome(spawn_name, piece.team)
             self.board[end_row][end_col] = new_piece
             self.add_piece_hash(end_row, end_col, new_piece)
-
             self.remove_piece_hash(start_row, start_col)
             piece.stun_timer = 1
             piece.spawn_cooldown = 4
@@ -279,11 +283,7 @@ class GameState:
                     fr, fc = end_row + dr, end_col + dc
                     if not (0 <= fr < LINHAS and 0 <= fc < COLUNAS):
                         continue
-                    self.set_tile_effect(
-                        fr,
-                        fc,
-                        {"type": "fire", "timer": 3, "team": piece.team},
-                    )
+                    self.set_tile_effect(fr, fc, {"type": "fire", "timer": 3, "team": piece.team})
                     target = self.board[fr][fc]
                     if target and target.stun_timer < 2:
                         self.remove_piece_hash(fr, fc)
@@ -375,7 +375,6 @@ class GameState:
                             captured_real_piece |= target.lifespan is None
                             self.remove_piece_hash(ar, ac)
                             self.board[ar][ac] = None
-
         else:
             raise ValueError(f"Unknown action type: {action_type}")
 
@@ -386,14 +385,18 @@ class GameState:
             and destination_effect
             and destination_effect.get("type") == "fire"
             and destination_piece.stun_timer < 2
-            and action_type not in ("stun",)
+            and action_type != "stun"
             and spell_name != "ignite"
         ):
             self.remove_piece_hash(end_row, end_col)
             destination_piece.stun_timer = 2
             self.add_piece_hash(end_row, end_col, destination_piece)
 
+        old_counter = self.turns_without_capture
         self.turns_without_capture = 0 if captured_real_piece else self.turns_without_capture + 1
+        self.current_hash ^= get_counter_zobrist_key(old_counter)
+        self.current_hash ^= get_counter_zobrist_key(self.turns_without_capture)
+
         self.white_to_move = not self.white_to_move
         self.current_hash ^= ZOBRIST_WTM
 
@@ -446,34 +449,26 @@ class GameState:
         num_turno = (len(self.move_log) // 2) + 1
         prefixo = f"{num_turno}. " if piece.team == "brancas" else f"{num_turno}... "
 
-        if action_type == "move":
-            short = f"{piece.acronym} {s_alg}-{e_alg}"
-        elif action_type == "attack":
-            short = f"{piece.acronym} {s_alg}x{e_alg}"
-        elif action_type == "stun":
-            short = f"{piece.acronym} * {e_alg}"
-        elif action_type == "spawn":
-            short = f"{piece.acronym} + {spawn_name[:2] if spawn_name else ''} {e_alg}"
-        elif action_type == "spell" and spell_name:
-            short = f"{piece.acronym} {spell_name.upper()} {e_alg}"
-        else:
-            short = "?"
+        if action_type == "move": short = f"{piece.acronym} {s_alg}-{e_alg}"
+        elif action_type == "attack": short = f"{piece.acronym} {s_alg}x{e_alg}"
+        elif action_type == "stun": short = f"{piece.acronym} * {e_alg}"
+        elif action_type == "spawn": short = f"{piece.acronym} + {spawn_name[:2] if spawn_name else ''} {e_alg}"
+        elif action_type == "spell" and spell_name: short = f"{piece.acronym} {spell_name.upper()} {e_alg}"
+        else: short = "?"
 
         estado_congelado = self.fast_clone()
-        self.move_log.append(
-            {
-                "short": prefixo + short,
-                "team": piece.team,
-                "estado_anterior": estado_congelado,
-                "acao_escolhida": {
-                    "start": start_pos,
-                    "end": end_pos,
-                    "type": action_type,
-                    "spell_name": spell_name,
-                    "spawn_name": spawn_name,
-                },
-            }
-        )
+        self.move_log.append({
+            "short": prefixo + short,
+            "team": piece.team,
+            "estado_anterior": estado_congelado,
+            "acao_escolhida": {
+                "start": start_pos,
+                "end": end_pos,
+                "type": action_type,
+                "spell_name": spell_name,
+                "spawn_name": spawn_name,
+            },
+        })
 
     def check_game_over(self):
         white_alive = any(p and p.team == "brancas" for row in self.board for p in row)
@@ -495,18 +490,8 @@ class GameState:
         adversario_vencedor = "Brancas" if self.white_to_move else "Pretas"
 
         def resolver_por_material():
-            white_mat = sum(
-                getattr(p, "cost", 0)
-                for row in self.board
-                for p in row
-                if p and p.team == "brancas"
-            )
-            black_mat = sum(
-                getattr(p, "cost", 0)
-                for row in self.board
-                for p in row
-                if p and p.team == "pretas"
-            )
+            white_mat = sum(getattr(p, "cost", 0) for row in self.board for p in row if p and p.team == "brancas")
+            black_mat = sum(getattr(p, "cost", 0) for row in self.board for p in row if p and p.team == "pretas")
             if white_mat > black_mat:
                 return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem"
             return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate"
@@ -564,11 +549,7 @@ class GameState:
                 else:
                     team = "W" if piece.team == "brancas" else "B"
                     name = piece.name.replace(" ", "")
-                    lifespan = (
-                        str(piece.lifespan)
-                        if hasattr(piece, "lifespan") and piece.lifespan is not None
-                        else "N"
-                    )
+                    lifespan = str(piece.lifespan) if getattr(piece, "lifespan", None) is not None else "N"
                     cooldown = str(getattr(piece, "spawn_cooldown", 0))
                     piece_str = f"{team}_{name}_{piece.stun_timer}_{lifespan}_{cooldown}"
 
