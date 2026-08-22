@@ -1,7 +1,6 @@
 #include "types.hpp"
 
 #include <algorithm>
-#include <cctype>
 #include <cstdint>
 #include <sstream>
 #include <stdexcept>
@@ -14,7 +13,7 @@ int nodes_evaluated = 0;
 std::chrono::steady_clock::time_point search_start_time;
 double time_limit_ms = 3000.0;
 std::vector<TTEntry> transposition_table(TT_SIZE);
-Move killer_moves[100][2];
+Move killer_moves[MAX_PLY][KILLER_SLOTS];
 std::unordered_map<std::string, HeroBehavior> HERO_BEHAVIORS;
 bool HERO_BEHAVIORS_LOADED = false;
 std::unordered_map<std::string, int> PIECE_IDS;
@@ -30,8 +29,6 @@ uint64_t node_limit = 0;
 int history_table[2][LINHAS][COLUNAS][LINHAS][COLUNAS] = {};
 
 namespace {
-
-constexpr int MAX_KILLER_PLY = 100;
 
 uint64_t splitmix64(uint64_t x) {
     x += 0x9E3779B97F4A7C15ULL;
@@ -81,9 +78,7 @@ int parse_int(const std::string& value, const char* field_name) {
 }
 
 char parse_team(const std::string& value) {
-    if (value == "W" || value == "B") {
-        return value[0];
-    }
+    if (value == "W" || value == "B") return value[0];
     throw std::runtime_error("Invalid team in RWEN: " + value);
 }
 
@@ -93,38 +88,55 @@ void update_effect(int r, int c, const TileEffect& effect) {
     }
 
     TileEffect& old = board.effects[r][c];
-    if (!old.is_empty) {
-        board.hash ^= get_effect_zobrist_key(r, c, old);
-    }
-
+    if (!old.is_empty) board.hash ^= get_effect_zobrist_key(r, c, old);
     board.effects[r][c] = effect;
-
-    if (!effect.is_empty) {
-        board.hash ^= get_effect_zobrist_key(r, c, effect);
-    }
+    if (!effect.is_empty) board.hash ^= get_effect_zobrist_key(r, c, effect);
 }
 
 const HeroBehavior* find_hero_behavior(const std::string& name) {
     auto it = HERO_BEHAVIORS.find(name);
-    if (it == HERO_BEHAVIORS.end()) {
-        return nullptr;
+    return it == HERO_BEHAVIORS.end() ? nullptr : &it->second;
+}
+
+void record_timer_piece(UndoInfo& undo, int r, int c, const Piece& piece) {
+    for (int i = 0; i < undo.num_timer_pieces; ++i) {
+        if (undo.timer_pieces[i].r == r && undo.timer_pieces[i].c == c) return;
     }
-    return &it->second;
+    if (undo.num_timer_pieces >= MAX_TIMER_PIECES) {
+        throw std::runtime_error("UndoInfo timer-piece capacity exceeded");
+    }
+
+    undo.timer_pieces[undo.num_timer_pieces++] = {
+        r, c, piece.stun_timer, piece.lifespan, piece.spawn_cooldown
+    };
+}
+
+void record_timer_effect(UndoInfo& undo, int r, int c, const TileEffect& effect) {
+    for (int i = 0; i < undo.num_timer_effects; ++i) {
+        if (undo.timer_effects[i].r == r && undo.timer_effects[i].c == c) return;
+    }
+    if (undo.num_timer_effects >= MAX_TIMER_EFFECTS) {
+        throw std::runtime_error("UndoInfo timer-effect capacity exceeded");
+    }
+
+    undo.timer_effects[undo.num_timer_effects++] = {r, c, effect.timer};
+}
+
+void record_expired_piece(UndoInfo& undo, int r, int c, const Piece& piece) {
+    if (undo.num_expired_pieces >= MAX_EXPIRED_PIECES) {
+        throw std::runtime_error("UndoInfo expired-piece capacity exceeded");
+    }
+    undo.expired_pieces[undo.num_expired_pieces++] = {r, c, piece};
 }
 
 } // namespace
 
 uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
-    if (p.is_empty) {
-        return 0;
-    }
+    if (p.is_empty) return 0;
     if (!valid_square(r, c)) {
         throw std::out_of_range("get_piece_zobrist_key: invalid board coordinates");
     }
 
-    // Do not clamp state values. Lifespan/cooldown/stun are part of the
-    // position and must remain distinguishable even if future rules expand
-    // their legal ranges.
     uint64_t h = 0xA0761D6478BD642FULL;
     h = mix_hash(h, static_cast<uint64_t>(r));
     h = mix_hash(h, static_cast<uint64_t>(c));
@@ -138,9 +150,7 @@ uint64_t get_piece_zobrist_key(int r, int c, const Piece& p) {
 }
 
 uint64_t get_effect_zobrist_key(int r, int c, const TileEffect& ef) {
-    if (ef.is_empty) {
-        return 0;
-    }
+    if (ef.is_empty) return 0;
     if (!valid_square(r, c)) {
         throw std::out_of_range("get_effect_zobrist_key: invalid board coordinates");
     }
@@ -156,9 +166,7 @@ uint64_t get_effect_zobrist_key(int r, int c, const TileEffect& ef) {
 
 uint64_t compute_initial_hash() {
     uint64_t h = 0x517CC1B727220A95ULL;
-    if (board.turn == 'W') {
-        h ^= ZOBRIST_SIDE_TO_MOVE;
-    }
+    if (board.turn == 'W') h ^= ZOBRIST_SIDE_TO_MOVE;
 
     for (int r = 0; r < LINHAS; ++r) {
         for (int c = 0; c < COLUNAS; ++c) {
@@ -177,11 +185,8 @@ void update_piece(int r, int c, const Piece& p) {
     Piece& old = board.pieces[r][c];
     if (!old.is_empty) {
         board.material_score -= get_piece_value(old, r, c);
-        if (old.team == 'W') {
-            --board.white_pieces;
-        } else if (old.team == 'B') {
-            --board.black_pieces;
-        }
+        if (old.team == 'W') --board.white_pieces;
+        else if (old.team == 'B') --board.black_pieces;
         board.hash ^= get_piece_zobrist_key(r, c, old);
     }
 
@@ -189,12 +194,84 @@ void update_piece(int r, int c, const Piece& p) {
 
     if (!p.is_empty) {
         board.material_score += get_piece_value(p, r, c);
-        if (p.team == 'W') {
-            ++board.white_pieces;
-        } else if (p.team == 'B') {
-            ++board.black_pieces;
-        }
+        if (p.team == 'W') ++board.white_pieces;
+        else if (p.team == 'B') ++board.black_pieces;
         board.hash ^= get_piece_zobrist_key(r, c, p);
+    }
+}
+
+void update_timers(UndoInfo& undo) {
+    const char active_team = board.turn;
+
+    for (int r = 0; r < LINHAS; ++r) {
+        for (int c = 0; c < COLUNAS; ++c) {
+            Piece piece = board.pieces[r][c];
+            if (piece.is_empty || piece.team != active_team) continue;
+
+            const bool changes_stun = piece.stun_timer > 0;
+            const bool changes_cd = piece.spawn_cooldown > 0;
+            const bool changes_lifespan = piece.lifespan != 999;
+            if (!changes_stun && !changes_cd && !changes_lifespan) continue;
+
+            record_timer_piece(undo, r, c, piece);
+
+            if (changes_stun) --piece.stun_timer;
+            if (changes_cd) --piece.spawn_cooldown;
+
+            if (changes_lifespan) {
+                --piece.lifespan;
+                if (piece.lifespan <= 0) {
+                    record_expired_piece(undo, r, c, piece);
+                    // The timer record still contains the pre-tick state.
+                    update_piece(r, c, Piece{});
+                    continue;
+                }
+            }
+
+            update_piece(r, c, piece);
+        }
+    }
+
+    for (int r = 0; r < LINHAS; ++r) {
+        for (int c = 0; c < COLUNAS; ++c) {
+            TileEffect effect = board.effects[r][c];
+            if (effect.is_empty || effect.team != active_team) continue;
+
+            record_timer_effect(undo, r, c, effect);
+            --effect.timer;
+            if (effect.timer <= 0) {
+                update_effect(r, c, TileEffect{});
+            } else {
+                update_effect(r, c, effect);
+            }
+        }
+    }
+}
+
+void restore_timers(const UndoInfo& undo) {
+    // Restore expired cells first so their pre-tick numeric state can then be
+    // restored by timer_pieces below.
+    for (int i = undo.num_expired_pieces - 1; i >= 0; --i) {
+        const auto& record = undo.expired_pieces[i];
+        update_piece(record.r, record.c, record.p);
+    }
+
+    for (int i = undo.num_timer_effects - 1; i >= 0; --i) {
+        const auto& record = undo.timer_effects[i];
+        TileEffect effect = board.effects[record.r][record.c];
+        if (effect.is_empty) continue;
+        effect.timer = record.timer;
+        update_effect(record.r, record.c, effect);
+    }
+
+    for (int i = undo.num_timer_pieces - 1; i >= 0; --i) {
+        const auto& record = undo.timer_pieces[i];
+        Piece piece = board.pieces[record.r][record.c];
+        if (piece.is_empty) continue;
+        piece.stun_timer = record.stun_timer;
+        piece.lifespan = record.lifespan;
+        piece.spawn_cooldown = record.spawn_cooldown;
+        update_piece(record.r, record.c, piece);
     }
 }
 
@@ -208,17 +285,13 @@ void parse_rwen(const std::string& rwen) {
 
     const char turn = parse_team(main_parts[1]);
     const int twc = parse_int(main_parts[2], "twc");
-    if (twc < 0) {
-        throw std::runtime_error("Invalid RWEN: twc cannot be negative");
-    }
+    if (twc < 0) throw std::runtime_error("Invalid RWEN: twc cannot be negative");
 
     const auto rows = split_string(main_parts[0], '/');
     if (rows.size() != LINHAS) {
         throw std::runtime_error("Invalid RWEN: expected " + std::to_string(LINHAS) + " rows");
     }
 
-    // Rebuild the complete state instead of partially overwriting the old
-    // board. This prevents stale pieces/effects from surviving a position cmd.
     board = BoardState{};
     board.turn = turn;
     board.twc = twc;
@@ -247,15 +320,13 @@ void parse_rwen(const std::string& rwen) {
 
                 piece.is_empty = false;
                 piece.team = parse_team(data[0]);
-                if (data[1].empty()) {
-                    throw std::runtime_error("Invalid empty piece name in RWEN");
-                }
+                if (data[1].empty()) throw std::runtime_error("Invalid empty piece name in RWEN");
                 piece.name = data[1];
                 piece.stun_timer = parse_int(data[2], "stun_timer");
                 piece.lifespan = (data[3] == "N") ? 999 : parse_int(data[3], "lifespan");
                 piece.spawn_cooldown = parse_int(data[4], "spawn_cooldown");
 
-                auto id_it = PIECE_IDS.find(piece.name);
+                const auto id_it = PIECE_IDS.find(piece.name);
                 if (id_it == PIECE_IDS.end() || id_it->second < 0 || id_it->second >= MAX_HEROES) {
                     throw std::runtime_error("Unknown hero in RWEN: " + piece.name);
                 }
@@ -275,9 +346,7 @@ void parse_rwen(const std::string& rwen) {
                 effect.team = parse_team(data[0]);
                 effect.type = data[1];
                 effect.timer = parse_int(data[2], "effect_timer");
-                if (effect.timer < 0) {
-                    throw std::runtime_error("Invalid negative effect timer");
-                }
+                if (effect.timer < 0) throw std::runtime_error("Invalid negative effect timer");
             }
             board.effects[r][c] = effect;
         }
@@ -288,31 +357,23 @@ void parse_rwen(const std::string& rwen) {
 }
 
 Piece create_piece(const std::string& name, char team) {
-    auto it = PIECE_IDS.find(name);
+    const auto it = PIECE_IDS.find(name);
     if (it == PIECE_IDS.end() || it->second < 0 || it->second >= MAX_HEROES) {
         throw std::runtime_error("Cannot create unknown hero: " + name);
     }
-    if (team != 'W' && team != 'B') {
-        throw std::runtime_error("Cannot create piece with invalid team");
-    }
+    if (team != 'W' && team != 'B') throw std::runtime_error("Cannot create piece with invalid team");
 
-    Piece p{};
-    p.is_empty = false;
-    p.team = team;
-    p.name = name;
-    p.id = it->second;
-    p.cost = PIECE_COSTS[p.id];
-    p.stun_timer = 0;
-    p.lifespan = 999;
-    p.spawn_cooldown = 0;
+    Piece piece{};
+    piece.is_empty = false;
+    piece.team = team;
+    piece.name = name;
+    piece.id = it->second;
+    piece.cost = PIECE_COSTS[piece.id];
 
-    if (name == "StoneWall") {
-        p.lifespan = 3;
-    } else if (name == "Ghoul" || name == "Bone") {
-        p.lifespan = 5;
-    }
+    if (name == "StoneWall") piece.lifespan = 3;
+    else if (name == "Ghoul" || name == "Bone") piece.lifespan = 5;
 
-    return p;
+    return piece;
 }
 
 UndoInfo make_move(const Move& m) {
@@ -326,10 +387,7 @@ UndoInfo make_move(const Move& m) {
     undo.target_piece = board.pieces[m.er][m.ec];
     undo.twc_backup = board.twc;
 
-    if (undo.actor_piece.is_empty) {
-        throw std::runtime_error("make_move: source square is empty");
-    }
-
+    if (undo.actor_piece.is_empty) throw std::runtime_error("make_move: source square is empty");
     const Piece empty{};
 
     if (m.type == "MOVE") {
@@ -339,32 +397,26 @@ UndoInfo make_move(const Move& m) {
     }
     else if (m.type == "ATTACK") {
         board.twc = 0;
+        const HeroBehavior* behavior = find_hero_behavior(undo.actor_piece.name);
+        if (!behavior) throw std::runtime_error("Missing behavior for hero: " + undo.actor_piece.name);
 
-        const HeroBehavior* attacker_beh = find_hero_behavior(undo.actor_piece.name);
-        if (!attacker_beh) {
-            throw std::runtime_error("Missing behavior for hero: " + undo.actor_piece.name);
-        }
-
-        if (attacker_beh->has_on_kill_spawn) {
-            // Preserve the attacker's origin, matching the existing game rule.
+        if (behavior->has_on_kill_spawn) {
             update_piece(m.er, m.ec,
-                         create_piece(attacker_beh->on_kill_spawn_unit, undo.actor_piece.team));
+                         create_piece(behavior->on_kill_spawn_unit, undo.actor_piece.team));
         } else {
             update_piece(m.sr, m.sc, empty);
             update_piece(m.er, m.ec, undo.actor_piece);
 
-            if (attacker_beh->has_on_attack_aoe) {
+            if (behavior->has_on_attack_aoe) {
                 constexpr int DR[8] = {-1, 1, 0, 0, -1, -1, 1, 1};
                 constexpr int DC[8] = {0, 0, -1, 1, -1, 1, -1, 1};
                 for (int i = 0; i < 8; ++i) {
                     const int ar = m.er + DR[i];
                     const int ac = m.ec + DC[i];
                     if (!valid_square(ar, ac)) continue;
-                    Piece& victim = board.pieces[ar][ac];
+                    const Piece victim = board.pieces[ar][ac];
                     if (!victim.is_empty && victim.team != undo.actor_piece.team) {
-                        if (undo.num_victims >= 9) {
-                            throw std::runtime_error("UndoInfo victim capacity exceeded");
-                        }
+                        if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
                         undo.aoe_victims[undo.num_victims++] = {ar, ac, victim};
                         update_piece(ar, ac, empty);
                     }
@@ -381,31 +433,28 @@ UndoInfo make_move(const Move& m) {
             const int ac = m.ec + DC[i];
             if (!valid_square(ar, ac)) continue;
 
-            Piece target = board.pieces[ar][ac];
+            const Piece target = board.pieces[ar][ac];
             if (target.is_empty || target.team == undo.actor_piece.team) continue;
-
-            if (undo.num_victims >= 9) {
-                throw std::runtime_error("UndoInfo victim capacity exceeded");
-            }
+            if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
             undo.aoe_victims[undo.num_victims++] = {ar, ac, target};
 
             if (target.stun_timer > 0) {
                 update_piece(ar, ac, empty);
                 board.twc = 0;
             } else {
-                target.stun_timer = 2;
-                update_piece(ar, ac, target);
+                Piece stunned = target;
+                stunned.stun_timer = 2;
+                update_piece(ar, ac, stunned);
             }
         }
     }
     else if (m.type == "SPAWN") {
         ++board.twc;
         update_piece(m.er, m.ec, create_piece(m.spawn_name, undo.actor_piece.team));
-
-        Piece updated_actor = undo.actor_piece;
-        updated_actor.stun_timer = 1;
-        updated_actor.spawn_cooldown = 4;
-        update_piece(m.sr, m.sc, updated_actor);
+        Piece actor = undo.actor_piece;
+        actor.stun_timer = 1;
+        actor.spawn_cooldown = 4;
+        update_piece(m.sr, m.sc, actor);
     }
     else if (m.type == "SPELL") {
         if (m.spell_name == "jump") {
@@ -415,15 +464,14 @@ UndoInfo make_move(const Move& m) {
         }
         else {
             ++board.twc;
-
             if (m.spell_name == "purify") {
                 Piece target = board.pieces[m.er][m.ec];
                 target.stun_timer = 0;
                 update_piece(m.er, m.ec, target);
             }
             else if (m.spell_name == "swap") {
-                Piece a = board.pieces[m.sr][m.sc];
-                Piece b = board.pieces[m.er][m.ec];
+                const Piece a = board.pieces[m.sr][m.sc];
+                const Piece b = board.pieces[m.er][m.ec];
                 update_piece(m.sr, m.sc, b);
                 update_piece(m.er, m.ec, a);
             }
@@ -438,20 +486,17 @@ UndoInfo make_move(const Move& m) {
                     const int fc = m.ec + DC[i];
                     if (!valid_square(fr, fc)) continue;
 
-                    if (undo.num_effects >= 5) {
-                        throw std::runtime_error("UndoInfo effect capacity exceeded");
-                    }
+                    if (undo.num_effects >= MAX_UNDO_EFFECTS) throw std::runtime_error("UndoInfo effect capacity exceeded");
                     undo.overwritten_effects[undo.num_effects++] = {fr, fc, board.effects[fr][fc]};
                     update_effect(fr, fc, TileEffect{false, undo.actor_piece.team, "fire", 3});
 
-                    Piece target = board.pieces[fr][fc];
+                    const Piece target = board.pieces[fr][fc];
                     if (!target.is_empty && target.stun_timer < 2) {
-                        if (undo.num_victims >= 9) {
-                            throw std::runtime_error("UndoInfo victim capacity exceeded");
-                        }
+                        if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
                         undo.aoe_victims[undo.num_victims++] = {fr, fc, target};
-                        target.stun_timer = 2;
-                        update_piece(fr, fc, target);
+                        Piece stunned = target;
+                        stunned.stun_timer = 2;
+                        update_piece(fr, fc, stunned);
                     }
                 }
             }
@@ -464,8 +509,6 @@ UndoInfo make_move(const Move& m) {
         throw std::runtime_error("Unknown move type: " + m.type);
     }
 
-    // Fire is a persistent tile effect. Entering a burning destination applies
-    // the immediate stun unless the move is itself a STUN or IGNITE action.
     if (valid_square(m.er, m.ec) && !board.pieces[m.er][m.ec].is_empty &&
         m.type != "STUN" && m.spell_name != "ignite") {
         const TileEffect& effect = board.effects[m.er][m.ec];
@@ -478,6 +521,7 @@ UndoInfo make_move(const Move& m) {
 
     board.turn = (board.turn == 'W') ? 'B' : 'W';
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
+    update_timers(undo);
     return undo;
 }
 
@@ -490,21 +534,22 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
     board.twc = undo.twc_backup;
 
-    // Effects first, then pieces. update_piece/update_effect keep the hash and
-    // incremental evaluation synchronized while restoring the saved values.
+    // Timer changes belong to the position after the move and must be undone
+    // before the ordinary move rollback. If the same square was touched by the
+    // move, the regular rollback below will restore its original value.
+    restore_timers(undo);
+
     if (m.spell_name == "ignite") {
-        for (int i = 0; i < undo.num_effects; ++i) {
-            const int r = undo.overwritten_effects[i].r;
-            const int c = undo.overwritten_effects[i].c;
-            update_effect(r, c, undo.overwritten_effects[i].ef);
+        for (int i = undo.num_effects - 1; i >= 0; --i) {
+            const auto& record = undo.overwritten_effects[i];
+            update_effect(record.r, record.c, record.ef);
         }
     }
 
     if (m.type == "ATTACK" || m.type == "STUN" || m.spell_name == "ignite") {
-        // Restore victims in reverse order so the rollback is robust when two
-        // recorded changes touch the same square.
         for (int i = undo.num_victims - 1; i >= 0; --i) {
-            update_piece(undo.aoe_victims[i].r, undo.aoe_victims[i].c, undo.aoe_victims[i].p);
+            const auto& victim = undo.aoe_victims[i];
+            update_piece(victim.r, victim.c, victim.p);
         }
     }
 
