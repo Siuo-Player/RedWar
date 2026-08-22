@@ -137,6 +137,26 @@ int main() {
 
     std::cout << "Ghoul: " << (ghoul_ok ? "PASS" : "FAIL") << '\n';
 
+    // Adjacent attack behavior must be available in both the data-driven
+    // compiler and the generated move list.
+    clear_board();
+    board.pieces[4][4] = create_piece("Inquisitor", 'W');
+    board.pieces[3][3] = create_piece("Bone", 'B');
+    board.pieces[3][4] = create_piece("Bone", 'B');
+    board.pieces[3][5] = create_piece("Bone", 'B');
+    board.hash = compute_initial_hash();
+    compute_initial_eval();
+
+    const auto inquisitor_moves = generate_valid_moves('W');
+    const bool inquisitor_ok =
+        contains_move(inquisitor_moves, 3, 3, "ATTACK") &&
+        contains_move(inquisitor_moves, 3, 4, "ATTACK") &&
+        contains_move(inquisitor_moves, 3, 5, "ATTACK");
+    all_ok &= inquisitor_ok;
+
+    std::cout << "Inquisitor adjacent attack: "
+              << (inquisitor_ok ? "PASS" : "FAIL") << '\n';
+
     // Make/unmake must be an exact identity for the complete board state.
     clear_board();
     board.turn = 'W';
