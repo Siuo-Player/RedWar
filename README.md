@@ -1,310 +1,326 @@
-<div align="center">
-
 # ⚔️ RedWar
 
-### *Tactical Grid Warfare. One Engine to Rule Them All.*
+**RedWar** é um RPG de tabuleiro tático em grelha, inspirado no xadrez e em jogos de estratégia, mas construído à volta de heróis com movimentações, ataques, passivas e efeitos de terreno diferentes.
 
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Pygame](https://img.shields.io/badge/Pygame-2.5.2-FF6F00?logo=python&logoColor=white)](https://www.pygame.org/)
-[![Cython](https://img.shields.io/badge/Cython-3.0+-009688?logo=c&logoColor=white)](https://cython.org/)
-[![pytest](https://img.shields.io/badge/pytest-8.0-0A9EDC?logo=pytest&logoColor=white)](https://pytest.org/)
-[![CI — AI Arena](https://img.shields.io/badge/CI-AI%20Arena-FF4444?logo=githubactions&logoColor=white)](.github/workflows/ai_arena.yml)
-[![Contributions — ai/ only](https://img.shields.io/badge/PRs%20Welcome-ai%2F%20only-brightgreen)](ai/)
+Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O combate é definido por **stun** e **morte**: uma peça pode ser atordoada e perder a capacidade de agir durante alguns turnos; um segundo stun enquanto continua atordoada transforma-se em morte.
 
-**RedWar** é um jogo de tabuleiro tático em grelha com economia de pontos, eliminação direta e mecânicas profundas — stuns, spawns, terrenos dinâmicos e feitiços (*ignite*, *purify*, *barricade*, *swap*).
+O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-**Ares Engine** é o Stockfish do RedWar: um motor de busca Minimax open-source, calibrado por ELO, pronto para ser otimizado pela comunidade global.
+> **Estado atual:** projeto em desenvolvimento. As regras continuam a poder mudar e o Ares ainda está a ser significativamente melhorado.
 
-</div>
+## O projeto em duas partes
 
----
+O repositório contém atualmente o jogo e a IA no mesmo projeto, mas a separação desejada é mais clara:
 
-## 🎯 Visão & Filosofia
+| Parte | Objetivo | Política de alterações |
+|---|---|---|
+| `ai/` — **Ares** | Pesquisa, avaliação, bots e ferramentas específicas de IA | Deve poder receber contribuições automatizadas, desde que demonstrem melhoria sobre a versão anterior |
+| `engine/`, `ui/`, `online/`, `main.py` e restante produto | Regras, aplicação, multiplayer, interface e infraestrutura | O autor decide manualmente o que entra em `main` |
 
-O RedWar assenta numa divisão estrita e intencional:
+A ideia é semelhante ao modelo do Stockfish: a IA pode tornar-se uma zona aberta de otimização competitiva, enquanto a definição do jogo e o produto permanecem sob controlo do projeto.
 
-| Camada | Escopo | Licença / Contribuição |
-|--------|--------|------------------------|
-| **O Jogo & Multijogador** | UI (Pygame), regras, rede, deploy | **Closed / Owner Source** — desenvolvido e controlado pelo autor |
-| **Ares Engine** (`ai/`) | Busca, avaliação, bots, calibração | **Open Source** — PRs da comunidade bem-vindos |
+O repositório está público, mas **isso não significa que qualquer alteração seja automaticamente aceite**.
 
-> *Tu não editas o tabuleiro. Tu editas o cérebro que o domina.*
+## 🎮 O jogo
 
-A pasta `ai/` é a **única** zona do repositório aberta a Pull Requests externos. O resto do projeto — motor de jogo, interface gráfica, ferramentas de balanceamento, pipeline DevOps — permanece sob controlo do autor. Isto garante integridade das regras de jogo enquanto permite uma corrida global pela supremacia algorítmica.
+### Estado atual
 
----
+- Tabuleiro normal: **8×8**.
+- Orçamento inicial normal: **200 pontos por cor**.
+- Cada jogador faz **uma ação por turno**.
+- O draft e o posicionamento acontecem antes da partida e são secretos para o adversário.
+- Não existe compra durante a partida.
+- Não existem limites artificiais de quantidade de peças durante o jogo além do espaço disponível e das próprias regras.
+- Algumas peças são invocáveis e temporárias e, por isso, não aparecem no draft.
 
-## 🧠 Ares Engine — O Stockfish do RedWar
+### O que é uma ação?
 
-Inspirado na arquitetura dos motores de xadrez de elite, o Ares Engine isola a inteligência artificial num núcleo puro, testável e otimizável:
+Uma ação é uma decisão do jogador em que um herói é selecionado e uma casa de destino/alvo é escolhida para executar uma ação legal.
 
-```
-ai/
-├── bot.py          # Orquestração de bots, presets ELO e dificuldade dinâmica
-├── search.py       # Minimax + Alpha-Beta, Move Ordering, TT, Iterative Deepening
-├── evaluator.pyx   # Avaliador posicional (Cython — hot path compilado)
-└── cpp_engine/     # Motor C++ UCI + interface nativa de busca
-```
+Isto inclui:
 
-### Stack Algorítmica
+- movimento;
+- ataque por stun;
+- ataque por morte;
+- spells;
+- outras habilidades ativas que venham a ser introduzidas.
 
-- **Minimax com Alpha-Beta Pruning** — poda agressiva para maximizar profundidade de busca
-- **Move Ordering heurístico** — capturas, stuns e ameaças avaliados primeiro
-- **Zobrist Hashing + Tabela de Transposição** — cache de posições com limpeza inteligente por profundidade no motor Python; a implementação de TT real em C++ ainda não está presente
-- **Iterative Deepening** — profundidade crescente dentro do limite de tempo
-- **Killer Moves & Quiescence** — estabilidade tática em posições voláteis
-- **Avaliador Cython** (`evaluator.pyx`) — avaliação posicional compilada para NPS elevado
-- **Simulação completa de Feitiços** — *ignite*, *purify*, *barricade*, *swap* integrados no `game_state.py` e na árvore de busca
+Existem também passivas verdadeiramente passivas. Um exemplo é o **silêncio**, que altera o que pode ser feito numa área sem precisar de uma ação do jogador.
 
-### 🧩 Sistema Declarativo de Passivas
+### Combate e “duas vidas” sem HP
 
-O motor suporta `behavior.passives` em `engine/heroes_config.json`, como documentado em `engine/HEROES_SCHEMA.md`. Este esquema permite definir efeitos automáticos por evento (`on_kill`, `on_attack`, `on_attacked`, `aura_passive`) sem espalhar lógica de herói em código ad hoc. O BoneLord já está migrado para `behavior.passives`; Templar, Berserker, Inquisitor e outros heróis ainda estão planeados para migração.
+O jogo não usa pontos de vida. A mecânica pode ser entendida como um sistema de dois estados de sobrevivência:
 
-### Calibração ELO
-
-O sistema de dificuldade não é arbitrário. Mede probabilidade de vitória relativa usando a curva logística FIDE:
-
-$$E_A = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}$$
-
-A âncora empírica fixa o **Bot Aleatório em 100 ELO**. Bots superiores são calibrados em cadeia (*Anchored ELO Scaling*), evitando inflação estatística quando um motor de topo enfrenta oponentes fracos.
-
-Presets oficiais da Arena:
-
-| Bot | ELO Aproximado | Perfil |
-|-----|----------------|--------|
-| `BOT_ALEATORIO` | 100 | Movimentos aleatórios — baseline absoluto |
-| `BOT_INICIANTE` | 140 | Entrada tática |
-| `BOT_INTERMEDIO` | 200 | Desafiante padrão da Arena |
-| `BOT_AVANCADO` | 250 | Campeão atual |
-| `BOT_MESTRE` | 300 | Teto calibrado empiricamente |
-
-<!-- TODO: confirmar escala de ELO -->
-
----
-
-## 🏟️ A Arena — GitHub Actions
-
-A Arena é o coliseu automatizado onde bots da comunidade provam o seu valor. Sem favoritismos. Sem merge manual por simpatia. **Só matemática.**
-
-### Como Funciona
-
-1. **Submetes um PR** que altera exclusivamente ficheiros em `ai/`
-2. O workflow [`ai_arena.yml`](.github/workflows/ai_arena.yml) dispara automaticamente
-3. Corre um torneio headless de **50 partidas** via `tools/analytics/arena_tournament.py`
-4. O **Desafiante** (`BOT_AVANCADO` — a tua versão) enfrenta o **Campeão** (`BOT_INTERMEDIO` — baseline)
-5. Cores alternam a cada jogo para eliminar viés de primeira jogada
-
-### Critério de Promoção
-
-```python
-def verificar_promocao(vitorias_desafiante, vitorias_atual, margem=5):
-    diferenca = vitorias_desafiante - vitorias_atual
-    return diferenca >= margem
+```text
+Normal
+  ↓ stun
+Atordoado
+  ↓ novo stun enquanto continua atordoado
+Morto
 ```
 
-O Desafiante tem de vencer o Campeão por uma **margem mínima de 5 vitórias** em 50 jogos. Só então o código é promovido. Merge automático. Sem desculpas.
+O stun dura um número de turnos a definir/calibrar. Quando o efeito termina, a peça volta ao estado normal. O valor e a forma exata de contagem dos turnos continuam a ser parâmetros de design, mas a regra fundamental é fixa: **dois stuns consecutivos na mesma janela de atordoamento equivalem a uma morte**.
 
+### Vitória
+
+Uma partida termina quando uma das cores:
+
+1. perde todas as suas peças;
+2. deixa de ter qualquer ação legal disponível;
+3. desiste.
+
+O projeto procura eliminar empates. As regras de desempate são portanto consideradas parte do design oficial, embora ainda sejam um sistema em calibração.
+
+Quando é necessário desempatar por material, a cor vencedora atual é determinada pelo maior valor das peças permanentes que continuam no tabuleiro. O balanceamento de cores é validado empiricamente e pode levar a alterações no orçamento ou nas condições de desempate.
+
+### Contador sem captura
+
+O contador de turnos sem captura só é reiniciado quando ocorre **morte de uma peça permanente colocada no tabuleiro**. Invocações temporárias não reiniciam esse contador.
+
+Stun, spawn, spells e outras ações que não produzem uma morte permanente não o reiniciam.
+
+O limite atualmente usado para o desempate é de 50 turnos sem captura, mas este número é considerado um parâmetro de balanceamento e pode mudar.
+
+## 🧊🔥 Efeitos de terreno
+
+As casas podem possuir efeitos. Atualmente os conceitos principais são:
+
+### Fogo
+
+O fogo é criado por habilidades como `ignite`.
+
+- permanece durante um número de turnos;
+- pode aplicar stun a uma peça que entre na casa;
+- um novo stun sobre uma peça já atordoada pode matar essa peça;
+- efeitos futuros podem ser acumulados na mesma casa.
+
+### Gelo
+
+O gelo representa uma barreira/estado de congelamento da casa.
+
+A intenção de design é que o gelo possa impedir a passagem direta de movimento ou ataque, salvo quando a regra da habilidade permitir atravessar casas intermédias.
+
+Se um herói for atingido pelo efeito correspondente, pode ficar atordoado/congelado.
+
+A duração exata e todas as interações do gelo ainda estão em definição.
+
+### Sistema de efeitos futuro
+
+O modelo pretendido permite ter vários efeitos numa mesma casa, cada um com duração e consequência próprias. Efeitos opostos poderão futuramente interagir ou anular-se quando isso fizer sentido para o design.
+
+## 🧙 Heróis
+
+Cada herói pode ter:
+
+- movimento próprio;
+- ataques próprios;
+- passivas;
+- spells;
+- invocações;
+- efeitos de terreno;
+- limitações e cooldowns.
+
+A intenção de design é que adicionar um herói novo seja tão simples quanto possível, idealmente alterando apenas `engine/heroes_config.json` e evitando mudanças espalhadas por vários ficheiros.
+
+A realidade atual ainda não atingiu esse objetivo: algumas passivas especiais continuam a exigir lógica fora da configuração.
+
+A configuração oficial encontra-se em:
+
+`engine/heroes_config.json`
+
+O formato está documentado em:
+
+`engine/HEROES_SCHEMA.md`
+
+## 🧠 Ares Engine
+
+**Ares** é a IA especializada de RedWar.
+
+O objetivo não é apenas fornecer um bot: é criar a melhor IA possível para este jogo, suficientemente rápida para ser usada na aplicação e suficientemente forte para analisar partidas e explicar decisões.
+
+Funções pretendidas:
+
+- adversário contra o jogador;
+- diferentes níveis de bot;
+- análise de posições;
+- análise pós-partida;
+- benchmarking de novas versões da IA;
+- Arena automática para aceitar apenas melhorias reais.
+
+A implementação está em transição para um núcleo C++ mais rápido, mantendo ferramentas Python onde isso for conveniente.
+
+### Princípio de otimização
+
+> **Uma alteração na IA só deve sobreviver se melhorar a IA.**
+
+Não interessa se o código parece mais elegante, mais complexo ou mais “Stockfish-like” se o resultado prático for pior.
+
+## 🏟️ Arena
+
+A Arena é a infraestrutura que deverá permitir uma comunidade aberta a melhorar o Ares.
+
+O modelo pretendido é comparar:
+
+```text
+versão anterior da Ares
+        VS
+versão proposta no Pull Request
 ```
-⚔️ TORNEIO DE ARENA: 50 JOGOS (Margem exigida: 5)
-Resultados: Desafiante 28 | Campeão 20 | Empates 2
-👑 SUCESSO: O Desafiante superou o Campeão por uma margem >= 5 vitórias!
-```
 
-> **Regra de ouro:** Se a tua IA não vence matematicamente, o teu PR não entra. Optimiza o `search.py`, refina o `evaluator.pyx`, ou volta à prancheta.
+usando condições equivalentes de pesquisa e alternando cores para evitar que a primeira jogada determine artificialmente o resultado.
 
----
+O número de jogos e a margem necessários ainda estão sujeitos a calibração estatística. O workflow atual usa 100 jogos e margem 10, mas esta configuração não deve ser tratada como matemática definitiva.
 
-## 🤝 Como Contribuir (Ares Engine)
+A Arena mede **força relativa entre versões da IA**, não qualidade do jogo como produto.
 
-### ✅ Podes contribuir
+Resultados históricos devem futuramente guardar pelo menos:
 
-- Otimizações de busca (`search.py`)
-- Heurísticas de avaliação (`evaluator.pyx`)
-- Lógica de bots e presets ELO (`bot.py`)
-- Ferramentas de análise dentro de `ai/`
+- versão da IA;
+- cores;
+- resultado de cada jogo;
+- tempo/nodes utilizados;
+- composição das peças;
+- posição inicial;
+- métricas relevantes.
 
-### ❌ Não aceites PRs externos
+A longo prazo, os resultados deverão alimentar um sistema de rating/ELO válido para engines.
 
-- `engine/` — regras de jogo, peças, feitiços
-- `ui/` — interface gráfica e VFX
-- `online/` — multijogador
-- `tools/` — laboratório privado (Auto-Pricer, calibração, torneios)
-- `deploy/`, `main.py`, configs de build
+## 🌐 Aplicação e web
 
-### Fluxo Recomendado
+O objetivo final é uma experiência semelhante a Chess.com.
+
+### Aplicação
+
+- jogo contra IA;
+- escolha de bot/dificuldade;
+- dois jogadores locais;
+- análise;
+- replays;
+- histórico de partidas;
+- menus e definições;
+- som, VFX e animações;
+- suporte a diferentes resoluções;
+- possível suporte mobile.
+
+### Web
+
+A versão web é um objetivo real e deverá partilhar o máximo possível da lógica do jogo com a aplicação.
+
+A tecnologia final ainda não foi escolhida. A decisão deve privilegiar:
+
+1. custo gratuito ou muito baixo;
+2. simplicidade de desenvolvimento;
+3. baixa latência;
+4. suporte a WebSocket/multiplayer;
+5. capacidade de manter o core do jogo autoritativo e consistente.
+
+## 🌐 Multiplayer
+
+O multiplayer online é uma funcionalidade principal do produto final.
+
+O objetivo inclui:
+
+- partidas públicas;
+- matchmaking;
+- partidas 1v1;
+- convites por utilizador/link;
+- login Google;
+- ranking de jogadores;
+- ELO/MMR calculado através do matchmaking;
+- vários controlos de tempo, inspirados em Chess.com;
+- reconnect quando a ligação cai;
+- derrota por abandono/timeout;
+- rematch;
+- espectadores;
+- histórico de partidas.
+
+A arquitetura de servidor ainda está em definição. A intenção é usar serviços gratuitos/low-cost quando possível.
+
+O servidor deverá, por princípio, validar as ações recebidas pelo cliente e impedir que o cliente possa simplesmente declarar um estado impossível.
+
+## 🛠️ Desenvolvimento
+
+### Testes Python
 
 ```bash
-# 1. Fork & clone
-git clone https://github.com/<teu-user>/RedWar.git
-cd RedWar
-
-# 2. Instalar dependências
-pip install -r requirements.txt
-
-# 3. Compilar o avaliador Cython (se alteraste evaluator.pyx)
-python setup.py build_ext --inplace
-
-# 4. Garantir que os testes passam
 pytest tests/
-
-# 5. Testar localmente contra o campeão
-python tools/analytics/arena_tournament.py --jogos 50 --margem_vitorias 5
-
-# 6. Abrir PR com alterações exclusivamente em ai/
 ```
 
----
-
-## 🏗️ Arquitetura do Projeto
-
-```
-RedWar/
-├── ai/                 # 🟢 OPEN SOURCE — Ares Engine (comunidade)
-│   ├── bot.py
-│   ├── search.py
-│   ├── evaluator.pyx
-│   └── cpp_engine/
-│
-├── engine/             # 🔒 Motor de jogo — regras, estado, peças
-│   ├── game_state.py   #    make/unmake, Zobrist, feitiços, stuns
-│   ├── pieces.py       #    Lógica de movimento, ataque, spawn
-│   ├── heroes_config.json
-│   └── config.py
-│
-├── ui/                 # 🔒 Interface Pygame — render, VFX, HUD
-│   └── renderer.py
-│
-├── online/             # 🔒 Multijogador (scaffolding)
-│   ├── server/
-│   ├── client/
-│   └── network/
-│
-├── tools/              # 🔒 Laboratório privado
-│   ├── analytics/      #    Arena, calibração ELO, geração de telemetria
-│   │   ├── arena_tournament.py
-│   │   ├── calibrate_elo.py
-│   │   ├── trainer.py
-│   │   └── game_analyzer.py
-│   ├── balance/        #    Auto-Pricer, color balancer
-│   └── scripts/        #    Build pipeline, hooks, utilitários
-│
-├── tests/              # Testes unitários (pytest)
-├── docs/               # Documentação de design e esquemas
-├── deploy/             # Packaging (PyInstaller specs)
-├── data/               # Telemetria e estatísticas de treino
-├── logs/               # Relatórios de build e gridlocks
-│
-├── main.py             # Entry point — Jogo local vs IA
-└── requirements.txt
-```
-
-### Separação Motor ↔ UI
-
-O motor (`engine/` + `ai/`) é **completamente headless** — pura matemática. A UI (`ui/`) apenas pergunta: *"Quais os movimentos legais?"* e desenha o resultado. Esta separação permite simulações massivas na Arena sem abrir uma janela gráfica.
-
----
-
-## 🎮 RedWar — O Jogo
-
-### Mecânicas Core
-
-- **Eliminação Direta (Hit-Kill)** — sem HP. Captura = remoção instantânea.
-- **Economia de Draft** — constrói o exército num tabuleiro vazio dentro de um orçamento de pontos.
-- **Stun Tático** — atordoamentos bloqueiam turnos; stun num alvo já atordoado = morte instantânea.
-- **Terrenos Dinâmicos** — Gelo (bloqueio) e Fogo (stun) alteram o campo de batalha.
-- **Feitiços** — *ignite*, *purify*, *barricade*, *swap* com VFX dedicados na UI.
-
-### Quick Start
+### Build do avaliador Cython
 
 ```bash
-pip install -r requirements.txt
-python setup.py build_ext --inplace   # Compilar evaluator Cython
-python main.py                         # Jogar vs IA localmente
+python setup.py build_ext --inplace
 ```
 
-### Multijogador (Em Desenvolvimento)
+### Build C++
 
 ```bash
-# Terminal 1 — Servidor
-python online/server/app.py
-
-# Terminal 2 — Cliente (Jogador 1)
-python online/client/multiplayer_main.py localhost
-
-# Terminal 3 — Cliente (Jogador 2, noutra máquina)
-python online/client/multiplayer_main.py <IP_DO_SERVIDOR>
+cd ai/cpp_engine
+g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
 ```
 
-### DevOps Local
+No Windows existe ainda o pipeline local acionado pelo Git hook de `pre-push`.
 
-```bash
-pytest tests/                                    # Testes unitários rápidos
-python tools/scripts/build_pipeline.py           # Pipeline completo (testes + telemetria + balance)
-python tools/analytics/arena_tournament.py       # Simular torneio da Arena localmente
-python tools/analytics/game_analyzer.py           # Detetar gridlocks e anomalias
-```
+### Princípios de manutenção
 
----
+- Evitar ficheiros com mais de ~1000 linhas.
+- Separar responsabilidades em módulos menores.
+- Manter uma única implementação autoritativa das regras do jogo.
+- Testar equivalência entre Python/C++ enquanto a migração existir.
+- Não otimizar prematuramente sem medir.
+- Não introduzir comportamento silencioso para configurações inválidas.
+- Preferir falhar claramente a continuar com estado incorreto.
 
-## 🗺️ Roadmap
+## 📚 Documentação
 
-### 🔴 Em Curso / Próximo
+| Documento | Público | Conteúdo |
+|---|---|---|
+| `README.md` | Jogadores + devs | Visão geral e estado do projeto |
+| `docs/GAME_RULES.md` | Jogadores | Regras atuais do jogo |
+| `docs/GAME_DESIGN.md` | Designers/devs | Filosofia e decisões de design |
+| `docs/ARCHITECTURE.md` | Devs | Arquitetura técnica atual e alvo |
+| `docs/AI_ENGINE.md` | Devs de IA | Ares, search, avaliação e Arena |
+| `docs/HERO_SYSTEM.md` | Devs/designers | Modelo de heróis e data-driven design |
+| `docs/WEB_MULTIPLAYER.md` | Devs | Visão de web, contas e multiplayer |
+| `docs/CONTRIBUTING.md` | Contribuidores | Regras para contribuições |
+| `docs/ROADMAP.md` | Todos | O que existe, o que vem a seguir e o que está indefinido |
+| `engine/HEROES_SCHEMA.md` | Devs | Formato técnico de `heroes_config.json` |
 
-| Frente | Estado | Descrição |
-|--------|--------|-----------|
-| **Modelo Matemático de ELO** | 🟡 Pendente | Abandonar limites de tempo como proxy de dificuldade. Implementar **Miopia** (`Depth = max(1, ⌊ELO/400⌋)`) e **Roleta de Blunders** (ruído probabilístico na raiz para ELOs baixos) — modelo Stockfish/Chess.com |
-| **Heróis Modulares** | 🟡 Em curso | Migrar `behavior`/`passives` para um sistema data-driven e reduzir cases hardcoded nas unidades |
-| **IA completa em C++** | 🟡 Pendente | Integrar todos os ficheiros de `ai/` no motor nativo com otimizações inspiradas em Stockfish |
-| **Ajustes de jogo** | 🟡 Se necessário | Ajustes no tabuleiro e nas regras apenas após a estabilidade da IA nativa |
-| **Multijogador + packaging** | 🟡 Scaffolding | Cliente/servidor, `main.spec` e deployment final |
+## 🗺️ Estado do projeto
 
-### ✅ Concluído Recentemente
+RedWar ainda não é um produto lançado.
 
-- Zobrist hashing no motor Python; a implementação de Tabela de Transposição em C++ ainda está pendente
-- Feitiços integrados na IA e na UI (VFX roxos, cliques corretos)
-- Pipeline DevOps: pre-push hooks com pytest + simulações pesadas na CI
-- Refatoração cirúrgica: separação `ai/` (cérebro) vs `tools/` (laboratório)
-- Calibração ELO empírica com escala ancorada e presets oficiais da Arena
-- Schema data-driven para heróis (`heroes_config.json` + `HEROES_SCHEMA.md`)
+A prioridade atual é:
 
-### 🔮 Horizonte
+1. estabilizar e acelerar a Ares;
+2. tornar as regras do jogo consistentes e testáveis;
+3. melhorar a criação/configuração de heróis;
+4. desenvolver a aplicação;
+5. desenvolver a versão web e o multiplayer;
+6. criar contas, matchmaking, ranking e histórico;
+7. abrir o projeto da Ares a contribuições automatizadas;
+8. só então considerar o lançamento público completo.
 
-- Arena pública com leaderboard de bots da comunidade
-- Integração Auto-Pricer ↔ `heroes_config.json` via CI (`auto_balancer.yml`)
-- Documentação de contribution dedicada em `docs/`
-- Tabuleiro 10×10 com coordenadas algébricas (A–J / 1–10)
+### 10×10 e outros modos
 
-### 💡 Game Design & Modos Alternativos (Em Análise)
+8×8 continua a ser o formato normal.
 
-| Conceito | Estado | Descrição |
-|----------|--------|-----------|
-| **Desempate por Material** | 🟡 Em estudo | Se o limite de turnos for atingido, vence quem tiver o maior valor (custo total) de Heróis vivos no tabuleiro. Obriga a "first blood" para quem quiser fazer *stalling*. |
-| **Terrenos Especiais** | 🟡 Em estudo | Evolução do sistema de efeitos: casas que conferem `+1 Alcance` permanente, ou casas que convertem habilidades de *Stun* em *Ataque/AoE*. |
-| **Modo Battle Royale** | 🔵 Planeado | Variante onde as bordas do tabuleiro começam a arder após X turnos, encolhendo a arena e forçando os exércitos para o centro (anula totalmente táticas de fuga). |
+Um tabuleiro 10×10 é uma possibilidade futura, mas só depois de a IA ser suficientemente rápida e forte. Também é possível que diferentes tamanhos, orçamentos e regras se tornem modos separados, em vez de substituir o modo normal.
 
----
+## Licenças e conteúdo de terceiros
 
-## 📐 Referência Rápida — Fórmulas ELO
+A política de licenciamento ainda precisa de uma revisão formal antes do lançamento público.
 
-**Probabilidade esperada de vitória:**
+O projeto foi desenvolvido com assistência de sistemas de IA e utiliza arte baseada em recursos externos, incluindo referências a **game-icons.net**. Antes de uma distribuição pública, devem ser auditadas as licenças do código, dos assets e de qualquer conteúdo gerado/derivado para garantir que os direitos e atribuições estão corretos.
 
-$$E_A = \frac{1}{1 + 10^{\frac{R_B - R_A}{400}}}$$
+## Projeto em evolução
 
-**Extração de ELO a partir de win-rate empírico:**
+RedWar começou como um jogo de tabuleiro inspirado no xadrez e evoluiu para um RPG de estratégia com muitos heróis e efeitos específicos.
 
-$$R_A = R_B - 400 \cdot \log_{10}\left(\frac{1 - W}{W}\right)$$
+Por isso, nem todas as decisões de design estão congeladas.
 
-**Modelo de dificuldade planeado (Stockfish-style):**
+Quando este documento disser **“atual”**, significa o comportamento que o projeto pretende tratar como regra neste momento.
 
-$$Depth_{limit} = \max\left(1,\ \left\lfloor \frac{ELO}{400} \right\rfloor \right)$$
+Quando disser **“planeado”**, é uma intenção futura.
 
----
-
-<div align="center">
-
-### ⚔️ *Build the brain. Enter the Arena. dethrone the champion.*
-
-**RedWar** — tactical warfare on a grid.
-**Ares Engine** — open-source intelligence, closed-source battlefield.
-
-</div>
+Quando disser **“a definir”**, não existe ainda uma decisão suficientemente sólida para ser considerada especificação.
