@@ -228,6 +228,9 @@ class BehaviorCompiler:
             elif kind == "diagonal":
                 vecs = BehaviorCompiler._normalize(BehaviorCompiler._diagonal(steps), min_steps)
                 attack_base_white = attack_base_black = vecs
+            elif kind in ("adjacent", "adj"):
+                vecs = BehaviorCompiler._normalize(BehaviorCompiler._adjacent(steps), min_steps)
+                attack_base_white = attack_base_black = vecs
             elif kind == "knight":
                 vecs = BehaviorCompiler._normalize(BehaviorCompiler._knight(), min_steps)
                 attack_base_white = attack_base_black = vecs
