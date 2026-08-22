@@ -2,7 +2,6 @@
 #include <sstream>
 #include <atomic>
 
-// Inicialização de Globais REAIS (Onde a memória é alocada)
 BoardState board;
 std::atomic<bool> abort_search{false};
 int nodes_evaluated = 0;
@@ -14,7 +13,7 @@ std::unordered_map<std::string, HeroBehavior> HERO_BEHAVIORS;
 bool HERO_BEHAVIORS_LOADED = false;
 std::unordered_map<std::string, int> PIECE_IDS;
 int PIECE_COSTS[MAX_HEROES] = {0}; 
-int next_piece_id = 0; // <-- A VARIÁVEL MATERIALIZADA AQUI PARA O LINKER
+int next_piece_id = 0; 
 uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2], Z_STUN[LINHAS][COLUNAS][6], Z_LIFE[LINHAS][COLUNAS][15], Z_CD[LINHAS][COLUNAS][8];
 uint64_t Z_EFFECT[LINHAS][COLUNAS][2][2][4]; 
 uint64_t ZOBRIST_SIDE_TO_MOVE = 0;
@@ -49,6 +48,23 @@ uint64_t compute_initial_hash() {
     return h;
 }
 
+void update_piece(int r, int c, const Piece& p) {
+    Piece& old = board.pieces[r][c];
+    if (!old.is_empty) {
+        board.material_score -= get_piece_value(old, r, c);
+        if (old.team == 'W') board.white_pieces--;
+        else board.black_pieces--;
+        board.hash ^= get_piece_zobrist_key(r, c, old);
+    }
+    board.pieces[r][c] = p;
+    if (!p.is_empty) {
+        board.material_score += get_piece_value(p, r, c);
+        if (p.team == 'W') board.white_pieces++;
+        else board.black_pieces++;
+        board.hash ^= get_piece_zobrist_key(r, c, p);
+    }
+}
+
 std::vector<std::string> split_string(const std::string& s, char delimiter) {
     std::vector<std::string> tokens; std::string token;
     std::istringstream tokenStream(s);
@@ -79,6 +95,7 @@ void parse_rwen(const std::string& rwen) {
         }
     }
     board.hash = compute_initial_hash();
+    compute_initial_eval();
 }
 
 Piece create_piece(const std::string& name, char team) {
@@ -90,27 +107,27 @@ Piece create_piece(const std::string& name, char team) {
 }
 
 UndoInfo make_move(const Move& m) {
-    UndoInfo undo; undo.move_type = m.type; undo.actor_piece = board.pieces[m.sr][m.sc];
-    undo.target_piece = board.pieces[m.er][m.ec]; undo.twc_backup = board.twc;
+    UndoInfo undo; undo.move_type = m.type; 
+    undo.actor_piece = board.pieces[m.sr][m.sc];
+    undo.target_piece = board.pieces[m.er][m.ec]; 
+    undo.twc_backup = board.twc;
 
-    board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
-    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+    Piece empty; empty.is_empty = true;
 
     if (m.type == "MOVE") {
         board.twc++;
-        board.pieces[m.er][m.ec] = undo.actor_piece;
-        board.pieces[m.sr][m.sc].is_empty = true;
+        update_piece(m.sr, m.sc, empty);
+        update_piece(m.er, m.ec, undo.actor_piece);
     } 
     else if (m.type == "ATTACK") {
         board.twc = 0;
         const HeroBehavior& attacker_beh = HERO_BEHAVIORS[undo.actor_piece.name];
         
         if (attacker_beh.has_on_kill_spawn) {
-            board.pieces[m.er][m.ec] = create_piece(attacker_beh.on_kill_spawn_unit, undo.actor_piece.team);
-            board.pieces[m.sr][m.sc] = undo.actor_piece; 
+            update_piece(m.er, m.ec, create_piece(attacker_beh.on_kill_spawn_unit, undo.actor_piece.team));
         } else {
-            board.pieces[m.er][m.ec] = undo.actor_piece;
-            board.pieces[m.sr][m.sc].is_empty = true;
+            update_piece(m.sr, m.sc, empty);
+            update_piece(m.er, m.ec, undo.actor_piece);
             
             if (attacker_beh.has_on_attack_aoe) {
                 int dx[8] = {-1,1,0,0,-1,-1,1,1}, dy[8] = {0,0,-1,1,-1,1,-1,1};
@@ -120,8 +137,7 @@ UndoInfo make_move(const Move& m) {
                         Piece& t = board.pieces[ar][ac];
                         if (!t.is_empty && t.team != undo.actor_piece.team) {
                             undo.aoe_victims[undo.num_victims++] = {ar, ac, t};
-                            board.hash ^= get_piece_zobrist_key(ar, ac, t);
-                            t.is_empty = true;
+                            update_piece(ar, ac, empty);
                         }
                     }
                 }
@@ -130,39 +146,54 @@ UndoInfo make_move(const Move& m) {
     } 
     else if (m.type == "STUN") {
         board.twc++;
-        board.pieces[m.sr][m.sc] = undo.actor_piece;
         int dr[5] = {0, -1, 1, 0, 0}, dc[5] = {0, 0, 0, -1, 1};
         for (int i=0; i<5; ++i) {
             int ar = m.er + dr[i], ac = m.ec + dc[i];
             if (ar >= 0 && ar < LINHAS && ac >= 0 && ac < COLUNAS) {
-                Piece& t = board.pieces[ar][ac];
+                Piece t = board.pieces[ar][ac];
                 if (!t.is_empty && t.team != undo.actor_piece.team) {
                     undo.aoe_victims[undo.num_victims++] = {ar, ac, t};
-                    board.hash ^= get_piece_zobrist_key(ar, ac, t);
-                    if (t.stun_timer > 0) { t.is_empty = true; board.twc = 0; }
-                    else t.stun_timer = 2;
+                    if (t.stun_timer > 0) { 
+                        update_piece(ar, ac, empty);
+                        board.twc = 0; 
+                    }
+                    else {
+                        t.stun_timer = 2;
+                        update_piece(ar, ac, t);
+                    }
                 }
             }
         }
     }
     else if (m.type == "SPAWN") {
         board.twc++;
-        board.pieces[m.er][m.ec] = create_piece(m.spawn_name, undo.actor_piece.team);
-        board.pieces[m.sr][m.sc] = undo.actor_piece;
-        board.pieces[m.sr][m.sc].stun_timer = 1;
-        board.pieces[m.sr][m.sc].spawn_cooldown = 4;
+        update_piece(m.er, m.ec, create_piece(m.spawn_name, undo.actor_piece.team));
+        Piece updated_actor = undo.actor_piece;
+        updated_actor.stun_timer = 1;
+        updated_actor.spawn_cooldown = 4;
+        update_piece(m.sr, m.sc, updated_actor);
     }
     else if (m.type == "SPELL") {
-        board.pieces[m.sr][m.sc] = undo.actor_piece;
         if (m.spell_name == "jump") {
             board.twc = (!undo.target_piece.is_empty) ? 0 : board.twc + 1;
-            board.pieces[m.er][m.ec] = undo.actor_piece;
-            board.pieces[m.sr][m.sc].is_empty = true;
+            update_piece(m.sr, m.sc, empty);
+            update_piece(m.er, m.ec, undo.actor_piece);
         } else {
             board.twc++;
-            if (m.spell_name == "purify") board.pieces[m.er][m.ec].stun_timer = 0;
-            else if (m.spell_name == "swap") std::swap(board.pieces[m.sr][m.sc], board.pieces[m.er][m.ec]);
-            else if (m.spell_name == "barricade") board.pieces[m.er][m.ec] = create_piece("StoneWall", undo.actor_piece.team);
+            if (m.spell_name == "purify") {
+                Piece t = board.pieces[m.er][m.ec];
+                t.stun_timer = 0;
+                update_piece(m.er, m.ec, t);
+            }
+            else if (m.spell_name == "swap") {
+                Piece t1 = board.pieces[m.sr][m.sc];
+                Piece t2 = board.pieces[m.er][m.ec];
+                update_piece(m.sr, m.sc, t2);
+                update_piece(m.er, m.ec, t1);
+            }
+            else if (m.spell_name == "barricade") {
+                update_piece(m.er, m.ec, create_piece("StoneWall", undo.actor_piece.team));
+            }
             else if (m.spell_name == "ignite") {
                 int dr[5] = {0, -1, 1, 0, 0}, dc[5] = {0, 0, 0, -1, 1};
                 for(int i=0; i<5; ++i) {
@@ -172,17 +203,28 @@ UndoInfo make_move(const Move& m) {
                         if(!board.effects[fr][fc].is_empty) board.hash ^= get_effect_zobrist_key(fr, fc, board.effects[fr][fc]);
                         board.effects[fr][fc] = {false, undo.actor_piece.team, "fire", 3};
                         board.hash ^= get_effect_zobrist_key(fr, fc, board.effects[fr][fc]);
+                        
+                        // FOGO IMEDIATO!
+                        Piece t = board.pieces[fr][fc];
+                        if (!t.is_empty && t.stun_timer < 2) {
+                            undo.aoe_victims[undo.num_victims++] = {fr, fc, t};
+                            t.stun_timer = 2;
+                            update_piece(fr, fc, t);
+                        }
                     }
                 }
             }
         }
     }
 
-    if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
-    if (!board.pieces[m.er][m.ec].is_empty && m.type != "STUN") {
+    // TILE EFFECTS PASSIVO NO FIM
+    if (!board.pieces[m.er][m.ec].is_empty && m.type != "STUN" && m.spell_name != "ignite") {
         TileEffect& ef = board.effects[m.er][m.ec];
-        if (!ef.is_empty && ef.type == "fire" && board.pieces[m.er][m.ec].stun_timer < 2) board.pieces[m.er][m.ec].stun_timer = 2;
-        board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+        if (!ef.is_empty && ef.type == "fire" && board.pieces[m.er][m.ec].stun_timer < 2) {
+            Piece t = board.pieces[m.er][m.ec];
+            t.stun_timer = 2;
+            update_piece(m.er, m.ec, t);
+        }
     }
     
     board.turn = (board.turn == 'W') ? 'B' : 'W';
@@ -195,12 +237,9 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
     board.hash ^= ZOBRIST_SIDE_TO_MOVE;
     board.twc = undo.twc_backup;
 
-    if (m.type == "ATTACK" || m.type == "STUN") {
+    if (m.type == "ATTACK" || m.type == "STUN" || m.spell_name == "ignite") {
         for (int i=0; i<undo.num_victims; ++i) {
-            int ar = undo.aoe_victims[i].r, ac = undo.aoe_victims[i].c;
-            if (!board.pieces[ar][ac].is_empty) board.hash ^= get_piece_zobrist_key(ar, ac, board.pieces[ar][ac]);
-            board.pieces[ar][ac] = undo.aoe_victims[i].p;
-            if (!board.pieces[ar][ac].is_empty) board.hash ^= get_piece_zobrist_key(ar, ac, board.pieces[ar][ac]);
+            update_piece(undo.aoe_victims[i].r, undo.aoe_victims[i].c, undo.aoe_victims[i].p);
         }
     }
 
@@ -213,12 +252,6 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
         }
     }
 
-    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
-    if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
-
-    board.pieces[m.sr][m.sc] = undo.actor_piece;
-    board.pieces[m.er][m.ec] = undo.target_piece;
-
-    if (!board.pieces[m.sr][m.sc].is_empty) board.hash ^= get_piece_zobrist_key(m.sr, m.sc, board.pieces[m.sr][m.sc]);
-    if (!board.pieces[m.er][m.ec].is_empty) board.hash ^= get_piece_zobrist_key(m.er, m.ec, board.pieces[m.er][m.ec]);
+    update_piece(m.sr, m.sc, undo.actor_piece);
+    update_piece(m.er, m.ec, undo.target_piece);
 }

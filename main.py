@@ -8,14 +8,15 @@ from engine.game_state import GameState, coords_para_notacao
 from engine.pieces import obter_catalogo_pecas, criar_peca_por_nome
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
 
+# Imports alinhados com o novo renderer.py
 from ui.renderer import (
     desenhar_menu_principal, 
     desenhar_selecao_modo, desenhar_selecao_tipo_ia, desenhar_selecao_dificuldade, 
     desenhar_tabuleiro, desenhar_pecas, 
     desenhar_loja_dinamica, desenhar_log, desenhar_analise,
     desenhar_coordenadas, desenhar_painel_heroi, desenhar_destaques_com_hover,
-    C_FUNDO, C_VERMELHO, C_BRANCO, carregar_imagem_peca,
-    desenhar_hud_jogadores, desenhar_eval_bar
+    desenhar_hud_jogadores, desenhar_eval_bar,
+    COLORS, AssetManager, FontManager
 )
 
 from ai.bot import CppEngineBot
@@ -75,7 +76,6 @@ class JogoController:
         livro_path = os.path.join("data", "opening_book.json")
         aberturas_pretas = []
         
-        # 1. Tentar ler o Livro de Aberturas
         if os.path.exists(livro_path):
             try:
                 with open(livro_path, 'r', encoding='utf-8') as f:
@@ -92,7 +92,6 @@ class JogoController:
             except Exception as e:
                 print(f"⚠️ Erro ao ler Opening Book: {e}")
 
-        # 2. Se houver aberturas testadas, escolhe a estatisticamente mais forte
         if aberturas_pretas:
             aberturas_pretas.sort(key=lambda x: x["winrate"], reverse=True)
             melhores = aberturas_pretas[:min(3, len(aberturas_pretas))]
@@ -117,7 +116,6 @@ class JogoController:
             print("------------------------------------------------------\n")
             return
 
-        # 3. Fallback: Knapsack (Cérebro Matemático Intacto) caso o livro não exista
         if self.bot_ativo and hasattr(self.bot_ativo, 'gerar_draft_inteligente'):
             resultado = self.bot_ativo.gerar_draft_inteligente(orcamento, self.catalogo, 'pretas')
             
@@ -163,7 +161,6 @@ class JogoController:
                         return acao
                 if hasattr(p, 'get_valid_spells'):
                     for spell in p.get_valid_spells(sr, sc, gs.board, gs.tile_effects):
-                        # TYPE GUARD: Trata Dicionários (Pyromancer) e Tuplos (Dragoon)
                         if isinstance(spell, dict):
                             target_pos = spell.get("target")
                             spell_name = spell.get("spell_type", "spell")
@@ -190,14 +187,14 @@ class JogoController:
         for i in range(16):
             t = i / 15
             cx, cy = sx + (ex - sx) * t, sy + (ey - sy) * t
-            self.ecra.fill(C_FUNDO)
+            self.ecra.fill(COLORS["bg"])
             
             desenhar_tabuleiro(self.ecra, gs, tam_casa, off_x, off_y)
             desenhar_coordenadas(self.ecra, tam_casa, off_x, off_y)
             desenhar_pecas(self.ecra, gs.board, tam_casa, off_x, off_y)
             
             if action_type in ["move", "attack"] and piece:
-                img = carregar_imagem_peca(piece.name, piece.team, tam_casa)
+                img = AssetManager.get_image(piece.name, piece.team, tam_casa)
                 if img: self.ecra.blit(img, img.get_rect(center=(cx, cy)))
                 else: pygame.draw.circle(self.ecra, (200,200,200), (cx, cy), int(tam_casa * 0.38))
             elif action_type == "stun": pygame.draw.circle(self.ecra, (0, 200, 255), (int(cx), int(cy)), 12)
@@ -314,11 +311,9 @@ class JogoController:
                     sr, sc = self.casa_selecionada
                     acao = self.extrair_acao_valida(self.gs, sr, sc, r, c)
                     if acao:
-                        # --- CORTAR O PONDERING DO MODO PREDADOR ---
                         if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'stop_pondering'):
                             self.bot_ativo.stop_pondering()
                             self.pondering_active = False
-                        # --------------------------------------------------------------------
                         
                         _, off_x, tam_casa = self.get_ui_metrics()
                         self.desenhar_animacao(self.gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
@@ -344,7 +339,6 @@ class JogoController:
                 if self.review_index == total_estados: self.display_gs = self.gs
                 else: self.display_gs = self.gs.move_log[self.review_index]["estado_anterior"].fast_clone()
             
-            # --- SAIR DO JOGO ---
             elif self.btn_voltar_menu.collidepoint(pos):
                 self.fase_atual = "MENU"
                 self.gs = GameState(time_limit_seconds=180.0)
@@ -354,7 +348,6 @@ class JogoController:
                 self.bot_ativo = None
                 self.thread_ia = None
                 self.thread_analise = None
-            # ------------------------------------
             else:
                 if self.hover_pos and self.display_gs:
                     r, c = self.hover_pos
@@ -374,12 +367,10 @@ class JogoController:
                         self.casa_selecionada = None
 
     def processar_ia(self):
-        # --- LANÇAR O PONDERING DO MODO PREDADOR DURANTE O TURNO DO HUMANO ---
         if self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
             if self.modo_predador and not self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'start_pondering'):
                 self.bot_ativo.start_pondering(self.gs)
                 self.pondering_active = True
-        # ----------------------------------------------------------------------------------------------
 
         if self.fase_atual == "BATALHA" and not self.gs.white_to_move and not self.gs.game_over:
             if self.thread_ia is None and self.bot_ativo is not None:
@@ -388,7 +379,7 @@ class JogoController:
                 self.thread_ia = threading.Thread(target=pensar, args=(self.bot_ativo, self.gs.fast_clone()))
                 self.thread_ia.daemon = True
                 self.thread_ia.start()
-                pygame.display.set_caption(f"RedWar - {self.bot_ativo.nome} a esmagar a árvore tática...")
+                pygame.display.set_caption(f"RedWar - {self.bot_ativo.nome} a pensar...")
             elif self.thread_ia is not None and not self.thread_ia.is_alive():
                 parsed = self.resultado_ia.pop() if self.resultado_ia else None
                 if parsed:
@@ -418,15 +409,15 @@ class JogoController:
         elif self.fase_atual == "INFO":
             pass 
         else:
-            self.ecra.fill(C_FUNDO)
+            self.ecra.fill(COLORS["bg"])
             try: desenhar_eval_bar(self.ecra, self.gs, off_x - 30, LINHAS * tam_casa, off_y_tab)
             except Exception: pass
             
             desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, self.bot_ativo.nome if self.bot_ativo else "StockWar", self.gs)
 
             if self.gs.game_over:
-                fonte_fim = pygame.font.SysFont("arial", 24, bold=True)
-                txt = fonte_fim.render(f"FIM DE JOGO: {self.gs.winner}", True, C_VERMELHO)
+                fonte_fim = FontManager.get("arial", 24, bold=True)
+                txt = fonte_fim.render(f"FIM DE JOGO: {self.gs.winner}", True, COLORS["danger"])
                 self.ecra.blit(txt, (off_x, off_y_tab - 35))
 
             to_draw = self.display_gs if (self.fase_atual == "ANALISE" and self.display_gs) else self.gs
@@ -434,15 +425,15 @@ class JogoController:
             desenhar_coordenadas(self.ecra, tam_casa, off_x, off_y_tab)
             
             if self.fase_atual == "DRAFT":
-                self.botoes_loja, self.btn_ready, _ = desenhar_loja_dinamica(self.ecra, painel_x, 20, 350, h - 40, self.catalogo, self.pontos_jogador, self.peca_loja)
+                self.botoes_loja, self.btn_ready = desenhar_loja_dinamica(self.ecra, painel_x, 20, 350, h - 40, self.catalogo, self.pontos_jogador, self.peca_loja)
             elif self.fase_atual == "ANALISE":
                 pygame.draw.rect(self.ecra, (20, 20, 30), (painel_x, 20, 350, h - 40), border_radius=10)
-                self.ecra.blit(pygame.font.SysFont("arial", 22, bold=True).render(f"Análise (Profundidade: {self.analise_depth_atual})", True, (150, 200, 255)), (painel_x + 15, 35))
+                self.ecra.blit(FontManager.get("arial", 22, bold=True).render(f"Análise (Profundidade: {self.analise_depth_atual})", True, (150, 200, 255)), (painel_x + 15, 35))
                 
-                f_top = pygame.font.SysFont("arial", 16)
+                f_top = FontManager.get("arial", 16)
                 yy = 80
                 for rank, mv in enumerate(self.analise_resultados_top5):
-                    c = C_BRANCO if rank == 0 else (180, 180, 180)
+                    c = COLORS["text"] if rank == 0 else (180, 180, 180)
                     str_alg = f"{coords_para_notacao(*mv['start'])}-{coords_para_notacao(*mv['end'])}"
                     txt = f"{rank+1}. {str_alg} (Score: {mv['score']:.1f})"
                     self.ecra.blit(f_top.render(txt, True, c), (painel_x + 20, yy))
@@ -450,16 +441,16 @@ class JogoController:
                     
                 self.btn_prev = pygame.Rect(painel_x + 20, h - 80, 80, 40)
                 self.btn_next = pygame.Rect(painel_x + 110, h - 80, 80, 40)
-                self.btn_voltar_menu = pygame.Rect(painel_x + 200, h - 80, 130, 40) # DESENHAR
+                self.btn_voltar_menu = pygame.Rect(painel_x + 200, h - 80, 130, 40) 
                 
                 pygame.draw.rect(self.ecra, (80,80,80), self.btn_prev, border_radius=6)
                 pygame.draw.rect(self.ecra, (80,80,80), self.btn_next, border_radius=6)
-                pygame.draw.rect(self.ecra, C_VERMELHO, self.btn_voltar_menu, border_radius=6) 
+                pygame.draw.rect(self.ecra, COLORS["danger"], self.btn_voltar_menu, border_radius=6) 
                 
-                fbtn = pygame.font.SysFont("arial", 20, bold=True)
-                self.ecra.blit(fbtn.render("Anterior", True, C_BRANCO), (self.btn_prev.x + 6, self.btn_prev.y + 8))
-                self.ecra.blit(fbtn.render("Próximo", True, C_BRANCO), (self.btn_next.x + 6, self.btn_next.y + 8))
-                self.ecra.blit(fbtn.render("Sair / Menu", True, C_BRANCO), (self.btn_voltar_menu.x + 12, self.btn_voltar_menu.y + 8)) # TEXTO
+                fbtn = FontManager.get("arial", 20, bold=True)
+                self.ecra.blit(fbtn.render("Anterior", True, COLORS["text"]), (self.btn_prev.x + 6, self.btn_prev.y + 8))
+                self.ecra.blit(fbtn.render("Próximo", True, COLORS["text"]), (self.btn_next.x + 6, self.btn_next.y + 8))
+                self.ecra.blit(fbtn.render("Sair / Menu", True, COLORS["text"]), (self.btn_voltar_menu.x + 12, self.btn_voltar_menu.y + 8)) 
             else:
                 if self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:
                     desenhar_painel_heroi(self.ecra, self.gs.board[self.hover_pos[0]][self.hover_pos[1]], painel_x, 20, 350, h - 40)

@@ -1,119 +1,127 @@
-ESTRUTURA REAL DO PROJETO REDWAR
-=================================
-
-📁 RedWar/
-├── 📄 .gitignore
-├── 📄 README.md
-├── 📄 main.py
-├── 📄 requirements.txt
-├── 📄 setup.py
-├── 📁 .github/
-│   ├── 📄 CODEOWNERS
-│   ├── 📁 workflows/
-│   │   ├── 📄 ai_arena.yml
-│   │   └── 📄 auto_balancer.yml
-├── 📁 ai/
-│   ├── 📄 __init__.py
-│   ├── 📄 book_generator.py
-│   ├── 📄 bot.py
-│   ├── 📄 evaluator.cp312-win_amd64.pyd
-│   ├── 📄 evaluator.pyi
-│   ├── 📄 evaluator.pyx
-│   ├── 📄 search.py
-│   ├── 📁 cpp_engine/
-│   │   ├── 📄 SmokeTest.cpp
-│   │   ├── 📄 SmokeTest.obj
-│   │   ├── 📄 board.cpp
-│   │   ├── 📄 board.obj
-│   │   ├── 📄 engine.exe
-│   │   ├── 📄 evaluate.cpp
-│   │   ├── 📄 evaluate.obj
-│   │   ├── 📄 main.cpp
-│   │   ├── 📄 main.obj
-│   │   ├── 📄 movegen.cpp
-│   │   ├── 📄 movegen.obj
-│   │   ├── 📄 search.cpp
-│   │   ├── 📄 search.obj
-│   │   ├── 📄 types.hpp
-│   │   ├── 📁 nlohmann/
-│   │   │   └── 📄 json.hpp
-├── 📁 data/
-│   ├── 📄 estatisticas_treino.json
-│   └── 📄 opening_book.json
-├── 📁 deploy/
-│   ├── 📁 packaging/
-│   │   ├── 📄 RedWar_Online.spec
-│   │   └── 📄 main.spec
-├── 📁 docs/
-│   ├── 📄 COPILOT_BACKLOG.md
-│   ├── 📄 Documento_Design_Jogo.md
-│   └── 📄 Estrutura_Projeto.md
-├── 📁 engine/
-│   ├── 📄 HEROES_SCHEMA.md
-│   ├── 📄 __init__.py
-│   ├── 📄 action_parser.py
-│   ├── 📄 config.py
-│   ├── 📄 game_state.py
-│   ├── 📄 heroes_config.json
-│   └── 📄 pieces.py
-├── 📁 logs/
-│   ├── 📄 estrutura_atual.txt
-│   ├── 📄 jogos_encravados_log.txt
-│   ├── 📄 relatorio_build.txt
-│   ├── 📄 relatorio_telemetria.txt
-│   └── 📄 telemetria_profunda.json
-├── 📁 online/
-│   ├── 📁 client/
-│   │   └── 📄 multiplayer_main.py
-│   ├── 📁 network/
-│   │   └── 📄 client.py
-│   ├── 📁 server/
-│   │   └── 📄 app.py
-├── 📁 tests/
-│   ├── 📄 __init__.py
-│   ├── 📄 test_moves.py
-│   └── 📄 test_rules.py
-├── 📁 tools/
-│   ├── 📁 analytics/
-│   │   ├── 📄 arena_tournament.py
-│   │   ├── 📄 calibrate_elo.py
-│   │   ├── 📄 calibrate_elo_chain.py
-│   │   ├── 📄 elo_config.json
-│   │   ├── 📄 game_analyzer.py
-│   │   ├── 📄 opening_tester.py
-│   │   └── 📄 trainer.py
-│   ├── 📁 balance/
-│   │   ├── 📄 auto_pricer.py
-│   │   └── 📄 color_balancer.py
-│   ├── 📁 scripts/
-│   │   ├── 📄 build_cpp_engine.py
-│   │   ├── 📄 build_pipeline.py
-│   │   ├── 📄 fetch_icons.py
-│   │   ├── 📄 gerar_estrutura.py
-│   │   ├── 📄 reorganize.py
-│   │   ├── 📄 tmp_game_sim.py
-│   │   └── 📄 tmp_ui_test.py
-├── 📁 ui/
-│   ├── 📄 __init__.py
-│   ├── 📄 renderer.py
-│   ├── 📄 test_screenshot.png
-│   ├── 📁 assets/
-│   │   ├── 📄 berserker.png
-│   │   ├── 📄 bone.png
-│   │   ├── 📄 bonelord.png
-│   │   ├── 📄 cleric.png
-│   │   ├── 📄 dragoon.png
-│   │   ├── 📄 frostmage.png
-│   │   ├── 📄 geomancer.png
-│   │   ├── 📄 ghoul.png
-│   │   ├── 📄 inquisitor.png
-│   │   ├── 📄 lich.png
-│   │   ├── 📄 nightshade.png
-│   │   ├── 📄 obelisk.png
-│   │   ├── 📄 phantom.png
-│   │   ├── 📄 pyromancer.png
-│   │   ├── 📄 ranger.png
-│   │   ├── 📄 sentry.png
-│   │   ├── 📄 stonewall.png
-│   │   ├── 📄 templar.png
-│   │   └── 📄 trickster.png
+REDWAR - ARQUITETURA DE DIRETÓRIOS
+==================================
+.
+├── .github
+│   ├── workflows
+│   │   ├── ai_arena.yml
+│   │   └── auto_balancer.yml
+│   └── CODEOWNERS
+├── .pytest_cache
+│   ├── v
+│   │   └── cache
+│   │       ├── lastfailed
+│   │       ├── nodeids
+│   │       └── stepwise
+│   ├── .gitignore
+│   ├── CACHEDIR.TAG
+│   └── README.md
+├── ai
+│   ├── cpp_engine
+│   │   ├── nlohmann
+│   │   │   └── json.hpp
+│   │   ├── board.cpp
+│   │   ├── board.obj
+│   │   ├── engine.exe
+│   │   ├── evaluate.cpp
+│   │   ├── evaluate.obj
+│   │   ├── main.cpp
+│   │   ├── main.obj
+│   │   ├── movegen.cpp
+│   │   ├── movegen.obj
+│   │   ├── search.cpp
+│   │   ├── search.obj
+│   │   ├── SmokeTest.cpp
+│   │   ├── SmokeTest.obj
+│   │   └── types.hpp
+│   ├── __init__.py
+│   ├── book_generator.py
+│   ├── bot.py
+│   ├── evaluator.cp312-win_amd64.pyd
+│   ├── evaluator.pyi
+│   ├── evaluator.pyx
+│   └── search.py
+├── data
+│   ├── estatisticas_treino.json
+│   └── opening_book.json
+├── deploy
+│   └── packaging
+│       ├── main.spec
+│       └── RedWar_Online.spec
+├── docs
+│   ├── COPILOT_BACKLOG.md
+│   ├── Documento_Design_Jogo.md
+│   └── Estrutura_Projeto.md
+├── engine
+│   ├── __init__.py
+│   ├── action_parser.py
+│   ├── config.py
+│   ├── game_state.py
+│   ├── heroes_config.json
+│   ├── HEROES_SCHEMA.md
+│   └── pieces.py
+├── logs
+│   ├── estrutura_atual.txt
+│   ├── jogos_encravados_log.txt
+│   ├── relatorio_build.txt
+│   ├── relatorio_telemetria.txt
+│   └── telemetria_profunda.json
+├── online
+│   ├── client
+│   │   └── multiplayer_main.py
+│   ├── network
+│   │   └── client.py
+│   └── server
+│       └── app.py
+├── tests
+│   ├── __init__.py
+│   ├── test_moves.py
+│   └── test_rules.py
+├── tools
+│   ├── analytics
+│   │   ├── arena_tournament.py
+│   │   ├── calibrate_elo.py
+│   │   ├── calibrate_elo_chain.py
+│   │   ├── elo_config.json
+│   │   ├── game_analyzer.py
+│   │   ├── opening_tester.py
+│   │   └── trainer.py
+│   ├── balance
+│   │   ├── auto_pricer.py
+│   │   └── color_balancer.py
+│   └── scripts
+│       ├── build_cpp_engine.py
+│       ├── build_pipeline.py
+│       ├── fetch_icons.py
+│       ├── gerar_estrutura.py
+│       ├── reorganize.py
+│       ├── tmp_game_sim.py
+│       └── tmp_ui_test.py
+├── ui
+│   ├── assets
+│   │   ├── berserker.png
+│   │   ├── bone.png
+│   │   ├── bonelord.png
+│   │   ├── cleric.png
+│   │   ├── dragoon.png
+│   │   ├── frostmage.png
+│   │   ├── geomancer.png
+│   │   ├── ghoul.png
+│   │   ├── inquisitor.png
+│   │   ├── lich.png
+│   │   ├── nightshade.png
+│   │   ├── obelisk.png
+│   │   ├── phantom.png
+│   │   ├── pyromancer.png
+│   │   ├── ranger.png
+│   │   ├── sentry.png
+│   │   ├── stonewall.png
+│   │   ├── templar.png
+│   │   └── trickster.png
+│   ├── __init__.py
+│   ├── renderer.py
+│   └── test_screenshot.png
+├── .gitignore
+├── main.py
+├── README.md
+├── requirements.txt
+└── setup.py

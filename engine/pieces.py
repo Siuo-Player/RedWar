@@ -89,14 +89,12 @@ class BehaviorCompiler:
 
     @staticmethod
     def _normalize(vecs, min_steps=1, ghost=False):
-        # normalize to (dr, dc, max_steps, min_steps, ghost)
         out = []
         for v in vecs:
             if len(v) == 3:
                 dr,dc,max_steps = v
                 out.append((dr,dc,max_steps,int(min_steps),bool(ghost)))
             elif len(v) >= 4:
-                # already contains extra info
                 dr,dc,max_steps = v[0],v[1],v[2]
                 ms = int(v[3]) if len(v) > 3 else int(min_steps)
                 gh = bool(v[4]) if len(v) > 4 else bool(ghost)
@@ -155,35 +153,40 @@ class BehaviorCompiler:
                     move_base_white = move_base_black = vecs
 
         atk = beh.get('attack')
+        attack_is_none = False
         if atk:
             t = atk.get('type')
-            steps = int(atk.get('max_steps', 1)) if atk.get('max_steps') is not None else 1
-            min_steps = int(atk.get('min_steps', 1))
-            if t == 'orthogonal':
-                raw = BehaviorCompiler._orthogonal(steps)
-                vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
-                attack_base_white = attack_base_black = vecs
-            elif t == 'diagonal':
-                raw = BehaviorCompiler._diagonal(steps)
-                vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
-                attack_base_white = attack_base_black = vecs
-            elif t == 'knight':
-                raw = BehaviorCompiler._knight()
-                vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
-                attack_base_white = attack_base_black = vecs
-            elif t == 'ray':
-                dirs = atk.get('dirs') or atk.get('deltas')
-                if dirs:
-                    raw = [(int(dr),int(dc), int(max_range)) for dr,dc in dirs]
+            if t == 'none':
+                attack_is_none = True
+            else:
+                steps = int(atk.get('max_steps', 1)) if atk.get('max_steps') is not None else 1
+                min_steps = int(atk.get('min_steps', 1))
+                if t == 'orthogonal':
+                    raw = BehaviorCompiler._orthogonal(steps)
                     vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
                     attack_base_white = attack_base_black = vecs
-            elif t == 'pattern':
-                deltas = atk.get('deltas', [])
-                raw = [(int(dr), int(dc), int(atk.get('max_steps',1))) for dr,dc in deltas]
-                vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
-                attack_base_white = attack_base_black = vecs
+                elif t == 'diagonal':
+                    raw = BehaviorCompiler._diagonal(steps)
+                    vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
+                    attack_base_white = attack_base_black = vecs
+                elif t == 'knight':
+                    raw = BehaviorCompiler._knight()
+                    vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
+                    attack_base_white = attack_base_black = vecs
+                elif t == 'ray':
+                    dirs = atk.get('dirs') or atk.get('deltas')
+                    if dirs:
+                        raw = [(int(dr),int(dc), int(max_range)) for dr,dc in dirs]
+                        vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
+                        attack_base_white = attack_base_black = vecs
+                elif t == 'pattern':
+                    deltas = atk.get('deltas', [])
+                    raw = [(int(dr), int(dc), int(atk.get('max_steps',1))) for dr,dc in deltas]
+                    vecs = BehaviorCompiler._normalize(raw, min_steps=min_steps, ghost=False)
+                    attack_base_white = attack_base_black = vecs
 
-        if not attack_base_white and move_base_white:
+        # REDE DE SEGURANÇA CORRIGIDA: Ignora peças que têm "type": "none" no ataque
+        if not attack_base_white and move_base_white and not attack_is_none:
             attack_base_white = move_base_white
             attack_base_black = move_base_black
 
@@ -205,11 +208,9 @@ class DataPiece(Piece):
         self.descricao = data.get('descricao', "Unidade misteriosa.")
         self.passiva = data.get('passiva', "Sem passiva.")
         
-        # --- A CORREÇÃO: LER AS MECÂNICAS ESCONDIDAS NO JSON ---
         self.draftable = data.get('draftable', True)
         self.lifespan = data.get('lifespan', None)
         self.spawn_cooldown = data.get('spawn_cooldown', 0)
-        # -------------------------------------------------------
 
         compiled = BehaviorCompiler.compile(name, data.get('behavior', {}))
         if team == 'brancas':
@@ -223,7 +224,6 @@ class DataPiece(Piece):
         if not self.can_act(): return []
         moves = []
         for vec in self._move_vectors:
-            # support legacy (dr,dc,max_steps) or normalized (dr,dc,max_steps,min_steps,ghost)
             if len(vec) == 3:
                 dr,dc,max_steps = vec
                 ghost = False
@@ -239,11 +239,8 @@ class DataPiece(Piece):
                 if board[nr][nc] is None:
                     moves.append((nr, nc))
                 else:
-                    if ghost:
-                        # can pass through, but cannot land on occupied
-                        continue
-                    else:
-                        break
+                    if ghost: continue
+                    else: break
         return moves
 
     def get_valid_attacks(self, r, c, board, tile_effects=None) -> list:
@@ -298,229 +295,164 @@ class DataPiece(Piece):
 
 
 # -------------------- Concrete wrappers --------------------------------
-# Pure data-driven wrappers
 class Bone(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Bone')
+    def __init__(self, team): super().__init__(team, 'Bone')
 
 class Ghoul(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Ghoul')
+    def __init__(self, team): super().__init__(team, 'Ghoul')
 
 class Obelisk(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Obelisk')
+    def __init__(self, team): super().__init__(team, 'Obelisk')
 
 class BoneLord(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'BoneLord')
+    def __init__(self, team): super().__init__(team, 'BoneLord')
 
 class Ranger(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Ranger')
+    def __init__(self, team): super().__init__(team, 'Ranger')
 
 class Nightshade(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Nightshade')
+    def __init__(self, team): super().__init__(team, 'Nightshade')
 
 class Templar(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Templar')
+    def __init__(self, team): super().__init__(team, 'Templar')
 
 class StoneWall(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'StoneWall')
+    def __init__(self, team): super().__init__(team, 'StoneWall')
 
 class Inquisitor(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Inquisitor')
+    def __init__(self, team): super().__init__(team, 'Inquisitor')
     
     def get_aura_positions(self, r, c, board, tile_effects=None):
-        """Return list of enemy positions within the silence aura radius."""
-        if not self.can_act():
-            return []
+        if not self.can_act(): return []
         data = HERO_DEFS.get('Inquisitor', {})
         radius = int(data.get('aura_radius', 2))
         aoe = []
         for dr in range(-radius, radius + 1):
             for dc in range(-radius, radius + 1):
-                if dr == 0 and dc == 0:
-                    continue
+                if dr == 0 and dc == 0: continue
                 nr, nc = r + dr, c + dc
                 if 0 <= nr < LINHAS and 0 <= nc < COLUNAS:
-                    if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get('type') == 'ice':
-                        continue
+                    if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get('type') == 'ice': continue
                     p = board[nr][nc]
-                    if p and p.team != self.team:
-                        aoe.append((nr, nc))
+                    if p and p.team != self.team: aoe.append((nr, nc))
         return aoe
 
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        """Return possible silence targets (positions) for the Inquisitor aura."""
         return self.get_aura_positions(r, c, board, tile_effects)
 
     def get_threat_area(self, r, c, board, tile_effects=None) -> list:
-        # include normal attack threat area and aura positions as soft-threats
         threats = super().get_threat_area(r, c, board, tile_effects)
         aura = self.get_aura_positions(r, c, board, tile_effects)
         for pos in aura:
-            if pos not in threats:
-                threats.append(pos)
+            if pos not in threats: threats.append(pos)
         return threats
 
 class Berserker(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Berserker')
+    def __init__(self, team): super().__init__(team, 'Berserker')
 
-# Hybrid wrappers (keep space for special spell/stub methods)
 class Pyromancer(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Pyromancer')
-
+    def __init__(self, team): super().__init__(team, 'Pyromancer')
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        if not self.can_act():
-            return []
+        if not self.can_act(): return []
         targets = []
         max_range = 3
         for dr in range(-max_range, max_range + 1):
             for dc in range(-max_range, max_range + 1):
-                if dr == 0 and dc == 0:
-                    continue
+                if dr == 0 and dc == 0: continue
                 nr, nc = r + dr, c + dc
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
-                    continue
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS): continue
                 target = board[nr][nc]
-                if target is None or target.team != self.team:
-                    targets.append({"target": (nr, nc), "spell_type": "ignite"})
+                if target is None or target.team != self.team: targets.append({"target": (nr, nc), "spell_type": "ignite"})
         return targets
 
 class Dragoon(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Dragoon')
+    def __init__(self, team): super().__init__(team, 'Dragoon')
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        """Return possible jump/leap landing positions for the Dragoon.
-
-        Simple rule implemented:
-         - can jump over a single obstacle in any of the 8 directions and land
-           two squares away if empty or occupied by an enemy.
-         - additionally can leap up to `jump_max` tiles in a straight line
-           (configurable in `heroes_config.json` under Dragoon.jump_max).
-        """
-        if not self.can_act():
-            return []
+        if not self.can_act(): return []
         data = HERO_DEFS.get('Dragoon', {})
         max_jump = int(data.get('jump_max', 2))
         lands = []
         dirs = [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]
         for dr, dc in dirs:
-            # jump over single obstacle to land two away
-            midr, midc = r + dr, c + dc
-            landr, landc = r + dr*2, c + dc*2
+            midr, midc = r + dr, c + dc; landr, landc = r + dr*2, c + dc*2
             if 0 <= midr < LINHAS and 0 <= midc < COLUNAS and 0 <= landr < LINHAS and 0 <= landc < COLUNAS:
                 if board[midr][midc] is not None:
                     dest = board[landr][landc]
-                    if dest is None or dest.team != self.team:
-                        lands.append((landr, landc))
-            # straight leaps up to max_jump (can pass over empty tiles)
+                    if dest is None or dest.team != self.team: lands.append((landr, landc))
             for step in range(2, max_jump + 1):
-                nr = r + dr * step
-                nc = c + dc * step
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
-                    break
-                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get('type') == 'ice':
-                    break
+                nr = r + dr * step; nc = c + dc * step
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS): break
+                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get('type') == 'ice': break
                 dest = board[nr][nc]
-                if dest is None:
-                    lands.append((nr, nc))
+                if dest is None: lands.append((nr, nc))
                 else:
-                    if dest.team != self.team:
-                        lands.append((nr, nc))
+                    if dest.team != self.team: lands.append((nr, nc))
                     break
-        # deduplicate
         uniq = []
         for p in lands:
-            if p not in uniq:
-                uniq.append(p)
+            if p not in uniq: uniq.append(p)
         return uniq
 
 class Cleric(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Cleric')
-
+    def __init__(self, team): super().__init__(team, 'Cleric')
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        if not self.can_act():
-            return []
+        if not self.can_act(): return []
         purify_targets = []
         for dr in range(-2, 3):
             for dc in range(-2, 3):
-                if dr == 0 and dc == 0:
-                    continue
+                if dr == 0 and dc == 0: continue
                 nr, nc = r + dr, c + dc
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
-                    continue
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS): continue
                 target = board[nr][nc]
-                if target and target.team == self.team and target.stun_timer > 0:
-                    purify_targets.append({"target": (nr, nc), "spell_type": "purify"})
+                if target and target.team == self.team and target.stun_timer > 0: purify_targets.append({"target": (nr, nc), "spell_type": "purify"})
         return purify_targets
 
 class Trickster(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Trickster')
-
+    def __init__(self, team): super().__init__(team, 'Trickster')
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        if not self.can_act():
-            return []
+        if not self.can_act(): return []
         swaps = []
         max_range = 3
         for dr in range(-max_range, max_range + 1):
             for dc in range(-max_range, max_range + 1):
-                if dr == 0 and dc == 0:
-                    continue
+                if dr == 0 and dc == 0: continue
                 nr, nc = r + dr, c + dc
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
-                    continue
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS): continue
                 target = board[nr][nc]
-                if target and target.team == self.team and target is not board[r][c]:
-                    swaps.append({"target": (nr, nc), "spell_type": "swap"})
+                if target and target.team == self.team and target is not board[r][c]: swaps.append({"target": (nr, nc), "spell_type": "swap"})
         return swaps
 
 class Geomancer(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Geomancer')
-
+    def __init__(self, team): super().__init__(team, 'Geomancer')
     def get_valid_spells(self, r, c, board, tile_effects=None):
-        if not self.can_act():
-            return []
+        if not self.can_act(): return []
         walls = []
         for dr, dc in [(-1,0),(1,0),(0,-1),(0,1),(-1,-1),(-1,1),(1,-1),(1,1)]:
             nr, nc = r + dr, c + dc
-            if 0 <= nr < LINHAS and 0 <= nc < COLUNAS and board[nr][nc] is None:
-                walls.append({"target": (nr, nc), "spell_type": "barricade"})
+            if 0 <= nr < LINHAS and 0 <= nc < COLUNAS and board[nr][nc] is None: walls.append({"target": (nr, nc), "spell_type": "barricade"})
         return walls
 
-# Keep FrostMage and Lich special methods
 class FrostMage(DataPiece):
     __slots__ = ()
     def __init__(self, team):
         data = HERO_DEFS.get('FrostMage', {})
         super().__init__(team, 'FrostMage')
         self.descricao = data.get('descricao', 'Mago de controlo.')
-
     def get_valid_stuns(self, r, c, board, tile_effects=None) -> dict:
         if not self.can_act(): return {}
         stuns = {}
@@ -542,7 +474,6 @@ class FrostMage(DataPiece):
                         stuns[(foco_r, foco_c)] = {"aoe": aoe, "has_enemy": tem_inimigo}
         return stuns
 
-
 class Lich(DataPiece):
     __slots__ = ()
     def __init__(self, team):
@@ -550,7 +481,6 @@ class Lich(DataPiece):
         super().__init__(team, 'Lich')
         self.descricao = data.get('descricao', 'Invocador Sombrio.')
         self.spawn_cooldown = data.get('spawn_cooldown', 0)
-
     def get_valid_spawns(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act() or self.spawn_cooldown > 0: return []
         spawns = []
@@ -559,20 +489,16 @@ class Lich(DataPiece):
             nr, nc = r + dir_frente, c + dc
             if 0 <= nr < LINHAS and 0 <= nc < COLUNAS:
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get('type') == 'ice': continue
-                if board[nr][nc] is None:
-                    spawns.append((nr, nc, "Ghoul"))
+                if board[nr][nc] is None: spawns.append((nr, nc, "Ghoul"))
         return spawns
-
 
 class Phantom(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Phantom')
+    def __init__(self, team): super().__init__(team, 'Phantom')
 
 class Sentry(DataPiece):
     __slots__ = ()
-    def __init__(self, team):
-        super().__init__(team, 'Sentry')
+    def __init__(self, team): super().__init__(team, 'Sentry')
 
 
 TODAS_AS_PECAS = [
@@ -583,22 +509,15 @@ TODAS_AS_PECAS = [
     Pyromancer, Dragoon, Cleric, Trickster, Geomancer
 ]
 
-
 def obter_catalogo_pecas():
     catalogo = []
     for PecaClass in TODAS_AS_PECAS:
-        try:
-            inst = PecaClass('brancas')
-        except Exception:
-            continue
+        try: inst = PecaClass('brancas')
+        except Exception: continue
         if getattr(inst, 'draftable', True):
-            catalogo.append({
-                "name": inst.name, "cost": inst.cost, "class": PecaClass,
-                "desc": inst.descricao, "passiva": inst.passiva
-            })
+            catalogo.append({"name": inst.name, "cost": inst.cost, "class": PecaClass, "desc": inst.descricao, "passiva": inst.passiva})
     catalogo.sort(key=lambda x: x["cost"], reverse=True)
     return catalogo
-
 
 def criar_peca_por_nome(nome, team):
     classe = next((cls for cls in TODAS_AS_PECAS if getattr(cls, '__name__', '') == nome), None)

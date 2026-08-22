@@ -3,11 +3,17 @@ import shutil
 from pathlib import Path
 
 MAPA_FICHEIROS = {
-    # 1. TOOLS (Ferramentas de Desenvolvimento)
+    # 1. AI (Cérebros e Ferramentas ativas de jogo)
+    "bot.py": "ai",
+    "search.py": "ai",
+    "book_generator.py": "ai", # Gerador do cérebro de aberturas
+    
+    # 2. TOOLS (Ferramentas de Desenvolvimento e Teste)
     "reorganize.py": "tools/scripts",
     "gerar_estrutura.py": "tools/scripts",
     "fetch_icons.py": "tools/scripts",
     "build_pipeline.py": "tools/scripts",
+    "build_cpp_engine.py": "tools/scripts",
     "tmp_game_sim.py": "tools/scripts",
     "tmp_ui_test.py": "tools/scripts",
 
@@ -22,25 +28,28 @@ MAPA_FICHEIROS = {
     "auto_pricer.py": "tools/balance",
     "color_balancer.py": "tools/balance",
 
-    # 2. ONLINE (Multijogador e Servidor)
+    # 3. ONLINE (Multijogador e Servidor)
     "multiplayer_main.py": "online/client",
     "client.py": "online/network",
     "app.py": "online/server",
 
-    # 3. DEPLOY (Empacotamento)
+    # 4. DEPLOY (Empacotamento)
     "RedWar_Online.spec": "deploy/packaging",
     "main.spec": "deploy/packaging",
 
-    # 4. DOCS (Documentação)
+    # 5. DOCS (Documentação)
     "Documento_Design_Jogo.md": "docs",
     "Estrutura_Projeto.md": "docs",
+    "COPILOT_BACKLOG.md": "docs",
 
     # Ficam na sua pasta atual de raiz (se estiverem soltos, vão para o sítio certo)
     "jogos_encravados_log.txt": "logs",
     "relatorio_build.txt": "logs",
     "relatorio_telemetria.txt": "logs",
+    "estrutura_atual.txt": "logs",
     "telemetria_profunda.json": "logs",
-    "estatisticas_treino.json": "data"
+    "estatisticas_treino.json": "data",
+    "opening_book.json": "data"
 }
 
 def organizar_projeto():
@@ -56,13 +65,16 @@ def organizar_projeto():
     pastas_a_verificar = [
         base_dir, 
         base_dir / "ai", 
-        base_dir / "scripts", 
-        base_dir / "analytics", 
-        base_dir / "balance",
-        base_dir / "network",
-        base_dir / "server",
-        base_dir / "multiplayer",
-        base_dir / "packaging"
+        base_dir / "tools" / "scripts", 
+        base_dir / "tools" / "analytics", 
+        base_dir / "tools" / "balance",
+        base_dir / "online" / "network",
+        base_dir / "online" / "server",
+        base_dir / "online" / "client",
+        base_dir / "deploy" / "packaging",
+        base_dir / "docs",
+        base_dir / "logs",
+        base_dir / "data"
     ]
 
     for pasta_origem in pastas_a_verificar:
@@ -84,13 +96,18 @@ def organizar_projeto():
                 print(f"✅ Organizado: {ficheiro.name} -> {pasta_destino}/")
                 movidos += 1
 
-    # 3. Limpar pastas antigas que ficaram vazias
-    pastas_para_limpar = ["scripts", "analytics", "balance", "network", "server", "multiplayer", "packaging"]
-    for pasta_vazia in pastas_para_limpar:
-        p = base_dir / pasta_vazia
-        if p.exists() and not any(p.iterdir()):
-            p.rmdir()
-            print(f"🗑️ Pasta limpa: {pasta_vazia}/")
+    # 3. Limpar pastas antigas que ficaram vazias (opcional mas limpo)
+    for root, dirs, files in os.walk(base_dir, topdown=False):
+        for name in dirs:
+            dir_path = Path(root) / name
+            # Não apaga pastas do Git, VSCode ou raiz estrutural
+            if name not in {".git", ".vscode", "venv", "ai", "tools", "engine", "ui", "data", "logs"}:
+                try:
+                    if not any(dir_path.iterdir()):
+                        dir_path.rmdir()
+                        print(f"🗑️ Pasta vazia limpa: {dir_path.relative_to(base_dir)}")
+                except Exception:
+                    pass
 
     if movidos == 0:
         print("✨ A estrutura já está perfeita!")
