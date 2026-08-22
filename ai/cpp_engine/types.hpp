@@ -76,23 +76,15 @@ struct Move {
 
         const char start_file = static_cast<char>('A' + sc);
         const char end_file = static_cast<char>('A' + ec);
-        const std::string origin =
-            std::string(1, start_file) + std::to_string(LINHAS - sr);
-        const std::string target =
-            std::string(1, end_file) + std::to_string(LINHAS - er);
+        const std::string origin = std::string(1, start_file) + std::to_string(LINHAS - sr);
+        const std::string target = std::string(1, end_file) + std::to_string(LINHAS - er);
 
-        if (type == "SPAWN") {
-            return "SPAWN " + spawn_name + " " + origin + " " + target;
-        }
-        if (type == "SPELL") {
-            return "SPELL " + spell_name + " " + origin + " " + target;
-        }
+        if (type == "SPAWN") return "SPAWN " + spawn_name + " " + origin + " " + target;
+        if (type == "SPELL") return "SPELL " + spell_name + " " + origin + " " + target;
         return type + " " + origin + " " + target;
     }
 
-    bool operator<(const Move& other) const {
-        return score > other.score;
-    }
+    bool operator<(const Move& other) const { return score > other.score; }
 
     bool operator==(const Move& other) const {
         return sr == other.sr && sc == other.sc &&
@@ -144,7 +136,7 @@ struct TimerPieceRecord {
 struct TimerEffectRecord {
     int r = 0;
     int c = 0;
-    int timer = 0;
+    TileEffect effect;
 };
 
 struct ExpiredPieceRecord {
@@ -162,7 +154,6 @@ struct UndoInfo {
     int num_victims = 0;
     EffectRecord overwritten_effects[MAX_UNDO_EFFECTS]{};
     int num_effects = 0;
-
     TimerPieceRecord timer_pieces[MAX_TIMER_PIECES]{};
     int num_timer_pieces = 0;
     TimerEffectRecord timer_effects[MAX_TIMER_EFFECTS]{};
