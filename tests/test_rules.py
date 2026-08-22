@@ -1,8 +1,6 @@
 # tests/test_rules.py
-import pytest
-
 from engine.game_state import GameState
-from engine.pieces import Bone, BoneLord, FrostMage, Lich
+from engine.pieces import Bone, FrostMage, Lich
 
 
 def test_bone_no_promotion():
@@ -80,6 +78,19 @@ def test_hash_includes_tile_effects():
 
     assert with_effect != without_effect
     assert with_effect == recomputed
+
+
+def test_hash_includes_no_capture_counter():
+    gs = GameState()
+    gs.board[4][4] = Bone("brancas")
+    gs.compute_initial_hash()
+    hash_at_zero = gs.get_state_hash()
+
+    gs.turns_without_capture = 25
+    gs.compute_initial_hash()
+    hash_at_25 = gs.get_state_hash()
+
+    assert hash_at_zero != hash_at_25
 
 
 def test_hash_tracks_timer_changes():
