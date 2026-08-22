@@ -79,7 +79,7 @@
         }
     },
     "Phantom": {
-        "cost": 6,
+        "cost": 5,
         "acronym": "Ph",
         "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nAtaque: Em 'L'.",
@@ -95,7 +95,7 @@
         }
     },
     "Sentry": {
-        "cost": 89,
+        "cost": 96,
         "acronym": "Se",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta Infinita (Raio).",
@@ -162,7 +162,7 @@
         }
     },
     "BoneLord": {
-        "cost": 95,
+        "cost": 90,
         "acronym": "BL",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: Padrão complexo em 'V'.",
@@ -206,7 +206,7 @@
         }
     },
     "Ranger": {
-        "cost": 34,
+        "cost": 35,
         "acronym": "Ra",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta (Longo Alcance).",
@@ -268,7 +268,7 @@
         }
     },
     "Berserker": {
-        "cost": 30,
+        "cost": 28,
         "acronym": "Be",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: 1 casa (Todas as direções).",
@@ -295,7 +295,7 @@
         }
     },
     "Pyromancer": {
-        "cost": 23,
+        "cost": 21,
         "acronym": "Py",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Incendiar (Ignite).",
@@ -311,7 +311,7 @@
         }
     },
     "Dragoon": {
-        "cost": 195,
+        "cost": 196,
         "acronym": "Dr",
         "draftable": true,
         "jump_max": 2,
@@ -329,7 +329,7 @@
         }
     },
     "Nightshade": {
-        "cost": 191,
+        "cost": 190,
         "acronym": "Ni",
         "draftable": true,
         "descricao": "Movimento: Até 4 casas ortogonais.\nAtaque: 1 casa ortogonal.",
@@ -347,7 +347,7 @@
         }
     },
     "Cleric": {
-        "cost": 58,
+        "cost": 56,
         "acronym": "Cl",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Purificar.",
@@ -363,7 +363,7 @@
         }
     },
     "Trickster": {
-        "cost": 24,
+        "cost": 23,
         "acronym": "Tr",
         "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nFeitiço: Troca (Swap).",
@@ -378,7 +378,7 @@
         }
     },
     "Geomancer": {
-        "cost": 22,
+        "cost": 25,
         "acronym": "Ge",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Barricada.",
