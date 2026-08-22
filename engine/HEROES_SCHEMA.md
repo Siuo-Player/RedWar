@@ -1,116 +1,197 @@
-HEROES_SCHEMA
-=============
+# HEROES_SCHEMA
 
-This document describes the `engine/heroes_config.json` schema used to drive unit metadata and the declarative movement/attack behavior compiler.
+Este documento descreve o formato de `engine/heroes_config.json` usado para definir dados dos heróis e alimentar o compilador de comportamentos.
 
-Top-level keys
----------------
-- Each unit name (e.g. `Bone`, `Ghoul`) maps to an object with metadata and optional `behavior`.
+> **Importante:** o schema é a especificação do formato dos dados, não garante que todas as habilidades descritas estejam completamente data-driven em Python e C++. Quando uma mecânica ainda precisa de implementação especializada, isso deve ser considerado durante a migração.
 
-Common metadata fields
-----------------------
-- `cost` (int): purchase cost used by the draft system.
-- `acronym` (string): short label displayed on tokens.
-- `descricao` (string): human-readable description.
-- `passiva` (string): short passive ability text.
-- `draftable` (bool): whether the unit appears in the draft/shop.
-- `lifespan` (int, optional): number of turns before the unit expires.
-- `spawn_cooldown` (int, optional): cooldown used by spawners.
+## Chave de topo
 
-Behavior object
----------------
-The `behavior` object describes movement/attack patterns and passive abilities in declarative form.
-Missing behavior sections do not invent arbitrary movement; hero-specific classes may still provide abilities that are not yet fully data-driven.
+Cada nome de herói corresponde a um objeto:
 
-Supported behavior keys (examples):
-- `movement`: describes how the unit may move.
-  - `type`: one of `orthogonal`, `diagonal`, `adjacent`, `knight`, `ray`, `none`, `forward_cone`.
-  - `max_steps`: integer (for range-based movement types).
-  - `deltas`: explicit list of [dr, dc] offsets for pattern-like movement.
-  - `forward_dir_by_team`: boolean; if true, the engine flips the declared forward direction for White.
-  - `ghost_move`: whether occupied squares can be crossed for movement.
-
-- `attack`: similar to `movement`, but used to declare attack reach and patterns.
-  - `type`: `orthogonal`, `diagonal`, `knight`, `ray`, `pattern`, `forward_cone`, or `none`.
-  - `max_steps`: maximum attack distance.
-  - `min_steps`: minimum attack distance.
-  - `deltas` / `dirs`: explicit attack vectors.
-  - `forward_dir_by_team`: boolean; interpreted independently from `movement` when present.
-
-- `stun`: declarative AoE/stun metadata where supported by the unit.
-  - `type`: `aoe`.
-  - `radius`: integer Manhattan radius to consider for valid stun focuses.
-
-- `spawn`: spawn definitions for units that summon other units.
-  - `unit`: string, name of unit to spawn.
-  - `pattern`: string describing spawn placement (e.g. `forward_row`).
-
-- `passives`: list of automatic, event-driven abilities. Each entry contains:
-  - `trigger`: e.g. `on_kill`, `on_attack`, `on_attacked`, `on_turn_start`, `on_turn_end`, `on_death`, `aura_passive`.
-  - `effect`: e.g. `spawn_unit`, `aoe_damage`, `redirect_damage`, `disable_spells`.
-  - `params`: object whose shape depends on the effect.
-  - New trigger/effect values are deliberately strings so the schema can evolve without changing every hero definition.
-
-- `spell`: player-activated ability metadata. Spell execution is still partly implemented in the game-state layer.
-  - `type`: spell name.
-  - `radius` / `range`: reach, where applicable.
-  - `target_team`: `ally`, `enemy`, or `any`.
-
-Passives — worked examples
----------------------------
-`BoneLord`:
-
-```
-"BoneLord": { "behavior": { "passives": [
-  { "trigger": "on_kill", "effect": "spawn_unit",
-    "params": { "unit_name": "Bone", "spawn_location": "target_square" } }
-] } }
+```json
+{
+  "Bone": {
+    "cost": 8,
+    "acronym": "Bo",
+    "behavior": {}
+  }
+}
 ```
 
-`Berserker`:
+## Metadados comuns
 
-```
-"Berserker": { "behavior": { "passives": [
-  { "trigger": "on_attack", "effect": "aoe_damage",
-    "params": { "pattern": "adjacent", "friendly_fire": false } }
-] } }
+- `cost` — inteiro não negativo usado no draft.
+- `acronym` — string curta usada na representação visual.
+- `descricao` — descrição humana.
+- `passiva` — texto humano da passiva.
+- `draftable` — indica se o herói aparece no draft.
+- `lifespan` — duração de existência de uma unidade temporária, quando aplicável.
+- `spawn_cooldown` — cooldown de sistemas de invocação, quando aplicável.
+- `jump_max` — alcance máximo de habilidades de salto que o implementem.
+- `aura_radius` — raio de uma aura que use esse parâmetro.
+
+## `behavior`
+
+`behavior` contém a descrição declarativa de movimento, ataque e passivas.
+
+A ausência de uma secção não deve inventar um comportamento.
+
+## Movimento
+
+`behavior.movement` pode usar:
+
+- `orthogonal`
+- `diagonal`
+- `adjacent`
+- `knight`
+- `ray`
+- `none`
+- `forward_cone`
+- padrões baseados em `deltas`
+
+Campos frequentes:
+
+- `type`
+- `max_steps`
+- `min_steps`
+- `deltas`
+- `dirs`
+- `forward_dir_by_team`
+- `ghost_move`
+
+`forward_dir_by_team` permite representar movimentos direcionais de forma independente da cor.
+
+`ghost_move` permite que uma regra de movimento atravesse peças onde a mecânica explicitamente o permite.
+
+## Ataques
+
+`behavior.attack` utiliza essencialmente os mesmos conceitos de geometria.
+
+Tipos suportados pelo compilador atual incluem:
+
+- `orthogonal`
+- `diagonal`
+- `adjacent`
+- `knight`
+- `ray`
+- `pattern`
+- `forward_cone`
+- `none`
+- padrões com `deltas`
+
+Campos:
+
+- `type`
+- `max_steps`
+- `min_steps`
+- `deltas`
+- `dirs`
+- `forward_dir_by_team`
+
+A geometria define **onde** um ataque pode alcançar. A regra de resultado — stun ou morte, e as interações de passivas — pertence à lógica do jogo.
+
+## Passivas
+
+`behavior.passives` descreve efeitos automáticos/event-driven quando o comportamento já está suportado.
+
+Exemplos de triggers:
+
+- `on_kill`
+- `on_attack`
+- `on_attacked`
+- `on_turn_start`
+- `on_turn_end`
+- `on_death`
+- `aura_passive`
+
+Exemplos de efeitos:
+
+- `spawn_unit`
+- `aoe_damage`
+- `redirect_damage`
+- `disable_spells`
+
+A lista não é fechada: novos mecanismos podem exigir novos triggers/effects.
+
+## Spells
+
+Alguns heróis possuem spells ativadas pelo jogador.
+
+A implementação atual ainda mantém parte da execução destas habilidades no estado do jogo.
+
+Exemplos de conceitos existentes:
+
+- `ignite`
+- `purify`
+- `swap`
+- `barricade`
+- `jump`
+
+## Unidades invocadas
+
+Unidades como `Bone`, `Ghoul` ou outras peças não draftáveis podem ser criadas por heróis.
+
+É possível configurar `lifespan` para limitar a existência.
+
+## Dados versus lógica
+
+A intenção é que `heroes_config.json` seja a fonte de verdade dos **dados** do herói.
+
+Não é objetivo forçar toda a lógica única para dentro de JSON.
+
+Uma boa regra é:
+
+```text
+geometria / parâmetros comuns → JSON
+mecânica completamente única → código especializado
 ```
 
-`Templar`:
+Quando vários heróis precisarem do mesmo código especializado, deve-se reconsiderar a abstração.
 
-```
-"Templar": { "behavior": { "passives": [
-  { "trigger": "on_attacked", "effect": "redirect_damage",
-    "params": { "target": "attacker", "cooldown_turns": 3 } }
-] } }
+## Consistência Python/C++
+
+Durante a migração, qualquer campo que altere movimentos, ações ou resultado de uma posição deve ser refletido nos dois lados.
+
+Os testes devem verificar:
+
+- movimentos legais;
+- ataques;
+- passivas suportadas;
+- estado após ação;
+- timers;
+- efeitos;
+- hash.
+
+## Exemplo
+
+```json
+"Inquisitor": {
+  "cost": 127,
+  "acronym": "In",
+  "aura_radius": 2,
+  "behavior": {
+    "movement": {
+      "type": "adjacent",
+      "max_steps": 1
+    },
+    "attack": {
+      "type": "adjacent",
+      "max_steps": 1
+    },
+    "passives": [
+      {
+        "trigger": "aura_passive",
+        "effect": "disable_spells",
+        "params": {
+          "radius": 2,
+          "target_team": "enemy"
+        }
+      }
+    ]
+  }
+}
 ```
 
-`Inquisitor`:
+## Validação
 
-```
-"Inquisitor": { "behavior": { "passives": [
-  { "trigger": "aura_passive", "effect": "disable_spells",
-    "params": { "radius": 2, "target_team": "enemy" } }
-] } }
-```
-
-Examples
---------
-`Phantom` uses `knight` movement/attack:
-
-```
-"Phantom": { "behavior": { "movement": {"type": "knight"}, "attack": {"type": "knight"} } }
-```
-
-`Sentry` fires along straight rays:
-
-```
-"Sentry": { "behavior": { "attack": {"type": "ray", "dirs": [[1,0],[-1,0],[0,1],[0,-1]] } } }
-```
-
-Notes
------
-- Lifespan and spawn-cooldown are generic state fields. They are part of the Python position hash and must be treated as part of the C++ position hash as well.
-- Tile effects are also part of the position identity because their type, owner and timer affect future legal moves and outcomes.
-- When migrating more hero logic into `behavior`, preserve Python/C++ parity with differential tests comparing legal moves and state transitions.
-- The current architecture intentionally retains a small amount of hero-specific Python/C++ logic for spells and special abilities while the data-driven behavior system is expanded.
+Uma configuração inválida deve falhar cedo. Não criar silenciosamente um herói incompleto, ignorar erros de parsing ou atribuir um comportamento genérico sem que isso esteja explicitamente definido.
