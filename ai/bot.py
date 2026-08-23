@@ -11,14 +11,17 @@ class CppEngineBot:
     Comunica via Standard I/O ignorando o GIL do Python para máxima performance.
     Implementa Lazy-Loading e Auto-Healing para não criar processos zombie.
     """
-    def __init__(self, nodes=10000):
+    def __init__(self, nodes=10000, executable_path=None):
         self.nodes = nodes
         self.nome = f"StockWar C++ (N{nodes})"
-        if sys.platform == "win32":
-            binary_name = "engine.exe"
+        if executable_path is not None:
+            self.exe_path = os.path.abspath(executable_path)
         else:
-            binary_name = "engine"
-        self.exe_path = os.path.join(os.path.dirname(__file__), "cpp_engine", binary_name)
+            if sys.platform == "win32":
+                binary_name = "engine.exe"
+            else:
+                binary_name = "engine"
+            self.exe_path = os.path.join(os.path.dirname(__file__), "cpp_engine", binary_name)
         self.process = None
 
     def _ensure_engine_running(self):
