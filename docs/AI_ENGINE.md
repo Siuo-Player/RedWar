@@ -2,98 +2,107 @@
 
 ## Objetivo
 
-Ares é a inteligência artificial de RedWar. O objetivo é uma engine especializada que melhore continuamente através de alterações mensuráveis, usando sempre a versão anterior como referência.
+Ares é uma engine de pesquisa especializada para RedWar. O objetivo é melhorar continuamente **força e/ou velocidade**, sempre com condições comparáveis e evidência reproduzível.
 
-Uma melhoria válida precisa de manter as regras e o orçamento de pesquisa comparáveis e demonstrar ganho de força, velocidade ou ambos. Código mais complexo não é automaticamente melhor.
+A metodologia é inspirada no Stockfish: mudanças pequenas, separação clara de responsabilidades, atenção extrema ao hot path e validação estatística/benchmark antes de aceitar uma alteração funcional.
 
-## Estado atual confirmado — PR #47
+## Estado atual confirmado
 
-O último PR integrado adicionou um self-test nativo de `make_move`/`unmake_move`. O teste verifica restauração do `BoardState`, peças, efeitos, timers, hash, avaliação material, contadores e turno em posições com movimento/captura, stun, spawn e efeitos temporizados.
+O PR #47 tornou `make_move`/`unmake_move` verificável por self-test. O PR #14 estabilizou o Auto-Pricer contra overflow ELO. O trabalho #48 está a consolidar a reversibilidade e a avaliação de stun/FrostMage antes de merge.
 
-Isto dá-nos uma fundação segura para otimizações e alterações de avaliação: primeiro preservamos reversibilidade, depois mudamos força/desempenho.
+## Arquitetura de pesquisa
 
-## Pesquisa
+O C++ é o hot path principal e utiliza atualmente:
 
-O núcleo C++ utiliza atualmente alpha-beta, ordenação de ações, transposition table, Zobrist hashing, killer moves, history heuristic, iterative deepening e pesquisa quiescente/tática.
+- alpha-beta;
+- PVS/zero-window search;
+- transposition table;
+- Zobrist hashing;
+- iterative deepening;
+- killer moves;
+- history heuristic;
+- move ordering;
+- quiescence/tactical search;
+- node/time limits.
 
-O C++ é o hot path principal. Python/Cython continuam durante a migração e para componentes auxiliares.
+A pesquisa deve permanecer independente da forma como a posição é avaliada.
 
-## Avaliação
+## Estado RPG
 
-A avaliação atual deriva principalmente de valor material, posição, timers e estado de stun. O próximo foco é fazer com que o valor de uma posição reflita melhor ameaças específicas de RedWar, especialmente a cadeia:
+Ao contrário do xadrez, RedWar tem regras temporais e efeitos. O estado relevante inclui peças, stun timer, lifespan, spawn cooldown, efeitos de terreno, TWC e lado a jogar.
 
-```text
-normal -> stun -> segundo stun = morte
-```
-
-Uma peça atordoada não tem apenas valor material reduzido: pode representar uma oportunidade tática imediata para o adversário.
-
-### FrostMage como sanity check
-
-`FrostMage` custa atualmente **5 pontos** no `heroes_config.json`. A unidade de 5 pontos tem capacidade de aplicar stun em área a até 3 casas de distância. Portanto, uma Ares competente não deve avaliá-la apenas como uma peça material de 5 pontos.
-
-O objetivo não é colocar um valor arbitrário permanente no FrostMage. A avaliação deve reconhecer a **pressão real da posição**: inimigos alcançáveis por stun, especialmente peças já atordoadas que podem morrer com uma segunda aplicação.
-
-## Plano da branch atual
-
-Branch: `perf/ares-stun-threat-eval-2026-08-23`
-
-Objetivo: aumentar a qualidade da avaliação perante ameaças de stun com custo por nó baixo e sem aumentar profundidade/orçamento.
-
-Passos:
-
-1. Medir a avaliação atual em posições pequenas com FrostMage.
-2. Implementar uma estimativa barata e bounded de pressão de stun diretamente a partir do estado do tabuleiro.
-3. Dar peso adicional a alvos já atordoados, porque o próximo stun pode convertê-los em morte.
-4. Manter o termo simétrico para White/Black e limitar o impacto para impedir que substitua material/terminal scores.
-5. Adicionar regressões determinísticas.
-6. Comparar `bestmove`, tempo mediano/NPS e, quando disponível, resultados da Arena.
-7. Só fazer merge se a alteração melhorar decisões táticas ou mostrar uma melhoria inequívoca sem regressão relevante.
-
-Se a branch ficar a meio, o ponto de continuação é `ai/cpp_engine/evaluate.cpp`: a função `get_piece_value()` concentra a avaliação incremental e `compute_initial_eval()` mantém o `material_score`. O teste deve ser executado antes de qualquer alteração adicional.
-
-## Reversibilidade e hashing
-
-A identidade da posição inclui peças, efeitos, stun timer, lifespan, cooldowns, contador sem captura e lado a jogar. O hash incremental deve coincidir com o hash recalculado.
-
-A relação obrigatória é:
+A reversibilidade obrigatória continua:
 
 ```text
 S --make(M)--> S'
 S' --unmake(M)--> S
 ```
 
-O self-test introduzido no PR #47 cobre uma parte importante desta propriedade; a meta futura é cobrir toda a árvore de regras.
+A restauração inclui peças, efeitos, hash e todos os acumuladores derivados do estado.
 
-## Testes e força
+## Avaliação clássica
 
-Além dos testes unitários:
+A avaliação clássica usa material, PST, estado de stun, lifespan, TWC e termos específicos de RedWar. `FrostMage` custa atualmente 5 pontos e é um sanity check importante.
 
-- benchmark determinístico;
-- `bestmove` como regressão rápida;
-- NPS e tempo por nó;
-- profundidade;
-- TT hit rate;
-- self-play/Arena;
-- suite de posições de referência;
-- testes diferenciais Python/C++.
+Termos dependentes do tabuleiro inteiro não devem ser guardados num acumulador incremental local sem mecanismo explícito de atualização.
 
-Nenhuma otimização deve reduzir silenciosamente a qualidade da pesquisa apenas para apresentar números de velocidade melhores.
+## NNUE RPG
 
-## Arena e balanceamento
+A próxima grande etapa é uma avaliação **NNUE-style**. Não copiamos HalfKP literalmente porque RedWar não tem reis nem a mesma semântica de posição. Usamos features esparsas que representam:
 
-A Arena deve comparar Ares anterior vs candidata sob condições equivalentes. O Auto-Pricer deve depender de telemetria suficiente e não ser usado como substituto de testes de força.
+- peça + casa + equipa relativa;
+- stun timer;
+- lifespan;
+- spawn cooldown;
+- efeitos de terreno;
+- TWC;
+- lado a jogar.
 
-Depois de a avaliação de stun melhorar, FrostMage deve voltar a ser analisado explicitamente no balanceamento. O custo atual de 5 pontos é uma bandeira de sanidade, não um objetivo artificial a atingir.
+O primeiro estágio usa dois accumulators de 128 entradas, hidden de 32 e inferência quantizada. O layout está documentado em `docs/NNUE.md` e deve ser idêntico em Python e C++.
 
-## Próximos objetivos da IA
+O NNUE é opcional durante o desenvolvimento. Sem modelo carregado, `evaluate_board()` continua no avaliador clássico.
 
-- Melhorar avaliação de ameaças e especificidades de RedWar.
-- Melhorar geração/ordenação de ações.
-- Melhorar quiescence.
-- Aumentar NPS sem sacrificar força.
-- Expandir benchmark suite.
-- Medir historicamente força e desempenho.
-- Melhorar a Arena para comparação estatística.
-- Criar rating/ELO das engines.
-- Eliminar divergências Python/C++.
+## Treino NNUE
+
+`tools/nnue/train.py` é o treinador opcional baseado em PyTorch. O fluxo esperado é:
+
+```text
+posições reais / self-play / Arena
+        ↓
+RWEN + teacher score/resultados
+        ↓
+features esparsas
+        ↓
+treino
+        ↓
+quantização
+        ↓
+RWNUE002
+        ↓
+benchmark + Arena
+```
+
+O bootstrap model serve apenas para verificar compatibilidade do formato e do caminho C++. Não é prova de força.
+
+## Critérios de aceitação
+
+Uma alteração de avaliação só deve entrar na configuração principal se:
+
+1. os testes de correção permanecerem verdes;
+2. não houver regressão relevante de NPS/custo por nó;
+3. `bestmove` e posições de referência não piorarem de forma material;
+4. houver ganho reproduzível em posições táticas relevantes;
+5. a Arena apoiar a alteração quando houver dados suficientes.
+
+Uma rede maior não é melhor por definição. O objetivo é **Elo por CPU-segundo**, não complexidade.
+
+## Próximos passos
+
+1. Terminar e medir PR #48.
+2. Completar NNUE C++/Python/CI.
+3. Criar dataset teacher e primeiras redes treinadas.
+4. Comparar NNUE vs clássico em benchmark e Arena.
+5. Melhorar move ordering.
+6. Melhorar quiescence específica para stun/spells/kill chains.
+7. Criar histórico de força/NPS/TT hit rate.
+8. Eliminar divergências Python/C++.
