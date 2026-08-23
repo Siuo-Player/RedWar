@@ -5,6 +5,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <vector>
 
 namespace {
@@ -81,9 +82,11 @@ void expect_reversible(const std::string& rwen, const char* label) {
     std::cout << "PASS " << label << " moves=" << checked << '\n';
 }
 
-std::string build_position(const std::vector<std::tuple<int, int, std::string, char, int, int, int>>& pieces,
-                           const std::vector<std::tuple<int, int, char, std::string, int>>& effects,
-                           char turn = 'W', int twc = 0) {
+std::string build_position(
+    const std::vector<std::tuple<int, int, std::string, char, int, int, int>>& pieces,
+    const std::vector<std::tuple<int, int, char, std::string, int>>& effects,
+    char turn = 'W',
+    int twc = 0) {
     std::array<std::array<std::string, COLUNAS>, LINHAS> cells{};
     for (auto& row : cells) {
         row.fill(".");
