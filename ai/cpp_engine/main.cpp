@@ -1,4 +1,5 @@
 #include "types.hpp"
+#include "nnue.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -11,6 +12,9 @@
 int main() {
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(nullptr);
+
+    // Loading is optional. With no model file, Ares keeps the classical evaluator.
+    redwar::nnue::load_model();
 
     std::string command;
     std::thread search_thread;
@@ -38,13 +42,8 @@ int main() {
     };
 
     while (std::getline(std::cin, command)) {
-        if (!command.empty() && command.back() == '\r') {
-            command.pop_back();
-        }
-
-        if (command.empty()) {
-            continue;
-        }
+        if (!command.empty() && command.back() == '\r') command.pop_back();
+        if (command.empty()) continue;
 
         try {
             if (command == "quit") {
@@ -61,6 +60,7 @@ int main() {
             if (command.rfind(POSITION_PREFIX, 0) == 0) {
                 stop_search();
                 parse_rwen(command.substr(std::char_traits<char>::length(POSITION_PREFIX)));
+                redwar::nnue::sync_board();
                 continue;
             }
 
@@ -71,10 +71,45 @@ int main() {
                 continue;
             }
 
+            if (command == "nnue info") {
+                const auto& info = redwar::nnue::model_info();
+                std::cout << "info string nnue available=" << (redwar::nnue::available() ? 1 : 0)
+                          << " version=" << info.version
+                          << " features=" << info.features
+                          << " accumulator=" << info.accumulator
+                          << " hidden=" << info.hidden
+                          << " scales=" << info.accumulator_scale << ','
+                          << info.hidden_scale << ',' << info.output_scale << '\n';
+                std::cout.flush();
+                continue;
+            }
+
+            if (command == "eval" || command == "eval classical") {
+                stop_search();
+                const int classical = evaluate_board();
+                std::cout << "info score classical " << classical << '\n';
+                if (command == "eval") {
+                    const auto nnue_score = redwar::nnue::evaluate();
+                    if (nnue_score.has_value()) std::cout << "info score nnue " << *nnue_score << '\n';
+                    else std::cout << "info score nnue unavailable\n";
+                }
+                std::cout.flush();
+                continue;
+            }
+
+            constexpr const char* LOAD_NNUE_PREFIX = "nnue load ";
+            if (command.rfind(LOAD_NNUE_PREFIX, 0) == 0) {
+                stop_search();
+                const std::string path = command.substr(std::char_traits<char>::length(LOAD_NNUE_PREFIX));
+                const bool ok = redwar::nnue::load_model(path);
+                std::cout << "info string nnue load " << (ok ? "ok" : "failed") << '\n';
+                std::cout.flush();
+                continue;
+            }
+
             constexpr const char* GO_PREFIX = "go ";
             if (command.rfind(GO_PREFIX, 0) == 0) {
                 stop_search();
-
                 const std::string args = command.substr(3);
 
                 if (args == "infinite") {
@@ -87,9 +122,7 @@ int main() {
                 constexpr const char* NODES_PREFIX = "nodes ";
                 if (args.rfind(NODES_PREFIX, 0) == 0) {
                     const std::string value_text = args.substr(std::char_traits<char>::length(NODES_PREFIX));
-                    if (value_text.empty()) {
-                        throw std::runtime_error("go nodes requires a node count");
-                    }
+                    if (value_text.empty()) throw std::runtime_error("go nodes requires a node count");
 
                     std::size_t consumed = 0;
                     const uint64_t value = std::stoull(value_text, &consumed);
@@ -116,10 +149,7 @@ int main() {
         }
     }
 
-    if (search_thread.joinable()) {
-        search_thread.join();
-    }
-
+    if (search_thread.joinable()) search_thread.join();
     return 0;
 }
 
