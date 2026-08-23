@@ -9,7 +9,7 @@ on:
 jobs:
   arena-tournament:
     runs-on: ubuntu-latest
-    
+
     env:
       PYTHONPATH: ${{ github.workspace }}
 
@@ -24,9 +24,9 @@ jobs:
       run: |
         echo "A inspecionar os ficheiros do Pull Request..."
         git fetch origin ${{ github.base_ref }}
-        
+
         CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
-        
+
         for FILE in $CHANGED_FILES; do
           if [[ ! "$FILE" == ai/* ]]; then
             echo "❌ ACESSO NEGADO: O Pull Request tenta alterar o ficheiro '$FILE'."
@@ -53,7 +53,7 @@ jobs:
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
         chmod +x engine
 
     - name: Run Arena Tournament
