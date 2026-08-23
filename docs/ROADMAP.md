@@ -2,78 +2,72 @@
 
 ## Prioridades de execução
 
-1. **Ares / IA — prioridade máxima.** Cada ciclo deve tentar tornar a IA mais forte ou mais rápida, com validação reproduzível.
+1. **Ares / IA — prioridade máxima.** Cada ciclo deve tornar a IA mais forte ou mais rápida, com validação reproduzível.
 2. **Aplicação / UI / `main`.** Depois de melhorias relevantes da IA, melhorar o jogo jogável e validá-lo manualmente.
-3. **Web / multiplayer.** Pode avançar incrementalmente, mas é a fase final e o projeto só termina quando esta camada estiver utilizável.
+3. **Web / multiplayer.** Avança incrementalmente, mas só fecha o projeto quando esta camada estiver utilizável.
 4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis.
 
-## Estado confirmado
+## Metodologia da Ares
 
-- PR #47: integrado — reversibilidade C++.
-- PR #48: integrado — pressão tática FrostMage.
-- PR #49: fechado após concluir o bloco NNUE/tooling/documentação.
-- O pipeline NNUE permanece opcional e a avaliação clássica é o fallback.
+Ares segue uma metodologia **Stockfish-like adaptada a RedWar**: separar estado/regras, pesquisa, avaliação e move ordering; manter o hot path pequeno; fazer alterações isoladas; exigir evidência estatística ou benchmark antes de aceitar uma melhoria funcional.
 
-O próximo trabalho NNUE de performance continua a ser a ligação dos hooks incrementais às mutações reais do `BoardState`. Isto não deve ser misturado com correções de infraestrutura/numericidade.
+RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na avaliação como características do RPG.
 
-## Bloco atual — PR #50: auditoria numérica e estrutural
+### Sanity check
 
-O bloco atual existe para eliminar classes de erro que podem contaminar o jogo, a Arena ou o tooling, e para rever as restantes zonas do repositório com a mesma disciplina usada em `tools/`.
+`FrostMage` custa atualmente **5 pontos**. A Ares deve reconhecer que uma unidade barata com stun pode ter valor tático muito superior ao material nominal.
 
-### Numericidade / overflow
+## Estado do projeto
 
-- [x] Auto-Pricer rejeita ELO não finito e ELO extremo sem `pow` perigoso.
-- [x] Auto-Pricer rejeita quantidades de draft patológicas.
-- [x] Avaliação C++ limita custos/lifespans e usa `int64_t` nos produtos intermédios sensíveis.
-- [x] Avaliação Cython limita custos/lifespans e o score acumulado.
-- [x] CLI C++ rejeita contagens de nodes inválidas/zero.
-- [x] Regressão C++ dedicada para custos/lifespans extremos.
-- [ ] Auditar restantes multiplicações em `search.cpp` e serialização/treino NNUE.
-- [ ] Fazer fuzzing de RWEN e inputs de ferramentas.
+O **PR #49 foi concluído como bloco de desenvolvimento, mas não foi integrado na `main`**. A base NNUE/tooling/documentação dessa branch continua como referência experimental.
 
-### Estrutura / restantes pastas
+O **PR #50** é o bloco atual de estabilização numérica e estrutural. A criação de uma ref nova ficou temporariamente bloqueada pelo ambiente, por isso este bloco continua na ref da continuação NNUE até o merge.
 
-- [x] `tools/` reorganizado e legado removido.
-- [x] `logs/` deixou de guardar snapshots gerados no repositório.
-- [x] Packaging deixou de referenciar ficheiros inexistentes.
-- [x] `main_guard` passou de revert automático para deteção não destrutiva.
-- [x] UI corrigida num cache que ignorava a altura da Surface.
-- [x] Documentação de arquitetura e workflow sincronizada.
-- [ ] Rever completamente `online/` e separar protótipo relay de servidor autoritativo.
-- [ ] Rever `engine/` como autoridade única das regras.
-- [ ] Rever `data/` e definir política de fixtures vs artefactos.
+## PR #50 — estabilização numérica e estrutural
 
-## NNUE
+### Já concluído
 
-- [x] Layout único de features Python/C++.
-- [x] Loading `RWNUE002`.
-- [x] Bootstrap determinístico.
-- [x] Teacher data clássico explícito.
-- [x] Treino/exportação quantizada.
-- [x] Testes de loading/inferência.
-- [ ] Primeira rede realmente treinada validada como candidata de força.
-- [ ] Benchmark clássico vs NNUE.
-- [ ] Comparação de `bestmove`/posições.
-- [ ] Arena NNUE vs clássica.
-- [ ] Decisão de tornar NNUE default.
-- [ ] Atualização incremental real dos accumulators.
+- [x] Auto-Pricer protegido contra ELOs extremos, drafts inválidos e quantidades patológicas.
+- [x] Avaliação C++ com operações sensíveis feitas em `int64_t`/limites explícitos.
+- [x] Avaliação Cython com limites de custo/lifespan/score.
+- [x] CLI C++ valida `go nodes` e rejeita zero/entradas inválidas.
+- [x] Regressão C++ para custos/lifespan extremos.
+- [x] Regressões Python do Auto-Pricer.
+- [x] Logs gerados removidos do estado versionado.
+- [x] Packaging removido de referências para ficheiros apagados.
+- [x] `main_guard.yml` sem mecanismo de escrita/reversão automática da `main`.
+- [x] Renderer restaurado e cache VFX corrigido para considerar largura e altura.
+- [x] Auto-Balancer separado do treino/benchmark NNUE.
+- [x] Workflow do Auto-Balancer com timeout e outputs temporários/artefactos.
+- [x] Workflow NNUE continua responsável pelo treino nightly.
+- [x] Documentação do ciclo de desenvolvimento e separação dos workflows atualizada.
 
-## Ares — depois da estabilidade
+### Em revisão antes do merge
 
-- [ ] Move ordering específico para RedWar.
-- [ ] Quiescence para stun/spell/kill chains.
-- [ ] Suite de posições de benchmark.
-- [ ] Histórico de NPS, profundidade, TT hit rate e força.
-- [ ] Arena estatística A/B.
-- [ ] Rating/ELO das engines.
-- [ ] Testes diferenciais Python/C++ completos.
+- [ ] Última passagem de multiplicadores/limites do `search.cpp` e inputs numéricos de NNUE.
+- [ ] Revisão final de `engine/`, `online/` e `data/`.
+- [ ] Confirmar CI verde do head final.
+- [ ] Remover qualquer tooling/documentação ainda referenciada apenas pelo histórico antigo.
+
+### Regra
+
+Nenhuma correção de overflow deste bloco será misturada com a próxima otimização do hot path NNUE.
+
+## Ares — próxima sequência após estabilização
+
+1. **Baseline incremental NNUE:** manter `sync_board()` como referência de correção.
+2. **Hooks de mutação:** ligar mudanças de peça, stun, lifespan, cooldown, efeitos, TWC e lado a jogar ao accumulator.
+3. **Reversibilidade:** testar make/unmake do accumulator contra um rescan completo após sequências aleatórias.
+4. **Benchmark:** comparar NPS e custo por avaliação com o baseline, sem alterar depth/node budget.
+5. **Arena:** só aceitar a otimização depois de confirmar que a força permanece estável.
+6. **Depois:** quiescence e move ordering RPG, mas apenas um eixo por branch.
 
 ## Heróis e balanceamento
 
 - [ ] Reduzir lógica de herói espalhada.
 - [ ] Documentar cada herói de forma padronizada.
-- [ ] Melhorar Auto-Pricer.
-- [ ] Validar custos com uma Ares suficientemente forte.
+- [ ] Melhorar Auto-Pricer quando Ares estiver suficientemente estável.
+- [ ] Reavaliar FrostMage após NNUE/TT estarem estáveis.
 - [ ] Formalizar gelo e empilhamento de efeitos.
 
 ## Aplicação / UI
@@ -85,36 +79,43 @@ O bloco atual existe para eliminar classes de erro que podem contaminar o jogo, 
 - [ ] Animações/VFX/Som.
 - [ ] Definições.
 - [ ] Replays.
-- [ ] Histórico/análise pós-partida.
+- [ ] Histórico e análise no fim das partidas.
 - [ ] Várias resoluções.
+
+A UI deve ser validada jogando o jogo, não apenas por inspeção de código.
 
 ## Web / Multiplayer
 
-O `online/server/app.py` atual continua a ser um **relay/protótipo**, não um servidor autoritativo. Ele não deve ser tratado como segurança ou regra oficial do jogo.
-
+- [ ] Escolher stack web.
 - [ ] Definir API.
 - [ ] Cliente web.
-- [ ] Servidor autoritativo com `GameState`.
 - [ ] Autenticação.
-- [ ] Sessões.
+- [ ] Sessão/conta.
 - [ ] Matchmaking.
-- [ ] WebSocket/transporte persistente.
+- [ ] Transporte persistente/WebSocket.
+- [ ] Servidor autoritativo.
 - [ ] Relógios/reconexão.
 - [ ] Ranking/ELO/MMR.
+- [ ] Desafios/amigos/chat/rematch.
 - [ ] Espectadores.
-- [ ] Histórico/rematch.
+- [ ] Histórico.
 
-## Regra de branches e documentação
+## Regra de manutenção
 
-Cada branch começa com documentação atualizada e um bloco claramente definido. Erros encontrados durante o bloco são corrigidos na própria branch. O PR é aberto apenas quando o bloco está completo e testado.
+No início de cada branch:
 
-Depois do merge:
+- atualizar o último PR confirmado;
+- atualizar o estado relevante do sistema;
+- escrever objetivo e plano;
+- definir critérios de conclusão/abandono;
+- eliminar relíquias tocadas pela nova branch.
+
+Depois de cada merge:
 
 - atualizar documentação;
 - apagar a branch remota;
-- iniciar uma nova branch a partir da `main` atual;
-- não transportar relíquias da branch anterior.
+- confirmar que não ficaram branches experimentais sem necessidade.
 
-## Inspiração externa
+## Lançamento
 
-A direção continua inspirada em projetos grandes de engines: separar produção, testes, experimentação, benchmarking e infraestrutura. O objetivo é aproveitar a disciplina de projetos como Stockfish/Fairy-Stockfish sem copiar uma arquitetura de xadrez para um RPG que tem semântica própria.
+Só considerar o projeto concluído quando a aplicação local estiver utilizável, a Ares estiver suficientemente forte/rápida, a Arena funcional e existir uma versão web/multiplayer utilizável.
