@@ -7,6 +7,7 @@ on:
       - 'engine/heroes_config.json'
       - 'tools/balance/**'
       - 'tools/analytics/trainer.py'
+      - 'tools/analytics/benchmark_engine.py'
       - 'tools/nnue/**'
       - 'tests/test_auto_pricer.py'
       - 'tests/test_trainer.py'
@@ -62,11 +63,40 @@ jobs:
         ./cpp_smoke_test
     - name: Test Python NNUE Feature Layout
       run: pytest -q tests/test_nnue_features.py
+    - name: Generate Teacher Dataset
+      run: python tools/nnue/generate_teacher.py --engine ai/cpp_engine/engine --output /tmp/teacher.jsonl
+    - name: Install Optional NNUE Trainer
+      run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+    - name: Train Deterministic NNUE Smoke Model
+      run: python tools/nnue/train.py /tmp/teacher.jsonl --output /tmp/ares-trained.nnue --epochs 3 --batch-size 3 --seed 20260823
     - name: Test C++ NNUE Integration
       run: |
         python -m tools.nnue.bootstrap_model --output /tmp/ares-bootstrap.nnue
         g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/nnue.cpp ai/cpp_engine/search.cpp tests/cpp_nnue_test.cpp -o cpp_nnue_test
         REDWAR_NNUE_MODEL=/tmp/ares-bootstrap.nnue ./cpp_nnue_test
+        REDWAR_NNUE_MODEL=/tmp/ares-trained.nnue ./cpp_nnue_test
+    - name: Benchmark Classical vs Trained NNUE
+      run: |
+        classical=$(python tools/analytics/benchmark_engine.py --engine ai/cpp_engine/engine)
+        nnue=$(python tools/analytics/benchmark_engine.py --engine ai/cpp_engine/engine --nnue-model /tmp/ares-trained.nnue)
+        printf '%s\n' "$classical" | tee /tmp/classical-benchmark.txt
+        printf '%s\n' "$nnue" | tee /tmp/nnue-benchmark.txt
+        python - <<'PY'
+from pathlib import Path
+
+def read(path):
+    data={}
+    for line in Path(path).read_text().splitlines():
+        if '=' in line:
+            k,v=line.split('=',1)
+            data[k]=v
+    return data
+
+classic=read('/tmp/classical-benchmark.txt')
+trained=read('/tmp/nnue-benchmark.txt')
+print(f"classical_median={classic['median_seconds']} nnue_median={trained['median_seconds']}")
+print(f"classical_bestmove={classic['bestmove']} nnue_bestmove={trained['bestmove']}")
+PY
     - name: Test Auto-Pricer Overflow Regression
       run: pytest -q tests/test_auto_pricer.py
     - name: Test Trainer and Rules Regression
