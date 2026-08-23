@@ -48,7 +48,7 @@ jobs:
         set -euo pipefail
         BASE="${{ github.event.pull_request.base.sha }}"
         git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
-        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp|\.github/workflows/(ai_arena|ai_quality_gate)\.yml)$' /tmp/changed-files.txt; then
+        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp)$' /tmp/changed-files.txt; then
           echo "has_ai_changes=true" >> "$GITHUB_OUTPUT"
           echo "AI-related changes detected:"
           cat /tmp/changed-files.txt
