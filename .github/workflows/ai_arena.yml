@@ -3,7 +3,9 @@ name: RedWar AI Arena
 on:
   # Development Arena: every relevant AI push is evaluated. A branch is
   # serialized so a burst of commits never creates dozens of simultaneous
-  # tournaments. The run processes all AI commits since main in order.
+  # tournaments. Historical AI revisions are tested on the CURRENT main game
+  # rules, with only ai/** overlaid from the historical commit. This means a
+  # rules/gameplay change naturally invalidates old AIs unless they still win.
   push:
     branches-ignore:
       - main
@@ -68,7 +70,7 @@ jobs:
         echo "AI commits selected:"
         cat /tmp/ai-commits.txt
 
-    - name: Build baseline main engine once
+    - name: Build current main baseline once
       shell: bash
       run: |
         set -euo pipefail
@@ -79,7 +81,7 @@ jobs:
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
         chmod +x ai/cpp_engine/engine
 
-    - name: Arena each AI commit against main
+    - name: Arena each historical AI on current main rules
       shell: bash
       run: |
         set -u
@@ -94,12 +96,23 @@ jobs:
 
         while read -r COMMIT; do
           echo "============================================================"
-          echo "A/B Arena: $COMMIT vs main"
+          echo "A/B Arena: historical AI $COMMIT vs current main AI"
+          echo "Game rules: CURRENT main"
           echo "============================================================"
-          WORKTREE="/tmp/redwar-$COMMIT"
 
-          if ! git worktree add --detach "$WORKTREE" "$COMMIT"; then
-            echo "BUILD FAILURE: could not create worktree for $COMMIT" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
+          WORKTREE="/tmp/redwar-$COMMIT"
+          if ! git worktree add --detach "$WORKTREE" "$BASE_SHA"; then
+            echo "BUILD FAILURE: could not create current-rules worktree for $COMMIT" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
+            build_failures=$((build_failures + 1))
+            continue
+          fi
+
+          # Replace ONLY the AI layer with the historical revision.
+          # engine/, heroes_config.json, UI and all other gameplay rules remain
+          # at the current main revision.
+          if ! git -C "$WORKTREE" restore --source="$COMMIT" -- ai; then
+            echo "INCOMPATIBLE AI: could not overlay ai/ from $COMMIT onto current main rules" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
+            git worktree remove --force "$WORKTREE"
             build_failures=$((build_failures + 1))
             continue
           fi
@@ -108,7 +121,7 @@ jobs:
           cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
           if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
           if ! g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine; then
-            echo "BUILD FAILURE: $COMMIT" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
+            echo "BUILD FAILURE on CURRENT RULES: $COMMIT" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
             popd >/dev/null
             git worktree remove --force "$WORKTREE"
             build_failures=$((build_failures + 1))
@@ -117,10 +130,10 @@ jobs:
           chmod +x engine
           popd >/dev/null
 
-          # Short development tournament. The PR quality gate below uses the
-          # longer tournament and is the actual promotion decision.
+          # Short development tournament. The PR quality gate uses the longer
+          # tournament and is the actual promotion decision.
           set +e
-          python "$WORKTREE/tools/analytics/arena_tournament.py" \
+          python "$BASE_SHA/tools/analytics/arena_tournament.py" \
             --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
             --baseline-engine "/tmp/redwar-baseline/ai/cpp_engine/engine" \
             --jogos 20 \
@@ -136,7 +149,7 @@ jobs:
 
         git worktree remove --force /tmp/redwar-baseline || true
         if [[ "$build_failures" -ne 0 ]]; then
-          echo "One or more AI revisions failed to build."
+          echo "One or more historical AI revisions were incompatible with or failed against current main rules."
           exit 1
         fi
 
