@@ -47,6 +47,10 @@ jobs:
       run: |
         g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp tests/cpp_reversibility_test.cpp -o cpp_reversibility_test
         ./cpp_reversibility_test
+    - name: Test C++ Evaluation Smoke Tests
+      run: |
+        g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp ai/cpp_engine/SmokeTest.cpp -o cpp_smoke_test
+        ./cpp_smoke_test
     - name: Test Auto-Pricer Overflow Regression
       run: pytest -q tests/test_auto_pricer.py
     - name: Test Trainer and Rules Regression
