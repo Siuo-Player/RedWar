@@ -1,139 +1,125 @@
 # Contribuir para RedWar
 
-## Modelo do projeto
+## Modelo de desenvolvimento
 
-O repositório é público, mas existem **dois níveis diferentes de contribuição**.
+O projeto usa branches curtas e blocos de trabalho coerentes. `main` deve permanecer num estado utilizável e documentado.
 
-### Ares / `ai/`
+O princípio é semelhante ao usado em projetos de engines maiores: mudar uma hipótese por vez, medir, corrigir regressões e só promover alterações com evidência suficiente.
 
-A ideia é abrir a Ares à comunidade de forma semelhante ao espírito do Stockfish.
+## Ciclo de uma branch
 
-Uma alteração de IA não é aceite apenas porque compila.
+1. Ao criar/abrir uma branch, atualizar o `docs/ROADMAP.md` com o estado confirmado, objetivo, passos seguintes e critérios de aceitação.
+2. Desenvolver o bloco inteiro na própria branch.
+3. Qualquer erro encontrado durante o bloco é corrigido **na mesma branch**, antes do PR.
+4. Atualizar documentação e testes à medida que o comportamento real muda.
+5. Quando o bloco estiver completo e validado, abrir/atualizar o PR.
+6. Depois do merge, fechar/apagar a branch remota e atualizar novamente o roadmap para o próximo ciclo.
 
-Tem de demonstrar que melhora a engine segundo condições controladas.
+Um bug descoberto apenas depois de sair da branch original é corrigido na branch onde foi encontrado, com a documentação correspondente atualizada.
 
-Exemplos:
+Não abrir PRs intermédios apenas para guardar código parcialmente desenvolvido, salvo quando o PR tem deliberadamente esse papel e isso está documentado.
+
+## Ares / `ai/`
+
+Uma alteração da Ares não é aceite apenas porque compila.
+
+Deve procurar pelo menos uma destas metas:
 
 - maior força;
 - melhor desempenho sem perda de força;
-- correção de bug com melhoria mensurável;
+- correção necessária;
 - avaliação mais forte;
-- redução de memória sem perda significativa.
+- menor custo de memória sem perda significativa.
 
-### Restante projeto
+Para alterações funcionais, guardar `bestmove`, posições/referências, orçamento de nodes/tempo e resultados comparáveis.
 
-Alterações em:
+O objetivo final é **Elo por CPU-segundo**, não NPS isolado.
 
-- `engine/`;
-- `ui/`;
-- `online/`;
-- `tools/`;
-- `deploy/`;
-- documentação de produto;
-- regras;
+## Antes do PR
 
-podem ser propostas publicamente, mas a aceitação/merge é manual e pertence ao autor.
-
-## Branches
-
-Alterações devem ser trabalhadas em branches próprias:
-
-```bash
-git switch -c nome-da-alteracao
-```
-
-Não trabalhar diretamente em `main`.
-
-## Antes de abrir PR
-
-Executar pelo menos:
+Executar os testes relevantes do bloco e, antes de o fechar, a suite global disponível:
 
 ```bash
 pytest tests/
 ```
 
-Se houver alterações C++:
+Para C++:
 
 ```bash
-cd ai/cpp_engine
-g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
+python tools/scripts/build_cpp_engine.py
+python tools/scripts/build_cpp_engine.py --smoke
 ```
 
-No ambiente Windows do projeto, o `pre-push` também executa uma pipeline local de build/testes.
+Para alterações que possam afetar Arena/NNUE, executar também o benchmark/Arena correspondente.
 
-## Alterações na IA
+## Tools
 
-Para uma alteração de Ares, o PR deve explicar:
+`tools/` é tooling de desenvolvimento, experimentação e análise. Não deve duplicar as regras do `engine/`.
 
-1. o problema;
-2. o que foi alterado;
-3. como foi medido;
-4. contra que versão foi comparado;
-5. condições da pesquisa;
-6. número de jogos/posições;
-7. resultado.
+Preferir ferramentas pequenas e composicionais:
 
-Não basta dizer “parece melhor”.
+```text
+tools/analytics  -> experiências, Arena, análise e treino
+ tools/balance   -> balanceamento
+ tools/nnue      -> dataset/features/train/export
+ tools/scripts   -> build e auditoria
+```
+
+Scripts obsoletos devem ser removidos, não escondidos atrás de caminhos alternativos indefinidos.
+
+## Regras de estrutura
+
+- `engine/` é a fonte das regras durante a migração.
+- `ai/` é a fonte da pesquisa/avaliação.
+- `tests/` verifica invariantes.
+- `tools/` executa processos externos ao jogo.
+- `data/` guarda dados/datasets/artifacts apropriados.
+- `docs/` descreve o estado real e decisões.
+
+Não criar dependências circulares entre UI, regras e IA.
 
 ## Alterações de regras
 
-As regras do jogo são propriedade do design do projeto.
-
-Um PR pode sugerir:
-
-- uma nova mecânica;
-- um novo herói;
-- alteração de uma regra;
-- novo modo.
-
-Mas deve deixar explícito que é uma proposta de design e não assumir que a implementação proposta é automaticamente a regra correta.
-
-## Heróis
-
-Antes de criar código especial:
+Antes de adicionar lógica específica de herói:
 
 1. verificar `engine/heroes_config.json`;
 2. verificar `engine/HEROES_SCHEMA.md`;
-3. verificar se o comportamento pode ser expresso pela configuração existente;
-4. só adicionar lógica específica quando a habilidade for realmente nova.
+3. verificar se a habilidade já é expressável pelos dados existentes;
+4. só depois adicionar lógica nova.
 
-## Testes
+Mudanças de regras devem ter regressões quando possível.
 
-Mudanças de regras devem vir com regressões quando possível.
+## Testes prioritários
 
-Testes prioritários:
-
-- ações legais;
-- ações ilegais;
-- stun;
-- segundo stun/morte;
-- timers;
-- efeitos;
-- vitória;
-- ausência de movimentos;
+- ações legais/ilegais;
+- stun e segundo stun;
+- timers e efeitos;
+- vitória/ausência de movimentos;
+- `make → unmake`;
 - hash;
-- reversibilidade make/unmake.
+- parsing RWEN;
+- limites/extremos em fronteiras numéricas;
+- paridade Python/C++;
+- paridade Python/C++ das features NNUE.
 
 ## Commits
 
-Preferir commits pequenos e semanticamente focados:
+Preferir commits semanticamente focados:
 
 ```text
 fix: correct stun timer expiration
 refactor: isolate move ordering
 perf: reduce allocations in move generation
 test: add fire effect regression
-docs: update multiplayer architecture
+docs: update AI workflow
 ```
 
 ## Documentação
 
-Sempre que uma alteração mudar uma regra ou arquitetura, atualizar o documento correspondente.
+Sempre que o código mudar uma arquitetura, fluxo, regra ou interface importante, atualizar o documento correspondente na mesma branch.
 
-Não escrever documentos como se uma funcionalidade futura já existisse.
+Nunca documentar uma funcionalidade futura como se já existisse.
 
-## IA assistida
+## Inspiração externa
 
-O projeto foi desenvolvido com assistência de ferramentas de IA. Isso não altera a responsabilidade humana pela revisão do código, pela escolha da licença e pelo uso de conteúdo de terceiros.
-
-Qualquer contribuição assistida por IA deve ser tratada como código normal: deve ser compreendida, testada e revista antes de ser aceite.
+A organização e a metodologia devem ser comparadas regularmente com projetos maduros de código aberto. Stockfish/Fishtest e Fairy-Stockfish são referências especialmente úteis para separação de engine, testes, tooling, NNUE e medição estatística.
