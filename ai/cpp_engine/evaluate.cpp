@@ -24,6 +24,7 @@ struct PstHeroIds {
     int ghoul = -1;
     int sentry = -1;
     int frostmage = -1;
+    int lich = -1;
     int bonelord = -1;
     int phantom = -1;
 };
@@ -35,7 +36,7 @@ const PstHeroIds& pst_hero_ids() {
         if (auto it = PIECE_IDS.find("Ghoul"); it != PIECE_IDS.end()) result.ghoul = it->second;
         if (auto it = PIECE_IDS.find("Sentry"); it != PIECE_IDS.end()) result.sentry = it->second;
         if (auto it = PIECE_IDS.find("FrostMage"); it != PIECE_IDS.end()) result.frostmage = it->second;
-        if (auto it = PIECE_IDS.find("Lich"); it != PIECE_IDS.end() && result.frostmage < 0) result.frostmage = it->second;
+        if (auto it = PIECE_IDS.find("Lich"); it != PIECE_IDS.end()) result.lich = it->second;
         if (auto it = PIECE_IDS.find("BoneLord"); it != PIECE_IDS.end()) result.bonelord = it->second;
         if (auto it = PIECE_IDS.find("Phantom"); it != PIECE_IDS.end()) result.phantom = it->second;
         return result;
@@ -109,7 +110,7 @@ int get_positional_bonus(const Piece& p, int r, int c) {
     if (p.id == ids.sentry) {
         return PST_SENTRY[idx_r][idx_c];
     }
-    if (p.id == ids.frostmage) {
+    if (p.id == ids.frostmage || p.id == ids.lich) {
         return PST_FROSTMAGE[idx_r][idx_c];
     }
     if (p.id == ids.bonelord) {
