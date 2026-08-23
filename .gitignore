@@ -31,3 +31,11 @@ Thumbs.db
 *.exp
 build/
 *.exe
+
+# NNUE models e artefactos de treino
+*.nnue
+*.pt
+*.pth
+*.ckpt
+data/nnue/datasets/
+tools/nnue/checkpoints/
