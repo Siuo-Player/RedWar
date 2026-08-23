@@ -1,28 +1,31 @@
-# ai/arena_tournament.py
-import sys
-import os
+"""Headless A/B Arena for two explicit RedWar C++ engines."""
+
 import argparse
+import sys
+from pathlib import Path
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
+from ai.bot import CppEngineBot
 from engine.game_state import GameState
 from tools.analytics.opening_book import carregar_abertura_do_book
-from ai.bot import TREINO_INICIANTE, TREINO_INTERMEDIO, TREINO_AVANCADO
 
 
-def verificar_promocao(vitorias_desafiante, vitorias_atual, margem=5):
-    diferenca = vitorias_desafiante - vitorias_atual
-    return diferenca >= margem
+def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
+    return vitorias_desafiante - vitorias_atual >= margem
 
 
-def run_headless_match(bot_brancas, bot_pretas, opening_index=0):
+def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0):
     gs = GameState(time_limit_seconds=99999)
     seed = carregar_abertura_do_book(gs, opening_index)
 
     turnos = 0
     while not gs.game_over and turnos < 200:
         turnos += 1
-        best_move = bot_brancas.play(gs) if gs.white_to_move else bot_pretas.play(gs)
+        bot = bot_brancas if gs.white_to_move else bot_pretas
+        best_move = bot.play(gs)
         if best_move:
             gs.execute_action(best_move)
         else:
@@ -33,39 +36,92 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index=0):
     return gs.winner, seed
 
 
-def start_tournament(num_games, win_threshold):
-    print(f"⚔️ A INICIAR TORNEIO DE ARENA: {num_games} JOGOS (Margem exigida: {win_threshold})")
+def start_tournament(
+    challenger_engine: str,
+    baseline_engine: str,
+    num_games: int,
+    win_threshold: int,
+    nodes: int,
+) -> int:
+    print(
+        f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS "
+        f"(margem exigida: {win_threshold}, nodes: {nodes})"
+    )
+    print(f"Challenger: {challenger_engine}")
+    print(f"Baseline:   {baseline_engine}")
+
     wins_challenger = wins_baseline = draws = 0
+    challenger = CppEngineBot(nodes=nodes, executable_path=challenger_engine)
+    baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
 
-    for i in range(num_games):
-        opening_index = i % 16
-        if i % 2 == 0:
-            winner, seed = run_headless_match(TREINO_AVANCADO, TREINO_INTERMEDIO, opening_index)
-            if winner and "Brancas" in str(winner): wins_challenger += 1
-            elif winner and "Pretas" in str(winner): wins_baseline += 1
-            else: draws += 1
-        else:
-            winner, seed = run_headless_match(TREINO_INTERMEDIO, TREINO_AVANCADO, opening_index)
-            if winner and "Pretas" in str(winner): wins_challenger += 1
-            elif winner and "Brancas" in str(winner): wins_baseline += 1
-            else: draws += 1
+    try:
+        for i in range(num_games):
+            opening_index = i % 16
+            if i % 2 == 0:
+                winner, seed = run_headless_match(challenger, baseline, opening_index)
+                if winner and "Brancas" in str(winner):
+                    wins_challenger += 1
+                elif winner and "Pretas" in str(winner):
+                    wins_baseline += 1
+                else:
+                    draws += 1
+            else:
+                winner, seed = run_headless_match(baseline, challenger, opening_index)
+                if winner and "Pretas" in str(winner):
+                    wins_challenger += 1
+                elif winner and "Brancas" in str(winner):
+                    wins_baseline += 1
+                else:
+                    draws += 1
 
-        sys.stdout.write(f"\rJogos completados: {i + 1}/{num_games} (seed {seed})")
-        sys.stdout.flush()
+            sys.stdout.write(
+                f"\rJogos completados: {i + 1}/{num_games} (seed {seed})"
+            )
+            sys.stdout.flush()
 
-    win_rate = (wins_challenger / max(1, num_games)) * 100
-    print(f"\n\nResultados: Desafiante {wins_challenger} | Campeão {wins_baseline} | Empates {draws}")
-    print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
+        diferenca = wins_challenger - wins_baseline
+        win_rate = wins_challenger / max(1, num_games) * 100.0
+        promoted = verificar_promocao(wins_challenger, wins_baseline, win_threshold)
 
-    if verificar_promocao(wins_challenger, wins_baseline, win_threshold):
-        print(f"👑 SUCESSO: O Desafiante superou o Campeão por uma margem >= {win_threshold} vitórias!")
-    else:
-        print(f"❌ FALHA: O Desafiante não atingiu a margem de {win_threshold} vitórias para ser promovido.")
+        print(
+            f"\n\nResultados: Challenger {wins_challenger} | "
+            f"Baseline {wins_baseline} | Empates {draws}"
+        )
+        print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
+        print(f"Margem Challenger-Baseline: {diferenca:+d}")
+        if promoted:
+            print(
+                f"👑 SUCESSO: Challenger superou a baseline por >= {win_threshold} vitórias."
+            )
+            return 0
+
+        print(
+            f"❌ FALHA: Challenger não atingiu a margem de {win_threshold} vitórias."
+        )
+        return 1
+    finally:
+        # Explicitly terminate both engine processes even on a failed game.
+        for bot in (challenger, baseline):
+            bot.__del__()
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="A/B Arena entre duas engines RedWar")
+    parser.add_argument("--challenger-engine", required=True)
+    parser.add_argument("--baseline-engine", required=True)
+    parser.add_argument("--jogos", type=int, default=100)
+    parser.add_argument("--margem-vitorias", type=int, default=10)
+    parser.add_argument("--nodes", type=int, default=10_000)
+    args = parser.parse_args()
+
+    return start_tournament(
+        challenger_engine=args.challenger_engine,
+        baseline_engine=args.baseline_engine,
+        num_games=args.jogos,
+        win_threshold=args.margem_vitorias,
+        nodes=args.nodes,
+    )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Torneio da Arena RedWar")
-    parser.add_argument("--jogos", type=int, default=50, help="Número total de partidas")
-    parser.add_argument("--margem_vitorias", type=int, default=5, help="Diferença mínima de vitórias exigida")
-    args = parser.parse_args()
-    start_tournament(args.jogos, args.margem_vitorias)
+    raise SystemExit(main())
