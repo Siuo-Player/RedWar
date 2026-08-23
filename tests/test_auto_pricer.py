@@ -49,3 +49,41 @@ def test_balance_calculation_does_not_mutate_hero_config():
     assert heroes == {"Knight": {"cost": 50}}
     assert report["valid_matches"] == 1
     assert report["changes"][0]["old_cost"] == 50
+
+
+def test_balance_rejects_unbounded_draft_quantity():
+    stats = {
+        "matches": [
+            {
+                "valid": True,
+                "white_elo": 1000,
+                "black_elo": 1000,
+                "white_draft": {"Knight": 10**100},
+                "black_draft": {},
+                "result": 1.0,
+            }
+        ]
+    }
+    heroes = {"Knight": {"cost": 50}}
+
+    with pytest.raises(ValueError, match="Quantidade fora de gama"):
+        calcular_balanceamento(stats, heroes)
+
+
+def test_balance_rejects_non_integer_draft_quantity():
+    stats = {
+        "matches": [
+            {
+                "valid": True,
+                "white_elo": 1000,
+                "black_elo": 1000,
+                "white_draft": {"Knight": 1.5},
+                "black_draft": {},
+                "result": 1.0,
+            }
+        ]
+    }
+    heroes = {"Knight": {"cost": 50}}
+
+    with pytest.raises(ValueError, match="Quantidade inválida"):
+        calcular_balanceamento(stats, heroes)
