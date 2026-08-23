@@ -3,7 +3,6 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -37,7 +36,7 @@ int main() {
         const auto base = redwar::nnue::evaluate();
         require(base.has_value(), "NNUE did not evaluate base position");
 
-        set_position("W_FrostMage_0_N_0,B_Bone_1_N_0,.,.,W_fire_3,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. W 12");
+        set_position("W_FrostMage_1_N_0,B_Bone_2_4_3,.,.,.:W_fire_3,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17");
         const auto changed = redwar::nnue::evaluate();
         require(changed.has_value(), "NNUE did not evaluate changed position");
         require(*changed != *base, "NNUE accumulator ignored RPG state changes");
