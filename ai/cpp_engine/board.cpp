@@ -394,6 +394,10 @@ UndoInfo make_move(const Move& m) {
     undo.actor_piece = board.pieces[m.sr][m.sc];
     undo.target_piece = board.pieces[m.er][m.ec];
     undo.twc_backup = board.twc;
+    undo.hash_backup = board.hash;
+    undo.material_score_backup = board.material_score;
+    undo.white_pieces_backup = board.white_pieces;
+    undo.black_pieces_backup = board.black_pieces;
 
     if (undo.actor_piece.is_empty) throw std::runtime_error("make_move: source square is empty");
 
@@ -529,7 +533,6 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
     restore_timers(undo);
 
     board.turn = (board.turn == 'W') ? 'B' : 'W';
-    board.hash ^= ZOBRIST_SIDE_TO_MOVE;
     board.twc = undo.twc_backup;
 
     if (m.spell_name == "ignite") {
@@ -548,4 +551,9 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
 
     update_piece(m.sr, m.sc, undo.actor_piece);
     update_piece(m.er, m.ec, undo.target_piece);
+
+    board.hash = undo.hash_backup;
+    board.material_score = undo.material_score_backup;
+    board.white_pieces = undo.white_pieces_backup;
+    board.black_pieces = undo.black_pieces_backup;
 }

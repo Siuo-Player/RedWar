@@ -157,6 +157,53 @@ int main() {
     std::cout << "Inquisitor adjacent attack: "
               << (inquisitor_ok ? "PASS" : "FAIL") << '\n';
 
+    // FrostMage pressure is a dynamic evaluation term, not part of the
+    // incremental material score. Moving the target outside the stun envelope
+    // must remove the pressure without corrupting material_score.
+    clear_board();
+    board.turn = 'W';
+    board.pieces[4][4] = create_piece("FrostMage", 'W');
+    board.pieces[4][0] = create_piece("Bone", 'B');
+    board.hash = compute_initial_hash();
+    compute_initial_eval();
+    const int pressure_score = evaluate_board();
+    const int pressure_material = board.material_score;
+
+    clear_board();
+    board.turn = 'W';
+    board.pieces[4][4] = create_piece("FrostMage", 'W');
+    board.pieces[0][0] = create_piece("Bone", 'B');
+    board.hash = compute_initial_hash();
+    compute_initial_eval();
+    const int no_pressure_score = evaluate_board();
+    const int no_pressure_material = board.material_score;
+
+    const bool frost_pressure_ok = pressure_score > no_pressure_score &&
+                                   pressure_material == no_pressure_material;
+    all_ok &= frost_pressure_ok;
+    std::cout << "FrostMage stun pressure: "
+              << (frost_pressure_ok ? "PASS" : "FAIL") << '\n';
+
+    // A stunned target is more valuable as an immediate tactical opportunity
+    // than an otherwise identical unstunned target.
+    clear_board();
+    board.turn = 'W';
+    board.pieces[4][4] = create_piece("FrostMage", 'W');
+    board.pieces[4][1] = create_piece("BoneLord", 'B');
+    board.hash = compute_initial_hash();
+    compute_initial_eval();
+    const int unstunned_score = evaluate_board();
+
+    board.pieces[4][1].stun_timer = 1;
+    board.hash = compute_initial_hash();
+    compute_initial_eval();
+    const int stunned_score = evaluate_board();
+
+    const bool stunned_target_ok = stunned_score > unstunned_score;
+    all_ok &= stunned_target_ok;
+    std::cout << "FrostMage stunned-target pressure: "
+              << (stunned_target_ok ? "PASS" : "FAIL") << '\n';
+
     // Make/unmake must be an exact identity for the complete board state.
     clear_board();
     board.turn = 'W';
@@ -173,7 +220,6 @@ int main() {
     if (!legal_moves.empty()) {
         const Move move = legal_moves.front();
         const UndoInfo undo = make_move(move);
-
         const bool hash_changed = (before.hash != board.hash);
 
         unmake_move(move, undo);
@@ -188,7 +234,7 @@ int main() {
     std::cout << "Make/Unmake identity: "
               << (roundtrip_ok ? "PASS" : "FAIL") << '\n';
 
-    // The incremental evaluation must agree with a fresh recomputation.
+    // The incremental material evaluation must agree with a fresh recomputation.
     const int incremental_score = board.material_score;
     compute_initial_eval();
     const bool evaluation_ok = (incremental_score == board.material_score);

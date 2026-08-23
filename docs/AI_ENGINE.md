@@ -1,190 +1,99 @@
 # Ares — AI Engine
 
-## 1. Objetivo
+## Objetivo
 
-Ares é a inteligência artificial de RedWar.
+Ares é a inteligência artificial de RedWar. O objetivo é uma engine especializada que melhore continuamente através de alterações mensuráveis, usando sempre a versão anterior como referência.
 
-O objetivo final é semelhante ao espírito do Stockfish:
+Uma melhoria válida precisa de manter as regras e o orçamento de pesquisa comparáveis e demonstrar ganho de força, velocidade ou ambos. Código mais complexo não é automaticamente melhor.
 
-> uma engine especializada que melhora continuamente através de alterações mensuráveis e que pode ser testada por uma comunidade.
+## Estado atual confirmado — PR #47
 
-Ares deve servir tanto como:
+O último PR integrado adicionou um self-test nativo de `make_move`/`unmake_move`. O teste verifica restauração do `BoardState`, peças, efeitos, timers, hash, avaliação material, contadores e turno em posições com movimento/captura, stun, spawn e efeitos temporizados.
 
-- adversário do jogador;
-- ferramenta de análise de posições;
-- ferramenta de análise de partidas;
-- componente de bots com diferentes forças;
-- objeto de benchmarking entre versões.
+Isto dá-nos uma fundação segura para otimizações e alterações de avaliação: primeiro preservamos reversibilidade, depois mudamos força/desempenho.
 
-## 2. O que significa “melhor”
+## Pesquisa
 
-Uma alteração na Ares é melhor quando, sob condições controladas, consegue jogar melhor que a versão anterior.
+O núcleo C++ utiliza atualmente alpha-beta, ordenação de ações, transposition table, Zobrist hashing, killer moves, history heuristic, iterative deepening e pesquisa quiescente/tática.
 
-Elegância, quantidade de código ou complexidade da heurística não são suficientes.
+O C++ é o hot path principal. Python/Cython continuam durante a migração e para componentes auxiliares.
 
-A unidade de avaliação é uma comparação:
+## Avaliação
+
+A avaliação atual deriva principalmente de valor material, posição, timers e estado de stun. O próximo foco é fazer com que o valor de uma posição reflita melhor ameaças específicas de RedWar, especialmente a cadeia:
 
 ```text
-Ares anterior
-    vs
-Ares proposta
+normal -> stun -> segundo stun = morte
 ```
 
-com:
+Uma peça atordoada não tem apenas valor material reduzido: pode representar uma oportunidade tática imediata para o adversário.
 
-- mesmas regras;
-- mesmos limites de pesquisa;
-- condições equivalentes;
-- cores alternadas;
-- número estatisticamente suficiente de partidas.
+### FrostMage como sanity check
 
-## 3. Pesquisa
+`FrostMage` custa atualmente **5 pontos** no `heroes_config.json`. A unidade de 5 pontos tem capacidade de aplicar stun em área a até 3 casas de distância. Portanto, uma Ares competente não deve avaliá-la apenas como uma peça material de 5 pontos.
 
-O núcleo atual utiliza conceitos como:
+O objetivo não é colocar um valor arbitrário permanente no FrostMage. A avaliação deve reconhecer a **pressão real da posição**: inimigos alcançáveis por stun, especialmente peças já atordoadas que podem morrer com uma segunda aplicação.
 
-- minimax/negamax;
-- alpha-beta pruning;
-- move ordering;
-- transposition table;
-- Zobrist hashing;
-- killer moves;
-- history heuristic;
-- iterative deepening;
-- pesquisa quiescente/tática onde suportada.
+## Plano da branch atual
 
-A lista não deve ser interpretada como prova de que cada técnica está perfeita ou sequer concluída. O estado real da implementação deve ser validado pelo código e pelos testes.
+Branch: `perf/ares-stun-threat-eval-2026-08-23`
 
-## 4. Avaliação
+Objetivo: aumentar a qualidade da avaliação perante ameaças de stun com custo por nó baixo e sem aumentar profundidade/orçamento.
 
-A avaliação atual deriva principalmente do valor material e de informação posicional/estado.
+Passos:
 
-Futuras componentes podem incluir:
+1. Medir a avaliação atual em posições pequenas com FrostMage.
+2. Implementar uma estimativa barata e bounded de pressão de stun diretamente a partir do estado do tabuleiro.
+3. Dar peso adicional a alvos já atordoados, porque o próximo stun pode convertê-los em morte.
+4. Manter o termo simétrico para White/Black e limitar o impacto para impedir que substitua material/terminal scores.
+5. Adicionar regressões determinísticas.
+6. Comparar `bestmove`, tempo mediano/NPS e, quando disponível, resultados da Arena.
+7. Só fazer merge se a alteração melhorar decisões táticas ou mostrar uma melhoria inequívoca sem regressão relevante.
 
-- mobilidade;
-- ameaça imediata;
-- controlo do tabuleiro;
-- valor do stun;
-- valor de cooldowns;
-- valor de efeitos de terreno;
-- potencial de invocação;
-- segurança de posições;
-- fatores específicos das condições de vitória.
+Se a branch ficar a meio, o ponto de continuação é `ai/cpp_engine/evaluate.cpp`: a função `get_piece_value()` concentra a avaliação incremental e `compute_initial_eval()` mantém o `material_score`. O teste deve ser executado antes de qualquer alteração adicional.
 
-A expansão da avaliação deve ser acompanhada de testes de força. Uma avaliação teoricamente mais sofisticada pode piorar a engine.
+## Reversibilidade e hashing
 
-## 5. Stun e morte
+A identidade da posição inclui peças, efeitos, stun timer, lifespan, cooldowns, contador sem captura e lado a jogar. O hash incremental deve coincidir com o hash recalculado.
 
-Ares precisa compreender que:
-
-```text
-normal -> stun
-stun   -> novo stun = morte
-```
-
-Isto é diferente de um jogo tradicional onde captura e dano são praticamente a mesma operação.
-
-Uma posição com uma peça atordoada pode ser muito mais perigosa do que o seu valor material sugere.
-
-## 6. Timers e estado temporal
-
-A posição inclui informação temporal.
-
-Faz parte da identidade da posição:
-
-- stun timer;
-- lifespan;
-- cooldown;
-- efeitos da casa;
-- contador de turnos sem captura;
-- lado a jogar.
-
-Uma transposition table não pode tratar duas posições que diferem nesses valores como sendo a mesma posição.
-
-## 7. C++
-
-O caminho principal para o hot path é C++.
-
-A pasta `ai/cpp_engine/` contém atualmente:
-
-```text
-board.cpp      # estado, hash e transições
-movegen.cpp    # geração de ações
-search.cpp     # pesquisa
- evaluate.cpp  # avaliação
-main.cpp       # interface/protocolo
- types.hpp     # tipos e limites partilhados
-SmokeTest.cpp  # testes nativos
-```
-
-O projeto ainda possui componentes Python/Cython durante a migração.
-
-## 8. Reversibilidade
-
-Uma propriedade essencial da engine é:
+A relação obrigatória é:
 
 ```text
 S --make(M)--> S'
 S' --unmake(M)--> S
 ```
 
-A posição deve voltar exatamente ao estado anterior, incluindo:
+O self-test introduzido no PR #47 cobre uma parte importante desta propriedade; a meta futura é cobrir toda a árvore de regras.
 
-- peças;
-- efeitos;
-- timers;
-- turno;
-- contador sem captura;
-- hash;
-- avaliação incremental.
+## Testes e força
 
-## 9. Hashing
+Além dos testes unitários:
 
-O hashing de posição deve distinguir qualquer informação relevante para a pesquisa.
-
-Também deve existir uma forma de recalcular o hash a partir do estado e verificar que o hash incremental coincide com esse resultado.
-
-## 10. Arena
-
-A Arena é o futuro mecanismo de contribuição aberta.
-
-Idealmente, um Pull Request de IA será comparado com o estado anterior do Ares, não contra um bot fixo arbitrário.
-
-O pipeline atual é experimental e está a ser calibrado.
-
-O workflow atual executa um torneio headless de 100 jogos com uma margem configurada de 10 vitórias. Estes valores podem mudar conforme a experiência e a velocidade da engine.
-
-## 11. ELO
-
-Os números existentes de 100/140/200/250/300 não devem ser tratados como ratings oficiais.
-
-O projeto pretende futuramente criar um rating válido para:
-
-- versões da Ares;
-- bots de diferentes configurações;
-- eventualmente jogadores humanos.
-
-Para uma engine, o rating deve incluir metodologia, controlo de condições e amostra suficiente.
-
-## 12. Testes de força
-
-Além dos testes unitários, o Ares deve ser validado através de:
-
-- self-play;
-- posições de referência;
-- regressão de resultados;
-- benchmarks de NPS;
-- profundidade média;
-- taxa de acerto da TT;
-- resultados da Arena;
+- benchmark determinístico;
+- `bestmove` como regressão rápida;
+- NPS e tempo por nó;
+- profundidade;
+- TT hit rate;
+- self-play/Arena;
+- suite de posições de referência;
 - testes diferenciais Python/C++.
 
-## 13. Objetivos futuros
+Nenhuma otimização deve reduzir silenciosamente a qualidade da pesquisa apenas para apresentar números de velocidade melhores.
 
-- tornar o C++ o único hot path da pesquisa;
-- eliminar regras duplicadas entre Python e C++;
-- aumentar NPS sem sacrificar correção;
-- melhorar quiescence para as formas de volatilidade próprias de RedWar;
-- construir benchmark suite reproducível;
-- tornar a Arena estatisticamente mais semelhante ao espírito do Fishtest;
-- guardar histórico de versões e resultados;
-- produzir análise útil para o jogador, não apenas `bestmove`.
+## Arena e balanceamento
+
+A Arena deve comparar Ares anterior vs candidata sob condições equivalentes. O Auto-Pricer deve depender de telemetria suficiente e não ser usado como substituto de testes de força.
+
+Depois de a avaliação de stun melhorar, FrostMage deve voltar a ser analisado explicitamente no balanceamento. O custo atual de 5 pontos é uma bandeira de sanidade, não um objetivo artificial a atingir.
+
+## Próximos objetivos da IA
+
+- Melhorar avaliação de ameaças e especificidades de RedWar.
+- Melhorar geração/ordenação de ações.
+- Melhorar quiescence.
+- Aumentar NPS sem sacrificar força.
+- Expandir benchmark suite.
+- Medir historicamente força e desempenho.
+- Melhorar a Arena para comparação estatística.
+- Criar rating/ELO das engines.
+- Eliminar divergências Python/C++.
