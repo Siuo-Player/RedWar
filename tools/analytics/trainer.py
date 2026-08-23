@@ -10,13 +10,21 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
-from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO, BOT_ALEATORIO
+from ai.bot import CppEngineBot, BOT_ALEATORIO
+
+# The trainer must stay cheap: 200 sequential heterogeneous games use small budgets.
+TRAINER_INICIANTE = CppEngineBot(nodes=1000)
+TRAINER_INTERMEDIO = CppEngineBot(nodes=5000)
+TRAINER_AVANCADO = CppEngineBot(nodes=10000)
+TRAINER_INICIANTE.nome = "Trainer Iniciante (N1k)"
+TRAINER_INTERMEDIO.nome = "Trainer Intermédio (N5k)"
+TRAINER_AVANCADO.nome = "Trainer Avançado (N10k)"
 
 POOL_BOTS = [
     (BOT_ALEATORIO, 100),
-    (BOT_INICIANTE, 900),
-    (BOT_INTERMEDIO, 1500),
-    (BOT_AVANCADO, 2000)
+    (TRAINER_INICIANTE, 900),
+    (TRAINER_INTERMEDIO, 1500),
+    (TRAINER_AVANCADO, 2000)
 ]
 
 MAX_TURNS_PER_GAME = 200
@@ -134,8 +142,8 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
         )
         segundos_restantes = turnos_estimados_restantes * t_medio_turno
 
-        nome_b = bot_brancas.nome[:10]
-        nome_p = bot_pretas.nome[:10]
+        nome_b = bot_brancas.nome[:18]
+        nome_p = bot_pretas.nome[:18]
         sys.stdout.write(
             f"\r[Jogo {jogo_idx}/{total_jogos}] "
             f"Turno {turnos} | "
