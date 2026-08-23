@@ -1,11 +1,6 @@
 name: RedWar AI Arena
 
 on:
-  # Development Arena: every relevant AI push is evaluated. A branch is
-  # serialized so a burst of commits never creates dozens of simultaneous
-  # tournaments. Historical AI revisions are tested on the CURRENT main game
-  # rules, with only ai/** overlaid from the historical commit. This means a
-  # rules/gameplay change naturally invalidates old AIs unless they still win.
   push:
     branches-ignore:
       - main
@@ -59,16 +54,12 @@ jobs:
         echo "BASE_SHA=$BASE" >> "$GITHUB_ENV"
         git rev-list --reverse "$BASE..HEAD" > /tmp/all-commits.txt
         : > /tmp/ai-commits.txt
-
         while read -r COMMIT; do
           FILES=$(git diff-tree --no-commit-id --name-only -r "$COMMIT")
           if echo "$FILES" | grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp|\.github/workflows/ai_arena\.yml)'; then
             echo "$COMMIT" >> /tmp/ai-commits.txt
           fi
         done < /tmp/all-commits.txt
-
-        echo "AI commits selected:"
-        cat /tmp/ai-commits.txt
 
     - name: Build current main baseline once
       shell: bash
@@ -81,73 +72,71 @@ jobs:
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
         chmod +x ai/cpp_engine/engine
 
-    - name: Arena each historical AI on current main rules
+    - name: Arena every AI revision with current rules
       shell: bash
       run: |
         set -u
         mkdir -p /tmp/redwar-arena-results
-        build_failures=0
-
-        if [[ ! -s /tmp/ai-commits.txt ]]; then
-          echo "No AI-related commits in this branch; nothing to benchmark."
-          git worktree remove --force /tmp/redwar-baseline || true
-          exit 0
-        fi
+        current_head_failed=0
+        historical_failures=0
 
         while read -r COMMIT; do
+          [[ -z "$COMMIT" ]] && continue
+          PREFIX="/tmp/redwar-arena-results/${COMMIT}"
+          WORKTREE="/tmp/redwar-$COMMIT"
           echo "============================================================"
-          echo "A/B Arena: historical AI $COMMIT vs current main AI"
-          echo "Game rules: CURRENT main"
+          echo "A/B Arena: $COMMIT vs current main AI"
           echo "============================================================"
 
-          WORKTREE="/tmp/redwar-$COMMIT"
           if ! git worktree add --detach "$WORKTREE" "$BASE_SHA"; then
-            echo "BUILD FAILURE: could not create current-rules worktree for $COMMIT" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
-            build_failures=$((build_failures + 1))
-            continue
+            echo "BUILD FAILURE: worktree" | tee "${PREFIX}-error.txt"
+            historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1; continue
           fi
 
-          # Replace ONLY the AI layer with the historical revision.
-          # engine/, heroes_config.json, UI and all other gameplay rules remain
-          # at the current main revision.
           if ! git -C "$WORKTREE" restore --source="$COMMIT" -- ai; then
-            echo "INCOMPATIBLE AI: could not overlay ai/ from $COMMIT onto current main rules" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
-            git worktree remove --force "$WORKTREE"
-            build_failures=$((build_failures + 1))
-            continue
+            echo "INCOMPATIBLE AI: overlay failed" | tee "${PREFIX}-error.txt"
+            git worktree remove --force "$WORKTREE"; historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1; continue
           fi
 
           pushd "$WORKTREE/ai/cpp_engine" >/dev/null
           cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
           if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
-          if ! g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine; then
-            echo "BUILD FAILURE on CURRENT RULES: $COMMIT" | tee "/tmp/redwar-arena-results/${COMMIT}-error.txt"
-            popd >/dev/null
-            git worktree remove --force "$WORKTREE"
-            build_failures=$((build_failures + 1))
-            continue
+          if ! g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine 2> >(tee "${PREFIX}-build-stderr.txt" >&2); then
+            echo "BUILD FAILURE: $COMMIT" | tee "${PREFIX}-error.txt"
+            popd >/dev/null; git worktree remove --force "$WORKTREE"; historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1; continue
           fi
           chmod +x engine
           popd >/dev/null
 
+          # Use the current branch's harness: historical AI is the candidate,
+          # while the game rules and test protocol stay current.
           set +e
-          python /tmp/redwar-baseline/tools/analytics/arena_tournament.py \
+          python "$GITHUB_WORKSPACE/tools/analytics/arena_tournament.py" \
             --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
             --baseline-engine "/tmp/redwar-baseline/ai/cpp_engine/engine" \
             --jogos 20 \
             --margem-vitorias 3 \
             --nodes 10000 \
-            --results "/tmp/redwar-arena-results/${COMMIT}-games.jsonl"
-          rc=$?
+            --results "${PREFIX}-games.jsonl" \
+            2>&1 | tee "${PREFIX}-arena.txt"
+          rc=${PIPESTATUS[0]}
           set -e
-          echo "arena_exit_code=$rc" >> "/tmp/redwar-arena-results/${COMMIT}-arena.txt"
+          echo "arena_exit_code=$rc" >> "${PREFIX}-arena.txt"
+          if [[ "$rc" -ne 0 ]]; then
+            historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1
+          fi
 
           git worktree remove --force "$WORKTREE"
         done < /tmp/ai-commits.txt
 
         git worktree remove --force /tmp/redwar-baseline || true
-        if [[ "$build_failures" -ne 0 ]]; then
-          echo "One or more historical AI revisions were incompatible with or failed against current main rules."
+        echo "historical_failures=$historical_failures"
+        echo "current_head_failed=$current_head_failed"
+
+        # Historical failures are preserved as evidence and identify non-candidates.
+        # The current revision itself must pass; otherwise the branch must not merge.
+        if [[ "$current_head_failed" -ne 0 ]]; then
+          echo "Current AI revision failed Arena validation."
           exit 1
         fi
 
