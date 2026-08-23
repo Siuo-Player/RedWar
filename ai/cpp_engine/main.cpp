@@ -1,7 +1,6 @@
 #include "types.hpp"
 #include "nnue.hpp"
 
-#include <cmath>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -13,17 +12,13 @@ int main() {
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(nullptr);
 
-    // Loading is optional. With no model file, Ares keeps the classical evaluator.
     redwar::nnue::load_model();
-
     std::string command;
     std::thread search_thread;
 
     const auto stop_search = [&]() {
         abort_search = true;
-        if (search_thread.joinable()) {
-            search_thread.join();
-        }
+        if (search_thread.joinable()) search_thread.join();
     };
 
     const auto launch_search = [&](int depth) {
@@ -46,15 +41,8 @@ int main() {
         if (command.empty()) continue;
 
         try {
-            if (command == "quit") {
-                stop_search();
-                break;
-            }
-
-            if (command == "stop") {
-                stop_search();
-                continue;
-            }
+            if (command == "quit") { stop_search(); break; }
+            if (command == "stop") { stop_search(); continue; }
 
             constexpr const char* POSITION_PREFIX = "position rwen ";
             if (command.rfind(POSITION_PREFIX, 0) == 0) {
@@ -84,15 +72,19 @@ int main() {
                 continue;
             }
 
-            if (command == "eval" || command == "eval classical") {
+            if (command == "eval classical") {
                 stop_search();
-                const int classical = evaluate_board();
-                std::cout << "info score classical " << classical << '\n';
-                if (command == "eval") {
-                    const auto nnue_score = redwar::nnue::evaluate();
-                    if (nnue_score.has_value()) std::cout << "info score nnue " << *nnue_score << '\n';
-                    else std::cout << "info score nnue unavailable\n";
-                }
+                std::cout << "info score classical " << evaluate_classical_board() << '\n';
+                std::cout.flush();
+                continue;
+            }
+
+            if (command == "eval") {
+                stop_search();
+                std::cout << "info score classical " << evaluate_classical_board() << '\n';
+                const auto nnue_score = redwar::nnue::evaluate();
+                if (nnue_score.has_value()) std::cout << "info score nnue " << *nnue_score << '\n';
+                else std::cout << "info score nnue unavailable\n";
                 std::cout.flush();
                 continue;
             }
@@ -123,13 +115,9 @@ int main() {
                 if (args.rfind(NODES_PREFIX, 0) == 0) {
                     const std::string value_text = args.substr(std::char_traits<char>::length(NODES_PREFIX));
                     if (value_text.empty()) throw std::runtime_error("go nodes requires a node count");
-
                     std::size_t consumed = 0;
                     const uint64_t value = std::stoull(value_text, &consumed);
-                    if (consumed != value_text.size()) {
-                        throw std::runtime_error("invalid node count: " + value_text);
-                    }
-
+                    if (consumed != value_text.size()) throw std::runtime_error("invalid node count: " + value_text);
                     node_limit = value;
                     time_limit_ms = 3000.0;
                     launch_search(MAX_PLY - 1);
