@@ -25,14 +25,10 @@ def calcular_win_esperada(elo_a, elo_b):
         raise ValueError("ELO deve ser finito")
 
     x = (elo_b - elo_a) / ELO_SCALE
-
-    # Evita calcular 10 ** x para valores extremos, que pode lançar
-    # OverflowError e bloquear o workflow do auto-balancer.
     if x >= 50.0:
         return 0.0
     if x <= -50.0:
         return 1.0
-
     return 1.0 / (1.0 + math.pow(10.0, x))
 
 
@@ -49,20 +45,25 @@ def executar_balanceamento_automatico():
     with open(ARQUIVO_HEROES, "r", encoding="utf-8") as f:
         heroes = json.load(f)
 
-    custos_atuais = {
-        name: data.get("cost", 0)
-        for name, data in heroes.items()
-    }
+    custos_atuais = {name: data.get("cost", 0) for name, data in heroes.items()}
 
     matches = stats.get("matches", [])
-    if not matches:
-        print("⚠️ Sem partidas no histórico.")
+    valid_matches = [match for match in matches if match.get("valid", True)]
+    invalid_count = len(matches) - len(valid_matches)
+
+    print(
+        f"🧪 Telemetria: {len(valid_matches)} partidas válidas, "
+        f"{invalid_count} descartadas por ação inválida."
+    )
+
+    if not valid_matches:
+        print("❌ Nenhuma partida válida disponível para balanceamento.")
         return
 
     piece_score_delta = {peca: 0.0 for peca in custos_atuais}
     piece_volume = {peca: 0.0 for peca in custos_atuais}
 
-    for match in matches:
+    for match in valid_matches:
         try:
             w_elo = match["white_elo"]
             b_elo = match["black_elo"]
