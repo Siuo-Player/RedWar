@@ -8,7 +8,9 @@ A metodologia é inspirada no Stockfish: mudanças isoladas, separação clara d
 
 ## Estado atual confirmado
 
-O **PR #48 está integrado na `main`**. Ele adicionou pressão tática dinâmica do FrostMage à avaliação clássica, manteve `material_score` como acumulador incremental puro e reforçou a restauração de estado derivado em `make_move`/`unmake_move`. O **PR #14** estabilizou o Auto-Pricer contra overflow de ELO.
+O **PR #48 está integrado na `main`**. Ele adicionou pressão tática dinâmica do FrostMage à avaliação clássica, manteve `material_score` como acumulador incremental puro e reforçou a restauração de estado derivado em `make_move`/`unmake_move`.
+
+O **PR #28** consolidou a proteção do Auto-Pricer para ELOs finitos extremos e a regressão correspondente.
 
 O **PR #49** é a implementação NNUE RPG atual e continua aberto. A arquitetura está pronta para validação, mas ainda não deve ser considerada superior à avaliação clássica sem benchmark e Arena.
 
@@ -16,7 +18,7 @@ O **PR #49** é a implementação NNUE RPG atual e continua aberto. A arquitetur
 
 O C++ é o hot path principal e utiliza alpha-beta/PVS, transposition table, Zobrist hashing, iterative deepening, killer moves, history heuristic, move ordering, quiescence/tactical search e limites de nós/tempo.
 
-A pesquisa deve permanecer independente da forma como a posição é avaliada.
+A pesquisa deve permanecer independente da forma concreta de avaliação.
 
 ## Estado RPG
 
@@ -29,13 +31,13 @@ S --make(M)--> S'
 S' --unmake(M)--> S
 ```
 
-A restauração inclui peças, efeitos, hash e acumuladores derivados do estado.
+A restauração inclui peças, efeitos, hash, avaliação material, contadores e restante estado derivado coberto pelos testes.
 
 ## Avaliação clássica
 
-A avaliação clássica usa material, PST, estado de stun, lifespan, TWC e termos específicos de RedWar. `FrostMage` custa atualmente 5 pontos e é um sanity check importante.
+A avaliação clássica usa material, PST, estado de stun, lifespan, TWC e termos específicos de RedWar. `FrostMage` custa atualmente 5 pontos e continua a ser um sanity check útil.
 
-Termos dependentes do tabuleiro inteiro não devem ser guardados num acumulador incremental local sem mecanismo explícito de atualização.
+Termos dependentes de múltiplas casas não devem ser tratados como um acumulador incremental local sem mecanismo explícito de atualização.
 
 ## NNUE RPG
 
@@ -53,7 +55,7 @@ O primeiro modelo usa dois accumulators de 128 entradas, hidden de 32 e inferên
 
 O NNUE continua opcional durante esta fase. Sem modelo carregado, a Ares mantém a avaliação clássica.
 
-A implementação atual usa um caminho de sincronização completo como baseline de correção; a próxima otimização isolada deve substituir esse rescan por atualização incremental via `BoardState` e provar o ganho de NPS. Isto segue diretamente o princípio de NNUE de minimizar entradas ativas e atualizar apenas o que mudou. citeturn573908search0turn573908search7
+A implementação atual usa sincronização completa como **baseline de correção**. Existem primitivas de atualização incremental no módulo NNUE, mas ainda não estão ligadas às transições de `BoardState` do hot path. O próximo bloco deve fazer essa ligação e medir o resultado; não assumir que uma função incremental existente já produz ganho.
 
 ## Dados e treino
 
@@ -75,17 +77,35 @@ RWNUE002
 benchmark + Arena
 ```
 
-`tools/nnue/generate_teacher.py` cria um pequeno dataset determinístico a partir da avaliação **clássica explícita**. O bootstrap model continua a ser apenas um teste de compatibilidade, não uma medida de força.
+`tools/nnue/generate_teacher.py` cria teacher data a partir da avaliação **clássica explícita**. O bootstrap model serve apenas para compatibilidade.
 
-A metodologia segue a ideia usada no desenvolvimento do Stockfish: redes e alterações funcionais precisam de ser comparadas estatisticamente, não aceites apenas porque passam testes mecânicos. citeturn573908search2turn573908search5
+## Arena e medição
+
+A Arena deve separar três responsabilidades:
+
+1. executar partidas determinísticas;
+2. guardar o resultado e a sequência de ações;
+3. analisar os registos depois.
+
+`tools/analytics/arena_tournament.py` faz o primeiro e o segundo. `tools/analytics/game_analyzer.py` faz o terceiro sem voltar a jogar a partida.
+
+O objetivo final é **Elo por CPU-segundo**. NPS isolado não é suficiente e uma avaliação “mais sofisticada” não é automaticamente melhor.
 
 ## CI e benchmarking
 
-`auto_balancer.yml` aceita tanto a engine clássica como revisões com `nnue.cpp` e executa os testes de compatibilidade NNUE quando aplicável.
+`auto_balancer.yml` valida o caminho de build/teste e regressões do balanceamento.
 
-`ai_arena.yml` compara agora **base vs HEAD**, em vez de recompilar todos os commits intermédios. Para PRs de performance mantém um guard de regressão de 10%.
+`ai_arena.yml` fornece a comparação A/B da AI e deve ser usado com o mesmo orçamento de nodes/regras quando a hipótese é desempenho/força.
 
-## Critérios de aceitação
+Para uma mudança de AI, comparar pelo menos:
+
+- melhor jogada em posições de referência;
+- nodes/tempo/NPS;
+- memória quando relevante;
+- resultado da Arena;
+- validade/reversibilidade do estado.
+
+## Critérios para promover NNUE
 
 Uma avaliação NNUE só deve tornar-se default se:
 
@@ -97,17 +117,12 @@ Uma avaliação NNUE só deve tornar-se default se:
 6. `bestmove` e posições de referência não piorarem de forma material;
 7. Arena apoiar a alteração com dados suficientes.
 
-O objetivo é **Elo por CPU-segundo**, não uma rede maior por si só. Stockfish demonstra que NNUE pode ganhar muita força mesmo com menor NPS, desde que o custo adicional compre uma melhoria de avaliação suficientemente grande. citeturn573908search1
-
 ## Próximos passos
 
-1. Validar CI completo do PR #49.
-2. Gerar teacher dataset maior e mais variado.
-3. Treinar uma primeira rede real e verificar export/import C++.
-4. Comparar clássica vs NNUE em benchmark de posições e custo por avaliação.
-5. Comparar força na Arena.
-6. Implementar atualização incremental real dos accumulators.
-7. Melhorar move ordering.
-8. Melhorar quiescence para stun/spells/kill chains.
-9. Criar histórico de NPS, profundidade, TT hit rate e força.
-10. Eliminar divergências Python/C++.
+1. fechar o bloco de tooling/documentação sem misturar correções não relacionadas;
+2. validar integralmente a pipeline NNUE do PR #49;
+3. gerar teacher dataset maior e mais variado;
+4. treinar uma primeira rede real e verificar export/import C++;
+5. comparar clássica vs NNUE em benchmark e Arena;
+6. implementar atualização incremental real dos accumulators através de `BoardState`;
+7. voltar a move ordering/quiescence/avaliação após essa medição.
