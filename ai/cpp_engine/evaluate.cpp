@@ -219,8 +219,14 @@ int evaluate_board() {
     if (board.white_pieces == 0) return -INFINITO + 100;
     if (board.black_pieces == 0) return INFINITO - 100;
 
-    if (const auto nnue_score = redwar::nnue::evaluate(); nnue_score.has_value()) {
-        return *nnue_score;
+    if (redwar::nnue::available()) {
+        // Baseline implementation: explicitly resynchronise before inference.
+        // A later hot-path PR can replace this scan with BoardState hooks and
+        // should prove its NPS benefit against this correctness baseline.
+        redwar::nnue::sync_board();
+        if (const auto nnue_score = redwar::nnue::evaluate(); nnue_score.has_value()) {
+            return *nnue_score;
+        }
     }
 
     return evaluate_classical_board();
