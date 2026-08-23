@@ -32,6 +32,12 @@ def calcular_win_esperada(elo_a, elo_b):
     return 1.0 / (1.0 + math.pow(10.0, x))
 
 
+def obter_partidas_validas(stats):
+    """Filtra partidas descartadas pelo trainer sem alterar o histórico original."""
+    matches = stats.get("matches", [])
+    return [match for match in matches if match.get("valid", True)]
+
+
 def executar_balanceamento_automatico():
     print("📈 A executar Avaliação Económica Ponderada por ELO...")
 
@@ -47,9 +53,9 @@ def executar_balanceamento_automatico():
 
     custos_atuais = {name: data.get("cost", 0) for name, data in heroes.items()}
 
-    matches = stats.get("matches", [])
-    valid_matches = [match for match in matches if match.get("valid", True)]
-    invalid_count = len(matches) - len(valid_matches)
+    valid_matches = obter_partidas_validas(stats)
+    total_matches = len(stats.get("matches", []))
+    invalid_count = total_matches - len(valid_matches)
 
     print(
         f"🧪 Telemetria: {len(valid_matches)} partidas válidas, "
