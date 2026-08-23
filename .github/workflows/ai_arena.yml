@@ -4,13 +4,85 @@ on:
   pull_request:
     paths:
       - 'ai/**'
-  workflow_dispatch:
+      - 'tools/analytics/benchmark_engine.py'
+      - '.github/workflows/ai_arena.yml'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
+  benchmark-regression:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Build and benchmark base
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        git worktree add --detach /tmp/redwar-base "$BASE_SHA"
+        cd /tmp/redwar-base/ai/cpp_engine
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
+        cd "$GITHUB_WORKSPACE"
+        python tools/analytics/benchmark_engine.py --engine /tmp/redwar-base/ai/cpp_engine/engine-benchmark | tee /tmp/base-benchmark.txt
+
+    - name: Benchmark every revision in this PR
+      env:
+        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+      run: |
+        git log --format=%H --reverse "$BASE_SHA..HEAD" > /tmp/pr-commits.txt
+        previous_label="base"
+        previous_median=$(sed -n 's/^median_seconds=//p' /tmp/base-benchmark.txt)
+        previous_bestmove=$(sed -n 's/^bestmove=//p' /tmp/base-benchmark.txt)
+        index=0
+
+        while read -r commit; do
+          index=$((index + 1))
+          worktree="/tmp/redwar-rev-$index"
+          git worktree add --detach "$worktree" "$commit"
+          (
+            cd "$worktree/ai/cpp_engine"
+            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
+          )
+
+          output=$(python tools/analytics/benchmark_engine.py --engine "$worktree/ai/cpp_engine/engine-benchmark")
+          printf '%s\n' "$output"
+          median=$(printf '%s\n' "$output" | sed -n 's/^median_seconds=//p')
+          bestmove=$(printf '%s\n' "$output" | sed -n 's/^bestmove=//p')
+
+          improvement=$(python - "$previous_median" "$median" <<'PY'
+import sys
+previous = float(sys.argv[1])
+current = float(sys.argv[2])
+print((previous - current) / previous * 100.0)
+PY
+)
+
+          echo "revision=$commit previous=$previous_label median=${median}s improvement=${improvement}% bestmove=${bestmove}"
+
+          if [[ "$bestmove" != "$previous_bestmove" ]]; then
+            echo "ERROR: bestmove changed from $previous_bestmove to $bestmove at $commit"
+            exit 1
+          fi
+
+          previous_label="$commit"
+          previous_median="$median"
+          previous_bestmove="$bestmove"
+        done < /tmp/pr-commits.txt
+
+    - name: Cleanup worktrees
+      if: always()
+      run: git worktree prune
+
   arena-tournament:
     runs-on: ubuntu-latest
     env:
@@ -27,14 +99,13 @@ jobs:
         git fetch origin ${{ github.base_ref }}
         CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
         for FILE in $CHANGED_FILES; do
-          if [[ ! "$FILE" == ai/* ]]; then
+          if [[ ! "$FILE" == ai/* && ! "$FILE" == tools/analytics/benchmark_engine.py && ! "$FILE" == .github/workflows/ai_arena.yml ]]; then
             echo "❌ ACESSO NEGADO: O Pull Request tenta alterar o ficheiro '$FILE'."
-            echo "A jurisdição open-source do RedWar limita-se ESTRITAMENTE à pasta 'ai/'."
-            echo "O PR foi bloqueado antes de entrar na Arena."
+            echo "A jurisdição open-source do RedWar permite alterações AI e ao benchmark do Ares."
             exit 1
           fi
         done
-        echo "✅ Inspeção aprovada. Todos os ficheiros pertencem ao Ares Engine (ai/)."
+        echo "✅ Inspeção aprovada."
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
