@@ -9,6 +9,9 @@ on:
       - 'tools/analytics/trainer.py'
       - 'tests/test_auto_pricer.py'
       - 'tests/test_trainer.py'
+      - 'tests/cpp_reversibility_test.cpp'
+      - 'tests/test_moves.py'
+      - 'tests/test_rules.py'
       - '.github/workflows/auto_balancer.yml'
 
 concurrency:
@@ -40,6 +43,10 @@ jobs:
         cd ai/cpp_engine
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
         chmod +x engine
+    - name: Test C++ make/unmake Reversibility
+      run: |
+        g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp tests/cpp_reversibility_test.cpp -o cpp_reversibility_test
+        ./cpp_reversibility_test
     - name: Test Auto-Pricer Overflow Regression
       run: pytest -q tests/test_auto_pricer.py
     - name: Test Trainer and Rules Regression
