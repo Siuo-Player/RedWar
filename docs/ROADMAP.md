@@ -1,75 +1,85 @@
 # RedWar — Roadmap
 
-Este roadmap separa o que já existe do que é objetivo futuro.
-
 ## Prioridades de execução
 
-1. **Ares / IA — prioridade máxima.** Cada ciclo deve tentar tornar a IA mais forte ou mais rápida, com regressões mensuráveis.
-2. **Aplicação / UI / `main`.** Depois de cada melhoria importante da IA, devem existir ciclos de melhoria jogável que possam ser validados manualmente.
-3. **Web / multiplayer.** Pode ser adiantado incrementalmente, mas representa a fase final e o projeto só deve ser considerado concluído quando esta camada estiver utilizável.
+1. **Ares / IA — prioridade máxima.** Cada ciclo deve tentar tornar a IA mais forte ou mais rápida, com validação reproduzível.
+2. **Aplicação / UI / `main`.** Depois de melhorias relevantes da IA, melhorar o jogo jogável e validá-lo manualmente.
+3. **Web / multiplayer.** Pode avançar incrementalmente, mas é a fase final e o projeto só termina quando esta camada estiver utilizável.
 
-### Sanity checks da IA
+## Metodologia da Ares
 
-- Comparar `bestmove`, força e custo por nó; velocidade isolada não basta.
-- Verificar regularmente valores de heróis com mecânicas decisivas.
-- **FrostMage está a 5 pontos neste momento.** É um sanity check importante: uma IA suficientemente inteligente deve compreender o enorme valor tático do stun e o balanceamento deve deixar de o subvalorizar sem dados que o justifiquem.
+Ares segue uma metodologia **Stockfish-like adaptada a RedWar**: separar estado/regras, pesquisa, avaliação e move ordering; manter o hot path pequeno; fazer alterações isoladas; e exigir evidência estatística ou de benchmark antes de aceitar uma melhoria funcional.
 
-## Estado confirmado após o último PR
+RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na avaliação como características do RPG, não como imitações artificiais de conceitos de xadrez.
 
-O PR **#47** adicionou um self-test nativo de `make_move`/`unmake_move`. O teste verifica restauração de peças, efeitos, timers, hash, avaliação material, contadores e turno em posições com movimento/captura, stun, spawn e efeitos temporizados.
+### Sanity check
 
-O ciclo anterior foi integrado na `main` e a branch de trabalho foi removida depois do merge.
+`FrostMage` custa atualmente **5 pontos**. É um teste humano simples: a Ares deve reconhecer que uma unidade de baixo custo com stun pode ter valor tático muito superior ao seu material nominal.
 
-## Agora — estabilização do core
+## Estado confirmado após o último PR integrado
 
-- [x] Representação inicial do jogo em Python.
-- [x] Ares funcional em Python/Cython.
-- [x] Engine C++ em desenvolvimento.
-- [x] Configuração data-driven para heróis.
-- [x] Arena automatizada.
-- [x] Ferramentas de balanceamento.
-- [ ] Eliminar divergências Python/C++.
-- [ ] Completar testes diferenciais.
-- [x] Self-test de reversibilidade nos casos cobertos.
-- [ ] Expandir a prova de reversibilidade a toda a árvore de regras.
-- [ ] Tornar o Ares significativamente mais forte e mais rápido.
+O PR **#47** adicionou um self-test nativo de `make_move`/`unmake_move`, cobrindo peças, efeitos, timers, hash, avaliação material, contadores e turno.
 
-## Próxima fase — Ares
+O PR de overflow **#14** já está integrado e protege o Auto-Pricer contra ELO extremo e partidas excessivamente longas.
 
-- [x] Consolidar C++ como hot path principal.
-- [ ] Melhorar geração/ordenação de ações.
-- [ ] Melhorar quiescence para a volatilidade de RedWar.
-- [ ] Melhorar avaliação posicional.
-- [x] Cenário inicial de benchmark determinístico.
+## Estado do trabalho atual
+
+### PR #48 — FrostMage / core
+
+Branch: `perf/ares-stun-threat-eval-2026-08-23`
+
+Objetivo: melhorar o reconhecimento de pressão de stun sem contaminar o `material_score` incremental.
+
+O ciclo revelou e corrigiu uma falha real no contrato de `make/unmake`: peças e efeitos podiam voltar corretamente enquanto `hash`/avaliação incremental divergiam. `UndoInfo` agora guarda os escalares irreversíveis necessários para restauração exata.
+
+Critérios antes do merge:
+
+- reversibilidade verde;
+- smoke tests verdes;
+- overflow/regressões verdes;
+- custo da avaliação medido;
+- `bestmove`/força sem regressão relevante.
+
+### Próximo PR — NNUE RPG
+
+Branch: `feat/nnue-rpg-engine-2026-08-23`
+
+Objetivo: introduzir uma avaliação NNUE-style verdadeira no hot path, mas com features específicas de RedWar.
+
+Plano de continuação:
+
+1. Fixar e testar o layout único de features Python/C++.
+2. Implementar loading binário versionado e quantizado.
+3. Implementar accumulators esparsos e inferência CPU determinística.
+4. Integrar NNUE ao `evaluate_board()` com fallback clássico quando não existe modelo.
+5. Adicionar CI que gere um modelo bootstrap e valide loading/inferência.
+6. Gerar dataset inicial de posições e teacher scores.
+7. Treinar uma primeira rede real e quantizá-la.
+8. Medir custo por avaliação/NPS contra o avaliador clássico.
+9. Criar benchmark específico para stun/FrostMage e outras regras RPG.
+10. Comparar NNUE vs clássico na Arena sob condições iguais.
+11. Só tornar NNUE a avaliação predefinida se houver evidência de melhoria; caso contrário manter a arquitetura opcional e continuar a treinar.
+
+**Se a branch ficar a meio:** continuar em `docs/NNUE.md`, garantir que `nnue.cpp` e `tools/nnue/features.py` têm o mesmo `FEATURE_COUNT`, executar `tests/cpp_nnue_test.cpp` e não ativar um modelo não validado no jogo.
+
+## Ares — depois do NNUE
+
+- [ ] Melhorar geração/ordenação de ações com informação tática do RPG.
+- [ ] Melhorar quiescence para sequências de stun/spell/kill.
+- [ ] Tornar a avaliação incremental eficiente também fora do NNUE.
 - [ ] Suite de posições de benchmark.
-- [ ] Medir NPS, profundidade, TT hit rate e força de forma histórica.
-- [ ] Melhorar Arena para comparar anterior vs candidata.
-- [ ] Histórico de resultados da Arena.
+- [ ] Histórico de NPS, profundidade, TT hit rate e força.
+- [ ] Arena estatística A/B de versões.
 - [ ] Rating/ELO das engines.
-
-### Plano da branch atual — `perf/ares-stun-threat-eval-2026-08-23`
-
-**Objetivo:** melhorar a tomada de decisões da Ares perante ameaças de stun, sem aumentar o orçamento de pesquisa.
-
-1. Identificar no código atual como uma peça já atordoada pode ser convertida em morte e quais movimentos legais representam essa ameaça.
-2. Introduzir um termo de avaliação **pequeno, simétrico e limitado** para vulnerabilidade a morte por segundo stun.
-3. Criar posições de regressão reproduzíveis, incluindo FrostMage e alvos atordoados.
-4. Garantir que o termo não domina material nem produz overflow.
-5. Medir `bestmove`, tempo/NPS e, quando possível, força contra a versão anterior.
-6. Verificar que o benchmark determinístico mantém a qualidade esperada.
-7. Registar no PR os resultados positivos ou negativos. Se não melhorar a Ares, não fazer merge apenas por aumentar a complexidade.
-
-**Para continuar se o trabalho ficar a meio:** começar pela função de avaliação em `ai/cpp_engine/evaluate.cpp`, validar o significado de `stun_timer > 0` em `movegen.cpp`, e usar posições pequenas onde uma segunda aplicação de stun termina em captura/morte.
+- [ ] Testes diferenciais Python/C++ completos.
 
 ## Heróis e balanceamento
 
-- [ ] Simplificar ainda mais o sistema data-driven.
-- [ ] Reduzir lógica de herói espalhada pelo código.
-- [ ] Padronizar documentação de cada herói.
+- [ ] Reduzir lógica de herói espalhada.
+- [ ] Documentar cada herói de forma padronizada.
 - [ ] Melhorar Auto-Pricer.
-- [ ] Validar custos com uma IA suficientemente forte.
-- [ ] Reavaliar especificamente FrostMage depois de a Ares compreender melhor stun.
-- [ ] Testar e calibrar duração do stun.
+- [ ] Validar custos com uma Ares suficientemente forte.
+- [ ] Reavaliar FrostMage depois de a avaliação de stun estar validada.
 - [ ] Formalizar gelo e empilhamento de efeitos.
 
 ## Aplicação / UI
@@ -78,52 +88,46 @@ O ciclo anterior foi integrado na `main` e a branch de trabalho foi removida dep
 - [ ] Menu principal completo.
 - [ ] Seleção de bots/dificuldade.
 - [ ] Dois jogadores locais.
-- [ ] Animações de movimento.
-- [ ] VFX de spells/passivas.
-- [ ] Som.
+- [ ] Animações/VFX/Som.
 - [ ] Definições.
 - [ ] Replays.
-- [ ] Histórico de partidas.
-- [ ] Ferramentas de análise no fim das partidas.
-- [ ] Suporte a várias resoluções.
-- [ ] Possível suporte mobile.
+- [ ] Histórico e análise no fim das partidas.
+- [ ] Várias resoluções.
 
 A UI deve ser validada jogando o jogo, não apenas por inspeção de código.
 
 ## Web / Multiplayer
 
-Pode avançar aos poucos, mas é a última grande fase do produto.
-
 - [ ] Escolher stack web.
-- [ ] Definir API do jogo.
+- [ ] Definir API.
 - [ ] Cliente web.
 - [ ] Autenticação.
 - [ ] Sessão/conta.
 - [ ] Matchmaking.
-- [ ] WebSocket ou equivalente.
+- [ ] Transporte persistente/WebSocket.
 - [ ] Servidor autoritativo.
-- [ ] Relógios.
-- [ ] Reconexão.
-- [ ] Ranking.
-- [ ] ELO/MMR.
-- [ ] Desafios diretos.
-- [ ] Amigos/chat.
-- [ ] Rematch.
+- [ ] Relógios/reconexão.
+- [ ] Ranking/ELO/MMR.
+- [ ] Desafios/amigos/chat/rematch.
 - [ ] Espectadores.
 - [ ] Histórico.
 
+## Regra de manutenção
+
+No início de cada nova branch:
+
+- atualizar o último PR confirmado;
+- atualizar o estado relevante do sistema;
+- escrever o objetivo e o plano de continuação;
+- definir critérios de merge/abandono;
+- eliminar relíquias e documentação desatualizada que a nova branch tocar.
+
+Depois de cada merge:
+
+- atualizar documentação;
+- apagar a branch remota;
+- confirmar que não ficaram branches experimentais sem necessidade.
+
 ## Lançamento
 
-O projeto só fica concluído quando existir aplicação utilizável, versão web utilizável, multiplayer online, autenticação, matchmaking, ranking/ELO, histórico, Ares suficientemente forte/rápida, Arena funcional, documentação coerente e revisão de licenças.
-
-## Regra de manutenção do roadmap
-
-No início de **cada nova branch**, atualizar esta documentação com:
-
-- o último PR confirmado e integrado;
-- o estado atual relevante do sistema;
-- o objetivo da branch;
-- passos concretos para continuar o trabalho se alguém pegar na branch a meio;
-- critérios objetivos para decidir se o PR deve ser merged ou abandonado.
-
-No fim de **cada PR merged**, apagar a branch remota e atualizar novamente o roadmap antes de iniciar outra branch.
+Só considerar o projeto concluído quando a aplicação local estiver utilizável, a Ares estiver suficientemente forte/rápida, a Arena estiver funcional, e existir uma versão web/multiplayer utilizável com autenticação, matchmaking, ranking e histórico.
