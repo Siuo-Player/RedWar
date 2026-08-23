@@ -36,7 +36,7 @@ const PstHeroIds& pst_hero_ids() {
         PstHeroIds result;
         if (auto it = PIECE_IDS.find("Ghoul"); it != PIECE_IDS.end()) result.ghoul = it->second;
         if (auto it = PIECE_IDS.find("Sentry"); it != PIECE_IDS.end()) result.sentry = it->second;
-        if (auto it = PIECE_IDS.find("FrostMage"); it != PIE_IDS.end()) result.frostmage = it->second;
+        if (auto it = PIECE_IDS.find("FrostMage"); it != PIECE_IDS.end()) result.frostmage = it->second;
         if (auto it = PIECE_IDS.find("Lich"); it != PIECE_IDS.end()) result.lich = it->second;
         if (auto it = PIECE_IDS.find("BoneLord"); it != PIECE_IDS.end()) result.bonelord = it->second;
         if (auto it = PIECE_IDS.find("Phantom"); it != PIECE_IDS.end()) result.phantom = it->second;
@@ -105,21 +105,11 @@ int get_positional_bonus(const Piece& p, int r, int c) {
     const int idx_c = c;
     const PstHeroIds& ids = pst_hero_ids();
 
-    if (p.id == ids.ghoul) {
-        return PST_GHOUL[idx_r][idx_c];
-    }
-    if (p.id == ids.sentry) {
-        return PST_SENTRY[idx_r][idx_c];
-    }
-    if (p.id == ids.frostmage || p.id == ids.lich) {
-        return PST_FROSTMAGE[idx_r][idx_c];
-    }
-    if (p.id == ids.bonelord) {
-        return PST_BONELORD[idx_r][idx_c];
-    }
-    if (p.id == ids.phantom) {
-        return PST_PHANTOM[idx_r][idx_c];
-    }
+    if (p.id == ids.ghoul) return PST_GHOUL[idx_r][idx_c];
+    if (p.id == ids.sentry) return PST_SENTRY[idx_r][idx_c];
+    if (p.id == ids.frostmage || p.id == ids.lich) return PST_FROSTMAGE[idx_r][idx_c];
+    if (p.id == ids.bonelord) return PST_BONELORD[idx_r][idx_c];
+    if (p.id == ids.phantom) return PST_PHANTOM[idx_r][idx_c];
 
     return 0;
 }
@@ -147,24 +137,35 @@ int get_frostmage_pressure(const Piece& mage, int r, int c) {
                 ? (target_cost * 50) / 100
                 : std::max(1, (target_cost * 10) / 100);
             pressure += contribution;
-            if (pressure >= 40) {
-                return 40;
-            }
+            if (pressure >= 40) return 40;
         }
     }
-
     return pressure;
+}
+
+int get_total_frostmage_pressure() {
+    const int frostmage_id = pst_hero_ids().frostmage;
+    if (frostmage_id < 0) return 0;
+
+    int total = 0;
+    for (int r = 0; r < LINHAS; ++r) {
+        for (int c = 0; c < COLUNAS; ++c) {
+            const Piece& piece = board.pieces[r][c];
+            if (piece.is_empty || piece.id != frostmage_id) continue;
+
+            const int pressure = get_frostmage_pressure(piece, r, c);
+            total += piece.team == 'W' ? pressure : -pressure;
+        }
+    }
+    return total;
 }
 
 } // namespace
 
 int get_piece_value(const Piece& p, int r, int c) {
-    if (p.is_empty) {
-        return 0;
-    }
+    if (p.is_empty) return 0;
 
     int base_value = safe_piece_cost(p);
-
     if (p.lifespan != 999) {
         base_value = std::max(0, (base_value * p.lifespan) / 5);
     }
@@ -176,23 +177,13 @@ int get_piece_value(const Piece& p, int r, int c) {
         positional_bonus = (positional_bonus * 40) / 100;
 
         const int threat_bonus = safe_piece_cost(p) / 2;
-        if (p.team == 'W') {
-            return -threat_bonus + base_value + positional_bonus;
-        }
-        if (p.team == 'B') {
-            return threat_bonus - base_value - positional_bonus;
-        }
+        if (p.team == 'W') return -threat_bonus + base_value + positional_bonus;
+        if (p.team == 'B') return threat_bonus - base_value - positional_bonus;
     }
 
-    const int total = base_value + positional_bonus + get_frostmage_pressure(p, r, c);
-
-    if (p.team == 'W') {
-        return total;
-    }
-    if (p.team == 'B') {
-        return -total;
-    }
-
+    const int total = base_value + positional_bonus;
+    if (p.team == 'W') return total;
+    if (p.team == 'B') return -total;
     return 0;
 }
 
@@ -204,36 +195,23 @@ void compute_initial_eval() {
     for (int r = 0; r < LINHAS; ++r) {
         for (int c = 0; c < COLUNAS; ++c) {
             const Piece& p = board.pieces[r][c];
-            if (p.is_empty) {
-                continue;
-            }
+            if (p.is_empty) continue;
 
             board.material_score += get_piece_value(p, r, c);
-
-            if (p.team == 'W') {
-                ++board.white_pieces;
-            } else if (p.team == 'B') {
-                ++board.black_pieces;
-            }
+            if (p.team == 'W') ++board.white_pieces;
+            else if (p.team == 'B') ++board.black_pieces;
         }
     }
 }
 
 int evaluate_board() {
-    if (board.white_pieces == 0) {
-        return -INFINITO + 100;
-    }
-    if (board.black_pieces == 0) {
-        return INFINITO - 100;
-    }
+    if (board.white_pieces == 0) return -INFINITO + 100;
+    if (board.black_pieces == 0) return INFINITO - 100;
 
-    int score = board.material_score;
+    int score = board.material_score + get_total_frostmage_pressure();
 
-    if (score > 0) {
-        score -= board.twc;
-    } else if (score < 0) {
-        score += board.twc;
-    }
+    if (score > 0) score -= board.twc;
+    else if (score < 0) score += board.twc;
 
     return score;
 }
