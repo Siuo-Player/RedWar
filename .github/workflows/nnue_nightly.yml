@@ -68,16 +68,18 @@ jobs:
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: Train for this exact main revision
-        # This is intentionally a fresh run for the checked-out SHA. A later
-        # game/rules commit must never silently continue a network trained for
-        # an older ruleset. Checkpoint/resume can be added later keyed by SHA.
+        # Fresh per SHA on purpose: if the rules/evaluation change, the next
+        # nightly run must not resume weights trained against the old game.
+        # Stop before the GitHub 120-minute timeout so the model is exported
+        # and uploaded normally. The 120-minute job timeout is a final failsafe.
         run: |
           python tools/nnue/train.py \
             /tmp/teacher.jsonl \
             --output /tmp/ares-nightly-${GITHUB_SHA}.nnue \
             --epochs 1000000 \
             --batch-size 128 \
-            --seed 20260823
+            --seed 20260823 \
+            --max-seconds 6900
 
       - name: Store model and metadata
         if: always()
