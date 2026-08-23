@@ -69,7 +69,7 @@ jobs:
           chmod +x engine
       - name: Test Trainer and Rules Regression
         run: pytest -q tests/test_trainer.py tests/test_rules.py tests/test_moves.py
-      - name: Generate Fresh Telemetry (Trainer)
+      - name: Generate Telemetry (Trainer)
         run: |
           python tools/analytics/trainer.py \
             --seed 20260823 \
@@ -85,7 +85,7 @@ jobs:
           name: redwar-auto-balance-report-${{ github.run_id }}
           path: /tmp/auto_balance_report.json
           if-no-files-found: error
-      - name: Upload Fresh Training Telemetry
+      - name: Upload Training Telemetry
         uses: actions/upload-artifact@v4
         with:
           name: redwar-training-telemetry-${{ github.run_id }}
