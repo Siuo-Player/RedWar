@@ -170,15 +170,15 @@ enum TTFlag : uint8_t {
 
 struct TTEntry {
     uint64_t zobrist_key = 0;
+    uint64_t best_move_key = 0;
     int depth = -1;
     int value = 0;
     TTFlag flag = TT_EXACT;
-    Move best_move;
     bool occupied = false;
 };
 
-// Mantidos por compatibilidade com a arquitetura atual.
-// Uma futura SearchContext deverá concentrar este estado.
+static_assert(sizeof(TTEntry) <= 32, "TTEntry grew beyond the compact cache-friendly layout");
+
 extern BoardState board;
 extern std::atomic<bool> abort_search;
 extern int nodes_evaluated;

@@ -16,6 +16,14 @@ constexpr int SPAWN_SCORE = 20'000;
 constexpr int KILLER1_SCORE = 10'000;
 constexpr int KILLER2_SCORE = 9'000;
 
+enum : uint8_t {
+    MOVE_KEY_MOVE = 1,
+    MOVE_KEY_ATTACK = 2,
+    MOVE_KEY_STUN = 3,
+    MOVE_KEY_SPAWN = 4,
+    MOVE_KEY_SPELL = 5,
+};
+
 uint64_t splitmix64(uint64_t x) {
     x += 0x9E3779B97F4A7C15ULL;
     x = (x ^ (x >> 30U)) * 0xBF58476D1CE4E5B9ULL;
@@ -25,6 +33,40 @@ uint64_t splitmix64(uint64_t x) {
 
 uint64_t twc_hash(int twc) {
     return splitmix64(0xD4E12C7B9A3F51E7ULL ^ static_cast<uint64_t>(static_cast<int64_t>(twc)));
+}
+
+uint8_t move_kind(const Move& move) {
+    if (move.type == "ATTACK") return MOVE_KEY_ATTACK;
+    if (move.type == "STUN") return MOVE_KEY_STUN;
+    if (move.type == "SPAWN") return MOVE_KEY_SPAWN;
+    if (move.type == "SPELL") return MOVE_KEY_SPELL;
+    return MOVE_KEY_MOVE;
+}
+
+uint8_t special_kind(const Move& move) {
+    if (move.type == "SPELL") {
+        if (move.spell_name == "ignite") return 1;
+        if (move.spell_name == "purify") return 2;
+        if (move.spell_name == "swap") return 3;
+        if (move.spell_name == "barricade") return 4;
+        if (move.spell_name == "jump") return 5;
+    } else if (move.type == "SPAWN" && move.spawn_name == "Ghoul") {
+        return 1;
+    }
+    return 0;
+}
+
+uint64_t move_key(const Move& move) {
+    if (move.sr < 0 || move.sr >= LINHAS || move.er < 0 || move.er >= LINHAS ||
+        move.sc < 0 || move.sc >= COLUNAS || move.ec < 0 || move.ec >= COLUNAS) {
+        return 0;
+    }
+
+    uint64_t key = static_cast<uint64_t>(move.sr * COLUNAS + move.sc);
+    key |= static_cast<uint64_t>(move.er * COLUNAS + move.ec) << 6U;
+    key |= static_cast<uint64_t>(move_kind(move)) << 12U;
+    key |= static_cast<uint64_t>(special_kind(move)) << 15U;
+    return key + 1U;
 }
 
 uint64_t search_position_key() {
@@ -81,11 +123,11 @@ bool is_forcing_move(const Move& move) {
     return false;
 }
 
-void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char current_turn) {
+void score_moves(std::vector<Move>& moves, uint64_t tt_move_key_value, int ply, char current_turn) {
     const int team_idx = (current_turn == 'W') ? 0 : 1;
 
     for (Move& move : moves) {
-        if (move == tt_move) {
+        if (tt_move_key_value != 0 && move_key(move) == tt_move_key_value) {
             move.score = TT_MOVE_SCORE;
             continue;
         }
@@ -95,8 +137,7 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
             const int victim = piece_cost(board.pieces[move.er][move.ec]);
             const int attacker = piece_cost(board.pieces[move.sr][move.sc]);
             move.score = CAPTURE_SCORE + victim * 100 - attacker;
-        }
-        else if (move.type == "STUN") {
+        } else if (move.type == "STUN") {
             int value_sum = 0;
             constexpr int DR[5] = {0, -1, 1, 0, 0};
             constexpr int DC[5] = {0, 0, 0, -1, 1};
@@ -110,8 +151,7 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
                 value_sum += value * (target.stun_timer > 0 ? 100 : 60);
             }
             move.score = STUN_SCORE + value_sum;
-        }
-        else if (move.type == "SPELL") {
+        } else if (move.type == "SPELL") {
             if (move.spell_name == "ignite") {
                 int value_sum = 0;
                 constexpr int DR[5] = {0, -1, 1, 0, 0};
@@ -127,17 +167,13 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
             } else {
                 move.score = SPELL_SCORE;
             }
-        }
-        else if (move.type == "SPAWN") {
+        } else if (move.type == "SPAWN") {
             move.score = SPAWN_SCORE;
-        }
-        else if (ply >= 0 && ply < MAX_PLY && move == killer_moves[ply][0]) {
+        } else if (ply >= 0 && ply < MAX_PLY && move == killer_moves[ply][0]) {
             move.score = KILLER1_SCORE;
-        }
-        else if (ply >= 0 && ply < MAX_PLY && move == killer_moves[ply][1]) {
+        } else if (ply >= 0 && ply < MAX_PLY && move == killer_moves[ply][1]) {
             move.score = KILLER2_SCORE;
-        }
-        else if (ply >= 0 && ply < MAX_PLY) {
+        } else if (ply >= 0 && ply < MAX_PLY) {
             move.score = history_table[team_idx][move.sr][move.sc][move.er][move.ec];
         } else {
             move.score = 0;
@@ -177,8 +213,6 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
 
     if (q_depth >= QSEARCH_MAX_DEPTH) return eval_score;
 
-    // Reuse the generated move buffer instead of allocating/copying a second
-    // vector for forcing moves at every quiescence node.
     std::vector<Move> moves = generate_valid_moves(current_turn);
     std::size_t forcing_count = 0;
     for (std::size_t i = 0; i < moves.size(); ++i) {
@@ -187,10 +221,9 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
         ++forcing_count;
     }
     moves.resize(forcing_count);
-
     if (moves.empty()) return eval_score;
 
-    score_moves(moves, Move(), ply, current_turn);
+    score_moves(moves, 0, ply, current_turn);
     std::sort(moves.begin(), moves.end());
 
     if (current_turn == 'W') {
@@ -228,10 +261,10 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     const uint64_t key = search_position_key();
     TTEntry& slot = transposition_table[key & TT_MASK];
-    Move tt_best_move;
+    uint64_t tt_move_key_value = 0;
 
     if (slot.occupied && slot.zobrist_key == key) {
-        tt_best_move = slot.best_move;
+        tt_move_key_value = slot.best_move_key;
         if (slot.depth >= depth) {
             if (slot.flag == TT_EXACT) return slot.value;
             if (slot.flag == TT_LOWERBOUND) alpha = std::max(alpha, slot.value);
@@ -251,7 +284,7 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
                                      : INFINITO - (MAX_PLY - ply);
     }
 
-    score_moves(moves, tt_best_move, ply, current_turn);
+    score_moves(moves, tt_move_key_value, ply, current_turn);
     std::sort(moves.begin(), moves.end());
 
     const int original_alpha = alpha;
@@ -260,9 +293,19 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     if (current_turn == 'W') {
         int best_value = -INFINITO;
+        bool first = true;
         for (const Move& move : moves) {
             UndoInfo undo = make_move(move);
-            const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            int value;
+            if (first) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                first = false;
+            } else {
+                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, ply + 1);
+                if (!abort_search && value > alpha && value < beta) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                }
+            }
             unmake_move(move, undo);
             if (abort_search) return 0;
             if (value > best_value) {
@@ -280,14 +323,27 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         TTFlag flag = TT_EXACT;
         if (best_value <= original_alpha) flag = TT_UPPERBOUND;
         else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-        slot = {key, depth, best_value, flag, best_move, true};
+        const uint64_t best_key = move_key(best_move);
+        if (!slot.occupied || slot.zobrist_key != key || slot.depth <= depth) {
+            slot = {key, best_key, depth, best_value, flag, true};
+        }
         return best_value;
     }
 
     int best_value = INFINITO;
+    bool first = true;
     for (const Move& move : moves) {
         UndoInfo undo = make_move(move);
-        const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+        int value;
+        if (first) {
+            value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            first = false;
+        } else {
+            value = alpha_beta(depth - 1, beta - 1, beta, board.turn, ply + 1);
+            if (!abort_search && value < beta && value > alpha) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            }
+        }
         unmake_move(move, undo);
         if (abort_search) return 0;
         if (value < best_value) {
@@ -305,7 +361,10 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     TTFlag flag = TT_EXACT;
     if (best_value <= original_alpha) flag = TT_UPPERBOUND;
     else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-    slot = {key, depth, best_value, flag, best_move, true};
+    const uint64_t best_key = move_key(best_move);
+    if (!slot.occupied || slot.zobrist_key != key || slot.depth <= depth) {
+        slot = {key, best_key, depth, best_value, flag, true};
+    }
     return best_value;
 }
 
@@ -341,19 +400,36 @@ std::string search_best_move(int max_depth) {
 
         const uint64_t key = search_position_key();
         TTEntry& root_slot = transposition_table[key & TT_MASK];
-        const Move tt_move = (root_slot.occupied && root_slot.zobrist_key == key) ? root_slot.best_move : Move();
+        const uint64_t tt_move_key_value = (root_slot.occupied && root_slot.zobrist_key == key)
+            ? root_slot.best_move_key : 0;
 
-        score_moves(root_moves, tt_move, 0, board.turn);
+        score_moves(root_moves, tt_move_key_value, 0, board.turn);
         std::sort(root_moves.begin(), root_moves.end());
 
         int alpha = -INFINITO;
         int beta = INFINITO;
         int best_value = (board.turn == 'W') ? -INFINITO : INFINITO;
         Move best_move_this_depth = root_moves.front();
+        bool first = true;
 
         for (const Move& move : root_moves) {
             UndoInfo undo = make_move(move);
-            const int value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+            int value;
+            if (first) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                first = false;
+            } else if (board.turn == 'W') {
+                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, 1);
+                if (!abort_search && value > alpha && value < beta) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                }
+            } else {
+                value = alpha_beta(depth - 1, beta - 1, beta, board.turn, 1);
+                if (!abort_search && value < beta && value > alpha) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                }
+            }
+
             unmake_move(move, undo);
             if (abort_search) break;
 
@@ -374,7 +450,10 @@ std::string search_best_move(int max_depth) {
 
         if (abort_search) break;
         best_overall_move = best_move_this_depth;
-        transposition_table[key & TT_MASK] = {key, depth, best_value, TT_EXACT, best_move_this_depth, true};
+        const uint64_t best_key = move_key(best_move_this_depth);
+        if (!root_slot.occupied || root_slot.zobrist_key != key || root_slot.depth <= depth) {
+            root_slot = {key, best_key, depth, best_value, TT_EXACT, true};
+        }
         if (is_terminal_score(best_value)) break;
     }
 
