@@ -1,9 +1,6 @@
 name: RedWar AI Quality Gate
 
 on:
-  # Run for every PR so this can later be configured as a required status
-  # check in a public repository. Non-AI PRs finish successfully without an
-  # expensive tournament.
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
@@ -48,7 +45,7 @@ jobs:
         set -euo pipefail
         BASE="${{ github.event.pull_request.base.sha }}"
         git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
-        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp|\.github/workflows/(ai_quality_gate|ai_arena)\.yml)$' /tmp/changed-files.txt; then
+        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp|\.github/workflows/(ai_quality_gate|ai_arena)\.yml)' /tmp/changed-files.txt; then
           echo "has_ai_changes=true" >> "$GITHUB_OUTPUT"
           echo "AI-related changes detected:"
           cat /tmp/changed-files.txt
@@ -125,6 +122,5 @@ jobs:
     - name: Cleanup worktrees
       if: always()
       run: |
-        git worktree remove --force /tmp/redwar-quality-base 2>/dev/null || true
         git worktree remove --force /tmp/redwar-quality-base-ai 2>/dev/null || true
         git worktree remove --force /tmp/redwar-quality-head 2>/dev/null || true
