@@ -105,7 +105,10 @@ def train(dataset: str, output: str, epochs: int, batch_size: int, lr: float, se
         with torch.no_grad():
             ids0, mask0, ids1, mask1, y = make_batch(valid_rows)
             validation_loss = float(loss_fn(model(ids0, mask0, ids1, mask1), y).item())
-        print(f"epoch={epoch} train_loss={train_loss/max(1,len(train_rows)):.3f} validation_loss={validation_loss:.3f}")
+        print(
+            f"epoch={epoch} train_loss={train_loss/max(1,len(train_rows)):.3f} "
+            f"validation_loss={validation_loss:.3f}"
+        )
 
     state = model.state_dict()
     acc_scale = 64
@@ -113,10 +116,14 @@ def train(dataset: str, output: str, epochs: int, batch_size: int, lr: float, se
     output_scale = 64
 
     embedding = state["embedding.weight"].detach().cpu().reshape(-1).tolist()
-    hidden_weight = state["hidden.weight"].detach().cpu().reshape(-1).tolist()
     hidden_bias = state["hidden.bias"].detach().cpu().reshape(-1).tolist()
     output_weight = state["output.weight"].detach().cpu().reshape(-1).tolist()
     output_bias = state["output.bias"].detach().cpu().reshape(-1).tolist()
+
+    # PyTorch stores Linear weights as [hidden][input], while the C++ runtime
+    # stores them as [input][hidden] for contiguous hidden-neuron evaluation.
+    hidden_matrix = state["hidden.weight"].detach().cpu()
+    hidden_weight = hidden_matrix.t().reshape(-1).tolist()
 
     quant = lambda values, scale: [int(round(float(v) * scale)) for v in values]
     write_model(
