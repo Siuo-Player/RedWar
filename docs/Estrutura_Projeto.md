@@ -98,4 +98,4 @@ Não vamos fazer esta migração toda de uma vez. Primeiro estabiliza-se a semâ
 
 ## 6. Inspiração externa
 
-Projetos grandes de engines seguem uma separação semelhante: Stockfish mantém o motor concentrado em `src` e os testes/infraestrutura fora dele; Fairy-Stockfish separa `src`, `tests` e scripts/CI, e mantém tooling de NNUE em repositórios e pastas próprias. A principal lição para RedWar não é copiar nomes, mas manter o código executável, os testes e as experiências com responsabilidades diferentes. citeturn482182search0turn482182search11
+Projetos grandes de engines seguem uma separação semelhante: Stockfish mantém o motor concentrado em `src` e os testes/infraestrutura fora dele; Fairy-Stockfish separa `src`, `tests` e scripts/CI, e mantém tooling de NNUE em repositórios e pastas próprias. A principal lição para RedWar não é copiar nomes, mas manter o código executável, os testes e as experiências com responsabilidades diferentes.
