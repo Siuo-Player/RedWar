@@ -8,7 +8,7 @@ on:
 jobs:
   auto-balance:
     runs-on: ubuntu-latest
-    
+
     permissions:
       contents: write
 
@@ -35,7 +35,7 @@ jobs:
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
         chmod +x engine
 
     - name: Generate Telemetry (Trainer)
@@ -43,7 +43,7 @@ jobs:
 
     - name: Run Auto-Pricer
       run: python tools/balance/auto_pricer.py
-      
+
     - name: Commit and Push Balance Changes
       run: |
         git config --local user.name "github-actions[bot]"
