@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import time
 from pathlib import Path
 from typing import Any
 
@@ -39,10 +40,19 @@ def _require_torch():
     return torch, nn
 
 
-def train(dataset: str, output: str, epochs: int, batch_size: int, lr: float, seed: int) -> None:
+def train(
+    dataset: str,
+    output: str,
+    epochs: int,
+    batch_size: int,
+    lr: float,
+    seed: int,
+    max_seconds: float | None = None,
+) -> None:
     torch, nn = _require_torch()
     torch.manual_seed(seed)
     random.seed(seed)
+    started = time.monotonic()
 
     rows = _load_rows(dataset)
     features = [active_features(str(row["rwen"])) for row in rows]
@@ -87,6 +97,7 @@ def train(dataset: str, output: str, epochs: int, batch_size: int, lr: float, se
             mask1[row_no, : len(f1)] = 1.0
         return ids0, mask0, ids1, mask1, y
 
+    completed_epochs = 0
     for epoch in range(1, epochs + 1):
         random.shuffle(train_rows)
         model.train()
@@ -105,10 +116,15 @@ def train(dataset: str, output: str, epochs: int, batch_size: int, lr: float, se
         with torch.no_grad():
             ids0, mask0, ids1, mask1, y = make_batch(valid_rows)
             validation_loss = float(loss_fn(model(ids0, mask0, ids1, mask1), y).item())
+        completed_epochs = epoch
         print(
             f"epoch={epoch} train_loss={train_loss/max(1,len(train_rows)):.3f} "
-            f"validation_loss={validation_loss:.3f}"
+            f"validation_loss={validation_loss:.3f} elapsed={time.monotonic()-started:.1f}s"
         )
+
+        if max_seconds is not None and time.monotonic() - started >= max_seconds:
+            print(f"time limit reached after {completed_epochs} epochs")
+            break
 
     state = model.state_dict()
     acc_scale = 64
@@ -141,7 +157,7 @@ def train(dataset: str, output: str, epochs: int, batch_size: int, lr: float, se
         bias3=int(round(float(output_bias[0]) * output_scale)),
         weights3=quant(output_weight, output_scale),
     )
-    print(f"trained model written to {output}")
+    print(f"trained model written to {output} after {completed_epochs} epochs")
 
 
 def main() -> None:
@@ -152,8 +168,9 @@ def main() -> None:
     parser.add_argument("--batch-size", type=int, default=128)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=20260823)
+    parser.add_argument("--max-seconds", type=float, default=None)
     args = parser.parse_args()
-    train(args.dataset, args.output, args.epochs, args.batch_size, args.lr, args.seed)
+    train(args.dataset, args.output, args.epochs, args.batch_size, args.lr, args.seed, args.max_seconds)
 
 
 if __name__ == "__main__":
