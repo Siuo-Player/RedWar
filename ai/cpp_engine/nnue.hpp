@@ -42,6 +42,13 @@ void sync_board();
 void reset();
 std::optional<int> evaluate();
 
+// Incremental hooks used by board.cpp. These are the hot-path interface: the
+// accumulator is updated at the moment a BoardState field changes.
+void on_piece_change(int r, int c, const Piece& old_piece, const Piece& new_piece);
+void on_effect_change(int r, int c, const TileEffect& old_effect, const TileEffect& new_effect);
+void on_side_to_move_change(char old_side, char new_side);
+void on_twc_change(int old_twc, int new_twc);
+
 int feature_for_piece(int perspective, int square, const Piece& piece);
 int feature_for_stun(int perspective, int square, const Piece& piece);
 int feature_for_lifespan(int perspective, int square, const Piece& piece);
