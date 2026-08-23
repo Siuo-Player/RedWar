@@ -130,8 +130,6 @@ jobs:
           chmod +x engine
           popd >/dev/null
 
-          # Short development tournament. The PR quality gate uses the longer
-          # tournament and is the actual promotion decision.
           set +e
           python /tmp/redwar-baseline/tools/analytics/arena_tournament.py \
             --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
@@ -139,8 +137,8 @@ jobs:
             --jogos 20 \
             --margem-vitorias 3 \
             --nodes 10000 \
-            | tee "/tmp/redwar-arena-results/${COMMIT}-arena.txt"
-          rc=${PIPESTATUS[0]}
+            --results "/tmp/redwar-arena-results/${COMMIT}-games.jsonl"
+          rc=$?
           set -e
           echo "arena_exit_code=$rc" >> "/tmp/redwar-arena-results/${COMMIT}-arena.txt"
 
@@ -160,4 +158,4 @@ jobs:
         name: redwar-ai-arena-${{ github.sha }}
         path: /tmp/redwar-arena-results
         if-no-files-found: warn
-        retention-days: 14
+        retention-days: 30
