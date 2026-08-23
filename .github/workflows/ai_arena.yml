@@ -36,7 +36,9 @@ jobs:
       run: |
         git worktree add --detach /tmp/redwar-base "$BASE_SHA"
         cd /tmp/redwar-base/ai/cpp_engine
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine-benchmark
+        cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+        if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine-benchmark
         cd "$GITHUB_WORKSPACE"
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-base/ai/cpp_engine/engine-benchmark | tee /tmp/base-benchmark.txt
 
@@ -56,7 +58,9 @@ jobs:
           git worktree add --detach "$worktree" "$commit"
           (
             cd "$worktree/ai/cpp_engine"
-            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine-benchmark
+            cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+            if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine-benchmark
           )
 
           output=$(python tools/analytics/benchmark_engine.py --engine "$worktree/ai/cpp_engine/engine-benchmark")
@@ -138,7 +142,9 @@ PY
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine
+        cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+        if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
         chmod +x engine
     - name: Run Arena Tournament
       run: python tools/analytics/arena_tournament.py --jogos 100 --margem_vitorias 10
