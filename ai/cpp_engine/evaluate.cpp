@@ -1,6 +1,7 @@
 #include "types.hpp"
 
 #include <algorithm>
+#include <cstdlib>
 
 namespace {
 
@@ -35,7 +36,7 @@ const PstHeroIds& pst_hero_ids() {
         PstHeroIds result;
         if (auto it = PIECE_IDS.find("Ghoul"); it != PIECE_IDS.end()) result.ghoul = it->second;
         if (auto it = PIECE_IDS.find("Sentry"); it != PIECE_IDS.end()) result.sentry = it->second;
-        if (auto it = PIECE_IDS.find("FrostMage"); it != PIECE_IDS.end()) result.frostmage = it->second;
+        if (auto it = PIECE_IDS.find("FrostMage"); it != PIE_IDS.end()) result.frostmage = it->second;
         if (auto it = PIECE_IDS.find("Lich"); it != PIECE_IDS.end()) result.lich = it->second;
         if (auto it = PIECE_IDS.find("BoneLord"); it != PIECE_IDS.end()) result.bonelord = it->second;
         if (auto it = PIECE_IDS.find("Phantom"); it != PIECE_IDS.end()) result.phantom = it->second;
@@ -183,8 +184,7 @@ int get_piece_value(const Piece& p, int r, int c) {
         }
     }
 
-    const int pressure = get_frostmage_pressure(p, r, c);
-    const int total = base_value + positional_bonus + (p.team == 'W' ? pressure : -pressure);
+    const int total = base_value + positional_bonus + get_frostmage_pressure(p, r, c);
 
     if (p.team == 'W') {
         return total;
