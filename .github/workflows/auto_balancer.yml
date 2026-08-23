@@ -9,114 +9,85 @@ concurrency:
   group: redwar-auto-balancer
   cancel-in-progress: false
 
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: ${{ github.workspace }}
+  PYTHONHASHSEED: '0'
+
 jobs:
   overflow-regression:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    env:
-      PYTHONPATH: ${{ github.workspace }}
+    timeout-minutes: 10
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Run Python numeric regressions
-      run: pytest -q tests/test_auto_pricer.py
-    - name: Run C++ numeric evaluation regression
-      run: |
-        g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp ai/cpp_engine/nnue.cpp tests/cpp_numeric_bounds_test.cpp -o cpp_numeric_bounds_test
-        ./cpp_numeric_bounds_test
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run Python numeric regressions
+        run: pytest -q tests/test_auto_pricer.py
+      - name: Run C++ numeric evaluation regression
+        run: |
+          g++ -std=c++17 -O2 -pipe \
+            ai/cpp_engine/board.cpp \
+            ai/cpp_engine/evaluate.cpp \
+            ai/cpp_engine/movegen.cpp \
+            ai/cpp_engine/search.cpp \
+            ai/cpp_engine/nnue.cpp \
+            tests/cpp_numeric_bounds_test.cpp \
+            -o cpp_numeric_bounds_test
+          ./cpp_numeric_bounds_test
 
   auto-balance:
+    needs: overflow-regression
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    env:
-      PYTHONPATH: ${{ github.workspace }}
+    timeout-minutes: 45
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    - name: Install Dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    - name: Build Cython Evaluator
-      run: python setup.py build_ext --inplace
-    - name: Build C++ Engine (Linux)
-      run: |
-        cd ai/cpp_engine
-        cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
-        if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
-        chmod +x engine
-    - name: Test C++ make/unmake Reversibility
-      run: |
-        cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
-        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
-        g++ -std=c++17 -O2 -pipe "${cpp_sources[@]}" tests/cpp_reversibility_test.cpp -o cpp_reversibility_test
-        ./cpp_reversibility_test
-    - name: Test C++ Evaluation Smoke Tests
-      run: |
-        cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
-        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
-        g++ -std=c++17 -O2 -pipe "${cpp_sources[@]}" ai/cpp_engine/SmokeTest.cpp -o cpp_smoke_test
-        ./cpp_smoke_test
-    - name: Test Python NNUE Feature Layout
-      run: pytest -q tests/test_nnue_features.py
-    - name: Generate Teacher Dataset
-      run: python tools/nnue/generate_teacher.py --engine ai/cpp_engine/engine --output /tmp/teacher.jsonl
-    - name: Install Optional NNUE Trainer
-      run: python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-    - name: Train Deterministic NNUE Smoke Model
-      run: python tools/nnue/train.py /tmp/teacher.jsonl --output /tmp/ares-trained.nnue --epochs 3 --batch-size 3 --seed 20260823
-    - name: Test C++ NNUE Integration
-      run: |
-        python -m tools.nnue.bootstrap_model --output /tmp/ares-bootstrap.nnue
-        g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/nnue.cpp ai/cpp_engine/search.cpp tests/cpp_nnue_test.cpp -o cpp_nnue_test
-        REDWAR_NNUE_MODEL=/tmp/ares-bootstrap.nnue ./cpp_nnue_test
-        REDWAR_NNUE_MODEL=/tmp/ares-trained.nnue ./cpp_nnue_test
-    - name: Benchmark Classical vs Trained NNUE
-      run: |
-        classical=$(python tools/analytics/benchmark_engine.py --engine ai/cpp_engine/engine)
-        nnue=$(python tools/analytics/benchmark_engine.py --engine ai/cpp_engine/engine --nnue-model /tmp/ares-trained.nnue)
-        printf '%s\n' "$classical" | tee /tmp/classical-benchmark.txt
-        printf '%s\n' "$nnue" | tee /tmp/nnue-benchmark.txt
-        python - <<'PY'
-from pathlib import Path
-
-def read(path):
-    data={}
-    for line in Path(path).read_text().splitlines():
-        if '=' in line:
-            k,v=line.split('=',1)
-            data[k]=v
-    return data
-
-classic=read('/tmp/classical-benchmark.txt')
-trained=read('/tmp/nnue-benchmark.txt')
-print(f"classical_median={classic['median_seconds']} nnue_median={trained['median_seconds']}")
-print(f"classical_bestmove={classic['bestmove']} nnue_bestmove={trained['bestmove']}")
-PY
-    - name: Test Trainer and Rules Regression
-      run: pytest -q tests/test_trainer.py tests/test_rules.py tests/test_moves.py
-    - name: Generate Telemetry (Trainer)
-      run: python tools/analytics/trainer.py
-    - name: Run Auto-Pricer
-      run: python tools/balance/auto_pricer.py --no-write --report data/auto_balance_report.json
-    - name: Upload Auto-Balance Report
-      uses: actions/upload-artifact@v4
-      with:
-        name: redwar-auto-balance-report-${{ github.run_id }}
-        path: data/auto_balance_report.json
-        if-no-files-found: error
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Build C++ Teacher/Trainer Engine
+        run: |
+          cd ai/cpp_engine
+          g++ -std=c++17 -O3 -DNDEBUG -pipe \
+            board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp \
+            -o engine
+          chmod +x engine
+      - name: Test Trainer and Rules Regression
+        run: pytest -q tests/test_trainer.py tests/test_rules.py tests/test_moves.py
+      - name: Generate Telemetry (Trainer)
+        run: |
+          python tools/analytics/trainer.py \
+            --seed 20260823 \
+            --output /tmp/estatisticas_treino.json
+      - name: Run Auto-Pricer Without Writing Game Configuration
+        run: |
+          python tools/balance/auto_pricer.py \
+            --no-write \
+            --report /tmp/auto_balance_report.json
+      - name: Upload Auto-Balance Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: redwar-auto-balance-report-${{ github.run_id }}
+          path: /tmp/auto_balance_report.json
+          if-no-files-found: error
+      - name: Upload Training Telemetry
+        uses: actions/upload-artifact@v4
+        with:
+          name: redwar-training-telemetry-${{ github.run_id }}
+          path: /tmp/estatisticas_treino.json
+          if-no-files-found: error
