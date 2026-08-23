@@ -2,24 +2,29 @@
 #include "nnue.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 
 namespace {
+
+constexpr int MAX_SAFE_COST = INFINITO / 4;
+constexpr int MAX_SAFE_LIFESPAN = 1000;
 
 int safe_piece_cost(const Piece& p) {
     if (p.is_empty) {
         return 0;
     }
 
+    int candidate = 0;
     if (p.id >= 0 && p.id < MAX_HEROES && PIECE_COSTS[p.id] > 0) {
-        return PIECE_COSTS[p.id];
+        candidate = PIECE_COSTS[p.id];
+    } else if (p.cost > 0) {
+        candidate = p.cost;
+    } else {
+        candidate = 50;
     }
 
-    if (p.cost > 0) {
-        return p.cost;
-    }
-
-    return 50;
+    return std::clamp(candidate, 0, MAX_SAFE_COST);
 }
 
 struct PstHeroIds {
@@ -168,7 +173,11 @@ int get_piece_value(const Piece& p, int r, int c) {
 
     int base_value = safe_piece_cost(p);
     if (p.lifespan != 999) {
-        base_value = std::max(0, (base_value * p.lifespan) / 5);
+        const int safe_lifespan = std::clamp(p.lifespan, 0, MAX_SAFE_LIFESPAN);
+        const int64_t scaled_value =
+            (static_cast<int64_t>(base_value) * safe_lifespan) / 5;
+        base_value = static_cast<int>(std::clamp<int64_t>(
+            scaled_value, 0, MAX_SAFE_COST));
     }
 
     int positional_bonus = get_positional_bonus(p, r, c);
@@ -209,10 +218,10 @@ int evaluate_classical_board() {
     if (board.white_pieces == 0) return -INFINITO + 100;
     if (board.black_pieces == 0) return INFINITO - 100;
 
-    int score = board.material_score + get_total_frostmage_pressure();
+    int64_t score = static_cast<int64_t>(board.material_score) + get_total_frostmage_pressure();
     if (score > 0) score -= board.twc;
     else if (score < 0) score += board.twc;
-    return score;
+    return static_cast<int>(std::clamp<int64_t>(score, -INFINITO, INFINITO));
 }
 
 int evaluate_board() {
