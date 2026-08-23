@@ -157,6 +157,30 @@ int main() {
     std::cout << "Inquisitor adjacent attack: "
               << (inquisitor_ok ? "PASS" : "FAIL") << '\n';
 
+    // FrostMage pressure must depend on real nearby enemy targets, not merely
+    // the unit's five-point base cost. Moving the target outside the stun
+    // envelope must remove the dynamic bonus.
+    clear_board();
+    board.turn = 'W';
+    board.pieces[4][4] = create_piece("FrostMage", 'W');
+    board.pieces[4][0] = create_piece("Bone", 'B');
+    board.hash = compute_initial_hash();
+    compute_initial_eval();
+    const int pressure_score = board.material_score;
+
+    clear_board();
+    board.turn = 'W';
+    board.pieces[4][4] = create_piece("FrostMage", 'W');
+    board.pieces[0][0] = create_piece("Bone", 'B');
+    board.hash = compute_initial_hash();
+    compute_initial_eval();
+    const int no_pressure_score = board.material_score;
+
+    const bool frost_pressure_ok = pressure_score > no_pressure_score;
+    all_ok &= frost_pressure_ok;
+    std::cout << "FrostMage stun pressure: "
+              << (frost_pressure_ok ? "PASS" : "FAIL") << '\n';
+
     // Make/unmake must be an exact identity for the complete board state.
     clear_board();
     board.turn = 'W';
