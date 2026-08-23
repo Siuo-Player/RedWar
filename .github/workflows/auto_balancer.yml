@@ -69,11 +69,11 @@ jobs:
           chmod +x engine
       - name: Test Trainer and Rules Regression
         run: pytest -q tests/test_trainer.py tests/test_rules.py tests/test_moves.py
-      - name: Generate Telemetry (Trainer)
+      - name: Generate Fresh Telemetry (Trainer)
         run: |
           python tools/analytics/trainer.py \
             --seed 20260823 \
-            --output /tmp/estatisticas_treino.json
+            --output data/estatisticas_treino.json
       - name: Run Auto-Pricer Without Writing Game Configuration
         run: |
           python tools/balance/auto_pricer.py \
@@ -85,9 +85,9 @@ jobs:
           name: redwar-auto-balance-report-${{ github.run_id }}
           path: /tmp/auto_balance_report.json
           if-no-files-found: error
-      - name: Upload Training Telemetry
+      - name: Upload Fresh Training Telemetry
         uses: actions/upload-artifact@v4
         with:
           name: redwar-training-telemetry-${{ github.run_id }}
-          path: /tmp/estatisticas_treino.json
+          path: data/estatisticas_treino.json
           if-no-files-found: error
