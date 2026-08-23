@@ -1,71 +1,125 @@
-# tools/scripts/build_cpp_engine.py
+"""Build the RedWar C++ engine or its native smoke test.
+
+The source list is explicit on purpose: adding a test/helper .cpp must never
+silently change the production engine link step.
+"""
+from __future__ import annotations
+
 import argparse
 import os
-import subprocess
-import sys
 import platform
-import glob
+import subprocess
+from pathlib import Path
 
-def get_vcvars_path():
-    """Usa o vswhere (incluído no Windows/VS) para descobrir dinamicamente o compilador MSVC."""
-    vswhere_path = r"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-    vswhere_cmd = f'"{vswhere_path}" -latest -property installationPath'
-    try:
-        vs_path = subprocess.check_output(vswhere_cmd, shell=True, text=True).strip()
-        vcvars = os.path.join(vs_path, "VC", "Auxiliary", "Build", "vcvars64.bat")
-        if os.path.exists(vcvars):
+ROOT = Path(__file__).resolve().parents[2]
+CPP_DIR = ROOT / "ai" / "cpp_engine"
+INCLUDE_DIR = CPP_DIR / "nlohmann"
+
+ENGINE_SOURCES = [
+    "board.cpp",
+    "evaluate.cpp",
+    "main.cpp",
+    "movegen.cpp",
+    "search.cpp",
+    "nnue.cpp",
+]
+SMOKE_SOURCES = [
+    "board.cpp",
+    "evaluate.cpp",
+    "movegen.cpp",
+    "search.cpp",
+    "nnue.cpp",
+    "SmokeTest.cpp",
+]
+
+
+def get_vcvars_path() -> Path | None:
+    if platform.system() != "Windows":
+        return None
+
+    candidates: list[Path] = []
+    program_files_x86 = os.environ.get("ProgramFiles(x86)")
+    if program_files_x86:
+        candidates.append(Path(program_files_x86) / "Microsoft Visual Studio" / "Installer" / "vswhere.exe")
+
+    candidates.append(Path(r"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe"))
+
+    for vswhere in candidates:
+        if not vswhere.exists():
+            continue
+        try:
+            result = subprocess.run(
+                [str(vswhere), "-latest", "-property", "installationPath"],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except (OSError, subprocess.CalledProcessError):
+            continue
+
+        installation = Path(result.stdout.strip())
+        vcvars = installation / "VC" / "Auxiliary" / "Build" / "vcvars64.bat"
+        if vcvars.exists():
             return vcvars
-    except subprocess.CalledProcessError:
-        pass
-    # Fallback comum
-    fallback = r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
-    return fallback if os.path.exists(fallback) else None
 
-def compile_cpp_project(is_smoke_test=False):
-    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    cpp_dir = os.path.join(base_dir, "ai", "cpp_engine")
-    os.chdir(cpp_dir)
+    fallback = Path(
+        r"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat"
+    )
+    return fallback if fallback.exists() else None
 
-    # Encontra todos os ficheiros .cpp
-    all_cpp_files = glob.glob("*.cpp")
 
-    if is_smoke_test:
-        # Para o SmokeTest, removemos o main.cpp (evita 2 entrypoints) e o engine.cpp original
-        cpp_files = [f for f in all_cpp_files if f not in ["main.cpp", "engine.cpp"]]
-        if "SmokeTest.cpp" not in cpp_files:
-            cpp_files.append("SmokeTest.cpp")
-        exe_name = "SmokeTest.exe" if platform.system() == "Windows" else "SmokeTest"
-    else:
-        # Para o Motor normal, removemos o SmokeTest.cpp e o engine.cpp original
-        cpp_files = [f for f in all_cpp_files if f not in ["SmokeTest.cpp", "engine.cpp"]]
-        exe_name = "engine.exe" if platform.system() == "Windows" else "engine"
+def compile_cpp_project(is_smoke_test: bool = False) -> Path:
+    sources = SMOKE_SOURCES if is_smoke_test else ENGINE_SOURCES
+    missing = [name for name in sources if not (CPP_DIR / name).is_file()]
+    if missing:
+        raise FileNotFoundError(f"Fontes C++ em falta: {', '.join(missing)}")
 
-    files_str = " ".join(cpp_files)
-    include_path = os.path.join(cpp_dir, 'nlohmann')
+    exe_name = "SmokeTest.exe" if is_smoke_test and platform.system() == "Windows" else (
+        "SmokeTest" if is_smoke_test else "engine.exe" if platform.system() == "Windows" else "engine"
+    )
+    output = CPP_DIR / exe_name
 
-    print(f"🚀 A preparar compilação 64-bits ({exe_name}) com arquitetura modular...")
-    print(f"📦 Módulos injetados: {files_str}")
+    print(f"🚀 A compilar {'SmokeTest' if is_smoke_test else 'engine'}: {' '.join(sources)}")
 
     if platform.system() == "Windows":
-        vcvars_path = get_vcvars_path()
-        if not vcvars_path:
-            print("❌ ERRO: Não foi possível localizar o vcvars64.bat do MSVC.")
-            sys.exit(1)
-        compile_cmd = f'"{vcvars_path}" && cl /EHsc /O2 /std:c++17 /I"{include_path}" /Fe:{exe_name} {files_str}'
-        print("⚙️ A executar o MSVC Optimizer (cl.exe)...")
+        vcvars = get_vcvars_path()
+        if not vcvars:
+            raise RuntimeError("Não foi possível localizar vcvars64.bat do MSVC.")
+        command = f'"{vcvars}" && cl /nologo /EHsc /O2 /std:c++17 /I"{INCLUDE_DIR}" /Fe:"{output}" ' + " ".join(
+            f'"{CPP_DIR / source}"' for source in sources
+        )
+        completed = subprocess.run(command, shell=True, cwd=CPP_DIR)
     else:
-        compile_cmd = f'g++ -O3 -std=c++17 -I"{include_path}" {files_str} -o {exe_name}'
-        print("⚙️ A executar o GCC Optimizer (g++)...")
+        command = [
+            "g++",
+            "-std=c++17",
+            "-O3",
+            "-march=native",
+            "-mtune=native",
+            "-flto",
+            "-DNDEBUG",
+            "-pipe",
+            f"-I{INCLUDE_DIR}",
+            *[str(CPP_DIR / source) for source in sources],
+            "-o",
+            str(output),
+        ]
+        completed = subprocess.run(command, cwd=CPP_DIR)
 
-    result = subprocess.run(compile_cmd, shell=True)
-    if result.returncode == 0:
-        print(f"✅ SUCESSO: Compilado e guardado em {os.path.join(cpp_dir, exe_name)}")
-    else:
-        print("❌ ERRO: Falha na compilação do C++.")
-        sys.exit(result.returncode)
+    if completed.returncode != 0:
+        raise SystemExit(completed.returncode)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Compila o motor C++ modular.")
-    parser.add_argument("--smoke", action="store_true", help="Compila os módulos em conjunto com SmokeTest.cpp")
+    print(f"✅ Compilado: {output}")
+    return output
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Compila o motor C++ de RedWar")
+    parser.add_argument("--smoke", action="store_true", help="Compila o SmokeTest em vez do executável da engine")
     args = parser.parse_args()
     compile_cpp_project(is_smoke_test=args.smoke)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
