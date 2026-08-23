@@ -1,4 +1,3 @@
-# ai/bot.py
 import random
 import subprocess
 import os
@@ -166,21 +165,21 @@ class BotAleatorio:
 
 BOT_ALEATORIO = BotAleatorio()
 
-# Budgets de jogo real: baixos o suficiente para manter o turno responsivo.
-BOT_INICIANTE = CppEngineBot(nodes=1_000)
-BOT_INTERMEDIO = CppEngineBot(nodes=5_000)
-BOT_AVANCADO = CppEngineBot(nodes=10_000)
-BOT_INICIANTE.nome = "StockWar Iniciante (N1k)"
-BOT_INTERMEDIO.nome = "StockWar Intermédio (N5k)"
-BOT_AVANCADO.nome = "StockWar Avançado (N10k)"
+# Budgets de jogo real: 20x o orçamento do trainer.
+BOT_INICIANTE = CppEngineBot(nodes=100_000)
+BOT_INTERMEDIO = CppEngineBot(nodes=500_000)
+BOT_AVANCADO = CppEngineBot(nodes=1_000_000)
+BOT_INICIANTE.nome = "StockWar Iniciante (N100k)"
+BOT_INTERMEDIO.nome = "StockWar Intermédio (N500k)"
+BOT_AVANCADO.nome = "StockWar Avançado (N1M)"
 
-# O trainer precisa de mais resolução para produzir dados úteis sem usar os budgets de jogo.
-TREINO_INICIANTE = CppEngineBot(nodes=10_000)
-TREINO_INTERMEDIO = CppEngineBot(nodes=50_000)
-TREINO_AVANCADO = CppEngineBot(nodes=100_000)
-TREINO_INICIANTE.nome = "Treino Iniciante (N10k)"
-TREINO_INTERMEDIO.nome = "Treino Intermédio (N50k)"
-TREINO_AVANCADO.nome = "Treino Avançado (N100k)"
+# O trainer usa budgets separados para manter 200 partidas num tempo controlado.
+TREINO_INICIANTE = CppEngineBot(nodes=1_000)
+TREINO_INTERMEDIO = CppEngineBot(nodes=5_000)
+TREINO_AVANCADO = CppEngineBot(nodes=10_000)
+TREINO_INICIANTE.nome = "Treino Iniciante (N1k)"
+TREINO_INTERMEDIO.nome = "Treino Intermédio (N5k)"
+TREINO_AVANCADO.nome = "Treino Avançado (N10k)"
 
 def gerar_bot_por_elo(elo):
     if elo < 800: return BOT_ALEATORIO
