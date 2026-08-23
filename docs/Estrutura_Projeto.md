@@ -1,194 +1,101 @@
 # Estrutura e Arquitetura do Projeto RedWar
 
-Este documento descreve a **estrutura atual** e a arquitetura pretendida. Não é uma proposta genérica de como organizar um jogo: caminhos apresentados aqui devem corresponder à árvore real do repositório ou ser explicitamente marcados como alvo futuro.
+Este documento é um mapa operacional do repositório. Caminhos descritos como atuais devem existir; objetivos futuros estão explicitamente marcados.
 
-## 1. Divisão conceptual
-
-O projeto tem quatro grandes zonas:
+## 1. Estrutura atual
 
 ```text
 RedWar/
-├── engine/       # estado e regras do jogo
-├── ai/           # Ares e ferramentas diretamente ligadas à IA
-├── ui/           # aplicação visual atual
-├── online/       # infraestrutura de multiplayer em desenvolvimento
-├── tools/        # analytics, balanceamento, Arena e tooling
-├── tests/        # testes
-├── docs/         # documentação
-├── deploy/       # packaging
-├── data/         # dados gerados/estatísticas
-└── main.py       # entrada da aplicação local
+├── ai/                 # Ares, bots e engine C++
+│   └── cpp_engine/     # hot path da pesquisa/avaliação
+├── engine/             # estado e regras autoritativas durante a migração
+├── ui/                 # aplicação visual local
+├── online/             # cliente/rede/servidor em desenvolvimento
+├── tools/
+│   ├── analytics/      # Arena, trainer, openings determinísticas, análise
+│   ├── balance/        # auto-pricer e balanceamento
+│   ├── nnue/           # features, teacher data, treino e exportação
+│   └── scripts/        # build e auditorias de desenvolvimento
+├── tests/              # regressões e invariantes
+├── docs/               # documentação técnica e de produto
+├── data/               # dados gerados, datasets e modelos
+├── logs/               # saídas de diagnóstico locais/geradas
+├── deploy/             # packaging/release
+└── main.py             # entrada da aplicação local
 ```
 
-A separação atual ainda não é perfeita. O objetivo é tornar `engine/` a definição autoritativa das regras e `ai/` uma camada de inteligência que consome esse jogo sem redefinir as suas regras por conta própria.
+## 2. Regra de propriedade
 
-## 2. `engine/`
+### `engine/`
 
-É a camada que deve responder à pergunta:
+Define o que uma posição é e o que uma ação faz.
 
-> **“O que é uma posição legal de RedWar e o que acontece quando uma ação é executada?”**
+### `ai/`
 
-Responsabilidades principais:
+Decide que ação procurar e como avaliar uma posição. Pode conter otimizações específicas de engine, mas não deve introduzir uma segunda semântica das regras.
 
-- `game_state.py` — estado do tabuleiro e transições de estado;
-- `pieces.py` — definição e comportamento dos heróis;
-- `heroes_config.json` — dados dos heróis;
-- `action_parser.py` — interpretação/validação de ações;
-- `config.py` — constantes do jogo;
-- `HEROES_SCHEMA.md` — formato da configuração de heróis.
+### `tools/`
 
-Esta camada não deve depender de UI para saber se uma jogada é legal.
+Executa experiências, builds, treino, Arena e análise. Não deve ser importado pelo caminho normal de uma partida salvo quando existe uma razão explícita.
 
-## 3. `ai/`
+### `tests/`
 
-Contém o **Ares**, que deve idealmente tornar-se uma engine de IA independente da apresentação do jogo.
+Testa comportamento e invariantes. Não é uma camada funcional do jogo.
+
+### `data/` e `logs/`
+
+Contêm resultados produzidos. Dados reprodutíveis usados como fixtures pertencem ao repositório; grandes artefactos de treino/build devem ser ignorados ou publicados como artifacts/releases conforme a necessidade.
+
+## 3. Convenção de `tools/`
 
 ```text
-ai/
-├── bot.py
-├── search.py
-├── evaluator.pyx
-└── cpp_engine/
-    ├── types.hpp
-    ├── board.cpp
-    ├── movegen.cpp
-    ├── evaluate.cpp
-    ├── search.cpp
-    ├── main.cpp
-    └── SmokeTest.cpp
+tools/analytics/
+  arena_tournament.py       # confronto A/B
+  opening_book.py           # posições determinísticas
+  game_analyzer.py          # análise de JSONL já gravado
+  trainer.py                # geração de dados de treino
+
+tools/balance/
+  auto_pricer.py            # cálculo puro + aplicação opcional
+
+tools/nnue/
+  features.py               # layout de features
+  io.py                     # formato RWNUE002
+  generate_teacher.py       # targets clássicos
+  train.py                  # treino/exportação
+  bootstrap_model.py        # compatibilidade, não força
+
+tools/scripts/
+  build_cpp_engine.py       # build explícito
+  build_pipeline.py         # pipeline de desenvolvimento
+  audit_structure.py        # auditoria não destrutiva
 ```
 
-A implementação Python/Cython ainda existe durante a migração. O objetivo é que o caminho de pesquisa quente migre para uma implementação mais rápida, atualmente C++.
+Scripts antigos que simulavam o mesmo fluxo com regras diferentes devem ser removidos em vez de mantidos “por segurança”. Um caminho antigo só deve sobreviver quando ainda tiver um consumidor real ou desempenhar uma função de compatibilidade documentada.
 
-A longo prazo, Python deve permanecer principalmente como camada de integração, ferramentas e testes quando o C++ for a melhor opção para a pesquisa.
+## 4. O que não deve acontecer
 
-## 4. `ui/`
+- `tools/` redefinir regras de `engine/`;
+- UI validar ações por uma implementação própria;
+- Arena ter uma opening book diferente do fluxo oficial sem motivo documentado;
+- scripts de build compilar automaticamente qualquer `.cpp` encontrado numa pasta;
+- scripts de reorganização apagarem/substituírem ficheiros sem confirmação explícita;
+- dados gerados serem tratados como fonte de verdade do código;
+- documentação declarar um estado que o código não implementa.
 
-É a aplicação visual atual.
+## 5. Reestruturação futura
 
-A UI deve:
-
-- apresentar o estado do jogo;
-- receber input do jogador;
-- pedir ao core as ações legais;
-- mostrar animações/VFX;
-- reproduzir som;
-- permitir menus, análise e histórico.
-
-A UI não deve reimplementar as regras do jogo para “decidir” se uma ação é válida.
-
-## 5. `online/`
-
-Contém o trabalho em progresso relacionado com multiplayer.
-
-Estrutura atual:
+Uma reestruturação maior poderá separar mais claramente:
 
 ```text
-online/
-├── client/
-├── network/
-└── server/
+src/                 # produção Python/C++/bindings
+scripts/              # comandos de desenvolvimento
+benchmarks/           # posições e referências de medição
+training/             # datasets/checkpoints NNUE
 ```
 
-A arquitetura final ainda não está escolhida. O objetivo é criar partidas 1v1 com servidor capaz de validar ações, matchmaking, tempos, reconexão e ranking.
+Não vamos fazer esta migração toda de uma vez. Primeiro estabiliza-se a semântica, as dependências e os consumidores; depois movem-se diretórios em blocos que possam ser testados e revertidos facilmente.
 
-## 6. `tools/`
+## 6. Inspiração externa
 
-Ferramentas para:
-
-- Arena;
-- análise de partidas;
-- calibração de ELO;
-- treino/self-play;
-- auto-pricer/balanceamento;
-- build e CI local.
-
-As ferramentas não devem ser confundidas com a definição das regras do jogo.
-
-## 7. `tests/`
-
-Os testes devem verificar principalmente:
-
-- validade de ações;
-- transições do estado;
-- efeitos e timers;
-- hashing;
-- equivalência incremental/recomputada;
-- comportamento dos heróis;
-- equivalência Python/C++ durante a migração;
-- casos extremos e regressões.
-
-## 8. `docs/`
-
-A documentação está dividida por público:
-
-```text
-README.md
-  → visão geral
-
-GAME_RULES.md
-  → jogador/desenvolvedor que precisa saber as regras atuais
-
-GAME_DESIGN.md
-  → filosofia e decisões de design
-
-ARCHITECTURE.md
-  → implementação e fronteiras entre módulos
-
-AI_ENGINE.md
-  → Ares, search, avaliação e Arena
-
-HERO_SYSTEM.md
-  → sistema de heróis e configuração
-
-WEB_MULTIPLAYER.md
-  → aplicação, web, contas e multiplayer
-
-CONTRIBUTING.md
-  → política de contribuições
-
-ROADMAP.md
-  → estado atual e trabalho futuro
-```
-
-## 9. Regra de modularidade
-
-O projeto pretende evitar ficheiros gigantes.
-
-Como regra prática:
-
-> ficheiros acima de aproximadamente 1000 linhas devem ser considerados candidatos a divisão em módulos.
-
-A principal exceção é a configuração/lista de heróis quando a concentração num único ficheiro torna a adição de novos heróis significativamente mais simples.
-
-Mesmo nessa exceção, o código de regras não deve crescer indefinidamente dentro de uma única classe.
-
-## 10. Arquitetura alvo
-
-A arquitetura futura desejada pode ser resumida como:
-
-```text
-                 ┌───────────────────┐
-                 │      UI / Web      │
-                 └─────────┬─────────┘
-                           │
-                           ▼
-                 ┌───────────────────┐
-                 │  Game Core/Rules  │
-                 └─────────┬─────────┘
-                           │
-          ┌────────────────┴────────────────┐
-          ▼                                 ▼
- ┌───────────────────┐             ┌───────────────────┐
- │   Local Ares      │             │   Online Server   │
- │   / Analysis      │             │   / Validation    │
- └───────────────────┘             └─────────┬─────────┘
-                                             │
-                                             ▼
-                                      ┌──────────────┐
-                                      │    Ares      │
-                                      │    C++       │
-                                      └──────────────┘
-```
-
-O objetivo central é não ter duas definições incompatíveis das regras.
+Projetos grandes de engines seguem uma separação semelhante: Stockfish mantém o motor concentrado em `src` e os testes/infraestrutura fora dele; Fairy-Stockfish separa `src`, `tests` e scripts/CI, e mantém tooling de NNUE em repositórios e pastas próprias. A principal lição para RedWar não é copiar nomes, mas manter o código executável, os testes e as experiências com responsabilidades diferentes. citeturn482182search0turn482182search11
