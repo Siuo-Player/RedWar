@@ -23,6 +23,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  overflow-regression:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Run overflow regression tests
+      run: pytest -q tests/test_auto_pricer.py
+
   auto-balance:
     runs-on: ubuntu-latest
     permissions:
@@ -97,8 +117,6 @@ trained=read('/tmp/nnue-benchmark.txt')
 print(f"classical_median={classic['median_seconds']} nnue_median={trained['median_seconds']}")
 print(f"classical_bestmove={classic['bestmove']} nnue_bestmove={trained['bestmove']}")
 PY
-    - name: Test Auto-Pricer Overflow Regression
-      run: pytest -q tests/test_auto_pricer.py
     - name: Test Trainer and Rules Regression
       run: pytest -q tests/test_trainer.py tests/test_rules.py tests/test_moves.py
     - name: Generate Telemetry (Trainer)
