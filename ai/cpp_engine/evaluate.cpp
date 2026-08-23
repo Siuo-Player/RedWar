@@ -123,6 +123,38 @@ int get_positional_bonus(const Piece& p, int r, int c) {
     return 0;
 }
 
+bool can_frostmage_pressure_target(int mage_r, int mage_c, int target_r, int target_c) {
+    return std::abs(mage_r - target_r) + std::abs(mage_c - target_c) <= 4;
+}
+
+int get_frostmage_pressure(const Piece& mage, int r, int c) {
+    if (mage.id != pst_hero_ids().frostmage || mage.stun_timer > 0) {
+        return 0;
+    }
+
+    int pressure = 0;
+    for (int tr = 0; tr < LINHAS; ++tr) {
+        for (int tc = 0; tc < COLUNAS; ++tc) {
+            const Piece& target = board.pieces[tr][tc];
+            if (target.is_empty || target.team == mage.team ||
+                !can_frostmage_pressure_target(r, c, tr, tc)) {
+                continue;
+            }
+
+            const int target_cost = safe_piece_cost(target);
+            const int contribution = target.stun_timer > 0
+                ? (target_cost * 50) / 100
+                : std::max(1, (target_cost * 10) / 100);
+            pressure += contribution;
+            if (pressure >= 40) {
+                return 40;
+            }
+        }
+    }
+
+    return pressure;
+}
+
 } // namespace
 
 int get_piece_value(const Piece& p, int r, int c) {
@@ -151,7 +183,8 @@ int get_piece_value(const Piece& p, int r, int c) {
         }
     }
 
-    const int total = base_value + positional_bonus;
+    const int pressure = get_frostmage_pressure(p, r, c);
+    const int total = base_value + positional_bonus + (p.team == 'W' ? pressure : -pressure);
 
     if (p.team == 'W') {
         return total;
