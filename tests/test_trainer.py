@@ -1,15 +1,14 @@
 import pytest
 
 from engine.game_state import GameState
-from engine.pieces import HERO_DEFS, Piece
+from engine.pieces import criar_peca_por_nome
 from tools.analytics.trainer import executar_acao_treino
 from tools.balance.auto_pricer import obter_partidas_validas
 
 
 def test_invalid_spell_does_not_get_silently_accepted():
     gs = GameState()
-    data = HERO_DEFS["Sentry"]
-    gs.board[0][0] = Piece("brancas", "Sentry", data["cost"], data["acronym"])
+    gs.board[0][0] = criar_peca_por_nome("Sentry", "brancas")
 
     with pytest.raises(ValueError, match=r"Unknown spell: unknown"):
         executar_acao_treino(
