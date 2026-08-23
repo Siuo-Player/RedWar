@@ -18,55 +18,52 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 
 ## Estado confirmado após o último PR integrado
 
-O PR **#47** adicionou um self-test nativo de `make_move`/`unmake_move`, cobrindo peças, efeitos, timers, hash, avaliação material, contadores e turno.
+O **PR #48 está integrado na `main`**. Ele melhorou a avaliação da pressão de stun do FrostMage, manteve `material_score` como acumulador incremental puro e reforçou a reversibilidade exata de estado derivado.
 
-O PR de overflow **#14** já está integrado e protege o Auto-Pricer contra ELO extremo e partidas excessivamente longas.
+O **PR #14** está integrado e protege o Auto-Pricer contra ELO extremo e partidas excessivamente longas.
 
-## Estado do trabalho atual
-
-### PR #48 — FrostMage / core
-
-Branch: `perf/ares-stun-threat-eval-2026-08-23`
-
-Objetivo: melhorar o reconhecimento de pressão de stun sem contaminar o `material_score` incremental.
-
-O ciclo revelou e corrigiu uma falha real no contrato de `make/unmake`: peças e efeitos podiam voltar corretamente enquanto `hash`/avaliação incremental divergiam. `UndoInfo` agora guarda os escalares irreversíveis necessários para restauração exata.
-
-Critérios antes do merge:
-
-- reversibilidade verde;
-- smoke tests verdes;
-- overflow/regressões verdes;
-- custo da avaliação medido;
-- `bestmove`/força sem regressão relevante.
-
-### Próximo PR — NNUE RPG
+## Trabalho atual — PR #49: NNUE RPG
 
 Branch: `feat/nnue-rpg-engine-2026-08-23`
 
-Objetivo: introduzir uma avaliação NNUE-style verdadeira no hot path, mas com features específicas de RedWar.
+Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar, mantendo a avaliação clássica como fallback até haver evidência de força/custo suficiente.
 
-Plano de continuação:
+### Bloco NNUE
 
-1. Fixar e testar o layout único de features Python/C++.
-2. Implementar loading binário versionado e quantizado.
-3. Implementar accumulators esparsos e inferência CPU determinística.
-4. Integrar NNUE ao `evaluate_board()` com fallback clássico quando não existe modelo.
-5. Adicionar CI que gere um modelo bootstrap e valide loading/inferência.
-6. Gerar dataset inicial de posições e teacher scores.
-7. Treinar uma primeira rede real e quantizá-la.
-8. Medir custo por avaliação/NPS contra o avaliador clássico.
-9. Criar benchmark específico para stun/FrostMage e outras regras RPG.
-10. Comparar NNUE vs clássico na Arena sob condições iguais.
-11. Só tornar NNUE a avaliação predefinida se houver evidência de melhoria; caso contrário manter a arquitetura opcional e continuar a treinar.
+- [x] Layout único de features Python/C++.
+- [x] Loading binário versionado e quantizado (`RWNUE002`).
+- [x] Modelo bootstrap determinístico para testes de compatibilidade.
+- [x] Features de peça/casa/equipa relativa.
+- [x] Features de stun/lifespan/cooldown.
+- [x] Features de efeitos, TWC e lado a jogar.
+- [x] Treinador PyTorch opcional com exportação quantizada.
+- [x] Geração de teacher data determinística a partir da avaliação clássica explícita.
+- [x] Testes Python e C++ de layout/loading/inferência.
+- [x] Fallback para avaliação clássica quando não há modelo.
+- [x] Workflows CI preparados para builds clássicos e NNUE.
+- [x] Benchmark CI reduzido a base vs HEAD.
+- [ ] Primeira rede treinada real validada no C++.
+- [ ] Benchmark de custo por avaliação/NPS clássico vs NNUE.
+- [ ] Comparação de `bestmove` e posições de referência.
+- [ ] Arena NNUE vs clássica.
+- [ ] Decisão de tornar NNUE default.
 
-**Se a branch ficar a meio:** continuar em `docs/NNUE.md`, garantir que `nnue.cpp` e `tools/nnue/features.py` têm o mesmo `FEATURE_COUNT`, executar `tests/cpp_nnue_test.cpp` e não ativar um modelo não validado no jogo.
+### Continuação se a branch ficar a meio
+
+1. Confirmar `FEATURE_COUNT` idêntico em Python/C++.
+2. Gerar teacher data com `tools/nnue/generate_teacher.py`.
+3. Treinar com `tools/nnue/train.py` usando seed fixa.
+4. Carregar/exportar a rede no `cpp_nnue_test.cpp`.
+5. Medir custo sem e com modelo.
+6. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
+
+A sincronização completa atual é deliberadamente um **baseline de correção**. A etapa seguinte deve substituir o rescan por atualizações incrementais ligadas às alterações reais do `BoardState`.
 
 ## Ares — depois do NNUE
 
+- [ ] Atualização incremental real dos accumulators.
 - [ ] Melhorar geração/ordenação de ações com informação tática do RPG.
 - [ ] Melhorar quiescence para sequências de stun/spell/kill.
-- [ ] Tornar a avaliação incremental eficiente também fora do NNUE.
 - [ ] Suite de posições de benchmark.
 - [ ] Histórico de NPS, profundidade, TT hit rate e força.
 - [ ] Arena estatística A/B de versões.
@@ -79,7 +76,7 @@ Plano de continuação:
 - [ ] Documentar cada herói de forma padronizada.
 - [ ] Melhorar Auto-Pricer.
 - [ ] Validar custos com uma Ares suficientemente forte.
-- [ ] Reavaliar FrostMage depois de a avaliação de stun estar validada.
+- [ ] Reavaliar FrostMage depois da avaliação NNUE/TT estar estável.
 - [ ] Formalizar gelo e empilhamento de efeitos.
 
 ## Aplicação / UI
