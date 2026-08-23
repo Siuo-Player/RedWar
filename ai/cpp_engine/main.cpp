@@ -117,7 +117,9 @@ int main() {
                     if (value_text.empty()) throw std::runtime_error("go nodes requires a node count");
                     std::size_t consumed = 0;
                     const uint64_t value = std::stoull(value_text, &consumed);
-                    if (consumed != value_text.size()) throw std::runtime_error("invalid node count: " + value_text);
+                    if (consumed != value_text.size() || value == 0) {
+                        throw std::runtime_error("invalid node count: " + value_text);
+                    }
                     node_limit = value;
                     time_limit_ms = 3000.0;
                     launch_search(MAX_PLY - 1);
