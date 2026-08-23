@@ -1,64 +1,126 @@
 #include "types.hpp"
+
+#include <cmath>
 #include <iostream>
+#include <limits>
+#include <string>
 #include <thread>
 
 #ifndef RUN_SMOKE_TESTS
+
 int main() {
-    std::ios_base::sync_with_stdio(false); 
-    std::cin.tie(NULL); 
+    std::ios_base::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+
     std::string command;
-    
-    // O "Cérebro" a correr em pano de fundo
-    std::thread search_thread; 
-    
-    while (std::getline(std::cin, command)) {
-        if (!command.empty() && command.back() == '\r') command.pop_back(); 
-        if (command.empty()) continue; 
-        
-        if (command == "quit") {
-            abort_search = true;
-            if (search_thread.joinable()) search_thread.join();
-            break;
+    std::thread search_thread;
+
+    const auto stop_search = [&]() {
+        abort_search = true;
+        if (search_thread.joinable()) {
+            search_thread.join();
         }
-        else if (command == "stop") {
-            // O Python avisa que o humano jogou! Parar o Cérebro Imediatamente!
-            abort_search = true;
-            if (search_thread.joinable()) search_thread.join();
-        }
-        else if (command.rfind("position rwen ", 0) == 0) {
-            if (search_thread.joinable()) search_thread.join();
-            parse_rwen(command.substr(14));
-        }
-        else if (command.rfind("go ", 0) == 0) {
-            if (search_thread.joinable()) search_thread.join();
-            
-            // 1. MODO PREDADOR (Pondering Infinito)
-            if (command.rfind("go infinite", 0) == 0) {
-                node_limit = 0xFFFFFFFFFFFFFFFF; 
-                time_limit_ms = 99999999.0;      
-            } 
-            // 2. MODO NORMAL (Nós limitados)
-            else if (command.rfind("go nodes ", 0) == 0) {
-                node_limit = 10000; 
-                try { node_limit = std::stoull(command.substr(9)); } catch (...) {}
-                time_limit_ms = 3000.0; 
-            }
-            
-            abort_search = false;
-            
-            // O "Olho" lança o "Cérebro" de forma assíncrona
-            search_thread = std::thread([=]() {
-                std::string move = search_best_move(99); 
-                std::cout << "bestmove " << (move.empty() ? "0000" : move) << "\n";
+    };
+
+    const auto launch_search = [&](int depth) {
+        abort_search = false;
+        search_thread = std::thread([depth]() {
+            try {
+                const std::string move = search_best_move(depth);
+                std::cout << "bestmove " << (move.empty() ? "0000" : move) << '\n';
                 std::cout.flush();
-            });
-        } 
-        else if (command == "isready") { 
-            ensure_hero_behaviors_loaded(); 
-            std::cout << "readyok\n"; 
-            std::cout.flush(); 
+            } catch (const std::exception& error) {
+                std::cout << "info string search error: " << error.what() << '\n';
+                std::cout << "bestmove 0000\n";
+                std::cout.flush();
+            }
+        });
+    };
+
+    while (std::getline(std::cin, command)) {
+        if (!command.empty() && command.back() == '\r') {
+            command.pop_back();
+        }
+
+        if (command.empty()) {
+            continue;
+        }
+
+        try {
+            if (command == "quit") {
+                stop_search();
+                break;
+            }
+
+            if (command == "stop") {
+                stop_search();
+                continue;
+            }
+
+            constexpr const char* POSITION_PREFIX = "position rwen ";
+            if (command.rfind(POSITION_PREFIX, 0) == 0) {
+                stop_search();
+                parse_rwen(command.substr(std::char_traits<char>::length(POSITION_PREFIX)));
+                continue;
+            }
+
+            if (command == "isready") {
+                ensure_hero_behaviors_loaded();
+                std::cout << "readyok\n";
+                std::cout.flush();
+                continue;
+            }
+
+            constexpr const char* GO_PREFIX = "go ";
+            if (command.rfind(GO_PREFIX, 0) == 0) {
+                stop_search();
+
+                const std::string args = command.substr(3);
+
+                if (args == "infinite") {
+                    node_limit = 0;
+                    time_limit_ms = std::numeric_limits<double>::infinity();
+                    launch_search(MAX_PLY - 1);
+                    continue;
+                }
+
+                constexpr const char* NODES_PREFIX = "nodes ";
+                if (args.rfind(NODES_PREFIX, 0) == 0) {
+                    const std::string value_text = args.substr(std::char_traits<char>::length(NODES_PREFIX));
+                    if (value_text.empty()) {
+                        throw std::runtime_error("go nodes requires a node count");
+                    }
+
+                    std::size_t consumed = 0;
+                    const uint64_t value = std::stoull(value_text, &consumed);
+                    if (consumed != value_text.size()) {
+                        throw std::runtime_error("invalid node count: " + value_text);
+                    }
+
+                    node_limit = value;
+                    time_limit_ms = 3000.0;
+                    launch_search(MAX_PLY - 1);
+                    continue;
+                }
+
+                std::cout << "info string unknown go command: " << args << '\n';
+                std::cout.flush();
+                continue;
+            }
+
+            std::cout << "info string unknown command: " << command << '\n';
+            std::cout.flush();
+        } catch (const std::exception& error) {
+            std::cout << "info string command error: " << error.what() << '\n';
+            std::cout.flush();
         }
     }
+
+    if (search_thread.joinable()) {
+        search_thread.join();
+    }
+
     return 0;
 }
+
 #endif
