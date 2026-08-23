@@ -45,11 +45,12 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 - [x] Check de overflow isolado como job independente do pipeline NNUE.
 - [x] Auto-Balancer manual ou diário às 07:00 UTC; não corre a cada PR.
 - [x] Treino NNUE nightly preparado para 05:00 UTC, sem triggers por commit.
-- [x] Arena de branches AI serializada: pushes em branches não-`main` selecionam todos os commits AI desde `main` e executam-nos em ordem, evitando uma avalanche de arenas concorrentes.
+- [x] Arena de desenvolvimento serializada por branch: cada push AI processa os commits AI desde `main` em ordem, com torneios curtos contra `main` e sem Arenas concorrentes em avalanche.
+- [x] AI Quality Gate no PR: alterações AI têm de derrotar a `main` numa A/B Arena de 100 jogos com margem mínima de 10 vitórias para poderem ser promovidas.
 - [ ] Primeira rede treinada real validada no C++.
 - [ ] Benchmark de custo por avaliação/NPS clássico vs NNUE.
 - [ ] Comparação de `bestmove` e posições de referência.
-- [ ] Arena NNUE vs clássica.
+- [ ] Arena NNUE vs clássica com dados suficientes para uma decisão estatística.
 - [ ] Decisão de tornar NNUE default.
 
 ### Continuação se a branch ficar a meio
@@ -60,12 +61,27 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 4. Carregar/exportar a rede no `cpp_nnue_test.cpp`.
 5. Medir custo sem e com modelo.
 6. Confirmar que o check `overflow-regression` passa independentemente do pipeline NNUE.
-7. Confirmar que a Arena compila e joga com o motor C++ do commit testado.
-8. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
+7. Confirmar que a Arena de desenvolvimento compila e joga com o motor C++ do commit testado.
+8. Confirmar que o AI Quality Gate compara sempre `HEAD` contra a `main` do PR, não duas variantes do mesmo commit.
+9. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
 
 A sincronização completa atual é deliberadamente um **baseline de correção**. A etapa seguinte deve substituir o rescan por atualizações incrementais ligadas às alterações reais do `BoardState`.
 
 O treino nightly faz sempre checkout da `main` atual e identifica os pesos com a SHA dessa revisão. Não reage a `push`/`pull_request` e usa uma única fila de concorrência, para que commits seguidos não criem dezenas de treinos simultâneos. Uma alteração das regras/engine inicia uma nova família de treino, em vez de continuar pesos treinados para uma revisão incompatível.
+
+## Política futura de promoção da IA
+
+Quando o repositório estiver público e existir um plano GitHub com regras de proteção suficientemente fortes:
+
+- nenhuma escrita direta em `main`;
+- nenhuma lista de bypass para administradores;
+- qualquer alteração em `ai/**` entra apenas por Pull Request;
+- o status `RedWar AI Quality Gate` deve ser obrigatório para esses PRs;
+- o gate só passa quando o challenger em `HEAD` supera a `main` na Arena A/B definida pelo workflow;
+- alterações sem melhoria demonstrada não entram apenas por serem convenientes ou por serem do próprio mantenedor;
+- alterações de infraestrutura, workflows e correções de overflow continuam em PRs separados quando isso tornar a revisão mais segura.
+
+O objetivo é aproximar a disciplina de promoção da IA da filosofia do Stockfish: trabalho experimental fora da `main`, medição reprodutível e promoção apenas quando há evidência objetiva.
 
 ## Ares — depois do NNUE
 
