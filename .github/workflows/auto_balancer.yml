@@ -1,26 +1,13 @@
 name: RedWar Auto-Balancer & ELO Calibration
 
 on:
-  pull_request:
-    paths:
-      - 'ai/**'
-      - 'engine/heroes_config.json'
-      - 'tools/balance/**'
-      - 'tools/analytics/trainer.py'
-      - 'tools/analytics/benchmark_engine.py'
-      - 'tools/nnue/**'
-      - 'tests/test_auto_pricer.py'
-      - 'tests/test_trainer.py'
-      - 'tests/test_nnue_features.py'
-      - 'tests/cpp_reversibility_test.cpp'
-      - 'tests/cpp_nnue_test.cpp'
-      - 'tests/test_moves.py'
-      - 'tests/test_rules.py'
-      - '.github/workflows/auto_balancer.yml'
+  schedule:
+    - cron: '0 7 * * *'
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: redwar-auto-balancer
+  cancel-in-progress: false
 
 jobs:
   overflow-regression:
@@ -126,6 +113,6 @@ PY
     - name: Upload Auto-Balance Report
       uses: actions/upload-artifact@v4
       with:
-        name: redwar-auto-balance-report-${{ github.event.pull_request.number }}
+        name: redwar-auto-balance-report-${{ github.run_id }}
         path: data/auto_balance_report.json
         if-no-files-found: error
