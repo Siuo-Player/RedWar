@@ -5,6 +5,9 @@ on:
     paths:
       - 'ai/**'
       - 'engine/heroes_config.json'
+      - 'tools/balance/**'
+      - 'tests/test_auto_pricer.py'
+      - '.github/workflows/auto_balancer.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -35,6 +38,8 @@ jobs:
         cd ai/cpp_engine
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
         chmod +x engine
+    - name: Test Auto-Pricer Overflow Regression
+      run: pytest -q tests/test_auto_pricer.py
     - name: Generate Telemetry (Trainer)
       run: python tools/analytics/trainer.py
     - name: Run Auto-Pricer

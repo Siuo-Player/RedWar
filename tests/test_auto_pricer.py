@@ -16,6 +16,11 @@ def test_expected_win_probability_handles_extreme_elos_without_overflow():
     assert calcular_win_esperada(10**12, -10**12) == 1.0
 
 
+def test_expected_win_probability_handles_extreme_finite_float_elos_without_overflow():
+    assert calcular_win_esperada(-1e308, 1e308) == 0.0
+    assert calcular_win_esperada(1e308, -1e308) == 1.0
+
+
 def test_expected_win_probability_rejects_non_finite_elos():
     with pytest.raises(ValueError):
         calcular_win_esperada(float("inf"), 1500)

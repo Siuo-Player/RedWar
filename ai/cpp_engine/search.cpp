@@ -271,9 +271,19 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     if (current_turn == 'W') {
         int best_value = -INFINITO;
+        bool first_move = true;
         for (const Move& move : moves) {
             UndoInfo undo = make_move(move);
-            const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            int value;
+            if (first_move) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                first_move = false;
+            } else {
+                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, ply + 1);
+                if (!abort_search && value > alpha && value < beta) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                }
+            }
             unmake_move(move, undo);
             if (abort_search) return 0;
             if (value > best_value) {
@@ -296,9 +306,19 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     }
 
     int best_value = INFINITO;
+    bool first_move = true;
     for (const Move& move : moves) {
         UndoInfo undo = make_move(move);
-        const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+        int value;
+        if (first_move) {
+            value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            first_move = false;
+        } else {
+            value = alpha_beta(depth - 1, beta - 1, beta, board.turn, ply + 1);
+            if (!abort_search && value < beta && value > alpha) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            }
+        }
         unmake_move(move, undo);
         if (abort_search) return 0;
         if (value < best_value) {
@@ -361,10 +381,25 @@ std::string search_best_move(int max_depth) {
         int beta = INFINITO;
         int best_value = (board.turn == 'W') ? -INFINITO : INFINITO;
         Move best_move_this_depth = root_moves.front();
+        bool first_move = true;
 
         for (const Move& move : root_moves) {
             UndoInfo undo = make_move(move);
-            const int value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+            int value;
+            if (first_move) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                first_move = false;
+            } else if (board.turn == 'W') {
+                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, 1);
+                if (!abort_search && value > alpha && value < beta) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                }
+            } else {
+                value = alpha_beta(depth - 1, beta - 1, beta, board.turn, 1);
+                if (!abort_search && value < beta && value > alpha) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                }
+            }
             unmake_move(move, undo);
             if (abort_search) break;
 
@@ -381,6 +416,8 @@ std::string search_best_move(int max_depth) {
                 }
                 beta = std::min(beta, value);
             }
+
+            if (alpha >= beta) break;
         }
 
         if (abort_search) break;
