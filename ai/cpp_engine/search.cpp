@@ -49,8 +49,6 @@ inline void check_limits() {
 }
 
 inline int no_capture_terminal_score(int ply) {
-    // RedWar awards the 50-turn no-capture tiebreak to White only when White
-    // has strictly more material; ties go to Black.
     const int margin = MAX_PLY - ply;
     return board.material_score > 0 ? INFINITO - margin : -INFINITO + margin;
 }
@@ -179,20 +177,25 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
 
     if (q_depth >= QSEARCH_MAX_DEPTH) return eval_score;
 
-    std::vector<Move> all_moves = generate_valid_moves(current_turn);
-    std::vector<Move> forcing_moves;
-    forcing_moves.reserve(std::min<std::size_t>(all_moves.size(), 16));
-    for (const Move& move : all_moves) {
-        if (is_forcing_move(move)) forcing_moves.push_back(move);
+    // Reuse the generated move buffer instead of allocating/copying a second
+    // vector for forcing moves at every quiescence node.
+    std::vector<Move> moves = generate_valid_moves(current_turn);
+    std::size_t forcing_count = 0;
+    for (std::size_t i = 0; i < moves.size(); ++i) {
+        if (!is_forcing_move(moves[i])) continue;
+        if (forcing_count != i) moves[forcing_count] = std::move(moves[i]);
+        ++forcing_count;
     }
-    if (forcing_moves.empty()) return eval_score;
+    moves.resize(forcing_count);
 
-    score_moves(forcing_moves, Move(), ply, current_turn);
-    std::sort(forcing_moves.begin(), forcing_moves.end());
+    if (moves.empty()) return eval_score;
+
+    score_moves(moves, Move(), ply, current_turn);
+    std::sort(moves.begin(), moves.end());
 
     if (current_turn == 'W') {
         int best = eval_score;
-        for (const Move& move : forcing_moves) {
+        for (const Move& move : moves) {
             UndoInfo undo = make_move(move);
             const int value = quiescence_search(alpha, beta, board.turn, ply + 1, q_depth + 1);
             unmake_move(move, undo);
@@ -205,7 +208,7 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
     }
 
     int best = eval_score;
-    for (const Move& move : forcing_moves) {
+    for (const Move& move : moves) {
         UndoInfo undo = make_move(move);
         const int value = quiescence_search(alpha, beta, board.turn, ply + 1, q_depth + 1);
         unmake_move(move, undo);
