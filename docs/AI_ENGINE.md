@@ -4,32 +4,23 @@
 
 Ares é uma engine de pesquisa especializada para RedWar. O objetivo é melhorar continuamente **força e/ou velocidade**, sempre com condições comparáveis e evidência reproduzível.
 
-A metodologia é inspirada no Stockfish: mudanças pequenas, separação clara de responsabilidades, atenção extrema ao hot path e validação estatística/benchmark antes de aceitar uma alteração funcional.
+A metodologia é inspirada no Stockfish: mudanças isoladas, separação clara de responsabilidades, atenção extrema ao hot path e validação estatística/benchmark antes de aceitar uma alteração funcional.
 
 ## Estado atual confirmado
 
-O PR #47 tornou `make_move`/`unmake_move` verificável por self-test. O PR #14 estabilizou o Auto-Pricer contra overflow ELO. O trabalho #48 está a consolidar a reversibilidade e a avaliação de stun/FrostMage antes de merge.
+O **PR #48 está integrado na `main`**. Ele adicionou pressão tática dinâmica do FrostMage à avaliação clássica, manteve `material_score` como acumulador incremental puro e reforçou a restauração de estado derivado em `make_move`/`unmake_move`. O **PR #14** estabilizou o Auto-Pricer contra overflow de ELO.
+
+O **PR #49** é a implementação NNUE RPG atual e continua aberto. A arquitetura está pronta para validação, mas ainda não deve ser considerada superior à avaliação clássica sem benchmark e Arena.
 
 ## Arquitetura de pesquisa
 
-O C++ é o hot path principal e utiliza atualmente:
-
-- alpha-beta;
-- PVS/zero-window search;
-- transposition table;
-- Zobrist hashing;
-- iterative deepening;
-- killer moves;
-- history heuristic;
-- move ordering;
-- quiescence/tactical search;
-- node/time limits.
+O C++ é o hot path principal e utiliza alpha-beta/PVS, transposition table, Zobrist hashing, iterative deepening, killer moves, history heuristic, move ordering, quiescence/tactical search e limites de nós/tempo.
 
 A pesquisa deve permanecer independente da forma como a posição é avaliada.
 
 ## Estado RPG
 
-Ao contrário do xadrez, RedWar tem regras temporais e efeitos. O estado relevante inclui peças, stun timer, lifespan, spawn cooldown, efeitos de terreno, TWC e lado a jogar.
+RedWar não é xadrez. O estado inclui peças, stun timer, lifespan, spawn cooldown, efeitos de terreno, TWC e lado a jogar.
 
 A reversibilidade obrigatória continua:
 
@@ -38,7 +29,7 @@ S --make(M)--> S'
 S' --unmake(M)--> S
 ```
 
-A restauração inclui peças, efeitos, hash e todos os acumuladores derivados do estado.
+A restauração inclui peças, efeitos, hash e acumuladores derivados do estado.
 
 ## Avaliação clássica
 
@@ -48,7 +39,7 @@ Termos dependentes do tabuleiro inteiro não devem ser guardados num acumulador 
 
 ## NNUE RPG
 
-A próxima grande etapa é uma avaliação **NNUE-style**. Não copiamos HalfKP literalmente porque RedWar não tem reis nem a mesma semântica de posição. Usamos features esparsas que representam:
+O PR #49 introduz uma NNUE-style adaptada ao RPG, em vez de copiar HalfKP de Stockfish. As features representam:
 
 - peça + casa + equipa relativa;
 - stun timer;
@@ -58,13 +49,15 @@ A próxima grande etapa é uma avaliação **NNUE-style**. Não copiamos HalfKP 
 - TWC;
 - lado a jogar.
 
-O primeiro estágio usa dois accumulators de 128 entradas, hidden de 32 e inferência quantizada. O layout está documentado em `docs/NNUE.md` e deve ser idêntico em Python e C++.
+O primeiro modelo usa dois accumulators de 128 entradas, hidden de 32 e inferência quantizada. O formato binário é versionado como `RWNUE002`, com validação de metadata no carregador C++.
 
-O NNUE é opcional durante o desenvolvimento. Sem modelo carregado, `evaluate_board()` continua no avaliador clássico.
+O NNUE continua opcional durante esta fase. Sem modelo carregado, a Ares mantém a avaliação clássica.
 
-## Treino NNUE
+A implementação atual usa um caminho de sincronização completo como baseline de correção; a próxima otimização isolada deve substituir esse rescan por atualização incremental via `BoardState` e provar o ganho de NPS. Isto segue diretamente o princípio de NNUE de minimizar entradas ativas e atualizar apenas o que mudou. citeturn573908search0turn573908search7
 
-`tools/nnue/train.py` é o treinador opcional baseado em PyTorch. O fluxo esperado é:
+## Dados e treino
+
+O pipeline é:
 
 ```text
 posições reais / self-play / Arena
@@ -73,7 +66,7 @@ RWEN + teacher score/resultados
         ↓
 features esparsas
         ↓
-treino
+treino PyTorch opcional
         ↓
 quantização
         ↓
@@ -82,27 +75,39 @@ RWNUE002
 benchmark + Arena
 ```
 
-O bootstrap model serve apenas para verificar compatibilidade do formato e do caminho C++. Não é prova de força.
+`tools/nnue/generate_teacher.py` cria um pequeno dataset determinístico a partir da avaliação **clássica explícita**. O bootstrap model continua a ser apenas um teste de compatibilidade, não uma medida de força.
+
+A metodologia segue a ideia usada no desenvolvimento do Stockfish: redes e alterações funcionais precisam de ser comparadas estatisticamente, não aceites apenas porque passam testes mecânicos. citeturn573908search2turn573908search5
+
+## CI e benchmarking
+
+`auto_balancer.yml` aceita tanto a engine clássica como revisões com `nnue.cpp` e executa os testes de compatibilidade NNUE quando aplicável.
+
+`ai_arena.yml` compara agora **base vs HEAD**, em vez de recompilar todos os commits intermédios. Para PRs de performance mantém um guard de regressão de 10%.
 
 ## Critérios de aceitação
 
-Uma alteração de avaliação só deve entrar na configuração principal se:
+Uma avaliação NNUE só deve tornar-se default se:
 
-1. os testes de correção permanecerem verdes;
-2. não houver regressão relevante de NPS/custo por nó;
-3. `bestmove` e posições de referência não piorarem de forma material;
-4. houver ganho reproduzível em posições táticas relevantes;
-5. a Arena apoiar a alteração quando houver dados suficientes.
+1. testes de correção permanecerem verdes;
+2. layout Python/C++ permanecer idêntico;
+3. carregamento e inferência forem determinísticos;
+4. existir uma primeira rede realmente treinada;
+5. custo por avaliação/NPS for medido contra a clássica;
+6. `bestmove` e posições de referência não piorarem de forma material;
+7. Arena apoiar a alteração com dados suficientes.
 
-Uma rede maior não é melhor por definição. O objetivo é **Elo por CPU-segundo**, não complexidade.
+O objetivo é **Elo por CPU-segundo**, não uma rede maior por si só. Stockfish demonstra que NNUE pode ganhar muita força mesmo com menor NPS, desde que o custo adicional compre uma melhoria de avaliação suficientemente grande. citeturn573908search1
 
 ## Próximos passos
 
-1. Terminar e medir PR #48.
-2. Completar NNUE C++/Python/CI.
-3. Criar dataset teacher e primeiras redes treinadas.
-4. Comparar NNUE vs clássico em benchmark e Arena.
-5. Melhorar move ordering.
-6. Melhorar quiescence específica para stun/spells/kill chains.
-7. Criar histórico de força/NPS/TT hit rate.
-8. Eliminar divergências Python/C++.
+1. Validar CI completo do PR #49.
+2. Gerar teacher dataset maior e mais variado.
+3. Treinar uma primeira rede real e verificar export/import C++.
+4. Comparar clássica vs NNUE em benchmark de posições e custo por avaliação.
+5. Comparar força na Arena.
+6. Implementar atualização incremental real dos accumulators.
+7. Melhorar move ordering.
+8. Melhorar quiescence para stun/spells/kill chains.
+9. Criar histórico de NPS, profundidade, TT hit rate e força.
+10. Eliminar divergências Python/C++.
