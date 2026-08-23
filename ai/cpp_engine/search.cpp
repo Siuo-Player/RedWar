@@ -74,8 +74,8 @@ inline int piece_cost(const Piece& piece) {
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
     if (move.type == "STUN") {
-        constexpr int DR[5] = {0, -1, 1, 0, 0};
-        constexpr int DC[5] = {0, 0, 0, -1, 1};
+        constexpr int DR[5] = {-1, 1, 0, 0, -1};
+        constexpr int DC[5] = {0, 0, -1, 1, -1};
         for (int i = 0; i < 5; ++i) {
             const int r = move.er + DR[i];
             const int c = move.ec + DC[i];
@@ -188,8 +188,6 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
 
     if (q_depth >= QSEARCH_MAX_DEPTH) return eval_score;
 
-    // Reuse the generated move buffer instead of allocating/copying a second
-    // vector for forcing moves at every quiescence node.
     std::vector<Move> moves = generate_valid_moves(current_turn);
     std::size_t forcing_count = 0;
     for (std::size_t i = 0; i < moves.size(); ++i) {
@@ -271,9 +269,19 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     if (current_turn == 'W') {
         int best_value = -INFINITO;
+        bool first_move = true;
         for (const Move& move : moves) {
             UndoInfo undo = make_move(move);
-            const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            int value;
+            if (first_move) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                first_move = false;
+            } else {
+                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, ply + 1);
+                if (!abort_search && value > alpha && value < beta) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                }
+            }
             unmake_move(move, undo);
             if (abort_search) return 0;
             if (value > best_value) {
@@ -296,9 +304,19 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     }
 
     int best_value = INFINITO;
+    bool first_move = true;
     for (const Move& move : moves) {
         UndoInfo undo = make_move(move);
-        const int value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+        int value;
+        if (first_move) {
+            value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            first_move = false;
+        } else {
+            value = alpha_beta(depth - 1, beta - 1, beta, board.turn, ply + 1);
+            if (!abort_search && value < beta && value > alpha) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            }
+        }
         unmake_move(move, undo);
         if (abort_search) return 0;
         if (value < best_value) {
@@ -361,10 +379,25 @@ std::string search_best_move(int max_depth) {
         int beta = INFINITO;
         int best_value = (board.turn == 'W') ? -INFINITO : INFINITO;
         Move best_move_this_depth = root_moves.front();
+        bool first_move = true;
 
         for (const Move& move : root_moves) {
             UndoInfo undo = make_move(move);
-            const int value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+            int value;
+            if (first_move) {
+                value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                first_move = false;
+            } else if (board.turn == 'W') {
+                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, 1);
+                if (!abort_search && value > alpha && value < beta) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                }
+            } else {
+                value = alpha_beta(depth - 1, beta - 1, beta, board.turn, 1);
+                if (!abort_search && value < beta && value > alpha) {
+                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                }
+            }
             unmake_move(move, undo);
             if (abort_search) break;
 
