@@ -1,4 +1,5 @@
 #include "types.hpp"
+#include "nnue.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -204,14 +205,23 @@ void compute_initial_eval() {
     }
 }
 
-int evaluate_board() {
+int evaluate_classical_board() {
     if (board.white_pieces == 0) return -INFINITO + 100;
     if (board.black_pieces == 0) return INFINITO - 100;
 
     int score = board.material_score + get_total_frostmage_pressure();
-
     if (score > 0) score -= board.twc;
     else if (score < 0) score += board.twc;
-
     return score;
+}
+
+int evaluate_board() {
+    if (board.white_pieces == 0) return -INFINITO + 100;
+    if (board.black_pieces == 0) return INFINITO - 100;
+
+    if (const auto nnue_score = redwar::nnue::evaluate(); nnue_score.has_value()) {
+        return *nnue_score;
+    }
+
+    return evaluate_classical_board();
 }
