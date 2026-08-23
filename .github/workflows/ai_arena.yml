@@ -5,6 +5,8 @@ on:
     paths:
       - 'ai/**'
       - 'tools/analytics/benchmark_engine.py'
+      - 'tools/nnue/**'
+      - 'tests/cpp_nnue_test.cpp'
       - '.github/workflows/ai_arena.yml'
 
 concurrency:
@@ -34,7 +36,7 @@ jobs:
       run: |
         git worktree add --detach /tmp/redwar-base "$BASE_SHA"
         cd /tmp/redwar-base/ai/cpp_engine
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine-benchmark
         cd "$GITHUB_WORKSPACE"
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-base/ai/cpp_engine/engine-benchmark | tee /tmp/base-benchmark.txt
 
@@ -54,7 +56,7 @@ jobs:
           git worktree add --detach "$worktree" "$commit"
           (
             cd "$worktree/ai/cpp_engine"
-            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
+            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine-benchmark
           )
 
           output=$(python tools/analytics/benchmark_engine.py --engine "$worktree/ai/cpp_engine/engine-benchmark")
@@ -116,7 +118,7 @@ PY
         git fetch origin ${{ github.base_ref }}
         CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
         for FILE in $CHANGED_FILES; do
-          if [[ ! "$FILE" == ai/* && ! "$FILE" == tools/analytics/benchmark_engine.py && ! "$FILE" == .github/workflows/ai_arena.yml ]]; then
+          if [[ ! "$FILE" == ai/* && ! "$FILE" == tools/analytics/benchmark_engine.py && ! "$FILE" == tools/nnue/* && ! "$FILE" == tests/cpp_nnue_test.cpp && ! "$FILE" == .github/workflows/ai_arena.yml ]]; then
             echo "❌ ACESSO NEGADO: O Pull Request tenta alterar o ficheiro '$FILE'."
             echo "A jurisdição open-source do RedWar permite alterações AI e ao benchmark do Ares."
             exit 1
@@ -136,7 +138,7 @@ PY
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine
         chmod +x engine
     - name: Run Arena Tournament
       run: python tools/analytics/arena_tournament.py --jogos 100 --margem_vitorias 10
