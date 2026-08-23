@@ -133,7 +133,7 @@ jobs:
           # Short development tournament. The PR quality gate uses the longer
           # tournament and is the actual promotion decision.
           set +e
-          python "$BASE_SHA/tools/analytics/arena_tournament.py" \
+          python /tmp/redwar-baseline/tools/analytics/arena_tournament.py \
             --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
             --baseline-engine "/tmp/redwar-baseline/ai/cpp_engine/engine" \
             --jogos 20 \
