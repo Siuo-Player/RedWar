@@ -16,17 +16,15 @@ class CppEngineBot:
         self.nodes = nodes
         self.nome = f"StockWar C++ (N{nodes})"
         
-        # --- VERIFICAÇÃO CROSS-PLATFORM ---
         if sys.platform == "win32":
-            binary_name = "engine.exe" # No teu PC
+            binary_name = "engine.exe"
         else:
-            binary_name = "engine"     # No GitHub (Linux)
+            binary_name = "engine"
             
         self.exe_path = os.path.join(os.path.dirname(__file__), "cpp_engine", binary_name)
         self.process = None
 
     def _ensure_engine_running(self):
-        # Lazy load: Se o processo não existe ou já crashou/fechou, arranca um novo
         if self.process is None or self.process.poll() is not None:
             if not os.path.exists(self.exe_path):
                 raise FileNotFoundError(f"Executável C++ não encontrado em: {self.exe_path}. Usa o script de build primeiro!")
@@ -79,9 +77,6 @@ class CppEngineBot:
         absorve o lixo gerado no Standard Output e prepara o cérebro.
         """
         self._send_command("stop")
-        
-        # O C++ vai cuspir um "bestmove" que ele achava que o humano devia fazer.
-        # Nós consumimos e ignoramos essa linha para limpar o canal de comunicação.
         while True:
             response = self._read_response()
             if response and response.startswith("bestmove"):
@@ -101,7 +96,6 @@ class CppEngineBot:
                 parts = response.split(" ", 1)
                 if len(parts) > 1:
                     raw_action = parts[1].strip()
-                    
                     parsed = ActionParser.parse(raw_action)
                     if not parsed:
                         return None
@@ -118,7 +112,7 @@ class CppEngineBot:
                         final_action["spawn_name"] = parsed["hero"]
                         
                     return final_action
-                        
+                    
         return None
 
     def __del__(self):
@@ -138,10 +132,8 @@ class CppEngineBot:
         start_time = time.time()
         
         pecas_validas = [p for p in catalogo if p.get("cost", 9999) <= orcamento]
-        
-        # dp[w] = (max_pontos_gastos, lista_de_pecas)
         dp = [(0, []) for _ in range(orcamento + 1)]
-        limite_pecas = 16 # O limite físico da zona de draft (2 linhas x 8 colunas)
+        limite_pecas = 16
         
         for w in range(1, orcamento + 1):
             melhor_gasto = dp[w-1][0]
@@ -151,7 +143,6 @@ class CppEngineBot:
                 c = p["cost"]
                 if w >= c:
                     gasto_anterior, lista_anterior = dp[w - c]
-                    # Garante que não compra mais peças do que o espaço no tabuleiro
                     if len(lista_anterior) < limite_pecas:
                         novo_gasto = gasto_anterior + c
                         if novo_gasto > melhor_gasto:
@@ -161,17 +152,14 @@ class CppEngineBot:
             dp[w] = (melhor_gasto, melhor_lista)
             
         pontos_gastos, equipa_escolhida = dp[orcamento]
-        tempo_gasto = (time.time() - start_time) * 1000.0 # em milissegundos
+        tempo_gasto = (time.time() - start_time) * 1000.0
         
-        # --- POSICIONAMENTO TÁTICO ---
-        # Ordenamos a equipa: Peças mais caras/Tanques primeiro (vão para a linha da frente)
         equipa_escolhida = sorted(equipa_escolhida, key=lambda x: x["cost"], reverse=True)
         
-        # Determinar as linhas de draft consoante a fação
         if equipa == 'brancas':
-            linhas = [6, 7] # Linha 6 é a Frente, 7 é a Retaguarda
+            linhas = [6, 7]
         else:
-            linhas = [1, 0] # Linha 1 é a Frente, 0 é a Retaguarda
+            linhas = [1, 0]
             
         posicoes = []
         idx = 0
@@ -191,7 +179,6 @@ class CppEngineBot:
             "draft": posicoes
         }
 
-# --- BLOCO DE RETROCOMPATIBILIDADE PARA FERRAMENTAS DE ANALYTICS ---
 class BotConfig:
     def __init__(self, *args, **kwargs):
         pass
@@ -222,14 +209,12 @@ class BotAleatorio:
                         acoes.append({"type": "spawn", "start": (r, c), "end": (sp[0], sp[1]), "spawn_name": sp[2]})
                     if hasattr(p, 'get_valid_spells'):
                         for spell in p.get_valid_spells(r, c, gs.board, gs.tile_effects):
-                            # TYPE GUARD ROBUSTO
                             if isinstance(spell, dict):
                                 end_pos = spell.get("target", (r, c))
                                 spell_name = spell.get("spell_type", "Unknown")
                             else:
                                 end_pos = (spell[0], spell[1]) if len(spell) >= 2 else (r, c)
                                 spell_name = spell[2] if len(spell) >= 3 else "Unknown"
-                            
                             acoes.append({"type": "spell", "start": (r, c), "end": end_pos, "spell_name": spell_name})
         if acoes:
             return random.choice(acoes)
@@ -237,12 +222,13 @@ class BotAleatorio:
         
 BOT_ALEATORIO = BotAleatorio()
 
+# Gameplay: deliberately 5x the trainer budgets for stronger real-game search.
 BOT_INICIANTE = CppEngineBot(nodes=5000)
-BOT_INTERMEDIO = CppEngineBot(nodes=50000) 
-BOT_AVANCADO = CppEngineBot(nodes=250000)
-BOT_INICIANTE.nome = "StockWar Iniciante (D2)"
-BOT_INTERMEDIO.nome = "StockWar Intermédio (D4)"
-BOT_AVANCADO.nome = "StockWar Avançado (D6)"
+BOT_INTERMEDIO = CppEngineBot(nodes=25000)
+BOT_AVANCADO = CppEngineBot(nodes=50000)
+BOT_INICIANTE.nome = "StockWar Iniciante (N5k)"
+BOT_INTERMEDIO.nome = "StockWar Intermédio (N25k)"
+BOT_AVANCADO.nome = "StockWar Avançado (N50k)"
 
 def gerar_bot_por_elo(elo):
     if elo < 800: return BOT_ALEATORIO
