@@ -2,19 +2,18 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
-#include <limits>
 #include <stdexcept>
 #include <vector>
 
 namespace redwar::nnue {
 namespace {
 
-constexpr char MAGIC[8] = {'R', 'W', 'N', 'U', 'E', '0', '0', '1'};
+constexpr char MAGIC[8] = {'R', 'W', 'N', 'U', 'E', '0', '0', '2'};
+constexpr uint32_t MODEL_VERSION = 2;
 
 struct Model {
     ModelInfo info;
@@ -79,7 +78,6 @@ template <typename Fn>
 void for_piece_features(int perspective, int square, const Piece& piece, Fn&& fn) {
     if (piece.is_empty || piece.id < 0 || piece.id >= MAX_HEROES) return;
 
-    const int color = relative_color(perspective, piece);
     fn(feature_for_piece(perspective, square, piece));
     fn(feature_for_stun(perspective, square, piece));
     fn(feature_for_lifespan(perspective, square, piece));
@@ -113,8 +111,7 @@ void sync_square(int r, int c) {
 }
 
 void sync_side_to_move() {
-    if (!state.ready) return;
-    if (state.cached_turn == board.turn) return;
+    if (!state.ready || state.cached_turn == board.turn) return;
 
     for (int perspective = 0; perspective < 2; ++perspective) {
         if (state.cached_turn == 'W' || state.cached_turn == 'B') {
@@ -125,8 +122,10 @@ void sync_side_to_move() {
     state.cached_turn = board.turn;
 }
 
-int clipped(int32_t value) {
-    return std::clamp(value, 0, ACTIVATION_MAX);
+int clipped_scaled(int32_t value, int32_t scale) {
+    if (scale <= 0) throw std::runtime_error("Invalid NNUE quantization scale");
+    const int64_t real_like = static_cast<int64_t>(value) / scale;
+    return static_cast<int>(std::clamp<int64_t>(real_like, 0, ACTIVATION_MAX));
 }
 
 } // namespace
@@ -167,11 +166,8 @@ int feature_for_side(int perspective, char side_to_move) {
 bool load_model(const std::string& requested_path) {
     std::string path = requested_path;
     if (path.empty()) {
-        if (const char* env = std::getenv("REDWAR_NNUE_MODEL")) {
-            path = env;
-        } else {
-            path = "data/nnue/ares.nnue";
-        }
+        if (const char* env = std::getenv("REDWAR_NNUE_MODEL")) path = env;
+        else path = "data/nnue/ares.nnue";
     }
 
     std::ifstream file(path, std::ios::binary);
@@ -186,6 +182,8 @@ bool load_model(const std::string& requested_path) {
     uint32_t features = 0;
     uint16_t accumulator = 0;
     uint16_t hidden = 0;
+    int32_t accumulator_scale = 1;
+    int32_t hidden_scale = 1;
     int32_t output_scale = 1;
 
     if (!read_exact(file, magic, sizeof(magic)) ||
@@ -193,20 +191,23 @@ bool load_model(const std::string& requested_path) {
         !read_exact(file, &features, sizeof(features)) ||
         !read_exact(file, &accumulator, sizeof(accumulator)) ||
         !read_exact(file, &hidden, sizeof(hidden)) ||
+        !read_exact(file, &accumulator_scale, sizeof(accumulator_scale)) ||
+        !read_exact(file, &hidden_scale, sizeof(hidden_scale)) ||
         !read_exact(file, &output_scale, sizeof(output_scale))) {
         state.ready = false;
         return false;
     }
 
-    if (std::memcmp(magic, MAGIC, sizeof(MAGIC)) != 0 || version != 1 ||
+    if (std::memcmp(magic, MAGIC, sizeof(MAGIC)) != 0 || version != MODEL_VERSION ||
         features != FEATURE_COUNT || accumulator != ACCUMULATOR_SIZE || hidden != HIDDEN_SIZE ||
-        output_scale <= 0) {
+        accumulator_scale <= 0 || hidden_scale <= 0 || output_scale <= 0) {
         state.ready = false;
         return false;
     }
 
     Model model;
-    model.info = {version, features, accumulator, hidden, output_scale};
+    model.info = {version, features, accumulator, hidden,
+                  accumulator_scale, hidden_scale, output_scale};
     model.weights1.resize(static_cast<std::size_t>(FEATURE_COUNT) * ACCUMULATOR_SIZE);
 
     if (!read_exact(file, model.bias1.data(), sizeof(model.bias1)) ||
@@ -245,9 +246,7 @@ void sync_board() {
     if (!state.initialized) {
         initialise_accumulators();
         for (int r = 0; r < LINHAS; ++r) {
-            for (int c = 0; c < COLUNAS; ++c) {
-                sync_square(r, c);
-            }
+            for (int c = 0; c < COLUNAS; ++c) sync_square(r, c);
         }
         sync_side_to_move();
         state.initialized = true;
@@ -255,9 +254,7 @@ void sync_board() {
     }
 
     for (int r = 0; r < LINHAS; ++r) {
-        for (int c = 0; c < COLUNAS; ++c) {
-            sync_square(r, c);
-        }
+        for (int c = 0; c < COLUNAS; ++c) sync_square(r, c);
     }
     sync_side_to_move();
 }
@@ -268,18 +265,20 @@ std::optional<int> evaluate() {
 
     std::array<int32_t, ACCUMULATOR_SIZE * 2> input{};
     for (int i = 0; i < ACCUMULATOR_SIZE; ++i) {
-        input[static_cast<std::size_t>(i)] = clipped(state.accumulator[0][i]);
-        input[static_cast<std::size_t>(ACCUMULATOR_SIZE + i)] = clipped(state.accumulator[1][i]);
+        input[static_cast<std::size_t>(i)] = clipped_scaled(state.accumulator[0][i], state.model.info.accumulator_scale);
+        input[static_cast<std::size_t>(ACCUMULATOR_SIZE + i)] = clipped_scaled(state.accumulator[1][i], state.model.info.accumulator_scale);
     }
 
     std::array<int32_t, HIDDEN_SIZE> hidden{};
     for (int h = 0; h < HIDDEN_SIZE; ++h) {
-        int32_t value = state.model.bias2[static_cast<std::size_t>(h)];
+        int64_t value = state.model.bias2[static_cast<std::size_t>(h)];
         for (int i = 0; i < ACCUMULATOR_SIZE * 2; ++i) {
-            value += input[static_cast<std::size_t>(i)] *
+            value += static_cast<int64_t>(input[static_cast<std::size_t>(i)]) *
                      state.model.weights2[static_cast<std::size_t>(i) * HIDDEN_SIZE + static_cast<std::size_t>(h)];
         }
-        hidden[static_cast<std::size_t>(h)] = clipped(value);
+        value /= state.model.info.hidden_scale;
+        hidden[static_cast<std::size_t>(h)] = static_cast<int32_t>(
+            std::clamp<int64_t>(value, 0, ACTIVATION_MAX));
     }
 
     int64_t output = state.model.bias3;
