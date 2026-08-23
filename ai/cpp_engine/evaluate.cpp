@@ -20,6 +20,29 @@ int safe_piece_cost(const Piece& p) {
     return 50;
 }
 
+struct PstHeroIds {
+    int ghoul = -1;
+    int sentry = -1;
+    int frostmage = -1;
+    int bonelord = -1;
+    int phantom = -1;
+};
+
+const PstHeroIds& pst_hero_ids() {
+    static const PstHeroIds ids = [] {
+        ensure_hero_behaviors_loaded();
+        PstHeroIds result;
+        if (auto it = PIECE_IDS.find("Ghoul"); it != PIECE_IDS.end()) result.ghoul = it->second;
+        if (auto it = PIECE_IDS.find("Sentry"); it != PIECE_IDS.end()) result.sentry = it->second;
+        if (auto it = PIECE_IDS.find("FrostMage"); it != PIECE_IDS.end()) result.frostmage = it->second;
+        if (auto it = PIECE_IDS.find("Lich"); it != PIECE_IDS.end() && result.frostmage < 0) result.frostmage = it->second;
+        if (auto it = PIECE_IDS.find("BoneLord"); it != PIECE_IDS.end()) result.bonelord = it->second;
+        if (auto it = PIECE_IDS.find("Phantom"); it != PIECE_IDS.end()) result.phantom = it->second;
+        return result;
+    }();
+    return ids;
+}
+
 int get_positional_bonus(const Piece& p, int r, int c) {
     static constexpr int PST_GHOUL[8][8] = {
         { 50, 50, 50, 50, 50, 50, 50, 50},
@@ -78,20 +101,21 @@ int get_positional_bonus(const Piece& p, int r, int c) {
 
     const int idx_r = (p.team == 'B') ? (LINHAS - 1 - r) : r;
     const int idx_c = c;
+    const PstHeroIds& ids = pst_hero_ids();
 
-    if (p.name == "Ghoul") {
+    if (p.id == ids.ghoul) {
         return PST_GHOUL[idx_r][idx_c];
     }
-    if (p.name == "Sentry") {
+    if (p.id == ids.sentry) {
         return PST_SENTRY[idx_r][idx_c];
     }
-    if (p.name == "FrostMage" || p.name == "Lich") {
+    if (p.id == ids.frostmage) {
         return PST_FROSTMAGE[idx_r][idx_c];
     }
-    if (p.name == "BoneLord") {
+    if (p.id == ids.bonelord) {
         return PST_BONELORD[idx_r][idx_c];
     }
-    if (p.name == "Phantom") {
+    if (p.id == ids.phantom) {
         return PST_PHANTOM[idx_r][idx_c];
     }
 
