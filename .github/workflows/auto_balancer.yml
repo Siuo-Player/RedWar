@@ -1,16 +1,20 @@
 name: RedWar Auto-Balancer & ELO Calibration
 
 on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'ai/**'
+      - 'engine/heroes_config.json'
+  concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 jobs:
   auto-balance:
     runs-on: ubuntu-latest
 
     permissions:
-      contents: write
+      contents: read
 
     env:
       PYTHONPATH: ${{ github.workspace }}
@@ -18,6 +22,8 @@ jobs:
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -44,9 +50,5 @@ jobs:
     - name: Run Auto-Pricer
       run: python tools/balance/auto_pricer.py
 
-    - name: Commit and Push Balance Changes
-      run: |
-        git config --local user.name "github-actions[bot]"
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-        git add engine/heroes_config.json
-        git diff --quiet && git diff --staged --quiet || (git commit -m "chore(balance): atualizacao automatica de custos pelo ELO" && git push)
+    - name: Show Proposed Balance Changes
+      run: git diff -- engine/heroes_config.json
