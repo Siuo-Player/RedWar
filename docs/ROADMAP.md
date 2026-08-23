@@ -20,7 +20,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 
 O **PR #48 está integrado na `main`**. Ele melhorou a avaliação da pressão de stun do FrostMage, manteve `material_score` como acumulador incremental puro e reforçou a reversibilidade exata de estado derivado.
 
-O **PR #14** está integrado e protege o Auto-Pricer contra ELO extremo e partidas excessivamente longas.
+O **PR #14** está integrado e protege o Auto-Pricer contra ELO extremo e partidas excessivamente longas. O **PR #28** consolidou a proteção para ELOs finitos extremos (`±1e308`) e colocou essa regressão no fluxo de validação.
 
 ## Trabalho atual — PR #49: NNUE RPG
 
@@ -45,13 +45,27 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 - [x] Check de overflow isolado como job independente do pipeline NNUE.
 - [x] Auto-Balancer manual ou diário às 07:00 UTC; não corre a cada PR.
 - [x] Treino NNUE nightly preparado para 05:00 UTC, sem triggers por commit.
-- [x] Arena de desenvolvimento serializada por branch: cada push AI processa os commits AI desde `main` em ordem, com torneios curtos contra `main` e sem Arenas concorrentes em avalanche.
+- [x] Arena de desenvolvimento serializada por branch: cada push AI processa os commits AI desde `main` em ordem, com torneios curtos e sem Arenas concorrentes em avalanche.
+- [x] Arena histórica usa sempre as regras/gameplay da `main` atual e sobrepõe apenas `ai/**` da revisão histórica.
 - [x] AI Quality Gate no PR: alterações AI têm de derrotar a `main` numa A/B Arena de 100 jogos com margem mínima de 10 vitórias para poderem ser promovidas.
 - [ ] Primeira rede treinada real validada no C++.
 - [ ] Benchmark de custo por avaliação/NPS clássico vs NNUE.
 - [ ] Comparação de `bestmove` e posições de referência.
 - [ ] Arena NNUE vs clássica com dados suficientes para uma decisão estatística.
 - [ ] Decisão de tornar NNUE default.
+
+### Regra de sobrevivência das AIs
+
+Uma revisão antiga da Ares **não é descartada apenas por ser antiga**. Quando uma mudança de jogo introduz ações, regras, heróis ou comportamento novo, a Arena reconstrói a revisão histórica da IA sobre a `main` atual e testa-a nesse jogo atualizado.
+
+Assim:
+
+- se a IA histórica deixar de compilar ou não souber lidar com as regras atuais, deixa de ser candidata;
+- se perder para a IA atual, a nova IA substitui-a;
+- se uma IA histórica continuar a ganhar, ela continua válida e é evidência de que ainda é melhor;
+- uma IA nunca é promovida só por ser nova.
+
+Isto transforma a Arena numa seleção por **força efetiva no estado atual do jogo**, em vez de simples seleção cronológica.
 
 ### Continuação se a branch ficar a meio
 
@@ -61,8 +75,8 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 4. Carregar/exportar a rede no `cpp_nnue_test.cpp`.
 5. Medir custo sem e com modelo.
 6. Confirmar que o check `overflow-regression` passa independentemente do pipeline NNUE.
-7. Confirmar que a Arena de desenvolvimento compila e joga com o motor C++ do commit testado.
-8. Confirmar que o AI Quality Gate compara sempre `HEAD` contra a `main` do PR, não duas variantes do mesmo commit.
+7. Confirmar que a Arena histórica compila e joga com o motor C++ da revisão testada sob as regras atuais.
+8. Confirmar que o AI Quality Gate compara sempre `HEAD` contra a `main` do PR.
 9. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
 
 A sincronização completa atual é deliberadamente um **baseline de correção**. A etapa seguinte deve substituir o rescan por atualizações incrementais ligadas às alterações reais do `BoardState`.
