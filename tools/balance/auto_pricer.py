@@ -1,4 +1,4 @@
-# tools/balance/auto_pricer.py
+import argparse
 import json
 import math
 import os
@@ -38,33 +38,15 @@ def obter_partidas_validas(stats):
     return [match for match in matches if match.get("valid", True)]
 
 
-def executar_balanceamento_automatico():
-    print("📈 A executar Avaliação Económica Ponderada por ELO...")
-
-    if not os.path.exists(ARQUIVO_STATS):
-        print("❌ Ficheiro estatisticas_treino.json não encontrado.")
-        return
-
-    with open(ARQUIVO_STATS, "r", encoding="utf-8") as f:
-        stats = json.load(f)
-
-    with open(ARQUIVO_HEROES, "r", encoding="utf-8") as f:
-        heroes = json.load(f)
-
+def calcular_balanceamento(stats, heroes):
+    """Calcula propostas de preço sem escrever ficheiros."""
     custos_atuais = {name: data.get("cost", 0) for name, data in heroes.items()}
-
     valid_matches = obter_partidas_validas(stats)
     total_matches = len(stats.get("matches", []))
     invalid_count = total_matches - len(valid_matches)
 
-    print(
-        f"🧪 Telemetria: {len(valid_matches)} partidas válidas, "
-        f"{invalid_count} descartadas por ação inválida."
-    )
-
     if not valid_matches:
-        print("❌ Nenhuma partida válida disponível para balanceamento.")
-        return
+        raise ValueError("Nenhuma partida válida disponível para balanceamento.")
 
     piece_score_delta = {peca: 0.0 for peca in custos_atuais}
     piece_volume = {peca: 0.0 for peca in custos_atuais}
@@ -97,10 +79,7 @@ def executar_balanceamento_automatico():
                 piece_score_delta[peca] += delta_black * qtd
                 piece_volume[peca] += qtd
 
-    mudancas = False
-    print("\n📊 Análise de Performance Absoluta (Impacto sobre ELO Base)")
-    print("-" * 65)
-
+    changes = []
     for peca in custos_atuais:
         if piece_volume[peca] == 0:
             continue
@@ -109,30 +88,111 @@ def executar_balanceamento_automatico():
         media_delta = piece_score_delta[peca] / piece_volume[peca]
         ajuste = int(round(media_delta * ADJUSTMENT_K))
         novo_custo = max(MIN_COST, min(MAX_COST, custo_antigo + ajuste))
+        changes.append(
+            {
+                "hero": peca,
+                "samples": piece_volume[peca],
+                "performance_delta": media_delta,
+                "old_cost": custo_antigo,
+                "new_cost": novo_custo,
+                "changed": novo_custo != custo_antigo,
+            }
+        )
 
-        if novo_custo != custo_antigo:
-            custos_atuais[peca] = novo_custo
-            heroes[peca]["cost"] = novo_custo
+    return {
+        "total_matches": total_matches,
+        "valid_matches": len(valid_matches),
+        "invalid_matches": invalid_count,
+        "min_cost": MIN_COST,
+        "max_cost": MAX_COST,
+        "adjustment_k": ADJUSTMENT_K,
+        "changes": changes,
+    }
+
+
+def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=None):
+    print("📈 A executar Avaliação Económica Ponderada por ELO...")
+
+    if not os.path.exists(ARQUIVO_STATS):
+        raise FileNotFoundError("Ficheiro estatisticas_treino.json não encontrado.")
+
+    with open(ARQUIVO_STATS, "r", encoding="utf-8") as f:
+        stats = json.load(f)
+
+    with open(ARQUIVO_HEROES, "r", encoding="utf-8") as f:
+        heroes = json.load(f)
+
+    relatorio = calcular_balanceamento(stats, heroes)
+    print(
+        f"🧪 Telemetria: {relatorio['valid_matches']} partidas válidas, "
+        f"{relatorio['invalid_matches']} descartadas por ação inválida."
+    )
+
+    mudancas = False
+    print("\n📊 Análise de Performance Absoluta (Impacto sobre ELO Base)")
+    print("-" * 65)
+
+    for change in relatorio["changes"]:
+        peca = change["hero"]
+        custo_antigo = change["old_cost"]
+        novo_custo = change["new_cost"]
+        media_delta = change["performance_delta"]
+        samples = change["samples"]
+        if change["changed"]:
             mudancas = True
             sinal = "+" if media_delta > 0 else ""
             estado = "🔴 NERFADA" if media_delta > 0 else "🟢 BUFFADA"
             print(
-                f"{peca.ljust(12)} | Performance: {sinal}{media_delta * 100:.1f}% | "
+                f"{peca.ljust(12)} | N={samples:.0f} | Performance: {sinal}{media_delta * 100:.1f}% | "
                 f"{custo_antigo} -> {novo_custo} ({estado})"
             )
         else:
             print(
-                f"{peca.ljust(12)} | Performance: {media_delta * 100:+.1f}% | "
+                f"{peca.ljust(12)} | N={samples:.0f} | Performance: {media_delta * 100:+.1f}% | "
                 f"{custo_antigo} (Estável)"
             )
 
     if mudancas:
-        with open(ARQUIVO_HEROES, "w", encoding="utf-8") as f:
-            json.dump(heroes, f, indent=4, ensure_ascii=False)
-        print("\n✅ heroes_config.json atualizado com precisão matemática!")
+        for change in relatorio["changes"]:
+            if change["changed"]:
+                heroes[change["hero"]]["cost"] = change["new_cost"]
+        if escrever_config:
+            with open(ARQUIVO_HEROES, "w", encoding="utf-8") as f:
+                json.dump(heroes, f, indent=4, ensure_ascii=False)
+            print("\n✅ heroes_config.json atualizado.")
+        else:
+            print("\nℹ️ Alterações calculadas, mas escrita de heroes_config.json desativada.")
     else:
         print("\n✅ Preços perfeitamente equilibrados. Sem mudanças.")
 
+    if caminho_relatorio:
+        caminho_relatorio = os.path.abspath(caminho_relatorio)
+        os.makedirs(os.path.dirname(caminho_relatorio), exist_ok=True)
+        with open(caminho_relatorio, "w", encoding="utf-8") as f:
+            json.dump(relatorio, f, indent=4, ensure_ascii=False)
+        print(f"📄 Relatório escrito em: {caminho_relatorio}")
+
+    return relatorio
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Calcula e opcionalmente aplica preços de heróis.")
+    parser.add_argument(
+        "--no-write",
+        action="store_true",
+        help="Calcula os preços sem modificar engine/heroes_config.json.",
+    )
+    parser.add_argument(
+        "--report",
+        metavar="PATH",
+        help="Escreve o relatório JSON das alterações propostas.",
+    )
+    args = parser.parse_args()
+    executar_balanceamento_automatico(
+        escrever_config=not args.no_write,
+        caminho_relatorio=args.report,
+    )
+
 
 if __name__ == "__main__":
-    executar_balanceamento_automatico()
+    main()

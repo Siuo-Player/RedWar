@@ -1,6 +1,6 @@
 import pytest
 
-from tools.balance.auto_pricer import calcular_win_esperada
+from tools.balance.auto_pricer import calcular_balanceamento, calcular_win_esperada
 
 
 def test_expected_win_probability_is_symmetric():
@@ -27,3 +27,25 @@ def test_expected_win_probability_rejects_non_finite_elos():
 
     with pytest.raises(ValueError):
         calcular_win_esperada(1500, float("nan"))
+
+
+def test_balance_calculation_does_not_mutate_hero_config():
+    stats = {
+        "matches": [
+            {
+                "valid": True,
+                "white_elo": 1000,
+                "black_elo": 1000,
+                "white_draft": {"Knight": 1},
+                "black_draft": {},
+                "result": 1.0,
+            }
+        ]
+    }
+    heroes = {"Knight": {"cost": 50}}
+
+    report = calcular_balanceamento(stats, heroes)
+
+    assert heroes == {"Knight": {"cost": 50}}
+    assert report["valid_matches"] == 1
+    assert report["changes"][0]["old_cost"] == 50

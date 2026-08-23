@@ -1,8 +1,10 @@
+import random
+
 import pytest
 
 from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
-from tools.analytics.trainer import executar_acao_treino
+from tools.analytics.trainer import executar_acao_treino, preencher_draft_aleatorio
 from tools.balance.auto_pricer import obter_partidas_validas
 
 
@@ -35,3 +37,14 @@ def test_auto_pricer_ignores_invalid_matches():
 
     assert len(valid) == 2
     assert all(match.get("valid", True) for match in valid)
+
+
+def test_draft_rng_does_not_touch_global_random_state():
+    random.seed(12345)
+    before = random.getstate()
+
+    gs = GameState()
+    preencher_draft_aleatorio(gs, "brancas", [6, 7], 200, random.Random(42))
+
+    after = random.getstate()
+    assert after == before
