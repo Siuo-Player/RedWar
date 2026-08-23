@@ -42,6 +42,8 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 - [x] Fallback para avaliação clássica quando não há modelo.
 - [x] Workflows CI preparados para builds clássicos e NNUE.
 - [x] Benchmark CI reduzido a base vs HEAD.
+- [x] Check de overflow isolado como job independente do pipeline NNUE.
+- [x] Treino NNUE nightly preparado para 05:00 UTC, sem triggers por commit.
 - [ ] Primeira rede treinada real validada no C++.
 - [ ] Benchmark de custo por avaliação/NPS clássico vs NNUE.
 - [ ] Comparação de `bestmove` e posições de referência.
@@ -55,9 +57,12 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 3. Treinar com `tools/nnue/train.py` usando seed fixa.
 4. Carregar/exportar a rede no `cpp_nnue_test.cpp`.
 5. Medir custo sem e com modelo.
-6. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
+6. Confirmar que o check `overflow-regression` passa independentemente do pipeline NNUE.
+7. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
 
 A sincronização completa atual é deliberadamente um **baseline de correção**. A etapa seguinte deve substituir o rescan por atualizações incrementais ligadas às alterações reais do `BoardState`.
+
+O treino nightly faz sempre checkout da `main` atual e identifica os pesos com a SHA dessa revisão. Não reage a `push`/`pull_request` e usa uma única fila de concorrência, para que commits seguidos não criem dezenas de treinos simultâneos. Uma alteração das regras/engine inicia uma nova família de treino, em vez de continuar pesos treinados para uma revisão incompatível.
 
 ## Ares — depois do NNUE
 
