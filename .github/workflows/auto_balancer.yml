@@ -44,15 +44,21 @@ jobs:
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine
+        cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+        if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
         chmod +x engine
     - name: Test C++ make/unmake Reversibility
       run: |
-        g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp tests/cpp_reversibility_test.cpp -o cpp_reversibility_test
+        cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
+        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
+        g++ -std=c++17 -O2 -pipe "${cpp_sources[@]}" tests/cpp_reversibility_test.cpp -o cpp_reversibility_test
         ./cpp_reversibility_test
     - name: Test C++ Evaluation Smoke Tests
       run: |
-        g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp ai/cpp_engine/SmokeTest.cpp -o cpp_smoke_test
+        cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
+        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
+        g++ -std=c++17 -O2 -pipe "${cpp_sources[@]}" ai/cpp_engine/SmokeTest.cpp -o cpp_smoke_test
         ./cpp_smoke_test
     - name: Test Python NNUE Feature Layout
       run: pytest -q tests/test_nnue_features.py
