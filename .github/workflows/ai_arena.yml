@@ -49,6 +49,7 @@ jobs:
     - name: Select AI commits since main
       shell: bash
       run: |
+        set -euo pipefail
         BASE=$(git merge-base HEAD origin/main)
         echo "BASE_SHA=$BASE" >> "$GITHUB_ENV"
         git rev-list --reverse "$BASE..HEAD" > /tmp/all-commits.txt
@@ -64,16 +65,16 @@ jobs:
         echo "AI commits selected:"
         cat /tmp/ai-commits.txt
 
-        if [[ ! -s /tmp/ai-commits.txt ]]; then
-          echo "No AI-related commits in this branch; nothing to benchmark."
-        fi
-
     - name: Benchmark each AI commit in order
-      if: hashFiles('/tmp/ai-commits.txt') != ''
       shell: bash
       run: |
         set -euo pipefail
         mkdir -p /tmp/redwar-arena-results
+
+        if [[ ! -s /tmp/ai-commits.txt ]]; then
+          echo "No AI-related commits in this branch; nothing to benchmark."
+          exit 0
+        fi
 
         while read -r COMMIT; do
           echo "============================================================"
@@ -82,6 +83,11 @@ jobs:
 
           WORKTREE="/tmp/redwar-$COMMIT"
           git worktree add --detach "$WORKTREE" "$COMMIT"
+
+          cleanup_worktree() {
+            git worktree remove --force "$WORKTREE" 2>/dev/null || true
+          }
+          trap cleanup_worktree EXIT
 
           pushd "$WORKTREE/ai/cpp_engine" >/dev/null
           cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
@@ -101,6 +107,7 @@ jobs:
             | tee "/tmp/redwar-arena-results/${COMMIT}-arena.txt"
           popd >/dev/null
 
+          trap - EXIT
           git worktree remove --force "$WORKTREE"
         done < /tmp/ai-commits.txt
 
