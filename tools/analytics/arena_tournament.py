@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 
 from engine.game_state import GameState
 from tools.analytics.opening_tester import carregar_abertura_basica
-from ai.bot import BOT_INICIANTE, BOT_INTERMEDIO, BOT_AVANCADO
+from ai.bot import TREINO_INICIANTE, TREINO_INTERMEDIO, TREINO_AVANCADO
 
 def verificar_promocao(vitorias_desafiante, vitorias_atual, margem=5):
     diferenca = vitorias_desafiante - vitorias_atual
@@ -39,12 +39,12 @@ def start_tournament(num_games, win_threshold):
     
     for i in range(num_games):
         if i % 2 == 0:
-            winner = run_headless_match(BOT_AVANCADO, BOT_INTERMEDIO)
+            winner = run_headless_match(TREINO_AVANCADO, TREINO_INTERMEDIO)
             if winner and "Brancas" in str(winner): wins_challenger += 1
             elif winner and "Pretas" in str(winner): wins_baseline += 1
             else: draws += 1
         else:
-            winner = run_headless_match(BOT_INTERMEDIO, BOT_AVANCADO)
+            winner = run_headless_match(TREINO_INTERMEDIO, TREINO_AVANCADO)
             if winner and "Pretas" in str(winner): wins_challenger += 1
             elif winner and "Brancas" in str(winner): wins_baseline += 1
             else: draws += 1
