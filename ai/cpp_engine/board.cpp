@@ -325,22 +325,26 @@ void update_timers(UndoInfo& undo) {
 
     for (int r = 0; r < LINHAS; ++r) {
         for (int c = 0; c < COLUNAS; ++c) {
-            Piece piece = board.pieces[r][c];
-            if (!piece.is_empty && piece.team == active_team) {
-                record_timer_piece(undo, r, c, piece);
+            Piece& piece = board.pieces[r][c];
+            if (piece.is_empty || piece.team != active_team) continue;
 
-                if (piece.stun_timer > 0) --piece.stun_timer;
-                if (piece.spawn_cooldown > 0) --piece.spawn_cooldown;
-                if (piece.lifespan < 999) --piece.lifespan;
+            const bool has_stun_timer = piece.stun_timer > 0;
+            const bool has_spawn_cooldown = piece.spawn_cooldown > 0;
+            const bool has_lifespan = piece.lifespan < 999;
+            if (!has_stun_timer && !has_spawn_cooldown && !has_lifespan) continue;
 
-                if (piece.lifespan <= 0) {
-                    record_expired_piece(undo, r, c, piece);
-                    update_piece(r, c, Piece{});
-                    continue;
-                }
+            record_timer_piece(undo, r, c, piece);
+
+            if (has_stun_timer) --piece.stun_timer;
+            if (has_spawn_cooldown) --piece.spawn_cooldown;
+            if (has_lifespan) --piece.lifespan;
+
+            if (piece.lifespan <= 0) {
+                record_expired_piece(undo, r, c, piece);
+                update_piece(r, c, Piece{});
+            } else {
+                update_piece(r, c, piece);
             }
-
-            update_piece(r, c, piece);
         }
     }
 
