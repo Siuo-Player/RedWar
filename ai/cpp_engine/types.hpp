@@ -168,17 +168,18 @@ enum TTFlag : uint8_t {
     TT_UPPERBOUND
 };
 
+// The transposition table used to store a full Move object here. Move contains
+// multiple std::strings, making every 1M-entry table slot large and expensive
+// to copy/cache. A compact move key is enough for move ordering.
 struct TTEntry {
     uint64_t zobrist_key = 0;
+    uint64_t best_move_key = 0;
     int depth = -1;
     int value = 0;
     TTFlag flag = TT_EXACT;
-    Move best_move;
     bool occupied = false;
 };
 
-// Mantidos por compatibilidade com a arquitetura atual.
-// Uma futura SearchContext deverá concentrar este estado.
 extern BoardState board;
 extern std::atomic<bool> abort_search;
 extern int nodes_evaluated;
