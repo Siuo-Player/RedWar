@@ -4,7 +4,7 @@ on:
   # Deliberately NOT triggered by push/pull_request: a series of commits must
   # never create a series of overlapping two-hour training jobs.
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '0 5 * * *'
   workflow_dispatch:
 
 concurrency:
