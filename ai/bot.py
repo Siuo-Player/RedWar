@@ -135,8 +135,10 @@ class BotConfig:
 class BotAleatorio:
     def __init__(self):
         self.nome = "Bot Bebado"
+
     def play(self, gs):
         return self.escolher_jogada(gs)
+
     def escolher_jogada(self, gs):
         acoes = []
         current_team = 'brancas' if gs.white_to_move else 'pretas'
@@ -157,10 +159,12 @@ class BotAleatorio:
                     if hasattr(p,'get_valid_spells'):
                         for spell in p.get_valid_spells(r,c,gs.board,gs.tile_effects):
                             if isinstance(spell,dict):
-                                end_pos=spell.get("target",(r,c)); spell_name=spell.get("spell_type","Unknown")
-                            else:
-                                end_pos=(spell[0],spell[1]) if len(spell)>=2 else (r,c); spell_name=spell[2] if len(spell)>=3 else "Unknown"
-                            acoes.append({"type":"spell","start":(r,c),"end":end_pos,"spell_name":spell_name})
+                                end_pos = spell.get("target", (r,c))
+                                spell_name = spell.get("spell_type")
+                                if spell_name:
+                                    acoes.append({"type":"spell","start":(r,c),"end":end_pos,"spell_name":spell_name})
+                            elif isinstance(spell,(tuple,list)) and len(spell) >= 3 and spell[2]:
+                                acoes.append({"type":"spell","start":(r,c),"end":(spell[0],spell[1]),"spell_name":spell[2]})
         return random.choice(acoes) if acoes else None
 
 BOT_ALEATORIO = BotAleatorio()
