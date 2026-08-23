@@ -11,6 +11,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+env:
+  PERF_GUARD: ${{ startsWith(github.event.pull_request.title, 'perf(') || startsWith(github.event.pull_request.title, 'perf:') }}
+
 jobs:
   benchmark-regression:
     runs-on: ubuntu-latest
@@ -72,6 +75,20 @@ PY
           if [[ "$bestmove" != "$previous_bestmove" ]]; then
             echo "ERROR: bestmove changed from $previous_bestmove to $bestmove at $commit"
             exit 1
+          fi
+
+          if [[ "$PERF_GUARD" == "true" ]]; then
+            slowdown=$(python - "$previous_median" "$median" <<'PY'
+import sys
+previous = float(sys.argv[1])
+current = float(sys.argv[2])
+print(current > previous * 1.10)
+PY
+)
+            if [[ "$slowdown" == "True" ]]; then
+              echo "ERROR: performance regression >10% at $commit (${previous_median}s -> ${median}s)"
+              exit 1
+            fi
           fi
 
           previous_label="$commit"
