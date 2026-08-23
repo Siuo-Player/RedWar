@@ -59,15 +59,13 @@ def preencher_draft_aleatorio(gs, team, linhas_validas, orcamento):
 
 
 def executar_acao_treino(gs, parsed):
-    """Executa uma ação produzida por um bot e sinaliza ações inválidas."""
+    """Executa uma ação produzida por um bot e deixa erros de legalidade escaparem ao caller."""
     if not isinstance(parsed, dict):
         raise ValueError("Bot returned a non-dict action")
 
     m_type = str(parsed["type"]).lower()
-    start = parsed["start"]
-    end = parsed["end"]
-    start_r, start_c = start
-    end_r, end_c = end
+    start_r, start_c = parsed["start"]
+    end_r, end_c = parsed["end"]
 
     if m_type == "stun":
         atacante = gs.board[start_r][start_c]
@@ -111,15 +109,14 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
     bot_brancas, elo_brancas = random.choice(POOL_BOTS)
     bot_pretas, elo_pretas = random.choice(POOL_BOTS)
 
-    comp_pretas = preencher_draft_aleatorio(
-        gs, "pretas", [0, 1], ORCAMENTO_PRETAS
-    )
+    comp_pretas = preencher_draft_aleatorio(gs, "pretas", [0, 1], ORCAMENTO_PRETAS)
     comp_brancas = preencher_draft_aleatorio(
         gs, "brancas", [LINHAS - 2, LINHAS - 1], ORCAMENTO_BRANCAS
     )
 
     turnos = 0
     invalid_action = None
+    invalid_action_bot = None
 
     while not gs.game_over and turnos < MAX_TURNS_PER_GAME:
         turnos += 1
@@ -148,11 +145,8 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
         )
         sys.stdout.flush()
 
-        parsed = (
-            bot_brancas.escolher_jogada(gs)
-            if gs.white_to_move
-            else bot_pretas.escolher_jogada(gs)
-        )
+        active_bot = bot_brancas if gs.white_to_move else bot_pretas
+        parsed = active_bot.escolher_jogada(gs)
 
         if not parsed:
             gs.check_game_over()
@@ -164,6 +158,7 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
             executar_acao_treino(gs, parsed)
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             invalid_action = str(exc)
+            invalid_action_bot = active_bot.nome
             gs.game_over = True
             gs.winner = "Ação inválida do bot"
             break
@@ -190,9 +185,7 @@ def simular_jogo_treino(seed, jogo_idx, total_jogos, global_stats):
 
     if invalid_action is not None:
         match["invalid_action"] = invalid_action
-        match["invalid_action_bot"] = (
-            bot_brancas.nome if gs.white_to_move else bot_pretas.nome
-        )
+        match["invalid_action_bot"] = invalid_action_bot
 
     return match
 
@@ -216,7 +209,8 @@ def gerar_estatisticas_treino(num_jogos=200):
         if not resultado["valid"]:
             global_stats["invalid_matches"] += 1
             print(
-                f"\n⚠️ Partida {i + 1} descartada: ação inválida do bot: "
+                f"\n⚠️ Partida {i + 1} descartada: ação inválida do bot "
+                f"{resultado.get('invalid_action_bot', 'unknown')}: "
                 f"{resultado.get('invalid_action', 'unknown')}"
             )
         historico_partidas.append(resultado)
