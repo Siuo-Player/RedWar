@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <tuple>
@@ -36,25 +37,30 @@ bool same_effect(const TileEffect& a, const TileEffect& b) {
            a.timer == b.timer;
 }
 
-bool same_board(const BoardState& a, const BoardState& b) {
-    if (a.turn != b.turn ||
-        a.twc != b.twc ||
-        a.hash != b.hash ||
-        a.material_score != b.material_score ||
-        a.white_pieces != b.white_pieces ||
-        a.black_pieces != b.black_pieces) {
-        return false;
-    }
+std::string board_difference(const BoardState& expected, const BoardState& actual) {
+    std::ostringstream out;
+    if (expected.turn != actual.turn) out << " turn";
+    if (expected.twc != actual.twc) out << " twc";
+    if (expected.hash != actual.hash) out << " hash";
+    if (expected.material_score != actual.material_score) out << " material_score";
+    if (expected.white_pieces != actual.white_pieces) out << " white_pieces";
+    if (expected.black_pieces != actual.black_pieces) out << " black_pieces";
 
     for (int r = 0; r < LINHAS; ++r) {
         for (int c = 0; c < COLUNAS; ++c) {
-            if (!same_piece(a.pieces[r][c], b.pieces[r][c]) ||
-                !same_effect(a.effects[r][c], b.effects[r][c])) {
-                return false;
+            if (!same_piece(expected.pieces[r][c], actual.pieces[r][c])) {
+                out << " piece(" << r << ',' << c << ')';
+            }
+            if (!same_effect(expected.effects[r][c], actual.effects[r][c])) {
+                out << " effect(" << r << ',' << c << ')';
             }
         }
     }
-    return true;
+    return out.str();
+}
+
+bool same_board(const BoardState& a, const BoardState& b) {
+    return board_difference(a, b).empty();
 }
 
 void expect_reversible(const std::string& rwen, const char* label) {
@@ -73,7 +79,8 @@ void expect_reversible(const std::string& rwen, const char* label) {
 
         if (!same_board(board, root.board_state)) {
             throw std::runtime_error(
-                std::string(label) + ": make/unmake failed for " + move.to_uci()
+                std::string(label) + ": make/unmake failed for " + move.to_uci() +
+                " (diff:" + board_difference(root.board_state, board) + ")"
             );
         }
         ++checked;
