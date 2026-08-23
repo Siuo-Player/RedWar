@@ -59,18 +59,21 @@ struct HeroBehavior {
 };
 
 struct Move {
-    int sr = 0;
-    int sc = 0;
-    int er = 0;
-    int ec = 0;
+    // RedWar usa exclusivamente um tabuleiro 8x8; uma coordenada válida é [0, 7].
+    // uint8_t mantém o Move compacto porque estes campos são copiados e ordenados
+    // constantemente durante a pesquisa.
+    uint8_t sr = 0;
+    uint8_t sc = 0;
+    uint8_t er = 0;
+    uint8_t ec = 0;
     std::string type = "MOVE";
     std::string spell_name;
     std::string spawn_name;
     int score = 0;
 
     std::string to_uci() const {
-        if (sr < 0 || sr >= LINHAS || er < 0 || er >= LINHAS ||
-            sc < 0 || sc >= COLUNAS || ec < 0 || ec >= COLUNAS) {
+        if (sr >= LINHAS || er >= LINHAS ||
+            sc >= COLUNAS || ec >= COLUNAS) {
             return "0000";
         }
 
