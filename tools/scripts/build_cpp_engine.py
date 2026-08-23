@@ -51,7 +51,7 @@ def compile_cpp_project(is_smoke_test=False):
         if not vcvars_path:
             print("❌ ERRO: Não foi possível localizar o vcvars64.bat do MSVC.")
             sys.exit(1)
-        compile_cmd = f'"{vcvars_path}" && cl /EHsc /O2 /I"{include_path}" /Fe:{exe_name} {files_str}'
+        compile_cmd = f'"{vcvars_path}" && cl /EHsc /O2 /std:c++17 /I"{include_path}" /Fe:{exe_name} {files_str}'
         print("⚙️ A executar o MSVC Optimizer (cl.exe)...")
     else:
         compile_cmd = f'g++ -O3 -std=c++17 -I"{include_path}" {files_str} -o {exe_name}'
