@@ -7,9 +7,12 @@ on:
       - 'engine/heroes_config.json'
       - 'tools/balance/**'
       - 'tools/analytics/trainer.py'
+      - 'tools/nnue/**'
       - 'tests/test_auto_pricer.py'
       - 'tests/test_trainer.py'
+      - 'tests/test_nnue_features.py'
       - 'tests/cpp_reversibility_test.cpp'
+      - 'tests/cpp_nnue_test.cpp'
       - 'tests/test_moves.py'
       - 'tests/test_rules.py'
       - '.github/workflows/auto_balancer.yml'
@@ -41,7 +44,7 @@ jobs:
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine
         chmod +x engine
     - name: Test C++ make/unmake Reversibility
       run: |
@@ -51,6 +54,13 @@ jobs:
       run: |
         g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp ai/cpp_engine/SmokeTest.cpp -o cpp_smoke_test
         ./cpp_smoke_test
+    - name: Test Python NNUE Feature Layout
+      run: pytest -q tests/test_nnue_features.py
+    - name: Test C++ NNUE Integration
+      run: |
+        python -m tools.nnue.bootstrap_model --output /tmp/ares-bootstrap.nnue
+        g++ -std=c++17 -O2 -pipe ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/nnue.cpp ai/cpp_engine/search.cpp tests/cpp_nnue_test.cpp -o cpp_nnue_test
+        REDWAR_NNUE_MODEL=/tmp/ares-bootstrap.nnue ./cpp_nnue_test
     - name: Test Auto-Pricer Overflow Regression
       run: pytest -q tests/test_auto_pricer.py
     - name: Test Trainer and Rules Regression
