@@ -71,6 +71,22 @@ struct Move {
     std::string spawn_name;
     int score = 0;
 
+    Move() = default;
+
+    Move(int start_r, int start_c, int end_r, int end_c,
+         std::string move_type = "MOVE",
+         std::string move_spell = {},
+         std::string move_spawn = {},
+         int move_score = 0)
+        : sr(static_cast<uint8_t>(start_r)),
+          sc(static_cast<uint8_t>(start_c)),
+          er(static_cast<uint8_t>(end_r)),
+          ec(static_cast<uint8_t>(end_c)),
+          type(std::move(move_type)),
+          spell_name(std::move(move_spell)),
+          spawn_name(std::move(move_spawn)),
+          score(move_score) {}
+
     std::string to_uci() const {
         if (sr >= LINHAS || er >= LINHAS ||
             sc >= COLUNAS || ec >= COLUNAS) {
@@ -180,8 +196,6 @@ struct TTEntry {
     bool occupied = false;
 };
 
-// Mantidos por compatibilidade com a arquitetura atual.
-// Uma futura SearchContext deverá concentrar este estado.
 extern BoardState board;
 extern std::atomic<bool> abort_search;
 extern int nodes_evaluated;
