@@ -46,7 +46,25 @@ struct Move {
 struct TileEffect{bool is_empty=true;char team='.';std::string type;int timer=0;};
 struct BoardState{Piece pieces[LINHAS][COLUNAS]{};TileEffect effects[LINHAS][COLUNAS]{};char turn='W';int twc=0;uint64_t hash=0;int material_score=0,white_pieces=0,black_pieces=0;};
 struct StunRecord{int r=0,c=0;Piece p;};struct EffectRecord{int r=0,c=0;TileEffect ef;};struct TimerPieceRecord{int r=0,c=0,stun_timer=0,lifespan=999,spawn_cooldown=0;};struct TimerEffectRecord{int r=0,c=0;TileEffect effect;};struct ExpiredPieceRecord{int r=0,c=0;Piece piece;};
-struct UndoInfo{std::string move_type="MOVE";Piece target_piece,actor_piece;int twc_backup=0;StunRecord aoe_victims[MAX_UNDO_VICTIMS]{};int num_victims=0;EffectRecord overwritten_effects[MAX_UNDO_EFFECTS]{};int num_effects=0;TimerPieceRecord timer_pieces[MAX_TIMER_PIECES]{};int num_timer_pieces=0;TimerEffectRecord timer_effects[MAX_TIMER_EFFECTS]{};int num_timer_effects=0;ExpiredPieceRecord expired_pieces[MAX_EXPIRED_PIECES]{};int num_expired_pieces=0;};
+struct UndoInfo{
+    std::string move_type="MOVE";
+    Piece target_piece,actor_piece;
+    int twc_backup=0;
+    uint64_t hash_backup=0;
+    int material_score_backup=0;
+    int white_pieces_backup=0;
+    int black_pieces_backup=0;
+    StunRecord aoe_victims[MAX_UNDO_VICTIMS]{};
+    int num_victims=0;
+    EffectRecord overwritten_effects[MAX_UNDO_EFFECTS]{};
+    int num_effects=0;
+    TimerPieceRecord timer_pieces[MAX_TIMER_PIECES]{};
+    int num_timer_pieces=0;
+    TimerEffectRecord timer_effects[MAX_TIMER_EFFECTS]{};
+    int num_timer_effects=0;
+    ExpiredPieceRecord expired_pieces[MAX_EXPIRED_PIECES]{};
+    int num_expired_pieces=0;
+};
 enum TTFlag:uint8_t{TT_EXACT,TT_LOWERBOUND,TT_UPPERBOUND}; struct TTEntry{uint64_t zobrist_key=0;int depth=-1,value=0;TTFlag flag=TT_EXACT;Move best_move;bool occupied=false;};
 extern BoardState board;extern std::atomic<bool> abort_search;extern int nodes_evaluated;extern std::chrono::steady_clock::time_point search_start_time;extern double time_limit_ms;extern std::vector<TTEntry> transposition_table;extern Move killer_moves[MAX_PLY][KILLER_SLOTS];extern std::unordered_map<std::string,HeroBehavior> HERO_BEHAVIORS;extern bool HERO_BEHAVIORS_LOADED;extern std::unordered_map<std::string,int> PIECE_IDS;extern int PIECE_COSTS[MAX_HEROES];extern int next_piece_id;extern uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2];extern uint64_t Z_STUN[LINHAS][COLUNAS][6];extern uint64_t Z_LIFE[LINHAS][COLUNAS][15];extern uint64_t Z_CD[LINHAS][COLUNAS][8];extern uint64_t Z_EFFECT[LINHAS][COLUNAS][2][2][4];extern uint64_t ZOBRIST_SIDE_TO_MOVE;
 void ensure_hero_behaviors_loaded();void parse_rwen(const std::string&);uint64_t compute_initial_hash();uint64_t get_piece_zobrist_key(int,int,const Piece&);uint64_t get_effect_zobrist_key(int,int,const TileEffect&);void compute_initial_eval();void update_piece(int,int,const Piece&);int get_piece_value(const Piece&,int,int);void update_timers(UndoInfo&);void restore_timers(const UndoInfo&);UndoInfo make_move(const Move&);void unmake_move(const Move&,const UndoInfo&);std::vector<Move> generate_valid_moves(char);int evaluate_board();std::string search_best_move(int);
