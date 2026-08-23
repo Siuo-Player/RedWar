@@ -31,9 +31,9 @@ jobs:
       run: |
         git worktree add --detach /tmp/redwar-base "$BASE_SHA"
         cd /tmp/redwar-base/ai/cpp_engine
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o /tmp/redwar-base-engine
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
         cd "$GITHUB_WORKSPACE"
-        python tools/analytics/benchmark_engine.py --engine /tmp/redwar-base-engine | tee /tmp/base-benchmark.txt
+        python tools/analytics/benchmark_engine.py --engine /tmp/redwar-base/ai/cpp_engine/engine-benchmark | tee /tmp/base-benchmark.txt
 
     - name: Benchmark every revision in this PR
       env:
@@ -48,14 +48,13 @@ jobs:
         while read -r commit; do
           index=$((index + 1))
           worktree="/tmp/redwar-rev-$index"
-          binary="/tmp/redwar-rev-$index-engine"
           git worktree add --detach "$worktree" "$commit"
           (
             cd "$worktree/ai/cpp_engine"
-            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o "$binary"
+            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
           )
 
-          output=$(python tools/analytics/benchmark_engine.py --engine "$binary")
+          output=$(python tools/analytics/benchmark_engine.py --engine "$worktree/ai/cpp_engine/engine-benchmark")
           printf '%s\n' "$output"
           median=$(printf '%s\n' "$output" | sed -n 's/^median_seconds=//p')
           bestmove=$(printf '%s\n' "$output" | sed -n 's/^bestmove=//p')
@@ -82,8 +81,7 @@ PY
 
     - name: Cleanup worktrees
       if: always()
-      run: |
-        git worktree prune
+      run: git worktree prune
 
   arena-tournament:
     runs-on: ubuntu-latest
