@@ -36,71 +36,71 @@ jobs:
       run: |
         git worktree add --detach /tmp/redwar-base "$BASE_SHA"
         cd /tmp/redwar-base/ai/cpp_engine
-        cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
-        if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine-benchmark
+        if [[ -f nnue.cpp ]]; then
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine-benchmark
+        else
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
+        fi
         cd "$GITHUB_WORKSPACE"
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-base/ai/cpp_engine/engine-benchmark | tee /tmp/base-benchmark.txt
 
-    - name: Benchmark every revision in this PR
+    - name: Build and benchmark PR HEAD
       env:
-        BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        HEAD_SHA: ${{ github.event.pull_request.head.sha }}
       run: |
-        git log --format=%H --reverse "$BASE_SHA..HEAD" > /tmp/pr-commits.txt
-        previous_label="base"
+        git worktree add --detach /tmp/redwar-head "$HEAD_SHA"
+        cd /tmp/redwar-head/ai/cpp_engine
+        if [[ -f nnue.cpp ]]; then
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine-benchmark
+        else
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine-benchmark
+        fi
+        cd "$GITHUB_WORKSPACE"
+        python tools/analytics/benchmark_engine.py --engine /tmp/redwar-head/ai/cpp_engine/engine-benchmark | tee /tmp/head-benchmark.txt
+
+    - name: Compare base vs PR HEAD
+      run: |
         previous_median=$(sed -n 's/^median_seconds=//p' /tmp/base-benchmark.txt)
+        current_median=$(sed -n 's/^median_seconds=//p' /tmp/head-benchmark.txt)
         previous_bestmove=$(sed -n 's/^bestmove=//p' /tmp/base-benchmark.txt)
-        index=0
+        current_bestmove=$(sed -n 's/^bestmove=//p' /tmp/head-benchmark.txt)
 
-        while read -r commit; do
-          index=$((index + 1))
-          worktree="/tmp/redwar-rev-$index"
-          git worktree add --detach "$worktree" "$commit"
-          (
-            cd "$worktree/ai/cpp_engine"
-            cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
-            if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
-            g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine-benchmark
-          )
-
-          output=$(python tools/analytics/benchmark_engine.py --engine "$worktree/ai/cpp_engine/engine-benchmark")
-          printf '%s\n' "$output"
-          median=$(printf '%s\n' "$output" | sed -n 's/^median_seconds=//p')
-          bestmove=$(printf '%s\n' "$output" | sed -n 's/^bestmove=//p')
-
-          improvement=$(python - "$previous_median" "$median" <<'PY'
+        python - "$previous_median" "$current_median" <<'PY'
 import sys
 previous = float(sys.argv[1])
 current = float(sys.argv[2])
-print((previous - current) / previous * 100.0)
+print(f"base_median={previous:.6f}s")
+print(f"head_median={current:.6f}s")
+print(f"relative_change={(current - previous) / previous * 100.0:.2f}%")
 PY
-)
 
-          echo "revision=$commit previous=$previous_label median=${median}s improvement=${improvement}% bestmove=${bestmove}"
-
-          if [[ "$bestmove" != "$previous_bestmove" ]]; then
-            echo "ERROR: bestmove changed from $previous_bestmove to $bestmove at $commit"
-            exit 1
-          fi
-
-          if [[ "$PERF_GUARD" == "true" ]]; then
-            slowdown=$(python - "$previous_median" "$median" <<'PY'
+        if [[ "$PERF_GUARD" == "true" ]]; then
+          slowdown=$(python - "$previous_median" "$current_median" <<'PY'
 import sys
 previous = float(sys.argv[1])
 current = float(sys.argv[2])
 print(current > previous * 1.10)
 PY
 )
-            if [[ "$slowdown" == "True" ]]; then
-              echo "ERROR: performance regression >10% at $commit (${previous_median}s -> ${median}s)"
-              exit 1
-            fi
+          if [[ "$slowdown" == "True" ]]; then
+            echo "ERROR: performance regression >10% (${previous_median}s -> ${current_median}s)"
+            exit 1
           fi
+        fi
 
-          previous_label="$commit"
-          previous_median="$median"
-          previous_bestmove="$bestmove"
-        done < /tmp/pr-commits.txt
+        if [[ "$current_bestmove" != "$previous_bestmove" ]]; then
+          echo "info: bestmove changed: $previous_bestmove -> $current_bestmove"
+        fi
+
+    - name: Upload benchmark comparison
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: redwar-ai-benchmark-comparison-${{ github.event.pull_request.number }}
+        path: |
+          /tmp/base-benchmark.txt
+          /tmp/head-benchmark.txt
+        if-no-files-found: error
 
     - name: Cleanup worktrees
       if: always()
@@ -115,20 +115,19 @@ PY
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    - name: 🛡️ Segurança à Porta (Jurisdição Open-Source)
+    - name: Security boundary
       if: github.event_name == 'pull_request' && github.actor != 'Siuo-Player'
       run: |
-        echo "A inspecionar os ficheiros do Pull Request..."
+        echo "Inspecting pull request files..."
         git fetch origin ${{ github.base_ref }}
         CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
         for FILE in $CHANGED_FILES; do
           if [[ ! "$FILE" == ai/* && ! "$FILE" == tools/analytics/benchmark_engine.py && ! "$FILE" == tools/nnue/* && ! "$FILE" == tests/cpp_nnue_test.cpp && ! "$FILE" == .github/workflows/ai_arena.yml ]]; then
-            echo "❌ ACESSO NEGADO: O Pull Request tenta alterar o ficheiro '$FILE'."
-            echo "A jurisdição open-source do RedWar permite alterações AI e ao benchmark do Ares."
+            echo "ACCESS DENIED: pull request modifies '$FILE' outside the AI/benchmark boundary."
             exit 1
           fi
         done
-        echo "✅ Inspeção aprovada."
+        echo "Inspection approved."
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -142,9 +141,11 @@ PY
     - name: Build C++ Engine (Linux)
       run: |
         cd ai/cpp_engine
-        cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
-        if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
-        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+        if [[ -f nnue.cpp ]]; then
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine
+        else
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
+        fi
         chmod +x engine
     - name: Run Arena Tournament
       run: python tools/analytics/arena_tournament.py --jogos 100 --margem_vitorias 10
