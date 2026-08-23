@@ -63,7 +63,7 @@
         }
     },
     "Obelisk": {
-        "cost": 13,
+        "cost": 16,
         "acronym": "Ob",
         "draftable": true,
         "descricao": "Movimento: Nenhum (Imóvel).\nAtaque: 1 casa ortogonal.",
@@ -145,7 +145,7 @@
         }
     },
     "Lich": {
-        "cost": 10,
+        "cost": 11,
         "acronym": "Li",
         "draftable": true,
         "spawn_cooldown": 0,
@@ -162,7 +162,7 @@
         }
     },
     "BoneLord": {
-        "cost": 90,
+        "cost": 86,
         "acronym": "BL",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: Padrão complexo em 'V'.",
@@ -206,7 +206,7 @@
         }
     },
     "Ranger": {
-        "cost": 35,
+        "cost": 40,
         "acronym": "Ra",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: Linha Reta (Longo Alcance).",
@@ -241,7 +241,7 @@
         }
     },
     "Templar": {
-        "cost": 13,
+        "cost": 15,
         "acronym": "Te",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nAtaque: 1 casa ortogonal.",
@@ -268,7 +268,7 @@
         }
     },
     "Berserker": {
-        "cost": 28,
+        "cost": 31,
         "acronym": "Be",
         "draftable": true,
         "descricao": "Movimento: 1 casa em qualquer direção.\nAtaque: 1 casa (Todas as direções).",
@@ -295,7 +295,7 @@
         }
     },
     "Pyromancer": {
-        "cost": 21,
+        "cost": 17,
         "acronym": "Py",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Incendiar (Ignite).",
@@ -311,7 +311,7 @@
         }
     },
     "Dragoon": {
-        "cost": 196,
+        "cost": 193,
         "acronym": "Dr",
         "draftable": true,
         "jump_max": 2,
@@ -329,7 +329,7 @@
         }
     },
     "Nightshade": {
-        "cost": 190,
+        "cost": 193,
         "acronym": "Ni",
         "draftable": true,
         "descricao": "Movimento: Até 4 casas ortogonais.\nAtaque: 1 casa ortogonal.",
@@ -347,7 +347,7 @@
         }
     },
     "Cleric": {
-        "cost": 56,
+        "cost": 58,
         "acronym": "Cl",
         "draftable": true,
         "descricao": "Movimento: 1 casa diagonal.\nFeitiço: Purificar.",
@@ -363,7 +363,7 @@
         }
     },
     "Trickster": {
-        "cost": 23,
+        "cost": 26,
         "acronym": "Tr",
         "draftable": true,
         "descricao": "Movimento: Em 'L' (Como o Cavalo).\nFeitiço: Troca (Swap).",
@@ -378,7 +378,7 @@
         }
     },
     "Geomancer": {
-        "cost": 25,
+        "cost": 21,
         "acronym": "Ge",
         "draftable": true,
         "descricao": "Movimento: 1 casa ortogonal.\nFeitiço: Barricada.",
@@ -410,7 +410,7 @@
         }
     },
     "Inquisitor": {
-        "cost": 127,
+        "cost": 128,
         "acronym": "In",
         "draftable": true,
         "aura_radius": 2,
