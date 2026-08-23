@@ -2,95 +2,59 @@
 
 ## Objetivo
 
-Ares passa a suportar uma avaliação NNUE-style inspirada no modelo de desenvolvimento do Stockfish, mas adaptada às regras de RedWar. Não existe um conceito de rei equivalente ao xadrez, portanto não usamos HalfKP literalmente. Em vez disso, as features representam diretamente o estado RPG que interessa à avaliação.
+Ares suporta uma avaliação NNUE-style inspirada no desenvolvimento do Stockfish, mas adaptada ao RPG de RedWar. Não copiamos HalfKP porque RedWar não tem reis nem a mesma semântica de posição.
 
 ## Arquitetura
 
 ```text
 BoardState
-   │
-   ├── peças / casa / equipa relativa
-   ├── stun timer
-   ├── lifespan
-   ├── spawn cooldown
-   ├── efeitos de terreno
-   ├── contador sem captura (TWC)
-   └── lado a jogar
-          │
-          ▼
-   sparse feature ids
-          │
-          ▼
-   dois accumulators de 128
-          │
-          ▼
-   hidden 32 + clipped ReLU
-          │
-          ▼
-   score White-perspective
+  -> sparse feature ids
+  -> 2 accumulators x 128
+  -> hidden 32 + clipped ReLU
+  -> score
 ```
 
-O primeiro estágio é atualizado de forma esparsa: uma mudança de uma peça, efeito, turno ou TWC altera apenas as features correspondentes. Isto é a propriedade fundamental do NNUE que interessa para o hot path.
+As features representam peça/casa/equipa relativa, stun, lifespan, cooldown, efeitos, TWC e lado a jogar. O layout atual tem 12 469 features e é duplicado em Python e C++.
 
-## Features
-
-O layout atual usa 12 469 features:
-
-- peça + casa + equipa relativa;
-- `stun_timer` em 6 buckets;
-- `lifespan` em 6 buckets;
-- `spawn_cooldown` em 5 buckets;
-- efeitos por casa/equipa/tipo/timer;
-- `twc` de 0–50;
-- lado a jogar relativo à perspectiva.
-
-O mesmo layout existe em `ai/cpp_engine/nnue.cpp` e `tools/nnue/features.py`. Qualquer alteração no layout tem de modificar os dois lados e os testes de paridade.
+**Estado desta branch:** o carregamento e a inferência usam uma sincronização completa como baseline de correção. A atualização incremental dos accumulators ainda é trabalho futuro. Essa distinção é intencional: primeiro validamos formato, paridade e matemática; depois medimos o ganho do update incremental. A propriedade central do NNUE é explorar entradas esparsas e alterações pequenas entre posições para evitar recalcular a parte cara da rede. citeturn573908search0turn573908search7
 
 ## Formato do modelo
 
-O modelo binário é `RWNUE002`, versão 2. O header inclui feature count, tamanho dos accumulators/hidden e escalas de quantização. Os pesos usam inteiros `int16` e os biases `int32`.
+`RWNUE002`, versão 2. O header valida feature count, tamanhos e escalas. Pesos usam `int16`; biases usam `int32`.
 
-O C++ aceita:
-
-```text
-REDWAR_NNUE_MODEL=<ficheiro>
-```
-
-ou, por omissão:
-
-```text
-data/nnue/ares.nnue
-```
-
-Um modelo ausente não é erro: a engine continua a usar a avaliação clássica.
+Sem modelo, a Ares continua na avaliação clássica.
 
 ## Treino
 
-O treino opcional está em `tools/nnue/train.py` e usa PyTorch. O PyTorch não é requisito para executar o jogo ou a CI normal; é apenas ferramenta de treino.
+`tools/nnue/generate_teacher.py` gera teacher data usando explicitamente `eval classical`, evitando que o próprio NNUE contamine os targets.
 
-Dataset mínimo:
+`tools/nnue/train.py` usa PyTorch opcional e exporta para o formato RWNUE002. O bootstrap model só serve para testar compatibilidade; não é prova de força.
 
-```json
-{"rwen": "...", "score": 42}
+Fluxo:
+
+```text
+teacher data
+  -> features
+  -> treino
+  -> quantização
+  -> RWNUE002
+  -> C++ loading
+  -> benchmark
+  -> Arena
 ```
 
-O primeiro objetivo é reproduzir a avaliação de uma teacher engine. A seguir, o dataset deve evoluir para posições de partidas/Arena com resultados e valores de pesquisa, para que o NNUE aprenda relações que a heurística manual não captura.
+## Validação antes de tornar NNUE default
 
-`tools/nnue/bootstrap_model.py` gera uma rede determinística apenas para validar o formato e o caminho C++ de inferência. Esse modelo não é considerado uma rede forte e não deve ser usado como prova de melhoria de Ares.
+1. Paridade Python/C++.
+2. Loading/inferência determinísticos.
+3. Rede realmente treinada e carregada pelo C++.
+4. Custo por avaliação/NPS conhecido.
+5. `bestmove` e posições de referência comparados com a clássica.
+6. Testes específicos de FrostMage/stun.
+7. Arena contra a avaliação clássica sob condições equivalentes.
 
-## Validação
+A meta é **Elo por CPU-segundo**, não complexidade por si só. O desenvolvimento do Stockfish trata alterações funcionais e redes como hipóteses que precisam de comparação estatística antes de serem aceites. citeturn573908search2turn573908search5
 
-A rede só deve passar de opcional a avaliação predefinida depois de demonstrar:
+## Próximo bloco
 
-1. paridade Python/C++ do extractor;
-2. loading e inferência determinísticos;
-3. custo por avaliação aceitável;
-4. `bestmove` pelo menos tão forte quanto o avaliador clássico;
-5. melhoria mensurável em posições táticas de RedWar, incluindo stun/FrostMage;
-6. resultado positivo na Arena contra a versão clássica sob condições equivalentes.
-
-A prioridade é força e depois velocidade. Um modelo maior que reduz NPS sem compensação de força deve ser rejeitado.
-
-## Desenvolvimento futuro
-
-O próximo passo é substituir o dataset bootstrap por dados reais de Ares, self-play e Arena, mantendo pesos e arquitetura versionados por metadata e hash. Só depois disso faz sentido experimentar redes maiores, SIMD/AVX2 ou outras otimizações do caminho de inferência.
+Depois de validar este pipeline, substituir o rescan por hooks incrementais ligados a `BoardState`. Só então experimentar redes maiores ou SIMD/AVX2.
