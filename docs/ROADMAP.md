@@ -47,7 +47,8 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 - [x] Treino NNUE nightly preparado para 05:00 UTC, sem triggers por commit.
 - [x] Arena de desenvolvimento serializada por branch: cada push AI processa os commits AI desde `main` em ordem, com torneios curtos e sem Arenas concorrentes em avalanche.
 - [x] Arena histórica usa sempre as regras/gameplay da `main` atual e sobrepõe apenas `ai/**` da revisão histórica.
-- [x] AI Quality Gate no PR: alterações AI têm de derrotar a `main` numa A/B Arena de 100 jogos com margem mínima de 10 vitórias para poderem ser promovidas.
+- [x] Jogos da Arena são arquivados como JSONL reproduzível: seed, `RWEN` inicial/final, ações exatas, cores, resultado e contadores táticos; o resumo agrega a força relativa e os padrões de ações.
+- [x] AI Quality Gate no PR: alterações AI têm de derrotar a IA da `main` sob as regras atuais do PR numa A/B Arena de 100 jogos com margem mínima de 10 vitórias.
 - [ ] Primeira rede treinada real validada no C++.
 - [ ] Benchmark de custo por avaliação/NPS clássico vs NNUE.
 - [ ] Comparação de `bestmove` e posições de referência.
@@ -63,7 +64,8 @@ Assim:
 - se a IA histórica deixar de compilar ou não souber lidar com as regras atuais, deixa de ser candidata;
 - se perder para a IA atual, a nova IA substitui-a;
 - se uma IA histórica continuar a ganhar, ela continua válida e é evidência de que ainda é melhor;
-- uma IA nunca é promovida só por ser nova.
+- uma IA nunca é promovida só por ser nova;
+- os jogos e estatísticas vencedoras/derrotadas ficam preservados como evidência para a próxima iteração e para análise humana.
 
 Isto transforma a Arena numa seleção por **força efetiva no estado atual do jogo**, em vez de simples seleção cronológica.
 
@@ -76,8 +78,9 @@ Isto transforma a Arena numa seleção por **força efetiva no estado atual do j
 5. Medir custo sem e com modelo.
 6. Confirmar que o check `overflow-regression` passa independentemente do pipeline NNUE.
 7. Confirmar que a Arena histórica compila e joga com o motor C++ da revisão testada sob as regras atuais.
-8. Confirmar que o AI Quality Gate compara sempre `HEAD` contra a `main` do PR.
-9. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
+8. Confirmar que o AI Quality Gate compara a nova AI com a AI da `main` sob as regras atuais do PR.
+9. Inspecionar os jogos arquivados para posições/decisões problemáticas e alimentar esses casos no próximo dataset/treino.
+10. Só depois iniciar a otimização dos hooks incrementais dos accumulators.
 
 A sincronização completa atual é deliberadamente um **baseline de correção**. A etapa seguinte deve substituir o rescan por atualizações incrementais ligadas às alterações reais do `BoardState`.
 
@@ -91,7 +94,7 @@ Quando o repositório estiver público e existir um plano GitHub com regras de p
 - nenhuma lista de bypass para administradores;
 - qualquer alteração em `ai/**` entra apenas por Pull Request;
 - o status `RedWar AI Quality Gate` deve ser obrigatório para esses PRs;
-- o gate só passa quando o challenger em `HEAD` supera a `main` na Arena A/B definida pelo workflow;
+- o gate só passa quando o challenger em `HEAD` supera a AI da `main` executada sob as regras atuais do PR;
 - alterações sem melhoria demonstrada não entram apenas por serem convenientes ou por serem do próprio mantenedor;
 - alterações de infraestrutura, workflows e correções de overflow continuam em PRs separados quando isso tornar a revisão mais segura.
 
