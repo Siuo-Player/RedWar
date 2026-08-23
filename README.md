@@ -149,6 +149,10 @@ Funções pretendidas:
 
 A implementação está em transição para um núcleo C++ mais rápido, mantendo ferramentas Python onde isso for conveniente.
 
+A metodologia de desenvolvimento segue uma abordagem **Stockfish-like adaptada ao RPG**: separar estado, pesquisa, avaliação e move ordering, manter o hot path pequeno e exigir evidência antes de aceitar alterações funcionais.
+
+O Ares suporta atualmente uma avaliação clássica e um caminho **NNUE opcional**. A rede não é considerada superior só por existir: o objetivo é demonstrar ganho de força por CPU-segundo antes de a tornar default.
+
 ### Princípio de otimização
 
 > **Uma alteração na IA só deve sobreviver se melhorar a IA.**
@@ -169,7 +173,7 @@ versão proposta no Pull Request
 
 usando condições equivalentes de pesquisa e alternando cores para evitar que a primeira jogada determine artificialmente o resultado.
 
-O número de jogos e a margem necessários ainda estão sujeitos a calibração estatística. O workflow atual usa 100 jogos e margem 10, mas esta configuração não deve ser tratada como matemática definitiva.
+O workflow atual compara **base vs HEAD** em benchmark determinístico e depois executa um torneio Arena separado. Para PRs de performance existe um guard de regressão de 10% no benchmark.
 
 A Arena mede **força relativa entre versões da IA**, não qualidade do jogo como produto.
 
@@ -254,12 +258,21 @@ python setup.py build_ext --inplace
 
 ### Build C++
 
+Build mínimo sem NNUE:
+
 ```bash
 cd ai/cpp_engine
 g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
 ```
 
-No Windows existe ainda o pipeline local acionado pelo Git hook de `pre-push`.
+Build com NNUE:
+
+```bash
+cd ai/cpp_engine
+g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp -o engine
+```
+
+Na prática, os workflows do projeto detetam `nnue.cpp` automaticamente. No Windows existe ainda o pipeline local acionado pelo Git hook de `pre-push`.
 
 ### Princípios de manutenção
 
@@ -270,21 +283,19 @@ No Windows existe ainda o pipeline local acionado pelo Git hook de `pre-push`.
 - Não otimizar prematuramente sem medir.
 - Não introduzir comportamento silencioso para configurações inválidas.
 - Preferir falhar claramente a continuar com estado incorreto.
+- Remover scripts, snapshots, logs e documentação quando deixarem de representar o estado real do projeto.
 
-## 📚 Documentação
+## 📚 Documentação atual
 
-| Documento | Público | Conteúdo |
-|---|---|---|
-| `README.md` | Jogadores + devs | Visão geral e estado do projeto |
-| `docs/GAME_RULES.md` | Jogadores | Regras atuais do jogo |
-| `docs/GAME_DESIGN.md` | Designers/devs | Filosofia e decisões de design |
-| `docs/ARCHITECTURE.md` | Devs | Arquitetura técnica atual e alvo |
-| `docs/AI_ENGINE.md` | Devs de IA | Ares, search, avaliação e Arena |
-| `docs/HERO_SYSTEM.md` | Devs/designers | Modelo de heróis e data-driven design |
-| `docs/WEB_MULTIPLAYER.md` | Devs | Visão de web, contas e multiplayer |
-| `docs/CONTRIBUTING.md` | Contribuidores | Regras para contribuições |
-| `docs/ROADMAP.md` | Todos | O que existe, o que vem a seguir e o que está indefinido |
-| `engine/HEROES_SCHEMA.md` | Devs | Formato técnico de `heroes_config.json` |
+| Documento | Conteúdo |
+|---|---|
+| `README.md` | Visão geral, jogo, produto e estado atual |
+| `docs/Documento_Design_Jogo.md` | Filosofia e decisões de design do jogo |
+| `docs/Estrutura_Projeto.md` | Estrutura histórica/organizacional do projeto |
+| `docs/AI_ENGINE.md` | Ares, search, avaliação, NNUE e Arena |
+| `docs/NNUE.md` | Arquitetura, formato, treino e validação NNUE |
+| `docs/ROADMAP.md` | Estado, prioridades e próximos blocos |
+| `engine/HEROES_SCHEMA.md` | Formato técnico de `heroes_config.json` |
 
 ## 🗺️ Estado do projeto
 
