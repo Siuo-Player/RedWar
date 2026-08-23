@@ -6,7 +6,9 @@ on:
       - 'ai/**'
       - 'engine/heroes_config.json'
       - 'tools/balance/**'
+      - 'tools/analytics/trainer.py'
       - 'tests/test_auto_pricer.py'
+      - 'tests/test_trainer.py'
       - '.github/workflows/auto_balancer.yml'
 
 concurrency:
@@ -40,7 +42,15 @@ jobs:
         chmod +x engine
     - name: Test Auto-Pricer Overflow Regression
       run: pytest -q tests/test_auto_pricer.py
+    - name: Test Trainer and Rules Regression
+      run: pytest -q tests/test_trainer.py tests/test_rules.py tests/test_moves.py
     - name: Generate Telemetry (Trainer)
       run: python tools/analytics/trainer.py
     - name: Run Auto-Pricer
-      run: python tools/balance/auto_pricer.py
+      run: python tools/balance/auto_pricer.py --no-write --report data/auto_balance_report.json
+    - name: Upload Auto-Balance Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: redwar-auto-balance-report-${{ github.event.pull_request.number }}
+        path: data/auto_balance_report.json
+        if-no-files-found: error
