@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Simple repeatable Ares NPS benchmark.
-
-Usage:
-    python tools/analytics/benchmark_ai.py --nodes 100000 --runs 3
-
-The benchmark sends the same RWEN position to the persistent C++ engine and
-measures wall time and nodes/second. It does not change search parameters.
-"""
+"""Simple repeatable Ares NPS benchmark."""
 from __future__ import annotations
 
 import argparse
@@ -14,7 +7,16 @@ import os
 import subprocess
 import time
 
-DEFAULT_RWEN = "R,R,R,R,R,R,R,R/R,R,R,R,R,R,R,R/.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./W_Ghoul_0_N_0,.,.,.,.,.,.,W_Ghoul_0_N_0/.,.,.,.,.,.,.,. W 0"
+DEFAULT_RWEN = (
+    ".,.,.,.,.,.,.,./"
+    ".,.,.,.,.,.,.,./"
+    ".,.,.,.,.,.,.,./"
+    ".,.,.,.,.,.,.,./"
+    ".,.,.,.,.,.,.,./"
+    ".,.,.,.,.,.,.,./"
+    "W_Ghoul_0_N_0,.,.,.,.,.,.,./"
+    ".,.,.,.,.,.,.,B_Ghoul_0_N_0 W 0"
+)
 
 
 def run_once(exe: str, rwen: str, nodes: int) -> tuple[float, str]:
@@ -39,6 +41,7 @@ def run_once(exe: str, rwen: str, nodes: int) -> tuple[float, str]:
         if line.startswith("bestmove "):
             bestmove = line[9:]
             break
+
     elapsed = time.perf_counter() - start
     proc.stdin.write("quit\n")
     proc.stdin.flush()
@@ -58,8 +61,8 @@ def main() -> None:
     if not os.path.exists(exe):
         raise SystemExit(f"Engine not found: {exe}")
 
-    samples = []
-    moves = []
+    samples: list[float] = []
+    moves: list[str] = []
     for _ in range(max(1, args.runs)):
         elapsed, move = run_once(exe, args.rwen, args.nodes)
         samples.append(elapsed)
