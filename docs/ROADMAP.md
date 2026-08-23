@@ -5,6 +5,7 @@
 1. **Ares / IA — prioridade máxima.** Cada ciclo deve tentar tornar a IA mais forte ou mais rápida, com validação reproduzível.
 2. **Aplicação / UI / `main`.** Depois de melhorias relevantes da IA, melhorar o jogo jogável e validá-lo manualmente.
 3. **Web / multiplayer.** Pode avançar incrementalmente, mas é a fase final e o projeto só termina quando esta camada estiver utilizável.
+4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis para que a IA possa evoluir como um projeto maior.
 
 ## Metodologia da Ares
 
@@ -20,7 +21,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 
 O **PR #48 está integrado na `main`**. Ele melhorou a avaliação da pressão de stun do FrostMage, manteve `material_score` como acumulador incremental puro e reforçou a reversibilidade exata de estado derivado.
 
-O **PR #14** está integrado e protege o Auto-Pricer contra ELO extremo e partidas excessivamente longas. O **PR #28** consolidou a proteção para ELOs finitos extremos (`±1e308`) e colocou essa regressão no fluxo de validação.
+O **PR #28** consolidou a proteção do Auto-Pricer para ELOs finitos extremos (`±1e308`) e colocou essa regressão no fluxo de validação.
 
 ## Trabalho atual — PR #49: NNUE RPG
 
@@ -49,6 +50,11 @@ Objetivo: introduzir uma avaliação NNUE-style adaptada ao estado RPG de RedWar
 - [x] Arena histórica usa sempre as regras/gameplay da `main` atual e sobrepõe apenas `ai/**` da revisão histórica.
 - [x] Jogos da Arena são arquivados como JSONL reproduzível: seed, `RWEN` inicial/final, ações exatas, cores, resultado e contadores táticos; o resumo agrega a força relativa e os padrões de ações.
 - [x] AI Quality Gate no PR: alterações AI têm de derrotar a IA da `main` sob as regras atuais do PR numa A/B Arena de 100 jogos com margem mínima de 10 vitórias.
+- [x] Análise pós-Arena separada da simulação (`tools/analytics/game_analyzer.py`).
+- [x] Remoção de `opening_tester.py`, calibrador ELO legado e estado ELO associado.
+- [x] Build C++ deixou de compilar indiscriminadamente todos os `.cpp` encontrados na pasta.
+- [x] Script estrutural destrutivo substituído por auditoria não destrutiva.
+- [x] Documentação de arquitetura/estrutura/contribuição atualizada.
 - [ ] Primeira rede treinada real validada no C++.
 - [ ] Benchmark de custo por avaliação/NPS clássico vs NNUE.
 - [ ] Comparação de `bestmove` e posições de referência.
@@ -99,6 +105,27 @@ Quando o repositório estiver público e existir um plano GitHub com regras de p
 - alterações de infraestrutura, workflows e correções de overflow continuam em PRs separados quando isso tornar a revisão mais segura.
 
 O objetivo é aproximar a disciplina de promoção da IA da filosofia do Stockfish: trabalho experimental fora da `main`, medição reprodutível e promoção apenas quando há evidência objetiva.
+
+## Tooling e reestruturação — bloco atual
+
+A direção estrutural segue o princípio usado em projetos grandes: produção separada de testes, experiências e artefactos.
+
+```text
+produção     -> ai / engine / ui / online
+experimentos -> tools/analytics + tools/nnue + tools/balance
+validação    -> tests + benchmark/Arena
+artefactos   -> data / logs / CI artifacts
+documentação -> docs
+```
+
+O bloco atual não faz uma mega-migração de diretórios. Em vez disso:
+
+- remover duplicados e caminhos mortos;
+- impedir que tooling destrua ficheiros automaticamente;
+- tornar builds explícitos;
+- separar análise de simulação;
+- documentar contratos e responsabilidades;
+- só depois mover diretórios em blocos testáveis.
 
 ## Ares — depois do NNUE
 
