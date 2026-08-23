@@ -72,6 +72,30 @@ Experimentos de Ares, NNUE, Arena e balanceamento devem ser reproduzíveis:
 - orçamento explícito;
 - saída guardada quando o resultado for relevante.
 
+## Workflows isolados
+
+Cada workflow deve medir uma responsabilidade principal e falhar por motivos que pertençam a essa responsabilidade:
+
+- `auto_balancer.yml`: regressões numéricas, build mínimo do motor necessário ao trainer, telemetria e Auto-Pricer;
+- `ai_arena.yml`: jogos comparativos e recolha de evidência de força;
+- `ai_quality_gate.yml`: decisão de qualidade da AI nos PRs;
+- `nnue_nightly.yml`: teacher data, treino NNUE e publicação de modelos experimentais;
+- `main_guard.yml`: apenas validação/política de proteção, sem reescrita automática de `main`.
+
+Assim uma falha do treino NNUE não aparece como uma falsa falha do Auto-Balancer, e uma falha da Arena não bloqueia regressões numéricas básicas.
+
+## Dados e artefactos
+
+Ferramentas experimentais devem preferir:
+
+- `--output` explícito;
+- escrita atómica;
+- `--no-write` para cálculos de previsão;
+- seeds explícitas;
+- artefactos CI ou diretórios temporários para outputs gerados.
+
+Não substituir configurações do jogo automaticamente durante validações.
+
 ## Critério de conclusão
 
 Um bloco termina quando a alteração pretendida funciona **e** as regressões relevantes estão cobertas. Código “quase pronto” permanece desenvolvimento e não deve ser tratado como concluído pela documentação.
