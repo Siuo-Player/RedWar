@@ -1,6 +1,7 @@
 #include "types.hpp"
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cstdint>
 #include <vector>
@@ -24,7 +25,17 @@ uint64_t splitmix64(uint64_t x) {
 }
 
 uint64_t twc_hash(int twc) {
-    return splitmix64(0xD4E12C7B9A3F51E7ULL ^ static_cast<uint64_t>(static_cast<int64_t>(twc)));
+    static const std::array<uint64_t, 51> table = [] {
+        std::array<uint64_t, 51> values{};
+        for (int i = 0; i <= 50; ++i) {
+            values[static_cast<std::size_t>(i)] =
+                splitmix64(0xD4E12C7B9A3F51E7ULL ^ static_cast<uint64_t>(static_cast<int64_t>(i)));
+        }
+        return values;
+    }();
+
+    const int index = std::clamp(twc, 0, 50);
+    return table[static_cast<std::size_t>(index)];
 }
 
 uint64_t search_position_key() {
