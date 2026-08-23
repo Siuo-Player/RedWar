@@ -7,7 +7,7 @@ from pathlib import Path
 
 POSITIONS = [
     "B:Sentry_0_N_0,.,.,.,B:Ranger_0_N_0,.,.,./.,B:Phantom_0_N_0,.,.,.,.,B:FrostMage_0_N_0,./.,.,.,B:Templar_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,W:Templar_0_N_0,.,.,.,W:Phantom_0_N_0,./.,W:FrostMage_0_N_0,.,.,.,.,W:Ranger_0_N_0,./W:Sentry_0_N_0,.,.,.,W:Inquisitor_0_N_0,.,.,.,. W 0",
-    "W:FrostMage_1_N_0,B:Bone_2_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,W_BoneLord_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B:Phantom_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17",
+    "W:FrostMage_1_N_0,B:Bone_2_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,W:BoneLord_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B:Phantom_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17",
     "W:Sentry_0_N_0,.,.,.,B:FrostMage_0_N_0,.,.,.,./.,W:Templar_2_N_0,.,.,.,.,.,./.,.,B:Phantom_0_N_0,.,.,.,.,./.,.,.,.,W:Lich_0_N_0,.,.,.,./.,.,.,.,.,B:BoneLord_0_N_0,.,.,./.,W:Ranger_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./B:Sentry_0_N_0,.,.,.,W:Inquisitor_0_N_0,.,.,.,. W 23",
 ]
 
@@ -22,9 +22,9 @@ def classical_eval(engine: Path, rwen: str) -> int:
         check=True,
     )
     for line in proc.stdout.splitlines():
-        if line.startswith("classical_eval="):
-            return int(line.split("=", 1)[1])
-    raise RuntimeError(f"engine did not return classical_eval: {proc.stdout!r}")
+        if line.startswith("info score classical "):
+            return int(line.rsplit(" ", 1)[1])
+    raise RuntimeError(f"engine did not return a classical score: {proc.stdout!r}")
 
 
 def main() -> int:
@@ -33,9 +33,16 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
 
-    rows = [{"rwen": rwen, "score": classical_eval(args.engine.resolve(), rwen), "source": "classical-v1"} for rwen in POSITIONS]
+    engine = args.engine.resolve()
+    rows = [
+        {"rwen": rwen, "score": classical_eval(engine, rwen), "source": "classical-v1"}
+        for rwen in POSITIONS
+    ]
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
+    args.output.write_text(
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
+        encoding="utf-8",
+    )
     print(f"teacher_rows={len(rows)}")
     print(f"teacher_output={args.output}")
     return 0
