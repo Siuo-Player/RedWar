@@ -1,0 +1,60 @@
+name: Protect main (fallback)
+
+on:
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: write
+
+jobs:
+  guard:
+    if: github.actor != 'Siuo-Player' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Reject direct pushes not originating from a merged PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          unauthorized=()
+
+          while IFS= read -r sha; do
+            [ -z "$sha" ] && continue
+            merged_pr="$(gh api \
+              -H 'Accept: application/vnd.github+json' \
+              "/repos/${REPOSITORY}/commits/${sha}/pulls" \
+              --jq 'any(.[]; .base.ref == "main" and .merged_at != null)')"
+            if [ "$merged_pr" != "true" ]; then
+              unauthorized+=("$sha")
+            fi
+          done < <(git rev-list --reverse "${BEFORE}..${AFTER}")
+
+          if [ "${#unauthorized[@]}" -eq 0 ]; then
+            echo "No unauthorized direct commits detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          for sha in "${unauthorized[@]}"; do
+            parents="$(git rev-list --parents -n 1 "$sha")"
+            parent_count=$(( $(wc -w <<< "$parents") - 1 ))
+            if [ "$parent_count" -gt 1 ]; then
+              git revert --no-edit -m 1 "$sha"
+            else
+              git revert --no-edit "$sha"
+            fi
+          done
+
+          git commit --amend -m "chore(guard): revert unauthorized direct push [skip ci]" || true
+          git push origin HEAD:main
