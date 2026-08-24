@@ -16,9 +16,10 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DEFAULT_ENGINE = os.path.join(
     ROOT, "ai", "cpp_engine", "engine.exe" if sys.platform == "win32" else "engine"
 )
-# Dense near the current threshold so future search changes can be measured
-# without jumping straight from a tiny budget to hundreds of thousands of nodes.
-DEFAULT_NODES = [10_000, 25_000, 50_000, 75_000, 100_000, 125_000, 150_000, 200_000, 300_000, 500_000]
+# Start with very small budgets to identify the order of magnitude of the
+# failure threshold. The scan is intentionally exponential; once a threshold
+# is found, callers can rerun with explicit --nodes for a fine-grained search.
+DEFAULT_NODES = [10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000]
 
 # A5 FrostMage stuns at D5. Exactly five Bones occupy the stun cross:
 # C5, D4, D5, D6 and E5. All five are therefore stunned by the first action,
@@ -84,7 +85,7 @@ def main() -> int:
         type=int,
         action="append",
         default=None,
-        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10k, 25k..500k com maior detalhe abaixo de 150k.",
+        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10, 100, 1k, 10k, 100k, 1M e 10M.",
     )
     parser.add_argument(
         "--trace",
@@ -105,6 +106,7 @@ def main() -> int:
     print("FrostMage tactical benchmark")
     print("position: 5 clustered enemies within one 3-range stun area")
     print("expected tactical class: STUN")
+    print("scan: exponential node budgets; use --nodes for fine-grained follow-up")
     if args.trace:
         print(f"trace directory: {trace_dir}")
     print()
@@ -116,7 +118,7 @@ def main() -> int:
         ok = bestmove.startswith("STUN ")
         if not ok:
             failures += 1
-        print(f"nodes={nodes:>8} bestmove={bestmove:<24} {'PASS' if ok else 'FAIL'}")
+        print(f"nodes={nodes:>10} bestmove={bestmove:<24} {'PASS' if ok else 'FAIL'}")
         if saved_trace:
             print(f"  trace={saved_trace}")
 
