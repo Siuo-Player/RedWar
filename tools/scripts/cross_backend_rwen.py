@@ -1,19 +1,17 @@
-"""Validate shared RWEN fixtures against both the Python and C++ backends.
-
-The Python side uses the canonical NNUE RWEN parser.  The C++ side is checked
-through the engine protocol when a built engine is available.  Keeping this
-check separate lets CI validate representation compatibility without coupling
-pytest to a particular compiler/toolchain.
-"""
+"""Validate shared RWEN fixtures against both the Python and C++ backends."""
 from __future__ import annotations
 
 import argparse
 import subprocess
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.nnue.features import load_hero_ids, parse_rwen
 
-ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / "tests" / "fixtures" / "cross_backend_rwen.txt"
 DEFAULT_ENGINE = ROOT / "ai" / "cpp_engine" / "engine.exe"
 
@@ -32,8 +30,7 @@ def validate_python(cases: list[tuple[int, str]]) -> None:
     hero_ids = load_hero_ids()
     for line_no, rwen in cases:
         parse_rwen(rwen, hero_ids)
-        parts = rwen.split()
-        rows = parts[0].split("/")
+        rows = rwen.split()[0].split("/")
         assert len(rows) == 8, f"fixture line {line_no}: expected 8 rows"
         assert all(len(row.split(",")) == 8 for row in rows), (
             f"fixture line {line_no}: expected 8 cells per row"
@@ -56,7 +53,7 @@ def validate_cpp(cases: list[tuple[int, str]], engine: Path) -> None:
     )
     assert result.returncode == 0, f"C++ engine exited with {result.returncode}: {result.stderr}"
     assert "info string command error:" not in result.stdout
-    assert "info score classical" in result.stdout
+    assert result.stdout.count("info score classical") == len(cases)
 
 
 def main() -> int:
