@@ -4,9 +4,6 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
-#include <cstdlib>
-#include <fstream>
-#include <string>
 #include <vector>
 
 namespace {
@@ -19,61 +16,13 @@ constexpr int SPELL_SCORE = 30'000;
 constexpr int SPAWN_SCORE = 20'000;
 constexpr int KILLER1_SCORE = 10'000;
 constexpr int KILLER2_SCORE = 9'000;
-constexpr int TRACE_MOVE_LIMIT = 12;
-constexpr int TRACE_PLY_LIMIT = 2;
-constexpr int TRACE_LINE_LIMIT = 600;
 
-std::ofstream trace_file;
-bool trace_enabled = false;
-int trace_lines = 0;
-int trace_tt_hits = 0;
-int trace_tt_cutoffs = 0;
-int trace_beta_cutoffs = 0;
-int trace_q_nodes = 0;
-int trace_stun_extensions = 0;
-
-void trace_reset() {
-    trace_file.close();
-    trace_enabled = false;
-    trace_lines = 0;
-    trace_tt_hits = 0;
-    trace_tt_cutoffs = 0;
-    trace_beta_cutoffs = 0;
-    trace_q_nodes = 0;
-    trace_stun_extensions = 0;
-}
-
-void trace_start() {
-    trace_reset();
-    const char* path = std::getenv("ARES_SEARCH_TRACE_PATH");
-    if (!path || path[0] == '\0') return;
-    trace_file.open(path, std::ios::out | std::ios::trunc);
-    trace_enabled = trace_file.is_open();
-    if (trace_enabled) {
-        trace_file << "# RedWar Ares search trace\n";
-        trace_file << "# Detail is intentionally bounded; this is a decision/pruning summary, not a node dump.\n";
-    }
-}
-
-void trace_line(const std::string& text) {
-    if (!trace_enabled || trace_lines >= TRACE_LINE_LIMIT) return;
-    trace_file << text << '\n';
-    ++trace_lines;
-}
-
-void trace_finish() {
-    if (trace_enabled) {
-        trace_file << "SUMMARY nodes=" << nodes_evaluated
-                   << " qnodes=" << trace_q_nodes
-                   << " tt_hits=" << trace_tt_hits
-                   << " tt_cutoffs=" << trace_tt_cutoffs
-                   << " beta_cutoffs=" << trace_beta_cutoffs
-                   << " stun_extensions=" << trace_stun_extensions
-                   << " trace_lines=" << trace_lines << '\n';
-        trace_file.flush();
-    }
-    trace_reset();
-}
+struct StunContinuation {
+    bool active = false;
+    int row = -1;
+    int col = -1;
+    char team = 'W';
+};
 
 uint64_t splitmix64(uint64_t x) {
     x += 0x9E3779B97F4A7C15ULL;
@@ -144,9 +93,24 @@ bool stun_hits_enemy(const Move& move, char moving_team) {
     return false;
 }
 
+bool stun_hits_stunned_enemy(const Move& move, char moving_team) {
+    if (move.type != "STUN") return false;
+
+    constexpr int DR[5] = {0, -1, 1, 0, 0};
+    constexpr int DC[5] = {0, 0, 0, -1, 1};
+    for (int i = 0; i < 5; ++i) {
+        const int r = move.er + DR[i];
+        const int c = move.ec + DC[i];
+        if (r < 0 || r >= LINHAS || c < 0 || c >= COLUNAS) continue;
+        const Piece& target = board.pieces[r][c];
+        if (!target.is_empty && target.team != moving_team && target.stun_timer > 0) return true;
+    }
+    return false;
+}
+
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
-    if (move.type == "STUN") return stun_hits_enemy(move, board.turn);
+    if (move.type == "STUN") return stun_hits_stunned_enemy(move, board.turn);
     if (move.type == "SPELL") {
         if (move.spell_name == "ignite") return true;
         if (move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty) return true;
@@ -154,28 +118,35 @@ bool is_forcing_move(const Move& move) {
     return false;
 }
 
-int child_depth_for_move(const Move& move, int depth, char moving_team) {
-    int child_depth = depth - 1;
-    if (depth > 0 && stun_hits_enemy(move, moving_team)) {
-        ++child_depth;
-        ++trace_stun_extensions;
-        if (trace_enabled && trace_lines < TRACE_LINE_LIMIT) {
-            trace_line("EXTEND ply_stun move=" + move.to_uci() + " depth=" + std::to_string(depth)
-                       + " child_depth=" + std::to_string(child_depth));
-        }
-    }
-    return child_depth;
+bool same_stun_location(const Move& move, const StunContinuation& continuation) {
+    return continuation.active &&
+           move.type == "STUN" &&
+           move.er == continuation.row &&
+           move.ec == continuation.col;
 }
 
-void trace_move_order(const char* label, int depth, int ply, const std::vector<Move>& moves) {
-    if (!trace_enabled || trace_lines >= TRACE_LINE_LIMIT) return;
-    trace_line(std::string(label) + " depth=" + std::to_string(depth) + " ply=" + std::to_string(ply)
-               + " count=" + std::to_string(moves.size()));
-    const int limit = std::min<int>(TRACE_MOVE_LIMIT, static_cast<int>(moves.size()));
-    for (int i = 0; i < limit; ++i) {
-        trace_line("  ORDER " + std::to_string(i) + " score=" + std::to_string(moves[static_cast<std::size_t>(i)].score)
-                   + " move=" + moves[static_cast<std::size_t>(i)].to_uci());
+int child_depth_for_move(
+    const Move& move,
+    int depth,
+    char moving_team,
+    const StunContinuation& continuation
+) {
+    if (!continuation.active && stun_hits_enemy(move, moving_team)) return depth;
+    return depth - 1;
+}
+
+StunContinuation continuation_after_move(
+    const Move& move,
+    char moving_team,
+    const StunContinuation& continuation
+) {
+    if (continuation.active && continuation.team == moving_team) return {};
+
+    if (!continuation.active && stun_hits_enemy(move, moving_team)) {
+        return {true, move.er, move.ec, moving_team};
     }
+
+    return continuation;
 }
 
 void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char current_turn) {
@@ -260,7 +231,6 @@ void update_killers(const Move& move, int ply) {
 
 int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_depth) {
     ++nodes_evaluated;
-    ++trace_q_nodes;
     check_limits();
     if (abort_search) return 0;
 
@@ -288,7 +258,6 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
 
     score_moves(moves, Move(), ply, current_turn);
     std::sort(moves.begin(), moves.end());
-    if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_move_order("QORDER", q_depth, ply, moves);
 
     if (current_turn == 'W') {
         int best = eval_score;
@@ -299,11 +268,7 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
             if (abort_search) return 0;
             best = std::max(best, value);
             alpha = std::max(alpha, value);
-            if (alpha >= beta) {
-                ++trace_beta_cutoffs;
-                if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("QCUTOFF ply=" + std::to_string(ply) + " move=" + move.to_uci());
-                break;
-            }
+            if (alpha >= beta) break;
         }
         return best;
     }
@@ -316,16 +281,19 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
         if (abort_search) return 0;
         best = std::min(best, value);
         beta = std::min(beta, value);
-        if (alpha >= beta) {
-            ++trace_beta_cutoffs;
-            if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("QCUTOFF ply=" + std::to_string(ply) + " move=" + move.to_uci());
-            break;
-        }
+        if (alpha >= beta) break;
     }
     return best;
 }
 
-int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
+int alpha_beta(
+    int depth,
+    int alpha,
+    int beta,
+    char current_turn,
+    int ply,
+    const StunContinuation& continuation
+) {
     ++nodes_evaluated;
     check_limits();
     if (abort_search) return 0;
@@ -334,30 +302,56 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     const uint64_t key = search_position_key();
     TTEntry& slot = transposition_table[key & TT_MASK];
     Move tt_best_move;
+    const bool tactical_context = continuation.active;
 
-    if (slot.occupied && slot.zobrist_key == key) {
-        ++trace_tt_hits;
+    if (!tactical_context && slot.occupied && slot.zobrist_key == key) {
         tt_best_move = slot.best_move;
         if (slot.depth >= depth) {
-            if (slot.flag == TT_EXACT) {
-                ++trace_tt_cutoffs;
-                if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("TT cutoff exact ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + slot.best_move.to_uci());
-                return slot.value;
-            }
+            if (slot.flag == TT_EXACT) return slot.value;
             if (slot.flag == TT_LOWERBOUND) alpha = std::max(alpha, slot.value);
             else if (slot.flag == TT_UPPERBOUND) beta = std::min(beta, slot.value);
-            if (alpha >= beta) {
-                ++trace_tt_cutoffs;
-                if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("TT cutoff bound ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + slot.best_move.to_uci());
-                return slot.value;
-            }
+            if (alpha >= beta) return slot.value;
         }
     }
 
     const int eval_score = evaluate_board();
     if (is_terminal_score(eval_score)) return eval_score;
     if (board.twc >= 50) return no_capture_terminal_score(ply);
-    if (depth <= 0) return quiescence_search(alpha, beta, current_turn, ply, 0);
+
+    if (depth <= 0) {
+        if (continuation.active && continuation.team == current_turn) {
+            std::vector<Move> follow_up_moves = generate_valid_moves(current_turn);
+            if (current_turn == 'W') {
+                int best = quiescence_search(alpha, beta, current_turn, ply, 0);
+                for (const Move& move : follow_up_moves) {
+                    if (!same_stun_location(move, continuation) || !stun_hits_enemy(move, current_turn)) continue;
+                    UndoInfo undo = make_move(move);
+                    const int value = quiescence_search(alpha, beta, board.turn, ply + 1, 0);
+                    unmake_move(move, undo);
+                    if (abort_search) return 0;
+                    best = std::max(best, value);
+                    alpha = std::max(alpha, value);
+                    if (alpha >= beta) break;
+                }
+                return best;
+            }
+
+            int best = quiescence_search(alpha, beta, current_turn, ply, 0);
+            for (const Move& move : follow_up_moves) {
+                if (!same_stun_location(move, continuation) || !stun_hits_enemy(move, current_turn)) continue;
+                UndoInfo undo = make_move(move);
+                const int value = quiescence_search(alpha, beta, board.turn, ply + 1, 0);
+                unmake_move(move, undo);
+                if (abort_search) return 0;
+                best = std::min(best, value);
+                beta = std::min(beta, value);
+                if (alpha >= beta) break;
+            }
+            return best;
+        }
+
+        return quiescence_search(alpha, beta, current_turn, ply, 0);
+    }
 
     std::vector<Move> moves = generate_valid_moves(current_turn);
     if (moves.empty()) {
@@ -367,7 +361,6 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
 
     score_moves(moves, tt_best_move, ply, current_turn);
     std::sort(moves.begin(), moves.end());
-    if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_move_order("ORDER", depth, ply, moves);
 
     const int original_alpha = alpha;
     const int original_beta = beta;
@@ -378,16 +371,16 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         bool first_move = true;
         for (const Move& move : moves) {
             UndoInfo undo = make_move(move);
-            const int child_depth = child_depth_for_move(move, depth, current_turn);
-            if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("TRY ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + move.to_uci() + " child=" + std::to_string(child_depth));
+            const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
+            const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
             int value;
             if (first_move) {
-                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 first_move = false;
             } else {
-                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
                 if (!abort_search && value > alpha && value < beta) {
-                    value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 }
             }
             unmake_move(move, undo);
@@ -395,14 +388,11 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
             if (value > best_value) {
                 best_value = value;
                 best_move = move;
-                if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("BEST ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + move.to_uci() + " value=" + std::to_string(value));
             }
             alpha = std::max(alpha, value);
             if (alpha >= beta) {
-                ++trace_beta_cutoffs;
                 update_killers(move, ply);
                 update_history(current_turn, move, depth);
-                if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("BETA-CUTOFF ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + move.to_uci() + " alpha=" + std::to_string(alpha) + " beta=" + std::to_string(beta));
                 break;
             }
         }
@@ -410,7 +400,7 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         TTFlag flag = TT_EXACT;
         if (best_value <= original_alpha) flag = TT_UPPERBOUND;
         else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-        slot = {key, depth, best_value, flag, best_move, true};
+        if (!tactical_context) slot = {key, depth, best_value, flag, best_move, true};
         return best_value;
     }
 
@@ -418,16 +408,16 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     bool first_move = true;
     for (const Move& move : moves) {
         UndoInfo undo = make_move(move);
-        const int child_depth = child_depth_for_move(move, depth, current_turn);
-        if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("TRY ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + move.to_uci() + " child=" + std::to_string(child_depth));
+        const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
+        const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
         int value;
         if (first_move) {
-            value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
+            value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             first_move = false;
         } else {
-            value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1);
+            value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
             if (!abort_search && value < beta && value > alpha) {
-                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             }
         }
         unmake_move(move, undo);
@@ -435,14 +425,11 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         if (value < best_value) {
             best_value = value;
             best_move = move;
-            if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("BEST ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + move.to_uci() + " value=" + std::to_string(value));
         }
         beta = std::min(beta, value);
         if (alpha >= beta) {
-            ++trace_beta_cutoffs;
             update_killers(move, ply);
             update_history(current_turn, move, depth);
-            if (trace_enabled && ply <= TRACE_PLY_LIMIT) trace_line("BETA-CUTOFF ply=" + std::to_string(ply) + " depth=" + std::to_string(depth) + " move=" + move.to_uci() + " alpha=" + std::to_string(alpha) + " beta=" + std::to_string(beta));
             break;
         }
     }
@@ -450,23 +437,19 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     TTFlag flag = TT_EXACT;
     if (best_value <= original_alpha) flag = TT_UPPERBOUND;
     else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-    slot = {key, depth, best_value, flag, best_move, true};
+    if (!tactical_context) slot = {key, depth, best_value, flag, best_move, true};
     return best_value;
 }
 
 } // namespace
 
 std::string search_best_move(int max_depth) {
-    trace_start();
     ensure_hero_behaviors_loaded();
     abort_search = false;
     nodes_evaluated = 0;
     search_start_time = std::chrono::steady_clock::now();
 
-    if (max_depth < 1 || board.twc >= 50) {
-        trace_finish();
-        return "";
-    }
+    if (max_depth < 1 || board.twc >= 50) return "";
 
     for (int team = 0; team < 2; ++team)
         for (int sr = 0; sr < LINHAS; ++sr)
@@ -481,10 +464,7 @@ std::string search_best_move(int max_depth) {
     }
 
     std::vector<Move> root_moves = generate_valid_moves(board.turn);
-    if (root_moves.empty()) {
-        trace_finish();
-        return "";
-    }
+    if (root_moves.empty()) return "";
 
     Move best_overall_move = root_moves.front();
 
@@ -497,38 +477,36 @@ std::string search_best_move(int max_depth) {
 
         score_moves(root_moves, tt_move, 0, board.turn);
         std::sort(root_moves.begin(), root_moves.end());
-        if (trace_enabled) trace_move_order("ROOT-ORDER", depth, 0, root_moves);
 
         int alpha = -INFINITO;
         int beta = INFINITO;
         int best_value = (board.turn == 'W') ? -INFINITO : INFINITO;
         Move best_move_this_depth = root_moves.front();
         bool first_move = true;
+        const StunContinuation root_continuation{};
         const char root_turn = board.turn;
 
         for (const Move& move : root_moves) {
             UndoInfo undo = make_move(move);
-            const int child_depth = child_depth_for_move(move, depth, root_turn);
-            if (trace_enabled) trace_line("ROOT-TRY depth=" + std::to_string(depth) + " move=" + move.to_uci() + " score=" + std::to_string(move.score) + " child=" + std::to_string(child_depth));
+            const int child_depth = child_depth_for_move(move, depth, root_turn, root_continuation);
+            const StunContinuation child_continuation = continuation_after_move(move, root_turn, root_continuation);
             int value;
             if (first_move) {
-                value = alpha_beta(child_depth, alpha, beta, board.turn, 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, 1, child_continuation);
                 first_move = false;
             } else if (board.turn == 'W') {
-                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, 1);
+                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, 1, child_continuation);
                 if (!abort_search && value > alpha && value < beta) {
-                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1, child_continuation);
                 }
             } else {
-                value = alpha_beta(child_depth, beta - 1, beta, board.turn, 1);
+                value = alpha_beta(child_depth, beta - 1, beta, board.turn, 1, child_continuation);
                 if (!abort_search && value < beta && value > alpha) {
-                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1, child_continuation);
                 }
             }
             unmake_move(move, undo);
             if (abort_search) break;
-
-            if (trace_enabled) trace_line("ROOT-RESULT depth=" + std::to_string(depth) + " move=" + move.to_uci() + " value=" + std::to_string(value));
 
             if (board.turn == 'W') {
                 if (value > best_value) {
@@ -544,22 +522,14 @@ std::string search_best_move(int max_depth) {
                 beta = std::min(beta, value);
             }
 
-            if (alpha >= beta) {
-                ++trace_beta_cutoffs;
-                if (trace_enabled) trace_line("ROOT-BETA-CUTOFF depth=" + std::to_string(depth) + " move=" + move.to_uci());
-                break;
-            }
+            if (alpha >= beta) break;
         }
 
         if (abort_search) break;
         best_overall_move = best_move_this_depth;
         transposition_table[key & TT_MASK] = {key, depth, best_value, TT_EXACT, best_move_this_depth, true};
-        if (trace_enabled) trace_line("ITERATION depth=" + std::to_string(depth) + " best=" + best_move_this_depth.to_uci() + " value=" + std::to_string(best_value));
         if (is_terminal_score(best_value)) break;
     }
 
-    const std::string result = best_overall_move.to_uci();
-    if (trace_enabled) trace_line("FINAL best=" + result + " nodes=" + std::to_string(nodes_evaluated));
-    trace_finish();
-    return result;
+    return best_overall_move.to_uci();
 }

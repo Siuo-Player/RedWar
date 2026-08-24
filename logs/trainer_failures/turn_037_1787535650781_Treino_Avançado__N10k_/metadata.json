@@ -1,0 +1,14 @@
+{
+  "reason": "C++ engine returned no response for position: B_Phantom_0_N_0:.,.:.,.:.,B_Berserker_0_N_0:.,B_Inquisitor_0_N_0:.,.:.,.:.,.:./.:.,.:.,.:.,B_Trickster_1_N_0:.,.:.,.:.,.:.,.:./W_FrostMage_0_N_0:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,B_FrostMage_0_N_0:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./W_Cleric_0_N_0:.,W_Berserker_0_N_0:.,.:.,.:.,.:.,W_Ranger_0_N_0:.,W_Phantom_0_N_0:.,W_Lich_0_N_0:./W_FrostMage_0_N_0:.,W_Pyromancer_0_N_0:.,W_Lich_0_N_0:.,W_Phantom_0_N_0:.,.:.,.:.,.:.,.:. W 0",
+  "bot": "Treino Avançado (N10k)",
+  "nodes": 10000,
+  "turn": 37,
+  "elapsed_seconds": 3.500588,
+  "rwen": "B_Phantom_0_N_0:.,.:.,.:.,B_Berserker_0_N_0:.,B_Inquisitor_0_N_0:.,.:.,.:.,.:./.:.,.:.,.:.,B_Trickster_1_N_0:.,.:.,.:.,.:.,.:./W_FrostMage_0_N_0:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,B_FrostMage_0_N_0:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./W_Cleric_0_N_0:.,W_Berserker_0_N_0:.,.:.,.:.,.:.,W_Ranger_0_N_0:.,W_Phantom_0_N_0:.,W_Lich_0_N_0:./W_FrostMage_0_N_0:.,W_Pyromancer_0_N_0:.,W_Lich_0_N_0:.,W_Phantom_0_N_0:.,.:.,.:.,.:.,.:. W 0",
+  "executable": "C:\\Users\\ASUS\\Documents\\RedWar\\ai\\cpp_engine\\engine.exe",
+  "diagnostic_timeout_seconds": 15.0,
+  "trace_file": "C:\\Users\\ASUS\\Documents\\RedWar\\logs\\trainer_failures\\turn_037_1787535650781_Treino_Avançado__N10k_\\search_trace.log",
+  "status": "completed",
+  "bestmove_seen": false,
+  "stdout_lines": 1
+}
