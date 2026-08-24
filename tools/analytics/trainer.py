@@ -5,6 +5,7 @@ import argparse
 import json
 import random
 import sys
+import threading
 import time
 from collections import Counter
 from pathlib import Path
@@ -25,6 +26,7 @@ POOL_BOTS = [
     (TREINO_AVANCADO, 2000),
 ]
 MAX_TURNS_PER_GAME = 200
+DEFAULT_BOT_MOVE_TIMEOUT_SECONDS = 60.0
 DEFAULT_OUTPUT = ROOT / "data" / "estatisticas_treino.json"
 
 
@@ -109,7 +111,61 @@ def executar_acao_treino(gs, parsed):
         raise ValueError(f"Unknown action type: {m_type!r}")
 
 
-def simular_jogo_treino(seed: int) -> dict:
+def _bot_nodes(bot) -> int | None:
+    value = getattr(bot, "nodes", None)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _reset_cpp_bot_process(bot) -> None:
+    process = getattr(bot, "process", None)
+    if process is None:
+        return
+    try:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=2)
+    except Exception:
+        pass
+    try:
+        bot.process = None
+    except Exception:
+        pass
+
+
+def _run_bot_move_with_timeout(bot, gs, timeout_seconds: float):
+    result_queue: list[tuple[bool, object]] = []
+
+    def worker() -> None:
+        try:
+            result_queue.append((True, bot.escolher_jogada(gs)))
+        except BaseException as exc:
+            result_queue.append((False, exc))
+
+    worker_thread = threading.Thread(
+        target=worker,
+        name=f"trainer-bot-{getattr(bot, 'nome', 'bot')}",
+        daemon=True,
+    )
+    worker_thread.start()
+    worker_thread.join(timeout_seconds)
+    if worker_thread.is_alive():
+        _reset_cpp_bot_process(bot)
+        raise TimeoutError(
+            f"Bot '{getattr(bot, 'nome', 'unknown')}' exceeded {timeout_seconds:.1f}s "
+            f"for a single move"
+        )
+
+    if not result_queue:
+        raise RuntimeError(f"Bot '{getattr(bot, 'nome', 'unknown')}' returned without a result")
+    ok, payload = result_queue[0]
+    if not ok:
+        if isinstance(payload, OSError):
+            _reset_cpp_bot_process(bot)
+        raise payload
+    return payload
+
+
+def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT_MOVE_TIMEOUT_SECONDS) -> dict:
     rng = random.Random(seed)
     gs = GameState(time_limit_seconds=99999)
     bot_brancas, elo_brancas = rng.choice(POOL_BOTS)
@@ -124,20 +180,48 @@ def simular_jogo_treino(seed: int) -> dict:
     turnos = 0
     invalid_action = None
     invalid_action_bot = None
+    invalid_action_nodes = None
+    invalid_action_elapsed = None
+    engine_time_seconds = 0.0
+    last_bot_name = None
+    last_bot_nodes = None
     while not gs.game_over and turnos < MAX_TURNS_PER_GAME:
         turnos += 1
         active_bot = bot_brancas if gs.white_to_move else bot_pretas
-        parsed = active_bot.escolher_jogada(gs)
+        last_bot_name = getattr(active_bot, "nome", active_bot.__class__.__name__)
+        last_bot_nodes = _bot_nodes(active_bot)
+        move_start = time.perf_counter()
+        try:
+            parsed = _run_bot_move_with_timeout(active_bot, gs, bot_move_timeout_seconds)
+        except (KeyError, IndexError, TypeError, ValueError, TimeoutError, RuntimeError, OSError) as exc:
+            elapsed = time.perf_counter() - move_start
+            engine_time_seconds += elapsed
+            invalid_action = str(exc)
+            invalid_action_bot = last_bot_name
+            invalid_action_nodes = last_bot_nodes
+            invalid_action_elapsed = elapsed
+            _reset_cpp_bot_process(active_bot)
+            gs.game_over = True
+            gs.winner = "Ação inválida do bot" if not isinstance(exc, TimeoutError) else "Timeout do bot"
+            break
+        engine_time_seconds += time.perf_counter() - move_start
         if not parsed:
+            _reset_cpp_bot_process(active_bot)
             gs.check_game_over()
             if not gs.game_over:
                 gs.game_over, gs.winner = True, "Bloqueio Total"
+            invalid_action = "Bot returned no action"
+            invalid_action_bot = last_bot_name
+            invalid_action_nodes = last_bot_nodes
+            invalid_action_elapsed = time.perf_counter() - move_start
             break
         try:
             executar_acao_treino(gs, parsed)
         except (KeyError, IndexError, TypeError, ValueError) as exc:
             invalid_action = str(exc)
             invalid_action_bot = active_bot.nome
+            invalid_action_nodes = _bot_nodes(active_bot)
+            invalid_action_elapsed = time.perf_counter() - move_start
             gs.game_over = True
             gs.winner = "Ação inválida do bot"
             break
@@ -161,10 +245,13 @@ def simular_jogo_treino(seed: int) -> dict:
         "result": result,
         "valid": invalid_action is None,
         "turns": turnos,
+        "engine_time_seconds": round(engine_time_seconds, 6),
     }
     if invalid_action is not None:
         match["invalid_action"] = invalid_action
         match["invalid_action_bot"] = invalid_action_bot
+        match["invalid_action_nodes"] = invalid_action_nodes
+        match["invalid_action_elapsed_seconds"] = round(invalid_action_elapsed or 0.0, 6)
     return match
 
 
@@ -182,9 +269,18 @@ def gerar_estatisticas_treino(
     num_jogos: int = 200,
     seed: int | None = None,
     output: Path = DEFAULT_OUTPUT,
+    bot_move_timeout_seconds: float = DEFAULT_BOT_MOVE_TIMEOUT_SECONDS,
 ) -> dict:
     if num_jogos <= 0:
         raise ValueError("num_jogos deve ser positivo")
+    if bot_move_timeout_seconds <= 0:
+        raise ValueError("bot_move_timeout_seconds deve ser positivo")
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        output.unlink()
+    except FileNotFoundError:
+        pass
 
     print(f"🧠 A gerar metadados de combate ({num_jogos} partidas)...")
     master_rng = random.Random(seed)
@@ -193,7 +289,10 @@ def gerar_estatisticas_treino(
     start_time = time.time()
 
     for index in range(num_jogos):
-        result = simular_jogo_treino(master_rng.randrange(1, 10**12))
+        result = simular_jogo_treino(
+            master_rng.randrange(1, 10**12),
+            bot_move_timeout_seconds=bot_move_timeout_seconds,
+        )
         if not result["valid"]:
             invalid_matches += 1
             print(
@@ -211,6 +310,7 @@ def gerar_estatisticas_treino(
         "invalid_matches": invalid_matches,
         "seed": seed,
         "max_turns_per_game": MAX_TURNS_PER_GAME,
+        "bot_move_timeout_seconds": bot_move_timeout_seconds,
         "matches": historico_partidas,
     }
     _atomic_write_json(output, stats)
@@ -228,8 +328,14 @@ def main() -> int:
     parser.add_argument("--jogos", type=int, default=200)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--bot-timeout", type=float, default=DEFAULT_BOT_MOVE_TIMEOUT_SECONDS)
     args = parser.parse_args()
-    gerar_estatisticas_treino(args.jogos, args.seed, args.output)
+    gerar_estatisticas_treino(
+        args.jogos,
+        args.seed,
+        args.output,
+        bot_move_timeout_seconds=args.bot_timeout,
+    )
     return 0
 
 
