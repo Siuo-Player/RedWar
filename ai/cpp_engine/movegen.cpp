@@ -509,7 +509,7 @@ std::vector<Move> generate_valid_moves(char current_turn) {
                         const int nc = c + dc;
                         if (nr < 0 || nr >= LINHAS || nc < 0 || nc >= COLUNAS) continue;
                         const Piece& target = board.pieces[nr][nc];
-                        if (!target.is_empty && target.team != piece.team) {
+                        if (target.is_empty || target.team != piece.team) {
                             moves.push_back({r, c, nr, nc, "SPELL", "ignite", "", 0});
                         }
                     }
