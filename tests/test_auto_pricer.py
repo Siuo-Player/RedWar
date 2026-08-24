@@ -1,6 +1,10 @@
 import pytest
 
-from tools.balance.auto_pricer import calcular_balanceamento, calcular_win_esperada
+from tools.balance.auto_pricer import (
+    MIN_SAMPLES_FOR_ADJUSTMENT,
+    calcular_balanceamento,
+    calcular_win_esperada,
+)
 
 
 def test_expected_win_probability_is_symmetric():
@@ -87,3 +91,23 @@ def test_balance_rejects_non_integer_draft_quantity():
 
     with pytest.raises(ValueError, match="Quantidade inválida"):
         calcular_balanceamento(stats, heroes)
+
+
+def test_balance_does_not_adjust_below_minimum_sample_size():
+    matches = [
+        {
+            "valid": True,
+            "white_elo": 1000,
+            "black_elo": 1000,
+            "white_draft": {"Knight": 1},
+            "black_draft": {},
+            "result": 1.0,
+        }
+        for _ in range(MIN_SAMPLES_FOR_ADJUSTMENT - 1)
+    ]
+    report = calcular_balanceamento({"matches": matches}, {"Knight": {"cost": 50}})
+    change = report["changes"][0]
+    assert change["samples"] == MIN_SAMPLES_FOR_ADJUSTMENT - 1
+    assert change["eligible_for_adjustment"] is False
+    assert change["new_cost"] == 50
+    assert change["changed"] is False
