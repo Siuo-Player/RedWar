@@ -4,7 +4,7 @@ import pytest
 
 from tools.analytics.game_analyzer import analisar_partidas
 from tools.scripts.audit_structure import audit
-from tools.scripts.build_cpp_engine import BRIDGE_SOURCES, ENGINE_SOURCES, SMOKE_SOURCES
+from tools.scripts.build_cpp_engine import BRIDGE_SOURCES, ENGINE_SOURCES, MOVEGEN_SOURCES, SMOKE_SOURCES
 
 
 def test_game_analyzer_reads_arena_jsonl_without_resimulating(tmp_path: Path):
@@ -50,5 +50,9 @@ def test_cpp_build_modes_keep_test_sources_out_of_production_engine():
     assert "SmokeTest.cpp" in SMOKE_SOURCES
     assert "cpp_make_unmake_bridge_test.cpp" not in ENGINE_SOURCES
     assert "cpp_make_unmake_bridge_test.cpp" not in SMOKE_SOURCES
+    assert "cpp_movegen_bridge_test.cpp" not in ENGINE_SOURCES
+    assert "cpp_movegen_bridge_test.cpp" not in SMOKE_SOURCES
     assert "board.cpp" in BRIDGE_SOURCES
     assert "nnue.cpp" in BRIDGE_SOURCES
+    assert "board.cpp" in MOVEGEN_SOURCES
+    assert "nnue.cpp" in MOVEGEN_SOURCES
