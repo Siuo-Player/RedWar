@@ -14,19 +14,25 @@ import sys
 import time
 from pathlib import Path
 
-# Canonical RWEN: 8x8 board, with piece:effect in every cell. This matches
-# GameState.to_rwen() and the C++ parser.
-SCENARIO = (
-    ".:.,.:.,B_Sentry_0_N_0:.,.:.,.:.,.:.,B_Ranger_0_N_0:.,.:."
-    "/.:.,B_Phantom_0_N_0:.,.:.,.:.,.:.,B_FrostMage_0_N_0:.,.:.,.:."
-    "/.:.,.:.,.:.,B_Templar_0_N_0:.,.:.,.:.,.:.,.:."
-    "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
-    "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
-    "/.:.,W_Templar_0_N_0:.,.:.,.:.,W_Phantom_0_N_0:.,.:.,.:."
-    "/.:.,W_FrostMage_0_N_0:.,.:.,.:.,.:.,W_Ranger_0_N_0:.,.:.,.:."
-    "/W_Sentry_0_N_0:.,.:.,.:.,.:.,W_Inquisitor_0_N_0:.,.:.,.:."
-    " W 0"
+# Build canonical RWEN from explicit 8-cell rows instead of maintaining one
+# fragile hand-written string. Every cell uses the same piece:effect encoding
+# emitted by GameState.to_rwen().
+EMPTY = ".:."
+SCENARIO_ROWS = (
+    (EMPTY, EMPTY, "B_Sentry_0_N_0:.", EMPTY, EMPTY, EMPTY, "B_Ranger_0_N_0:.", EMPTY),
+    (EMPTY, "B_Phantom_0_N_0:.", EMPTY, EMPTY, EMPTY, "B_FrostMage_0_N_0:.", EMPTY, EMPTY),
+    (EMPTY, EMPTY, EMPTY, "B_Templar_0_N_0:.", EMPTY, EMPTY, EMPTY, EMPTY),
+    (EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY),
+    (EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY),
+    (EMPTY, "W_Templar_0_N_0:.", EMPTY, EMPTY, "W_Phantom_0_N_0:.", EMPTY, EMPTY, EMPTY),
+    (EMPTY, "W_FrostMage_0_N_0:.", EMPTY, EMPTY, EMPTY, "W_Ranger_0_N_0:.", EMPTY, EMPTY),
+    ("W_Sentry_0_N_0:.", EMPTY, EMPTY, EMPTY, "W_Inquisitor_0_N_0:.", EMPTY, EMPTY, EMPTY),
 )
+
+if len(SCENARIO_ROWS) != 8 or any(len(row) != 8 for row in SCENARIO_ROWS):
+    raise RuntimeError("benchmark scenario must contain exactly 8x8 cells")
+
+SCENARIO = "/".join(",".join(row) for row in SCENARIO_ROWS) + " W 0"
 
 
 def run_once(engine: Path, nodes: int, timeout: float, nnue_model: Path | None) -> tuple[float, str]:
