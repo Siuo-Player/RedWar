@@ -138,7 +138,7 @@ def _run_bot_move_with_timeout(bot, gs, timeout_seconds: float):
     def worker() -> None:
         try:
             result_queue.append((True, bot.escolher_jogada(gs)))
-        except BaseException as exc:  # propagate worker failure to trainer thread
+        except BaseException as exc:
             result_queue.append((False, exc))
 
     worker_thread = threading.Thread(
@@ -159,6 +159,8 @@ def _run_bot_move_with_timeout(bot, gs, timeout_seconds: float):
         raise RuntimeError(f"Bot '{getattr(bot, 'nome', 'unknown')}' returned without a result")
     ok, payload = result_queue[0]
     if not ok:
+        if isinstance(payload, OSError):
+            _reset_cpp_bot_process(bot)
         raise payload
     return payload
 
@@ -191,25 +193,27 @@ def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT
         move_start = time.perf_counter()
         try:
             parsed = _run_bot_move_with_timeout(active_bot, gs, bot_move_timeout_seconds)
-        except (KeyError, IndexError, TypeError, ValueError, TimeoutError, RuntimeError) as exc:
+        except (KeyError, IndexError, TypeError, ValueError, TimeoutError, RuntimeError, OSError) as exc:
             elapsed = time.perf_counter() - move_start
             engine_time_seconds += elapsed
             invalid_action = str(exc)
             invalid_action_bot = last_bot_name
             invalid_action_nodes = last_bot_nodes
             invalid_action_elapsed = elapsed
+            _reset_cpp_bot_process(active_bot)
             gs.game_over = True
             gs.winner = "Ação inválida do bot" if not isinstance(exc, TimeoutError) else "Timeout do bot"
             break
         engine_time_seconds += time.perf_counter() - move_start
         if not parsed:
+            _reset_cpp_bot_process(active_bot)
             gs.check_game_over()
             if not gs.game_over:
                 gs.game_over, gs.winner = True, "Bloqueio Total"
             invalid_action = "Bot returned no action"
             invalid_action_bot = last_bot_name
             invalid_action_nodes = last_bot_nodes
-            invalid_action_elapsed = engine_time_seconds
+            invalid_action_elapsed = time.perf_counter() - move_start
             break
         try:
             executar_acao_treino(gs, parsed)
@@ -271,6 +275,12 @@ def gerar_estatisticas_treino(
         raise ValueError("num_jogos deve ser positivo")
     if bot_move_timeout_seconds <= 0:
         raise ValueError("bot_move_timeout_seconds deve ser positivo")
+
+    output.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        output.unlink()
+    except FileNotFoundError:
+        pass
 
     print(f"🧠 A gerar metadados de combate ({num_jogos} partidas)...")
     master_rng = random.Random(seed)
