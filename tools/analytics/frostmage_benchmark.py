@@ -16,7 +16,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DEFAULT_ENGINE = os.path.join(
     ROOT, "ai", "cpp_engine", "engine.exe" if sys.platform == "win32" else "engine"
 )
-DEFAULT_NODES = [10_000, 100_000, 150_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000]
+# Dense near the current threshold so future search changes can be measured
+# without jumping straight from a tiny budget to hundreds of thousands of nodes.
+DEFAULT_NODES = [10_000, 25_000, 50_000, 75_000, 100_000, 125_000, 150_000, 200_000, 300_000, 500_000]
 
 # A5 FrostMage stuns at D5. Exactly five Bones occupy the stun cross:
 # C5, D4, D5, D6 and E5. All five are therefore stunned by the first action,
@@ -82,7 +84,7 @@ def main() -> int:
         type=int,
         action="append",
         default=None,
-        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10k, 100k..500k em passos de 50k.",
+        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10k, 25k..500k com maior detalhe abaixo de 150k.",
     )
     parser.add_argument(
         "--trace",
