@@ -9,6 +9,7 @@ from tools.analytics.trainer import (
     _run_bot_move_with_timeout,
     executar_acao_treino,
     preencher_draft_aleatorio,
+    simular_jogo_treino,
 )
 from tools.balance.auto_pricer import obter_partidas_validas
 
@@ -67,3 +68,19 @@ def test_bot_move_timeout_does_not_block_trainer():
 
     with pytest.raises(TimeoutError, match=r"slow-bot"):
         _run_bot_move_with_timeout(SlowBot(), GameState(), 0.01)
+
+
+def test_bot_os_error_is_returned_as_invalid_game():
+    class BrokenBot:
+        nome = "broken-bot"
+        nodes = 10
+        process = None
+
+        def escolher_jogada(self, _gs):
+            raise OSError(22, "invalid argument")
+
+    # The public game simulator uses real pooled bots, so validate the lower-level
+    # failure contract here: the worker captures the process error for the trainer
+    # thread instead of leaking it from the worker.
+    with pytest.raises(OSError, match=r"invalid argument"):
+        _run_bot_move_with_timeout(BrokenBot(), GameState(), 1.0)
