@@ -8,11 +8,10 @@ A metodologia é inspirada no Stockfish: mudanças isoladas, separação clara d
 
 ## Estado atual confirmado
 
-O **PR #48 está integrado na `main`**. Ele adicionou pressão tática dinâmica do FrostMage à avaliação clássica, manteve `material_score` como acumulador incremental puro e reforçou a restauração de estado derivado em `make_move`/`unmake_move`.
-
-O **PR #28** consolidou a proteção do Auto-Pricer para ELOs finitos extremos e a regressão correspondente.
-
-O **PR #49** é a implementação NNUE RPG atual e continua aberto. A arquitetura está pronta para validação, mas ainda não deve ser considerada superior à avaliação clássica sem benchmark e Arena.
+- **PR #52** integrou a extensão seletiva para a continuação do segundo STUN no mesmo centro, apenas quando o primeiro STUN atingiu pelo menos um adversário, além da estabilização necessária para o trainer.
+- **PR #53** integrou as melhorias de CI, cobertura de benchmarks FrostMage e a separação entre gates de CI/tooling e gates de promoção da AI.
+- **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e suporte a traces, tendo o FrostMage de cinco alvos como primeiro caso de referência.
+- **PR #49** foi encerrado sem merge como PR independente. A documentação e o código atual devem ser entendidos pelo estado efetivamente presente na `main`, e não pelo estado histórico dessa branch.
 
 ## Arquitetura de pesquisa
 
@@ -41,7 +40,7 @@ Termos dependentes de múltiplas casas não devem ser tratados como um acumulado
 
 ## NNUE RPG
 
-O PR #49 introduz uma NNUE-style adaptada ao RPG, em vez de copiar HalfKP de Stockfish. As features representam:
+A `main` contém a infraestrutura NNUE-style adaptada ao RPG, em vez de copiar HalfKP de Stockfish. As features representam:
 
 - peça + casa + equipa relativa;
 - stun timer;
@@ -51,11 +50,11 @@ O PR #49 introduz uma NNUE-style adaptada ao RPG, em vez de copiar HalfKP de Sto
 - TWC;
 - lado a jogar.
 
-O primeiro modelo usa dois accumulators de 128 entradas, hidden de 32 e inferência quantizada. O formato binário é versionado como `RWNUE002`, com validação de metadata no carregador C++.
+O formato binário é versionado como `RWNUE002`, com validação de metadata no carregador C++.
 
-O NNUE continua opcional durante esta fase. Sem modelo carregado, a Ares mantém a avaliação clássica.
+A NNUE continua opcional durante esta fase. Sem modelo carregado, a Ares mantém a avaliação clássica.
 
-A implementação atual usa sincronização completa como **baseline de correção**. Existem primitivas de atualização incremental no módulo NNUE, mas ainda não estão ligadas às transições de `BoardState` do hot path. O próximo bloco deve fazer essa ligação e medir o resultado; não assumir que uma função incremental existente já produz ganho.
+A implementação atual usa sincronização completa como **baseline de correção**. Existem primitivas de atualização incremental no módulo NNUE, mas ainda não estão ligadas às transições de `BoardState` do hot path. O próximo bloco NNUE deve fazer essa ligação e medir o ganho real; não assumir que uma função incremental existente já produz ganho.
 
 ## Dados e treino
 
@@ -79,6 +78,19 @@ benchmark + Arena
 
 `tools/nnue/generate_teacher.py` cria teacher data a partir da avaliação **clássica explícita**. O bootstrap model serve apenas para compatibilidade.
 
+## Benchmarks táticos
+
+`tools/analytics/tactical_benchmark_suite.py` fornece um harness determinístico e independente do código de pesquisa. Cada posição deve ser validada com orçamento alto antes de entrar na suite e depois medida com orçamentos progressivamente menores.
+
+O primeiro caso é o FrostMage de cinco alvos:
+
+```text
+10 nodes    → movimento normal (failure point conhecido)
+100+ nodes  → STUN A5 D5
+```
+
+O orçamento de 10 nodes é um **marcador de progresso**, não uma condição permanente de falha. Se uma otimização encontrar corretamente o STUN abaixo desse orçamento, o resultado melhorou e a suite deve passar.
+
 ## Arena e medição
 
 A Arena deve separar três responsabilidades:
@@ -96,6 +108,8 @@ O objetivo final é **Elo por CPU-segundo**. NPS isolado não é suficiente e um
 `auto_balancer.yml` valida o caminho de build/teste e regressões do balanceamento.
 
 `ai_arena.yml` fornece a comparação A/B da AI e deve ser usado com o mesmo orçamento de nodes/regras quando a hipótese é desempenho/força.
+
+A Arena de promoção não deve ser acionada por alterações apenas de tooling, documentação ou benchmarks determinísticos.
 
 Para uma mudança de AI, comparar pelo menos:
 
@@ -119,10 +133,10 @@ Uma avaliação NNUE só deve tornar-se default se:
 
 ## Próximos passos
 
-1. fechar o bloco de tooling/documentação sem misturar correções não relacionadas;
-2. validar integralmente a pipeline NNUE do PR #49;
-3. gerar teacher dataset maior e mais variado;
-4. treinar uma primeira rede real e verificar export/import C++;
-5. comparar clássica vs NNUE em benchmark e Arena;
-6. implementar atualização incremental real dos accumulators através de `BoardState`;
-7. voltar a move ordering/quiescence/avaliação após essa medição.
+1. expandir a suite tática com posições independentes para segundo STUN letal, alternativas de centro, spells, passivas/aura, defesa, lifespan/cooldown e capturas de alto valor;
+2. melhorar move ordering RPG por impacto tático observável, sem hardcode das posições de benchmark;
+3. ligar as mutações de `BoardState` aos hooks incrementais do NNUE e medir o ganho real contra o baseline de rescan completo;
+4. gerar teacher dataset maior e mais variado;
+5. treinar uma primeira rede real e verificar export/import C++;
+6. comparar clássica vs NNUE em benchmark e Arena;
+7. voltar a LMR/aspiration/PVS e outras otimizações agressivas apenas depois de existir evidência suficiente.
