@@ -79,7 +79,7 @@ jobs:
         fi
         cd /tmp/redwar-quality-base-ai
         cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/main.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
-        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
         chmod +x ai/cpp_engine/engine
 
