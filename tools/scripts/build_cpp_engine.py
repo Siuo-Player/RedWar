@@ -39,6 +39,13 @@ NUMERIC_SOURCES = [
     "search.cpp",
     "nnue.cpp",
 ]
+BRIDGE_SOURCES = [
+    "board.cpp",
+    "evaluate.cpp",
+    "movegen.cpp",
+    "search.cpp",
+    "nnue.cpp",
+]
 
 
 def get_vcvars_path() -> Path | None:
@@ -119,11 +126,19 @@ def compile_cpp_project(mode: str = "engine") -> Path:
         sources = [*sources, str(test_path)]
         suffix = ".exe" if platform.system() == "Windows" else ""
         output = ROOT / f"cpp_numeric_bounds_test{suffix}"
+    elif mode == "bridge":
+        sources = BRIDGE_SOURCES
+        test_path = TESTS_DIR / "cpp_make_unmake_bridge_test.cpp"
+        if not test_path.is_file():
+            raise FileNotFoundError(f"Teste C++ em falta: {test_path}")
+        sources = [*sources, str(test_path)]
+        suffix = ".exe" if platform.system() == "Windows" else ""
+        output = ROOT / f"cpp_make_unmake_bridge_test{suffix}"
     else:
         raise ValueError(f"Modo desconhecido: {mode}")
 
     missing = [name for name in sources if not (CPP_DIR / name).is_file()]
-    if mode == "numeric":
+    if mode in {"numeric", "bridge"}:
         missing = [name for name in missing if not Path(name).is_file()]
     if missing:
         raise FileNotFoundError(f"Fontes C++ em falta: {', '.join(missing)}")
@@ -133,7 +148,10 @@ def compile_cpp_project(mode: str = "engine") -> Path:
     if platform.system() == "Windows":
         return_code = _windows_compile(sources, output)
     else:
-        relative_sources = [str(Path(source).relative_to(CPP_DIR)) if Path(source).is_relative_to(CPP_DIR) else source for source in sources]
+        relative_sources = [
+            str(Path(source).relative_to(CPP_DIR)) if Path(source).is_relative_to(CPP_DIR) else source
+            for source in sources
+        ]
         return_code = _unix_compile(relative_sources, output)
 
     if return_code != 0:
@@ -148,10 +166,13 @@ def main() -> int:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--smoke", action="store_true", help="Compila o SmokeTest")
     group.add_argument("--numeric-test", action="store_true", help="Compila a regressão de limites numéricos")
+    group.add_argument("--bridge-test", action="store_true", help="Compila o helper de equivalência make/unmake")
     args = parser.parse_args()
 
     if args.numeric_test:
         compile_cpp_project("numeric")
+    elif args.bridge_test:
+        compile_cpp_project("bridge")
     elif args.smoke:
         compile_cpp_project("smoke")
     else:
