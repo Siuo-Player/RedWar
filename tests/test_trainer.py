@@ -1,10 +1,15 @@
 import random
+import time
 
 import pytest
 
 from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
-from tools.analytics.trainer import executar_acao_treino, preencher_draft_aleatorio
+from tools.analytics.trainer import (
+    _run_bot_move_with_timeout,
+    executar_acao_treino,
+    preencher_draft_aleatorio,
+)
 from tools.balance.auto_pricer import obter_partidas_validas
 
 
@@ -48,3 +53,17 @@ def test_draft_rng_does_not_touch_global_random_state():
 
     after = random.getstate()
     assert after == before
+
+
+def test_bot_move_timeout_does_not_block_trainer():
+    class SlowBot:
+        nome = "slow-bot"
+        nodes = 10
+        process = None
+
+        def escolher_jogada(self, _gs):
+            time.sleep(0.2)
+            return None
+
+    with pytest.raises(TimeoutError, match=r"slow-bot"):
+        _run_bot_move_with_timeout(SlowBot(), GameState(), 0.01)
