@@ -38,24 +38,33 @@ jobs:
     - name: Fetch PR base
       run: git fetch origin "${{ github.event.pull_request.base.ref || 'main' }}" --no-tags
 
-    - name: Detect AI changes
-      id: ai_changes
+    - name: Detect AI and quality changes
+      id: changes
       shell: bash
       run: |
         set -euo pipefail
         BASE="${{ github.event.pull_request.base.sha }}"
         git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
-        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py|\.github/workflows/(ai_quality_gate|ai_arena)\.yml)' /tmp/changed-files.txt; then
+
+        if grep -Eq '^(ai/|tools/nnue/)' /tmp/changed-files.txt; then
           echo "has_ai_changes=true" >> "$GITHUB_OUTPUT"
-          echo "AI-related changes detected:"
-          cat /tmp/changed-files.txt
+          echo "AI engine/NNUE changes detected."
         else
           echo "has_ai_changes=false" >> "$GITHUB_OUTPUT"
-          echo "No AI-related changes; no Arena promotion test required."
+          echo "No AI engine/NNUE changes detected."
+        fi
+
+        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py)' /tmp/changed-files.txt; then
+          echo "has_quality_changes=true" >> "$GITHUB_OUTPUT"
+          echo "AI-quality-related changes detected:"
+          cat /tmp/changed-files.txt
+        else
+          echo "has_quality_changes=false" >> "$GITHUB_OUTPUT"
+          echo "No AI-quality-related changes detected."
         fi
 
     - name: Build challenger on current PR rules
-      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -67,7 +76,7 @@ jobs:
         chmod +x ai/cpp_engine/engine
 
     - name: Build main AI on current PR rules
-      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -84,7 +93,7 @@ jobs:
         chmod +x ai/cpp_engine/engine
 
     - name: Benchmark main AI and challenger
-      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -92,7 +101,7 @@ jobs:
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-quality-head/ai/cpp_engine/engine | tee /tmp/head-benchmark.txt
 
     - name: Run FrostMage tactical regression
-      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -103,7 +112,8 @@ jobs:
           | tee /tmp/frostmage-quality.txt
 
     - name: Run promotion Arena
-      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      if: steps.changes.outputs.has_ai_changes == 'true'
+      shell: bash
       run: |
         set -euo pipefail
         python /tmp/redwar-quality-head/tools/analytics/arena_tournament.py \
@@ -116,7 +126,7 @@ jobs:
           | tee /tmp/ai-quality-arena.txt
 
     - name: Upload AI quality evidence
-      if: always() && steps.ai_changes.outputs.has_ai_changes == 'true'
+      if: always() && steps.changes.outputs.has_quality_changes == 'true'
       uses: actions/upload-artifact@v4
       with:
         name: redwar-ai-quality-${{ github.event.pull_request.number }}
