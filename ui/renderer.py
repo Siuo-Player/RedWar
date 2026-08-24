@@ -48,7 +48,7 @@ class AssetManager:
         chave = (nome_peca, team, tam)
         if chave in cls._images:
             return cls._images[chave]
-        caminho_base = sys._MEIPASS if getattr(sys, 'frozen', False) else os.path.dirname(os.path.dirname(__file__))
+        caminho_base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.dirname(__file__))) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.dirname(__file__))
         caminho_completo = os.path.join(caminho_base, "ui", "assets", f"{nome_peca.lower()}.png")
         if os.path.exists(caminho_completo):
             try:

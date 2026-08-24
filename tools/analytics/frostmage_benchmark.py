@@ -1,8 +1,4 @@
-"""Adversarial Ares benchmark for FrostMage tactical recognition.
-
-The benchmark is intentionally diagnostic rather than a CI pass/fail gate while
-Ares is still known to be weak in these positions.
-"""
+"""Adversarial Ares benchmark for FrostMage tactical recognition."""
 from __future__ import annotations
 
 import argparse
@@ -16,23 +12,20 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DEFAULT_ENGINE = os.path.join(
     ROOT, "ai", "cpp_engine", "engine.exe" if sys.platform == "win32" else "engine"
 )
-# Start with very small budgets to identify the order of magnitude of the
-# failure threshold. The scan is intentionally exponential; once a threshold
-# is found, callers can rerun with explicit --nodes for a fine-grained search.
 DEFAULT_NODES = [10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000]
 
 # A5 FrostMage stuns at D5. Exactly five Bones occupy the stun cross:
-# C5, D4, D5, D6 and E5. All five are therefore stunned by the first action,
-# and the next FrostMage stun can kill all five under RedWar's two-stun rule.
+# C5, D4, D5, D6 and E5. Every cell uses canonical RWEN piece:effect syntax;
+# an empty cell is .:.
 FROST_CLUSTER = (
-    ".,.,.,.,.,.,.,./"
-    ".,.,.,.,.,.,.,./"
-    ".,.,.,B_Bone_0_N_0,.,.,.,./"
-    "W_FrostMage_0_N_0,.,B_Bone_0_N_0,B_Bone_0_N_0,B_Bone_0_N_0,.,.,./"
-    ".,.,.,B_Bone_0_N_0,.,.,.,./"
-    ".,.,.,.,.,.,.,./"
-    ".,.,.,.,.,.,.,./"
-    ".,.,.,.,.,.,.,. W 0"
+    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,B_Bone_0_N_0:.,.:.,.:.,.:.,.:./"
+    "W_FrostMage_0_N_0:.,.:.,B_Bone_0_N_0:.,B_Bone_0_N_0:.,B_Bone_0_N_0:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,B_Bone_0_N_0:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
 )
 
 
@@ -54,6 +47,8 @@ def query(engine: str, nodes: int, trace_path: Path | None = None) -> tuple[str,
         env=env,
     )
     try:
+        assert proc.stdin is not None
+        assert proc.stdout is not None
         proc.stdin.write("isready\n")
         proc.stdin.write(f"position rwen {FROST_CLUSTER}\n")
         proc.stdin.write(f"go nodes {nodes}\n")
@@ -69,40 +64,33 @@ def query(engine: str, nodes: int, trace_path: Path | None = None) -> tuple[str,
         raise TimeoutError("engine did not return bestmove within 30 seconds")
     finally:
         try:
+            assert proc.stdin is not None
             proc.stdin.write("quit\n")
             proc.stdin.flush()
         except Exception:
             pass
         proc.terminate()
-        proc.wait(timeout=5)
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Diagnóstico táctico do FrostMage para Ares")
     parser.add_argument("--engine", default=DEFAULT_ENGINE)
-    parser.add_argument(
-        "--nodes",
-        type=int,
-        action="append",
-        default=None,
-        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10, 100, 1k, 10k, 100k, 1M e 10M.",
-    )
-    parser.add_argument(
-        "--trace",
-        action="store_true",
-        help="Grava um trace resumido da pesquisa em logs/benchmarks/frostmage.",
-    )
+    parser.add_argument("--nodes", type=int, action="append", default=None)
+    parser.add_argument("--trace", action="store_true")
     args = parser.parse_args()
     node_budgets = args.nodes if args.nodes else DEFAULT_NODES
 
     if any(nodes <= 0 for nodes in node_budgets):
         parser.error("--nodes deve conter apenas inteiros positivos")
-
     if not os.path.isfile(args.engine):
         raise FileNotFoundError(f"Engine não encontrada: {args.engine}")
 
     trace_dir = Path(ROOT) / "logs" / "benchmarks" / "frostmage" if args.trace else None
-
     print("FrostMage tactical benchmark")
     print("position: 5 clustered enemies within one 3-range stun area")
     print("expected tactical class: STUN")
@@ -130,7 +118,6 @@ def main() -> int:
             f"stun at {failures}/{len(node_budgets)} tested budgets."
         )
         return 1
-
     print("DIAGNOSTIC: Ares recognised the 5-target FrostMage stun at all budgets.")
     return 0
 

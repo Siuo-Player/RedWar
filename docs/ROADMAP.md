@@ -19,67 +19,59 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 
 ## Estado do projeto
 
-O **PR #49 foi concluído como bloco de desenvolvimento, mas não foi integrado na `main`**. A base NNUE/tooling/documentação dessa branch continua como referência experimental.
+- **PR #52** integrou a estabilização do trainer e a extensão seletiva de segundo STUN.
+- **PR #53** integrou as melhorias de CI, benchmarks FrostMage e separação entre gates de CI e gates de promoção da AI.
+- A `main` atual é a base para o desenvolvimento seguinte.
 
-O **PR #50** é o bloco atual de estabilização numérica e estrutural. A criação de uma ref nova ficou temporariamente bloqueada pelo ambiente, por isso este bloco continua na ref da continuação NNUE até o merge.
+### Blocos concluídos relevantes
 
-## PR #50 — estabilização numérica e estrutural
+- [x] Proteções numéricas do Auto-Pricer e da avaliação C++/Cython.
+- [x] Regressões de limites numéricos.
+- [x] Trainer com timeout, recuperação de processo e diagnósticos de falhas.
+- [x] Diagnóstico automático com RWEN, stdout/stderr e search trace.
+- [x] Extensão seletiva para a continuação do segundo STUN no mesmo centro, apenas quando o primeiro STUN atingiu um adversário.
+- [x] Benchmark FrostMage com failure-threshold e traces opcionais.
+- [x] CI distingue mudanças reais da AI de alterações apenas de tooling/workflows.
+- [x] Auto-Balancer usa timeout explícito e suite Python completa.
 
-### Já concluído
+## Ares — sequência atual
 
-- [x] Auto-Pricer protegido contra ELOs extremos, drafts inválidos e quantidades patológicas.
-- [x] Avaliação C++ com operações sensíveis feitas em `int64_t`/limites explícitos.
-- [x] Avaliação Cython com limites de custo/lifespan/score.
-- [x] CLI C++ valida `go nodes` e rejeita zero/entradas inválidas.
-- [x] Regressão C++ para custos/lifespan extremos.
-- [x] Regressões Python do Auto-Pricer.
-- [x] Logs gerados removidos do estado versionado.
-- [x] Packaging removido de referências para ficheiros apagados.
-- [x] `main_guard.yml` sem mecanismo de escrita/reversão automática da `main`.
-- [x] Renderer restaurado e cache VFX corrigido para considerar largura e altura.
-- [x] Auto-Balancer separado do treino/benchmark NNUE.
-- [x] Workflow do Auto-Balancer com timeout e outputs temporários/artefactos.
-- [x] Workflow NNUE continua responsável pelo treino nightly.
-- [x] Documentação do ciclo de desenvolvimento e separação dos workflows atualizada.
-- [x] `.venv/` tratado como artefacto local.
-- [x] Benchmark FrostMage criado como diagnóstico de força.
-- [x] Metodologia de failure-threshold documentada.
+### 1. Suite de benchmarks táticos — **bloco atual**
 
-### Em revisão antes do merge
-
-- [ ] Última passagem de multiplicadores/limites do `search.cpp` e inputs numéricos de NNUE.
-- [ ] Revisão final de `engine/`, `online/` e `data/`.
-- [ ] Confirmar CI verde do head final.
-- [ ] Remover qualquer tooling/documentação ainda referenciada apenas pelo histórico antigo.
-
-### Regra
-
-Nenhuma correção de overflow deste bloco será misturada com a próxima otimização do hot path NNUE.
-
-## Ares — próxima sequência após estabilização
-
-### 1. Suite de benchmarks táticos
-
-Antes de otimizar a pesquisa, manter uma coleção de posições adversariais independentes do código da engine.
+Manter uma coleção de posições adversariais independentes do código de pesquisa.
 
 Para cada posição:
 
 - executar com orçamento alto até obter uma solução de referência estável;
-- testar orçamentos progressivamente menores;
+- testar orçamentos progressivamente menores, começando com uma progressão exponencial;
 - registar o **failure threshold**;
+- guardar um trace resumido quando necessário para explicar a pesquisa;
 - comparar cada alteração de IA contra exatamente as mesmas posições.
 
-A suite deve crescer para incluir multi-stun, segundo stun letal, spells condicionais, passivas/a outras auras, defesa, capturas de alto valor, lifespan/cooldown e posições onde material contradiz a consequência tática.
+O harness reutilizável já existe em `tools/analytics/tactical_benchmark_suite.py`. O primeiro caso é o FrostMage de cinco alvos; novas posições só entram como referências depois de serem validadas com orçamento alto e várias execuções.
+
+A suite deve crescer para incluir:
+
+- [ ] segundo STUN letal num único alvo;
+- [ ] multi-stun com menos alvos;
+- [ ] primeiro STUN sem atingir inimigos;
+- [ ] primeiro STUN com segundo STUN possível no mesmo centro;
+- [ ] primeiro STUN com alternativas em centros diferentes;
+- [ ] spells condicionais;
+- [ ] passivas/aura com ameaça tática sem alteração material imediata;
+- [ ] defesa e posições onde material contradiz a consequência tática;
+- [ ] lifespan/cooldown;
+- [ ] capturas de alto valor.
 
 ### 2. Search / move ordering RPG
 
 O primeiro eixo de otimização não deve ser simplesmente aumentar os valores materiais.
 
-Testar separadamente:
+Situação atual:
 
-- [ ] `STUN` multi-target como movimento forçante na quiescence quando cria ameaça tática real.
+- [x] Continuação limitada de segundo STUN, apenas no mesmo centro e quando o primeiro STUN atingiu pelo menos um adversário.
 - [ ] Move ordering por número/valor de alvos afetados, sem conhecer posições concretas.
-- [ ] Selective extensions para ameaças táticas fortes, começando por multi-stun.
+- [ ] Selective extensions adicionais para ameaças táticas fortes, apenas depois da suite comprovar necessidade.
 - [ ] Heurísticas de spells baseadas no impacto imediato e não apenas no nome do spell.
 - [ ] Sinais de passivas/aura como **heurísticas de pesquisa**, sem inflacionar automaticamente o material estático.
 - [ ] Melhor utilização de TT move/history para ações não-MOVE quando houver evidência.
@@ -98,6 +90,8 @@ Só depois de estabilizar a pesquisa-base e os benchmarks:
 ### 4. Arena
 
 Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o mesmo orçamento de nodes/regras.
+
+A Arena de promoção não é usada como gate de uma alteração apenas de CI/tooling; para esse caso usamos benchmarks determinísticos e testes de consistência.
 
 ## Heróis e balanceamento
 
