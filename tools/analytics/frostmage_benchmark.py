@@ -18,11 +18,14 @@ DEFAULT_ENGINE = os.path.join(
 )
 DEFAULT_NODES = [10_000, 100_000, 150_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000]
 
+# A5 FrostMage stuns at D5. Exactly five Bones occupy the stun cross:
+# C5, D4, D5, D6 and E5. All five are therefore stunned by the first action,
+# and the next FrostMage stun can kill all five under RedWar's two-stun rule.
 FROST_CLUSTER = (
     ".,.,.,.,.,.,.,./"
+    ".,.,.,.,.,.,.,./"
     ".,.,.,B_Bone_0_N_0,.,.,.,./"
-    ".,.,.,B_Bone_0_N_0,.,.,.,./"
-    "W_FrostMage_0_N_0,.,B_Bone_0_N_0,.,B_Bone_0_N_0,.,.,./"
+    "W_FrostMage_0_N_0,.,B_Bone_0_N_0,B_Bone_0_N_0,B_Bone_0_N_0,.,.,./"
     ".,.,.,B_Bone_0_N_0,.,.,.,./"
     ".,.,.,.,.,.,.,./"
     ".,.,.,.,.,.,.,./"
