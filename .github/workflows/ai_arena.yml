@@ -6,12 +6,8 @@ on:
       - main
     paths:
       - 'ai/**'
-      - 'tools/analytics/benchmark_engine.py'
-      - 'tools/analytics/arena_tournament.py'
-      - 'tools/analytics/frostmage_benchmark.py'
       - 'tools/nnue/**'
-      - 'tests/cpp_nnue_test.cpp'
-      - 'tests/test_frostmage_benchmark.py'
+      - 'tools/analytics/arena_tournament.py'
       - '.github/workflows/ai_arena.yml'
   workflow_dispatch:
 
@@ -58,12 +54,19 @@ jobs:
         : > /tmp/ai-commits.txt
         while read -r COMMIT; do
           FILES=$(git diff-tree --no-commit-id --name-only -r "$COMMIT")
-          if echo "$FILES" | grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py|\.github/workflows/ai_arena\.yml)'; then
+          if echo "$FILES" | grep -Eq '^(ai/|tools/nnue/|tools/analytics/arena_tournament\.py$)'; then
             echo "$COMMIT" >> /tmp/ai-commits.txt
           fi
         done < /tmp/all-commits.txt
+        if [[ ! -s /tmp/ai-commits.txt ]]; then
+          echo "RUN_ARENA=false" >> "$GITHUB_ENV"
+          echo "No AI/NNUE changes detected; skipping promotion Arena."
+        else
+          echo "RUN_ARENA=true" >> "$GITHUB_ENV"
+        fi
 
     - name: Build current main baseline once
+      if: env.RUN_ARENA == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -75,6 +78,7 @@ jobs:
         chmod +x ai/cpp_engine/engine
 
     - name: Arena every AI revision with current rules
+      if: env.RUN_ARENA == 'true'
       shell: bash
       run: |
         set -u
@@ -95,7 +99,7 @@ jobs:
             historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1; continue
           fi
 
-          if ! git -C "$WORKTREE" restore --source="$COMMIT" -- ai; then
+          if ! git -C "$WORKTREE" restore --source="$COMMIT" -- ai tools/nnue; then
             echo "INCOMPATIBLE AI: overlay failed" | tee "${PREFIX}-error.txt"
             git worktree remove --force "$WORKTREE"; historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1; continue
           fi
