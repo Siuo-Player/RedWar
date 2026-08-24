@@ -17,6 +17,13 @@ constexpr int SPAWN_SCORE = 20'000;
 constexpr int KILLER1_SCORE = 10'000;
 constexpr int KILLER2_SCORE = 9'000;
 
+struct StunContinuation {
+    bool active = false;
+    int row = -1;
+    int col = -1;
+    char team = 'W';
+};
+
 uint64_t splitmix64(uint64_t x) {
     x += 0x9E3779B97F4A7C15ULL;
     x = (x ^ (x >> 30U)) * 0xBF58476D1CE4E5B9ULL;
@@ -71,9 +78,24 @@ inline int piece_cost(const Piece& piece) {
     return 50;
 }
 
+bool stun_hits_enemy(const Move& move, char moving_team) {
+    if (move.type != "STUN") return false;
+
+    constexpr int DR[5] = {0, -1, 1, 0, 0};
+    constexpr int DC[5] = {0, 0, 0, -1, 1};
+    for (int i = 0; i < 5; ++i) {
+        const int r = move.er + DR[i];
+        const int c = move.ec + DC[i];
+        if (r < 0 || r >= LINHAS || c < 0 || c >= COLUNAS) continue;
+        const Piece& target = board.pieces[r][c];
+        if (!target.is_empty && target.team != moving_team) return true;
+    }
+    return false;
+}
+
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
-    if (move.type == "STUN") {
+    if (move.type == "STUN") return stun_hits_enemy(move, board.turn) && [&move]() {
         constexpr int DR[5] = {0, -1, 1, 0, 0};
         constexpr int DC[5] = {0, 0, 0, -1, 1};
         for (int i = 0; i < 5; ++i) {
@@ -84,12 +106,60 @@ bool is_forcing_move(const Move& move) {
                 if (!p.is_empty && p.team != board.turn && p.stun_timer > 0) return true;
             }
         }
-    }
+        return false;
+    }();
     if (move.type == "SPELL") {
         if (move.spell_name == "ignite") return true;
         if (move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty) return true;
     }
     return false;
+}
+
+bool same_stun_location(const Move& move, const StunContinuation& continuation) {
+    return continuation.active &&
+           move.type == "STUN" &&
+           move.er == continuation.row &&
+           move.ec == continuation.col;
+}
+
+int child_depth_for_move(
+    const Move& move,
+    int depth,
+    char moving_team,
+    const StunContinuation& continuation
+) {
+    const bool first_stun_hit = !continuation.active && stun_hits_enemy(move, moving_team);
+    const bool follow_up_stun =
+        continuation.active &&
+        continuation.team == moving_team &&
+        same_stun_location(move, continuation) &&
+        stun_hits_enemy(move, moving_team);
+
+    // Exactly one extension is reserved for the tactical pattern:
+    //   our STUN hits enemy -> opponent gets one reply -> our STUN on the
+    //   same square gets one extra ply so the second-stun kill can be seen.
+    // Nothing else receives a depth extension.
+    return (first_stun_hit || follow_up_stun) ? depth : depth - 1;
+}
+
+StunContinuation continuation_after_move(
+    const Move& move,
+    char moving_team,
+    const StunContinuation& continuation
+) {
+    if (continuation.active && continuation.team == moving_team) {
+        // This team has now consumed the one allowed follow-up opportunity,
+        // regardless of which move it selected.
+        return {};
+    }
+
+    if (!continuation.active && stun_hits_enemy(move, moving_team)) {
+        return {true, move.er, move.ec, moving_team};
+    }
+
+    // While the opponent is making its single reply, keep the original
+    // continuation alive so only the original team can consume it next.
+    return continuation;
 }
 
 void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char current_turn) {
@@ -231,7 +301,14 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
     return best;
 }
 
-int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
+int alpha_beta(
+    int depth,
+    int alpha,
+    int beta,
+    char current_turn,
+    int ply,
+    const StunContinuation& continuation
+) {
     ++nodes_evaluated;
     check_limits();
     if (abort_search) return 0;
@@ -274,14 +351,16 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         bool first_move = true;
         for (const Move& move : moves) {
             UndoInfo undo = make_move(move);
+            const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
+            const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
             int value;
             if (first_move) {
-                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 first_move = false;
             } else {
-                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
                 if (!abort_search && value > alpha && value < beta) {
-                    value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 }
             }
             unmake_move(move, undo);
@@ -309,14 +388,16 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     bool first_move = true;
     for (const Move& move : moves) {
         UndoInfo undo = make_move(move);
+        const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
+        const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
         int value;
         if (first_move) {
-            value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             first_move = false;
         } else {
-            value = alpha_beta(depth - 1, beta - 1, beta, board.turn, ply + 1);
+            value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
             if (!abort_search && value < beta && value > alpha) {
-                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             }
         }
         unmake_move(move, undo);
@@ -382,22 +463,26 @@ std::string search_best_move(int max_depth) {
         int best_value = (board.turn == 'W') ? -INFINITO : INFINITO;
         Move best_move_this_depth = root_moves.front();
         bool first_move = true;
+        const StunContinuation root_continuation{};
+        const char root_turn = board.turn;
 
         for (const Move& move : root_moves) {
             UndoInfo undo = make_move(move);
+            const int child_depth = child_depth_for_move(move, depth, root_turn, root_continuation);
+            const StunContinuation child_continuation = continuation_after_move(move, root_turn, root_continuation);
             int value;
             if (first_move) {
-                value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, 1, child_continuation);
                 first_move = false;
             } else if (board.turn == 'W') {
-                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, 1);
+                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, 1, child_continuation);
                 if (!abort_search && value > alpha && value < beta) {
-                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1, child_continuation);
                 }
             } else {
-                value = alpha_beta(depth - 1, beta - 1, beta, board.turn, 1);
+                value = alpha_beta(child_depth, beta - 1, beta, board.turn, 1, child_continuation);
                 if (!abort_search && value < beta && value > alpha) {
-                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1, child_continuation);
                 }
             }
             unmake_move(move, undo);
