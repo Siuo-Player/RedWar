@@ -1,4 +1,4 @@
-"""Validate shared RWEN fixtures against both the Python and C++ backends."""
+"""Validate canonical Python GameState positions against the C++ backend."""
 from __future__ import annotations
 
 import argparse
@@ -11,29 +11,24 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.nnue.features import load_hero_ids, parse_rwen
+from tools.scripts.cross_backend_cases import build_cases
 
-FIXTURE = ROOT / "tests" / "fixtures" / "cross_backend_rwen.txt"
 DEFAULT_ENGINE = ROOT / "ai" / "cpp_engine" / "engine.exe"
 
 
 def load_cases() -> list[tuple[int, str]]:
-    cases: list[tuple[int, str]] = []
-    for line_no, raw in enumerate(FIXTURE.read_text(encoding="utf-8").splitlines(), 1):
-        line = raw.strip()
-        if not line or line.startswith("#"):
-            continue
-        cases.append((line_no, line))
-    return cases
+    return list(enumerate(build_cases(), 1))
 
 
 def validate_python(cases: list[tuple[int, str]]) -> None:
     hero_ids = load_hero_ids()
-    for line_no, rwen in cases:
+    for case_no, rwen in cases:
         parse_rwen(rwen, hero_ids)
-        rows = rwen.split()[0].split("/")
-        assert len(rows) == 8, f"fixture line {line_no}: expected 8 rows"
+        board_text = rwen.split()[0]
+        rows = board_text.split("/")
+        assert len(rows) == 8, f"case {case_no}: expected 8 rows"
         assert all(len(row.split(",")) == 8 for row in rows), (
-            f"fixture line {line_no}: expected 8 cells per row"
+            f"case {case_no}: expected 8 cells per row"
         )
 
 
@@ -57,7 +52,7 @@ def validate_cpp(cases: list[tuple[int, str]], engine: Path) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate shared Python/C++ RWEN fixtures")
+    parser = argparse.ArgumentParser(description="Validate Python GameState RWEN against the C++ engine")
     parser.add_argument("--engine", type=Path, default=DEFAULT_ENGINE)
     parser.add_argument("--require-engine", action="store_true")
     args = parser.parse_args()
@@ -67,11 +62,11 @@ def main() -> int:
 
     if args.engine.exists():
         validate_cpp(cases, args.engine)
-        print(f"PASS Python/C++ RWEN compatibility: {len(cases)} fixtures")
+        print(f"PASS Python/C++ RWEN compatibility: {len(cases)} generated cases")
     elif args.require_engine:
         raise SystemExit(f"C++ engine not found: {args.engine}")
     else:
-        print(f"PASS Python RWEN validation: {len(cases)} fixtures (C++ engine not built)")
+        print(f"PASS Python RWEN validation: {len(cases)} generated cases (C++ engine not built)")
 
     return 0
 
