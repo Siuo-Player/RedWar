@@ -1,6 +1,6 @@
-"""Build the RedWar C++ engine or its native smoke test.
+"""Build the RedWar C++ engine or native regression binaries.
 
-The source list is explicit on purpose: adding a test/helper .cpp must never
+The source lists are explicit on purpose: adding a helper .cpp must never
 silently change the production engine link step.
 """
 from __future__ import annotations
@@ -14,6 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 CPP_DIR = ROOT / "ai" / "cpp_engine"
 INCLUDE_DIR = CPP_DIR / "nlohmann"
+TESTS_DIR = ROOT / "tests"
 
 ENGINE_SOURCES = [
     "board.cpp",
@@ -30,6 +31,13 @@ SMOKE_SOURCES = [
     "search.cpp",
     "nnue.cpp",
     "SmokeTest.cpp",
+]
+NUMERIC_SOURCES = [
+    "board.cpp",
+    "evaluate.cpp",
+    "movegen.cpp",
+    "search.cpp",
+    "nnue.cpp",
 ]
 
 
@@ -68,46 +76,68 @@ def get_vcvars_path() -> Path | None:
     return fallback if fallback.exists() else None
 
 
-def compile_cpp_project(is_smoke_test: bool = False) -> Path:
-    sources = SMOKE_SOURCES if is_smoke_test else ENGINE_SOURCES
+def _windows_compile(sources: list[str], output: Path) -> int:
+    vcvars = get_vcvars_path()
+    if not vcvars:
+        raise RuntimeError("Não foi possível localizar vcvars64.bat do MSVC.")
+    command = f'"{vcvars}" && cl /nologo /EHsc /O2 /std:c++17 /I"{INCLUDE_DIR}" /Fe:"{output}" ' + " ".join(
+        f'"{path}"' for path in sources
+    )
+    completed = subprocess.run(command, shell=True, cwd=CPP_DIR)
+    return completed.returncode
+
+
+def _unix_compile(sources: list[str], output: Path) -> int:
+    command = [
+        "g++",
+        "-std=c++17",
+        "-O2",
+        "-pipe",
+        f"-I{INCLUDE_DIR}",
+        *sources,
+        "-o",
+        str(output),
+    ]
+    completed = subprocess.run(command, cwd=CPP_DIR)
+    return completed.returncode
+
+
+def compile_cpp_project(mode: str = "engine") -> Path:
+    if mode == "engine":
+        sources = ENGINE_SOURCES
+        suffix = ".exe" if platform.system() == "Windows" else ""
+        output = CPP_DIR / f"engine{suffix}"
+    elif mode == "smoke":
+        sources = SMOKE_SOURCES
+        suffix = ".exe" if platform.system() == "Windows" else ""
+        output = CPP_DIR / f"SmokeTest{suffix}"
+    elif mode == "numeric":
+        sources = NUMERIC_SOURCES
+        test_path = TESTS_DIR / "cpp_numeric_bounds_test.cpp"
+        if not test_path.is_file():
+            raise FileNotFoundError(f"Teste C++ em falta: {test_path}")
+        sources = [*sources, str(test_path)]
+        suffix = ".exe" if platform.system() == "Windows" else ""
+        output = ROOT / f"cpp_numeric_bounds_test{suffix}"
+    else:
+        raise ValueError(f"Modo desconhecido: {mode}")
+
     missing = [name for name in sources if not (CPP_DIR / name).is_file()]
+    if mode == "numeric":
+        missing = [name for name in missing if not Path(name).is_file()]
     if missing:
         raise FileNotFoundError(f"Fontes C++ em falta: {', '.join(missing)}")
 
-    exe_name = "SmokeTest.exe" if is_smoke_test and platform.system() == "Windows" else (
-        "SmokeTest" if is_smoke_test else "engine.exe" if platform.system() == "Windows" else "engine"
-    )
-    output = CPP_DIR / exe_name
-
-    print(f"🚀 A compilar {'SmokeTest' if is_smoke_test else 'engine'}: {' '.join(sources)}")
+    print(f"🚀 A compilar {mode}: {' '.join(sources)}")
 
     if platform.system() == "Windows":
-        vcvars = get_vcvars_path()
-        if not vcvars:
-            raise RuntimeError("Não foi possível localizar vcvars64.bat do MSVC.")
-        command = f'"{vcvars}" && cl /nologo /EHsc /O2 /std:c++17 /I"{INCLUDE_DIR}" /Fe:"{output}" ' + " ".join(
-            f'"{CPP_DIR / source}"' for source in sources
-        )
-        completed = subprocess.run(command, shell=True, cwd=CPP_DIR)
+        return_code = _windows_compile(sources, output)
     else:
-        command = [
-            "g++",
-            "-std=c++17",
-            "-O3",
-            "-march=native",
-            "-mtune=native",
-            "-flto",
-            "-DNDEBUG",
-            "-pipe",
-            f"-I{INCLUDE_DIR}",
-            *[str(CPP_DIR / source) for source in sources],
-            "-o",
-            str(output),
-        ]
-        completed = subprocess.run(command, cwd=CPP_DIR)
+        relative_sources = [str(Path(source).relative_to(CPP_DIR)) if Path(source).is_relative_to(CPP_DIR) else source for source in sources]
+        return_code = _unix_compile(relative_sources, output)
 
-    if completed.returncode != 0:
-        raise SystemExit(completed.returncode)
+    if return_code != 0:
+        raise SystemExit(return_code)
 
     print(f"✅ Compilado: {output}")
     return output
@@ -115,9 +145,17 @@ def compile_cpp_project(is_smoke_test: bool = False) -> Path:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compila o motor C++ de RedWar")
-    parser.add_argument("--smoke", action="store_true", help="Compila o SmokeTest em vez do executável da engine")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--smoke", action="store_true", help="Compila o SmokeTest")
+    group.add_argument("--numeric-test", action="store_true", help="Compila a regressão de limites numéricos")
     args = parser.parse_args()
-    compile_cpp_project(is_smoke_test=args.smoke)
+
+    if args.numeric_test:
+        compile_cpp_project("numeric")
+    elif args.smoke:
+        compile_cpp_project("smoke")
+    else:
+        compile_cpp_project("engine")
     return 0
 
 
