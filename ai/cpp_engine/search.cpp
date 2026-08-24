@@ -93,21 +93,24 @@ bool stun_hits_enemy(const Move& move, char moving_team) {
     return false;
 }
 
+bool stun_hits_stunned_enemy(const Move& move, char moving_team) {
+    if (move.type != "STUN") return false;
+
+    constexpr int DR[5] = {0, -1, 1, 0, 0};
+    constexpr int DC[5] = {0, 0, 0, -1, 1};
+    for (int i = 0; i < 5; ++i) {
+        const int r = move.er + DR[i];
+        const int c = move.ec + DC[i];
+        if (r < 0 || r >= LINHAS || c < 0 || c >= COLUNAS) continue;
+        const Piece& target = board.pieces[r][c];
+        if (!target.is_empty && target.team != moving_team && target.stun_timer > 0) return true;
+    }
+    return false;
+}
+
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
-    if (move.type == "STUN") return stun_hits_enemy(move, board.turn) && [&move]() {
-        constexpr int DR[5] = {0, -1, 1, 0, 0};
-        constexpr int DC[5] = {0, 0, 0, -1, 1};
-        for (int i = 0; i < 5; ++i) {
-            const int r = move.er + DR[i];
-            const int c = move.ec + DC[i];
-            if (r >= 0 && r < LINHAS && c >= 0 && c < COLUNAS) {
-                const Piece& p = board.pieces[r][c];
-                if (!p.is_empty && p.team != board.turn && p.stun_timer > 0) return true;
-            }
-        }
-        return false;
-    }();
+    if (move.type == "STUN") return stun_hits_stunned_enemy(move, board.turn);
     if (move.type == "SPELL") {
         if (move.spell_name == "ignite") return true;
         if (move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty) return true;
@@ -128,18 +131,8 @@ int child_depth_for_move(
     char moving_team,
     const StunContinuation& continuation
 ) {
-    const bool first_stun_hit = !continuation.active && stun_hits_enemy(move, moving_team);
-    const bool follow_up_stun =
-        continuation.active &&
-        continuation.team == moving_team &&
-        same_stun_location(move, continuation) &&
-        stun_hits_enemy(move, moving_team);
-
-    // Exactly one extension is reserved for the tactical pattern:
-    //   our STUN hits enemy -> opponent gets one reply -> our STUN on the
-    //   same square gets one extra ply so the second-stun kill can be seen.
-    // Nothing else receives a depth extension.
-    return (first_stun_hit || follow_up_stun) ? depth : depth - 1;
+    if (!continuation.active && stun_hits_enemy(move, moving_team)) return depth;
+    return depth - 1;
 }
 
 StunContinuation continuation_after_move(
@@ -147,18 +140,12 @@ StunContinuation continuation_after_move(
     char moving_team,
     const StunContinuation& continuation
 ) {
-    if (continuation.active && continuation.team == moving_team) {
-        // This team has now consumed the one allowed follow-up opportunity,
-        // regardless of which move it selected.
-        return {};
-    }
+    if (continuation.active && continuation.team == moving_team) return {};
 
     if (!continuation.active && stun_hits_enemy(move, moving_team)) {
         return {true, move.er, move.ec, moving_team};
     }
 
-    // While the opponent is making its single reply, keep the original
-    // continuation alive so only the original team can consume it next.
     return continuation;
 }
 
@@ -258,8 +245,6 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
 
     if (q_depth >= QSEARCH_MAX_DEPTH) return eval_score;
 
-    // Reuse the generated move buffer instead of allocating/copying a second
-    // vector for forcing moves at every quiescence node.
     std::vector<Move> moves = generate_valid_moves(current_turn);
     std::size_t forcing_count = 0;
     for (std::size_t i = 0; i < moves.size(); ++i) {
@@ -317,8 +302,9 @@ int alpha_beta(
     const uint64_t key = search_position_key();
     TTEntry& slot = transposition_table[key & TT_MASK];
     Move tt_best_move;
+    const bool tactical_context = continuation.active;
 
-    if (slot.occupied && slot.zobrist_key == key) {
+    if (!tactical_context && slot.occupied && slot.zobrist_key == key) {
         tt_best_move = slot.best_move;
         if (slot.depth >= depth) {
             if (slot.flag == TT_EXACT) return slot.value;
@@ -331,7 +317,41 @@ int alpha_beta(
     const int eval_score = evaluate_board();
     if (is_terminal_score(eval_score)) return eval_score;
     if (board.twc >= 50) return no_capture_terminal_score(ply);
-    if (depth <= 0) return quiescence_search(alpha, beta, current_turn, ply, 0);
+
+    if (depth <= 0) {
+        if (continuation.active && continuation.team == current_turn) {
+            std::vector<Move> follow_up_moves = generate_valid_moves(current_turn);
+            if (current_turn == 'W') {
+                int best = quiescence_search(alpha, beta, current_turn, ply, 0);
+                for (const Move& move : follow_up_moves) {
+                    if (!same_stun_location(move, continuation) || !stun_hits_enemy(move, current_turn)) continue;
+                    UndoInfo undo = make_move(move);
+                    const int value = quiescence_search(alpha, beta, board.turn, ply + 1, 0);
+                    unmake_move(move, undo);
+                    if (abort_search) return 0;
+                    best = std::max(best, value);
+                    alpha = std::max(alpha, value);
+                    if (alpha >= beta) break;
+                }
+                return best;
+            }
+
+            int best = quiescence_search(alpha, beta, current_turn, ply, 0);
+            for (const Move& move : follow_up_moves) {
+                if (!same_stun_location(move, continuation) || !stun_hits_enemy(move, current_turn)) continue;
+                UndoInfo undo = make_move(move);
+                const int value = quiescence_search(alpha, beta, board.turn, ply + 1, 0);
+                unmake_move(move, undo);
+                if (abort_search) return 0;
+                best = std::min(best, value);
+                beta = std::min(beta, value);
+                if (alpha >= beta) break;
+            }
+            return best;
+        }
+
+        return quiescence_search(alpha, beta, current_turn, ply, 0);
+    }
 
     std::vector<Move> moves = generate_valid_moves(current_turn);
     if (moves.empty()) {
@@ -380,7 +400,7 @@ int alpha_beta(
         TTFlag flag = TT_EXACT;
         if (best_value <= original_alpha) flag = TT_UPPERBOUND;
         else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-        slot = {key, depth, best_value, flag, best_move, true};
+        if (!tactical_context) slot = {key, depth, best_value, flag, best_move, true};
         return best_value;
     }
 
@@ -417,7 +437,7 @@ int alpha_beta(
     TTFlag flag = TT_EXACT;
     if (best_value <= original_alpha) flag = TT_UPPERBOUND;
     else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-    slot = {key, depth, best_value, flag, best_move, true};
+    if (!tactical_context) slot = {key, depth, best_value, flag, best_move, true};
     return best_value;
 }
 
