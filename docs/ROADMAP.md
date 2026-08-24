@@ -41,6 +41,9 @@ O **PR #50** é o bloco atual de estabilização numérica e estrutural. A cria�
 - [x] Workflow do Auto-Balancer com timeout e outputs temporários/artefactos.
 - [x] Workflow NNUE continua responsável pelo treino nightly.
 - [x] Documentação do ciclo de desenvolvimento e separação dos workflows atualizada.
+- [x] `.venv/` tratado como artefacto local.
+- [x] Benchmark FrostMage criado como diagnóstico de força.
+- [x] Metodologia de failure-threshold documentada.
 
 ### Em revisão antes do merge
 
@@ -55,20 +58,56 @@ Nenhuma correção de overflow deste bloco será misturada com a próxima otimiz
 
 ## Ares — próxima sequência após estabilização
 
-1. **Baseline incremental NNUE:** manter `sync_board()` como referência de correção.
-2. **Hooks de mutação:** ligar mudanças de peça, stun, lifespan, cooldown, efeitos, TWC e lado a jogar ao accumulator.
-3. **Reversibilidade:** testar make/unmake do accumulator contra um rescan completo após sequências aleatórias.
-4. **Benchmark:** comparar NPS e custo por avaliação com o baseline, sem alterar depth/node budget.
-5. **Arena:** só aceitar a otimização depois de confirmar que a força permanece estável.
-6. **Depois:** quiescence e move ordering RPG, mas apenas um eixo por branch.
+### 1. Suite de benchmarks táticos
+
+Antes de otimizar a pesquisa, manter uma coleção de posições adversariais independentes do código da engine.
+
+Para cada posição:
+
+- executar com orçamento alto até obter uma solução de referência estável;
+- testar orçamentos progressivamente menores;
+- registar o **failure threshold**;
+- comparar cada alteração de IA contra exatamente as mesmas posições.
+
+A suite deve crescer para incluir multi-stun, segundo stun letal, spells condicionais, passivas/a outras auras, defesa, capturas de alto valor, lifespan/cooldown e posições onde material contradiz a consequência tática.
+
+### 2. Search / move ordering RPG
+
+O primeiro eixo de otimização não deve ser simplesmente aumentar os valores materiais.
+
+Testar separadamente:
+
+- [ ] `STUN` multi-target como movimento forçante na quiescence quando cria ameaça tática real.
+- [ ] Move ordering por número/valor de alvos afetados, sem conhecer posições concretas.
+- [ ] Selective extensions para ameaças táticas fortes, começando por multi-stun.
+- [ ] Heurísticas de spells baseadas no impacto imediato e não apenas no nome do spell.
+- [ ] Sinais de passivas/aura como **heurísticas de pesquisa**, sem inflacionar automaticamente o material estático.
+- [ ] Melhor utilização de TT move/history para ações não-MOVE quando houver evidência.
+- [ ] Só depois investigar LMR/aspiration/PVS mais agressivos, mantendo regressão de força.
+
+### 3. Baseline incremental NNUE
+
+Só depois de estabilizar a pesquisa-base e os benchmarks:
+
+1. manter `sync_board()` como referência de correção;
+2. ligar mudanças de peça, stun, lifespan, cooldown, efeitos, TWC e lado a jogar ao accumulator;
+3. testar make/unmake do accumulator contra rescan completo;
+4. comparar NPS e custo por avaliação com o baseline;
+5. confirmar força na Arena.
+
+### 4. Arena
+
+Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o mesmo orçamento de nodes/regras.
 
 ## Heróis e balanceamento
 
 - [ ] Reduzir lógica de herói espalhada.
 - [ ] Documentar cada herói de forma padronizada.
 - [ ] Melhorar Auto-Pricer quando Ares estiver suficientemente estável.
-- [ ] Reavaliar FrostMage após NNUE/TT estarem estáveis.
+- [ ] Reavaliar FrostMage após melhorias de search/TT/NNUE.
 - [ ] Formalizar gelo e empilhamento de efeitos.
+
+O Auto-Balancer deve continuar a servir para equilíbrio estatístico; não deve ser usado como substituto de benchmarks táticos de força.
 
 ## Aplicação / UI
 
