@@ -466,7 +466,8 @@ std::string search_best_move(int max_depth) {
     std::vector<Move> root_moves = generate_valid_moves(board.turn);
     if (root_moves.empty()) return "";
 
-    Move best_overall_move = root_moves.front();
+    Move best_overall_move;
+    bool has_completed_iteration = false;
 
     for (int depth = 1; depth <= max_depth; ++depth) {
         if (node_limit > 0 && static_cast<uint64_t>(nodes_evaluated) >= node_limit) break;
@@ -477,6 +478,8 @@ std::string search_best_move(int max_depth) {
 
         score_moves(root_moves, tt_move, 0, board.turn);
         std::sort(root_moves.begin(), root_moves.end());
+
+        if (!has_completed_iteration) best_overall_move = root_moves.front();
 
         int alpha = -INFINITO;
         int beta = INFINITO;
@@ -527,6 +530,7 @@ std::string search_best_move(int max_depth) {
 
         if (abort_search) break;
         best_overall_move = best_move_this_depth;
+        has_completed_iteration = true;
         transposition_table[key & TT_MASK] = {key, depth, best_value, TT_EXACT, best_move_this_depth, true};
         if (is_terminal_score(best_value)) break;
     }
