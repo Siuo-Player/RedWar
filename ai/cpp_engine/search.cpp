@@ -71,25 +71,43 @@ inline int piece_cost(const Piece& piece) {
     return 50;
 }
 
+bool stun_hits_enemy(const Move& move, char moving_team) {
+    if (move.type != "STUN") return false;
+
+    constexpr int DR[5] = {0, -1, 1, 0, 0};
+    constexpr int DC[5] = {0, 0, 0, -1, 1};
+    for (int i = 0; i < 5; ++i) {
+        const int r = move.er + DR[i];
+        const int c = move.ec + DC[i];
+        if (r < 0 || r >= LINHAS || c < 0 || c >= COLUNAS) continue;
+        const Piece& target = board.pieces[r][c];
+        if (!target.is_empty && target.team != moving_team) return true;
+    }
+    return false;
+}
+
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
     if (move.type == "STUN") {
-        constexpr int DR[5] = {0, -1, 1, 0, 0};
-        constexpr int DC[5] = {0, 0, 0, -1, 1};
-        for (int i = 0; i < 5; ++i) {
-            const int r = move.er + DR[i];
-            const int c = move.ec + DC[i];
-            if (r >= 0 && r < LINHAS && c >= 0 && c < COLUNAS) {
-                const Piece& p = board.pieces[r][c];
-                if (!p.is_empty && p.team != board.turn && p.stun_timer > 0) return true;
-            }
-        }
+        return stun_hits_enemy(move, board.turn);
     }
     if (move.type == "SPELL") {
         if (move.spell_name == "ignite") return true;
         if (move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty) return true;
     }
     return false;
+}
+
+int child_depth_for_move(const Move& move, int depth, char moving_team) {
+    int child_depth = depth - 1;
+    // RedWar's second stun can kill a unit. Once a stun actually hits an
+    // enemy, always spend one extra ply on that branch so the opponent's
+    // reply and the immediate second-stun continuation are searched before
+    // the normal horizon is reached.
+    if (depth > 0 && stun_hits_enemy(move, moving_team)) {
+        ++child_depth;
+    }
+    return child_depth;
 }
 
 void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char current_turn) {
@@ -274,14 +292,15 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
         bool first_move = true;
         for (const Move& move : moves) {
             UndoInfo undo = make_move(move);
+            const int child_depth = child_depth_for_move(move, depth, current_turn);
             int value;
             if (first_move) {
-                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
                 first_move = false;
             } else {
-                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1);
                 if (!abort_search && value > alpha && value < beta) {
-                    value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
                 }
             }
             unmake_move(move, undo);
@@ -309,14 +328,15 @@ int alpha_beta(int depth, int alpha, int beta, char current_turn, int ply) {
     bool first_move = true;
     for (const Move& move : moves) {
         UndoInfo undo = make_move(move);
+        const int child_depth = child_depth_for_move(move, depth, current_turn);
         int value;
         if (first_move) {
-            value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+            value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
             first_move = false;
         } else {
-            value = alpha_beta(depth - 1, beta - 1, beta, board.turn, ply + 1);
+            value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1);
             if (!abort_search && value < beta && value > alpha) {
-                value = alpha_beta(depth - 1, alpha, beta, board.turn, ply + 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1);
             }
         }
         unmake_move(move, undo);
@@ -385,19 +405,20 @@ std::string search_best_move(int max_depth) {
 
         for (const Move& move : root_moves) {
             UndoInfo undo = make_move(move);
+            const int child_depth = child_depth_for_move(move, depth, board.turn == 'W' ? 'B' : 'W');
             int value;
             if (first_move) {
-                value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                value = alpha_beta(child_depth, alpha, beta, board.turn, 1);
                 first_move = false;
             } else if (board.turn == 'W') {
-                value = alpha_beta(depth - 1, alpha, alpha + 1, board.turn, 1);
+                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, 1);
                 if (!abort_search && value > alpha && value < beta) {
-                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1);
                 }
             } else {
-                value = alpha_beta(depth - 1, beta - 1, beta, board.turn, 1);
+                value = alpha_beta(child_depth, beta - 1, beta, board.turn, 1);
                 if (!abort_search && value < beta && value > alpha) {
-                    value = alpha_beta(depth - 1, alpha, beta, board.turn, 1);
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, 1);
                 }
             }
             unmake_move(move, undo);
