@@ -1,0 +1,523 @@
+# RedWar Ares search trace
+# Detail is intentionally bounded; this is a decision/pruning summary, not a node dump.
+ROOT-ORDER depth=1 ply=0 count=31
+  ORDER 0 score=42600 move=STUN A6 C7
+  ORDER 1 score=42600 move=STUN A6 D6
+  ORDER 2 score=40300 move=STUN A6 A8
+  ORDER 3 score=40300 move=STUN A6 B8
+  ORDER 4 score=40300 move=STUN A6 A7
+  ORDER 5 score=20000 move=SPAWN Ghoul H2 G3
+  ORDER 6 score=20000 move=SPAWN Ghoul H2 H3
+  ORDER 7 score=20000 move=SPAWN Ghoul C1 C2
+  ORDER 8 score=20000 move=SPAWN Ghoul C1 D2
+  ORDER 9 score=0 move=MOVE A6 B7
+  ORDER 10 score=0 move=MOVE A6 C8
+  ORDER 11 score=0 move=MOVE A6 B5
+ROOT-TRY depth=1 move=STUN A6 C7 score=42600 child=0
+QORDER depth=0 ply=1 count=2
+  ORDER 0 score=42400 move=STUN E5 F3
+  ORDER 1 score=42400 move=STUN E5 E2
+QORDER depth=1 ply=2 count=3
+  ORDER 0 score=40300 move=STUN A6 A8
+  ORDER 1 score=40300 move=STUN A6 B8
+  ORDER 2 score=40300 move=STUN A6 A7
+QORDER depth=1 ply=2 count=3
+  ORDER 0 score=40300 move=STUN A6 A8
+  ORDER 1 score=40300 move=STUN A6 B8
+  ORDER 2 score=40300 move=STUN A6 A7
+QCUTOFF ply=2 move=STUN A6 A8
+ROOT-RESULT depth=1 move=STUN A6 C7 value=-103
+ROOT-TRY depth=1 move=STUN A6 D6 score=42600 child=0
+QORDER depth=0 ply=1 count=2
+  ORDER 0 score=42400 move=STUN E5 F3
+  ORDER 1 score=42400 move=STUN E5 E2
+QORDER depth=1 ply=2 count=3
+  ORDER 0 score=40300 move=STUN A6 A8
+  ORDER 1 score=40300 move=STUN A6 B8
+  ORDER 2 score=40300 move=STUN A6 A7
+QCUTOFF ply=1 move=STUN E5 F3
+ROOT-RESULT depth=1 move=STUN A6 D6 value=-103
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A6 A8 score=40300 child=1
+ORDER depth=1 ply=1 count=25
+  ORDER 0 score=42400 move=STUN E5 F3
+  ORDER 1 score=42400 move=STUN E5 E2
+  ORDER 2 score=30000 move=SPELL swap D7 A8
+  ORDER 3 score=30000 move=SPELL swap D7 D8
+  ORDER 4 score=30000 move=SPELL swap D7 E8
+  ORDER 5 score=30000 move=SPELL swap D7 E5
+  ORDER 6 score=0 move=MOVE D8 C8
+  ORDER 7 score=0 move=MOVE D8 C7
+  ORDER 8 score=0 move=MOVE D8 E7
+  ORDER 9 score=0 move=MOVE E8 F8
+  ORDER 10 score=0 move=MOVE E8 E7
+  ORDER 11 score=0 move=MOVE E8 F7
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+TRY ply=1 depth=1 move=STUN E5 F3 child=1
+ORDER depth=1 ply=2 count=28
+  ORDER 0 score=41560 move=STUN A6 C7
+  ORDER 1 score=41560 move=STUN A6 D6
+  ORDER 2 score=40500 move=STUN A6 A8
+  ORDER 3 score=40500 move=STUN A6 B8
+  ORDER 4 score=40500 move=STUN A6 A7
+  ORDER 5 score=20000 move=SPAWN Ghoul H2 G3
+  ORDER 6 score=20000 move=SPAWN Ghoul H2 H3
+  ORDER 7 score=20000 move=SPAWN Ghoul C1 C2
+  ORDER 8 score=20000 move=SPAWN Ghoul C1 D2
+  ORDER 9 score=0 move=MOVE A6 B7
+  ORDER 10 score=0 move=MOVE A6 C8
+  ORDER 11 score=0 move=MOVE A6 B5
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+TRY ply=2 depth=1 move=STUN A6 C7 child=1
+BEST ply=2 depth=1 move=STUN A6 C7 value=9999998
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+TRY ply=2 depth=1 move=STUN A6 D6 child=1
+TRY ply=2 depth=1 move=STUN A6 A8 child=0
+TRY ply=2 depth=1 move=STUN A6 B8 child=0
+TRY ply=2 depth=1 move=STUN A6 A7 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul H2 G3 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul H2 H3 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul C1 C2 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul C1 D2 child=0
+TRY ply=2 depth=1 move=MOVE A6 B7 child=0
+TRY ply=2 depth=1 move=MOVE A6 C8 child=0
+TRY ply=2 depth=1 move=MOVE A6 B5 child=0
+TRY ply=2 depth=1 move=MOVE A6 C4 child=0
+TRY ply=2 depth=1 move=MOVE A2 B3 child=0
+TRY ply=2 depth=1 move=MOVE B2 A3 child=0
+TRY ply=2 depth=1 move=MOVE B2 B3 child=0
+TRY ply=2 depth=1 move=MOVE B2 C3 child=0
+TRY ply=2 depth=1 move=MOVE B2 C2 child=0
+TRY ply=2 depth=1 move=MOVE G2 F4 child=0
+TRY ply=2 depth=1 move=MOVE G2 H4 child=0
+TRY ply=2 depth=1 move=MOVE G2 E3 child=0
+TRY ply=2 depth=1 move=MOVE G2 E1 child=0
+TRY ply=2 depth=1 move=MOVE H2 G3 child=0
+TRY ply=2 depth=1 move=MOVE H2 G1 child=0
+TRY ply=2 depth=1 move=MOVE B1 C2 child=0
+TRY ply=2 depth=1 move=MOVE C1 D2 child=0
+TRY ply=2 depth=1 move=MOVE D1 C3 child=0
+TRY ply=2 depth=1 move=MOVE D1 E3 child=0
+BEST ply=1 depth=1 move=STUN E5 F3 value=9999998
+BETA-CUTOFF ply=1 depth=1 move=STUN E5 F3 alpha=9999998 beta=9999998
+ORDER depth=1 ply=1 count=25
+  ORDER 0 score=1000000 move=STUN E5 F3
+  ORDER 1 score=42400 move=STUN E5 E2
+  ORDER 2 score=30000 move=SPELL swap D7 A8
+  ORDER 3 score=30000 move=SPELL swap D7 D8
+  ORDER 4 score=30000 move=SPELL swap D7 E8
+  ORDER 5 score=30000 move=SPELL swap D7 E5
+  ORDER 6 score=0 move=MOVE D8 C8
+  ORDER 7 score=0 move=MOVE D8 C7
+  ORDER 8 score=0 move=MOVE D8 E7
+  ORDER 9 score=0 move=MOVE E8 F8
+  ORDER 10 score=0 move=MOVE E8 E7
+  ORDER 11 score=0 move=MOVE E8 F7
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+TRY ply=1 depth=1 move=STUN E5 F3 child=1
+ORDER depth=1 ply=2 count=28
+  ORDER 0 score=1000000 move=STUN A6 C7
+  ORDER 1 score=41560 move=STUN A6 D6
+  ORDER 2 score=40500 move=STUN A6 A8
+  ORDER 3 score=40500 move=STUN A6 B8
+  ORDER 4 score=40500 move=STUN A6 A7
+  ORDER 5 score=20000 move=SPAWN Ghoul H2 G3
+  ORDER 6 score=20000 move=SPAWN Ghoul H2 H3
+  ORDER 7 score=20000 move=SPAWN Ghoul C1 C2
+  ORDER 8 score=20000 move=SPAWN Ghoul C1 D2
+  ORDER 9 score=0 move=MOVE A6 B7
+  ORDER 10 score=0 move=MOVE A6 C8
+  ORDER 11 score=0 move=MOVE A6 B5
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+TRY ply=2 depth=1 move=STUN A6 C7 child=1
+BEST ply=2 depth=1 move=STUN A6 C7 value=-41
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+TRY ply=2 depth=1 move=STUN A6 D6 child=1
+TRY ply=2 depth=1 move=STUN A6 A8 child=0
+TRY ply=2 depth=1 move=STUN A6 B8 child=0
+TRY ply=2 depth=1 move=STUN A6 A7 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul H2 G3 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul H2 H3 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul C1 C2 child=0
+TRY ply=2 depth=1 move=SPAWN Ghoul C1 D2 child=0
+TRY ply=2 depth=1 move=MOVE A6 B7 child=0
+TRY ply=2 depth=1 move=MOVE A6 C8 child=0
+TRY ply=2 depth=1 move=MOVE A6 B5 child=0
+TRY ply=2 depth=1 move=MOVE A6 C4 child=0
+TRY ply=2 depth=1 move=MOVE A2 B3 child=0
+TRY ply=2 depth=1 move=MOVE B2 A3 child=0
+TRY ply=2 depth=1 move=MOVE B2 B3 child=0
+TRY ply=2 depth=1 move=MOVE B2 C3 child=0
+TRY ply=2 depth=1 move=MOVE B2 C2 child=0
+TRY ply=2 depth=1 move=MOVE G2 F4 child=0
+TRY ply=2 depth=1 move=MOVE G2 H4 child=0
+TRY ply=2 depth=1 move=MOVE G2 E3 child=0
+TRY ply=2 depth=1 move=MOVE G2 E1 child=0
+TRY ply=2 depth=1 move=MOVE H2 G3 child=0
+TRY ply=2 depth=1 move=MOVE H2 G1 child=0
+TRY ply=2 depth=1 move=MOVE B1 C2 child=0
+TRY ply=2 depth=1 move=MOVE C1 D2 child=0
+TRY ply=2 depth=1 move=MOVE D1 C3 child=0
+TRY ply=2 depth=1 move=MOVE D1 E3 child=0
+BEST ply=1 depth=1 move=STUN E5 F3 value=-41
+EXTEND ply_stun move=STUN E5 E2 depth=1 child_depth=1
+TRY ply=1 depth=1 move=STUN E5 E2 child=1
+TT cutoff exact ply=2 depth=1 move=STUN A6 C7
+TRY ply=1 depth=1 move=SPELL swap D7 A8 child=0
+TRY ply=1 depth=1 move=SPELL swap D7 D8 child=0
+TRY ply=1 depth=1 move=SPELL swap D7 E8 child=0
+TRY ply=1 depth=1 move=SPELL swap D7 E5 child=0
+TRY ply=1 depth=1 move=MOVE D8 C8 child=0
+TRY ply=1 depth=1 move=MOVE D8 C7 child=0
+TRY ply=1 depth=1 move=MOVE D8 E7 child=0
+TRY ply=1 depth=1 move=MOVE E8 F8 child=0
+TRY ply=1 depth=1 move=MOVE E8 E7 child=0
+TRY ply=1 depth=1 move=MOVE E8 F7 child=0
+TRY ply=1 depth=1 move=MOVE D7 B8 child=0
+TRY ply=1 depth=1 move=MOVE D7 F8 child=0
+TRY ply=1 depth=1 move=MOVE D7 B6 child=0
+TRY ply=1 depth=1 move=MOVE D7 F6 child=0
+TRY ply=1 depth=1 move=MOVE D7 C5 child=0
+TRY ply=1 depth=1 move=MOVE E5 D6 child=0
+TRY ply=1 depth=1 move=MOVE E5 C7 child=0
+TRY ply=1 depth=1 move=MOVE E5 F6 child=0
+TRY ply=1 depth=1 move=MOVE E5 G7 child=0
+TRY ply=1 depth=1 move=MOVE E5 D4 child=0
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=41560 move=STUN A6 C7
+  ORDER 1 score=41560 move=STUN A6 D6
+  ORDER 2 score=40500 move=STUN A6 A8
+  ORDER 3 score=40500 move=STUN A6 B8
+  ORDER 4 score=40500 move=STUN A6 A7
+  ORDER 5 score=30300 move=SPELL ignite B1 D4
+QCUTOFF ply=2 move=STUN A6 C7
+TRY ply=1 depth=1 move=MOVE E5 C3 child=0
+TRY ply=1 depth=1 move=MOVE E5 F4 child=0
+TRY ply=1 depth=1 move=MOVE E5 G3 child=0
+ROOT-RESULT depth=1 move=STUN A6 A8 value=-41
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A6 B8 score=40300 child=1
+TT cutoff exact ply=1 depth=1 move=STUN E5 F3
+ROOT-RESULT depth=1 move=STUN A6 B8 value=-41
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A6 A7 score=40300 child=1
+TT cutoff exact ply=1 depth=1 move=STUN E5 F3
+ROOT-RESULT depth=1 move=STUN A6 A7 value=-41
+ROOT-TRY depth=1 move=SPAWN Ghoul H2 G3 score=20000 child=0
+ROOT-RESULT depth=1 move=SPAWN Ghoul H2 G3 value=-41
+ROOT-TRY depth=1 move=SPAWN Ghoul H2 H3 score=20000 child=0
+ROOT-RESULT depth=1 move=SPAWN Ghoul H2 H3 value=-41
+ROOT-TRY depth=1 move=SPAWN Ghoul C1 C2 score=20000 child=0
+ROOT-RESULT depth=1 move=SPAWN Ghoul C1 C2 value=-41
+ROOT-TRY depth=1 move=SPAWN Ghoul C1 D2 score=20000 child=0
+ROOT-RESULT depth=1 move=SPAWN Ghoul C1 D2 value=-41
+ROOT-TRY depth=1 move=MOVE A6 B7 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A6 B7 value=-41
+ROOT-TRY depth=1 move=MOVE A6 C8 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A6 C8 value=-41
+ROOT-TRY depth=1 move=MOVE A6 B5 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A6 B5 value=-41
+ROOT-TRY depth=1 move=MOVE A6 C4 score=0 child=0
+QORDER depth=0 ply=1 count=5
+  ORDER 0 score=42400 move=STUN E5 F3
+  ORDER 1 score=42400 move=STUN E5 E2
+  ORDER 2 score=40300 move=STUN E5 C5
+  ORDER 3 score=40300 move=STUN E5 C4
+  ORDER 4 score=40300 move=STUN E5 D4
+QORDER depth=1 ply=2 count=5
+  ORDER 0 score=41560 move=STUN C4 C7
+  ORDER 1 score=41560 move=STUN C4 D6
+  ORDER 2 score=40300 move=STUN C4 D5
+  ORDER 3 score=40300 move=STUN C4 E5
+  ORDER 4 score=40300 move=STUN C4 E4
+QCUTOFF ply=1 move=STUN E5 F3
+ROOT-RESULT depth=1 move=MOVE A6 C4 value=-41
+ROOT-TRY depth=1 move=MOVE A2 B3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A2 B3 value=-41
+ROOT-TRY depth=1 move=MOVE B2 A3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE B2 A3 value=-41
+ROOT-TRY depth=1 move=MOVE B2 B3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE B2 B3 value=-41
+ROOT-TRY depth=1 move=MOVE B2 C3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE B2 C3 value=-41
+ROOT-TRY depth=1 move=MOVE B2 C2 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE B2 C2 value=-41
+ROOT-TRY depth=1 move=MOVE F2 F3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE F2 F3 value=-41
+ROOT-TRY depth=1 move=MOVE F2 F1 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE F2 F1 value=-41
+ROOT-TRY depth=1 move=MOVE F2 E2 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE F2 E2 value=-41
+ROOT-TRY depth=1 move=MOVE G2 F4 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE G2 F4 value=-41
+ROOT-TRY depth=1 move=MOVE G2 H4 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE G2 H4 value=-41
+ROOT-TRY depth=1 move=MOVE G2 E3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE G2 E3 value=-41
+ROOT-TRY depth=1 move=MOVE G2 E1 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE G2 E1 value=-41
+ROOT-TRY depth=1 move=MOVE H2 G3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE H2 G3 value=-41
+ROOT-TRY depth=1 move=MOVE H2 G1 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE H2 G1 value=-41
+ROOT-TRY depth=1 move=MOVE B1 C2 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE B1 C2 value=-41
+ROOT-TRY depth=1 move=MOVE C1 D2 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE C1 D2 value=-41
+ROOT-TRY depth=1 move=MOVE D1 C3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE D1 C3 value=-41
+ROOT-TRY depth=1 move=MOVE D1 E3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE D1 E3 value=-41
+ITERATION depth=1 best=STUN A6 A8 value=-41
+ROOT-ORDER depth=2 ply=0 count=31
+  ORDER 0 score=1000000 move=STUN A6 A8
+  ORDER 1 score=42600 move=STUN A6 C7
+  ORDER 2 score=42600 move=STUN A6 D6
+  ORDER 3 score=40300 move=STUN A6 B8
+  ORDER 4 score=40300 move=STUN A6 A7
+  ORDER 5 score=20000 move=SPAWN Ghoul H2 G3
+  ORDER 6 score=20000 move=SPAWN Ghoul H2 H3
+  ORDER 7 score=20000 move=SPAWN Ghoul C1 C2
+  ORDER 8 score=20000 move=SPAWN Ghoul C1 D2
+  ORDER 9 score=0 move=MOVE A6 B7
+  ORDER 10 score=0 move=MOVE A6 C8
+  ORDER 11 score=0 move=MOVE A6 B5
+EXTEND ply_stun move=STUN A6 A8 depth=2 child_depth=2
+ROOT-TRY depth=2 move=STUN A6 A8 score=1000000 child=2
+ORDER depth=2 ply=1 count=25
+  ORDER 0 score=1000000 move=STUN E5 F3
+  ORDER 1 score=42400 move=STUN E5 E2
+  ORDER 2 score=30000 move=SPELL swap D7 A8
+  ORDER 3 score=30000 move=SPELL swap D7 D8
+  ORDER 4 score=30000 move=SPELL swap D7 E8
+  ORDER 5 score=30000 move=SPELL swap D7 E5
+  ORDER 6 score=0 move=MOVE D8 C8
+  ORDER 7 score=0 move=MOVE D8 C7
+  ORDER 8 score=0 move=MOVE D8 E7
+  ORDER 9 score=0 move=MOVE E8 F8
+  ORDER 10 score=0 move=MOVE E8 E7
+  ORDER 11 score=0 move=MOVE E8 F7
+EXTEND ply_stun move=STUN E5 F3 depth=2 child_depth=2
+TRY ply=1 depth=2 move=STUN E5 F3 child=2
+ORDER depth=2 ply=2 count=28
+  ORDER 0 score=1000000 move=STUN A6 C7
+  ORDER 1 score=41560 move=STUN A6 D6
+  ORDER 2 score=40500 move=STUN A6 A8
+  ORDER 3 score=40500 move=STUN A6 B8
+  ORDER 4 score=40500 move=STUN A6 A7
+  ORDER 5 score=20000 move=SPAWN Ghoul H2 G3
+  ORDER 6 score=20000 move=SPAWN Ghoul H2 H3
+  ORDER 7 score=20000 move=SPAWN Ghoul C1 C2
+  ORDER 8 score=20000 move=SPAWN Ghoul C1 D2
+  ORDER 9 score=0 move=MOVE A6 B7
+  ORDER 10 score=0 move=MOVE A6 C8
+  ORDER 11 score=0 move=MOVE A6 B5
+EXTEND ply_stun move=STUN A6 C7 depth=2 child_depth=2
+TRY ply=2 depth=2 move=STUN A6 C7 child=2
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B5 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN E5 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 B3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 D6 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 C2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 B8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 E2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D1 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 F3 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 C7 depth=1 child_depth=1
+EXTEND ply_stun move=STUN D4 D2 depth=1 child_depth=1
+EXTEND ply_stun move=STUN A6 A8 dept
