@@ -10,16 +10,45 @@ This makes FrostMage a deliberate adversarial benchmark for Ares. Ares must not 
 
 `tools/analytics/frostmage_benchmark.py` uses a fixed RWEN position with five enemy Bones clustered in one FrostMage three-range stun area.
 
-The benchmark expects the engine to select a `STUN` action at several node budgets. It is diagnostic while Ares is still known to be weak; it should become a regression gate only after the engine reliably solves the position.
+The benchmark is intentionally outside the engine's decision logic: no engine code knows that this position exists or that FrostMage is the expected answer.
+
+## Current baseline
+
+Measured on the current Ares build:
+
+```text
+10,000 nodes   -> MOVE A5 C3   FAIL
+100,000 nodes  -> MOVE A5 C3   FAIL
+500,000 nodes  -> STUN A5 D5   PASS
+```
+
+The first baseline therefore has a failure threshold between 100k and 500k nodes for this position.
 
 ## Interpretation
 
-A failure is evidence of a search/evaluation problem, not a balance problem. Possible causes include:
+This is evidence of a tactical search weakness, not evidence that FrostMage should receive a lower cost. The unit is already at the minimum configured cost.
 
-- the move generator not exposing the strongest multi-target stun;
-- move ordering failing to search the stun early enough;
-- the classical evaluation undervaluing simultaneous stun pressure;
-- quiescence/search horizon effects hiding the second-stun conversion;
-- NNUE features not representing the tactical structure strongly enough.
+The current search already orders `STUN` moves above ordinary moves, but its quiescence `is_forcing_move()` logic only treats a stun as forcing when it sees an already-stunned target. A first multi-target stun against fresh targets can therefore fall outside the tactical continuation that quiescence searches.
 
-The next Ares work should isolate these causes with controlled positions rather than immediately changing FrostMage's cost.
+Other candidate causes are:
+
+- insufficient value given to simultaneous stun pressure;
+- horizon effects hiding the second-stun conversion;
+- move ordering that does not distinguish high-impact tactical actions deeply enough;
+- lack of selective extensions after a strong tactical event;
+- spells and passives being considered in static material rather than as future tactical potential;
+- NNUE not yet representing the tactical structure strongly enough.
+
+## Optimization methodology
+
+For each search change, rerun this exact position at the same budgets. A successful optimization lowers the failure threshold or keeps it stable without materially increasing evaluation cost.
+
+The broader benchmark suite follows the same principle: high-node reference first, progressively lower node budgets afterward, then compare the threshold before/after each isolated search change.
+
+## Planned tests
+
+1. Treat multi-target stun as a forcing tactical event in quiescence when appropriate.
+2. Add selective search extension after high-impact multi-target stun.
+3. Improve generic tactical scoring of spells and passives without hardcoding benchmark positions.
+4. Add more adversarial positions for spells, passives, aura denial, lifespan, cooldown and chained effects.
+5. Validate the winner in Arena after the micro-benchmark improves.
