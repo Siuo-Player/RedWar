@@ -12,6 +12,7 @@ MAX_COST = 200
 ELO_SCALE = 400.0
 ADJUSTMENT_K = 50.0
 MAX_DRAFT_QUANTITY = 64
+MIN_SAMPLES_FOR_ADJUSTMENT = 100
 
 
 def calcular_win_esperada(elo_a, elo_b):
@@ -109,17 +110,20 @@ def calcular_balanceamento(stats, heroes):
             continue
 
         custo_antigo = int(custos_atuais[peca])
-        media_delta = piece_score_delta[peca] / piece_volume[peca]
-        ajuste = int(round(media_delta * ADJUSTMENT_K))
+        samples = piece_volume[peca]
+        media_delta = piece_score_delta[peca] / samples
+        eligible = samples >= MIN_SAMPLES_FOR_ADJUSTMENT
+        ajuste = int(round(media_delta * ADJUSTMENT_K)) if eligible else 0
         novo_custo = max(MIN_COST, min(MAX_COST, custo_antigo + ajuste))
         changes.append(
             {
                 "hero": peca,
-                "samples": piece_volume[peca],
+                "samples": samples,
                 "performance_delta": media_delta,
                 "old_cost": custo_antigo,
                 "new_cost": novo_custo,
-                "changed": novo_custo != custo_antigo,
+                "eligible_for_adjustment": eligible,
+                "changed": eligible and novo_custo != custo_antigo,
             }
         )
 
@@ -131,6 +135,7 @@ def calcular_balanceamento(stats, heroes):
         "max_cost": MAX_COST,
         "adjustment_k": ADJUSTMENT_K,
         "max_draft_quantity": MAX_DRAFT_QUANTITY,
+        "min_samples_for_adjustment": MIN_SAMPLES_FOR_ADJUSTMENT,
         "changes": changes,
     }
 
@@ -155,7 +160,7 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
 
     mudancas = False
     print("\n📊 Análise de Performance Absoluta (Impacto sobre ELO Base)")
-    print("-" * 65)
+    print("-" * 76)
 
     for change in relatorio["changes"]:
         peca = change["hero"]
@@ -170,6 +175,11 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
             print(
                 f"{peca.ljust(12)} | N={samples:.0f} | Performance: {sinal}{media_delta * 100:.1f}% | "
                 f"{custo_antigo} -> {novo_custo} ({estado})"
+            )
+        elif not change["eligible_for_adjustment"]:
+            print(
+                f"{peca.ljust(12)} | N={samples:.0f} | Performance: {media_delta * 100:+.1f}% | "
+                f"{custo_antigo} (Sem amostra suficiente; mínimo {MIN_SAMPLES_FOR_ADJUSTMENT})"
             )
         else:
             print(
@@ -188,7 +198,7 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
         else:
             print("\nℹ️ Alterações calculadas, mas escrita de heroes_config.json desativada.")
     else:
-        print("\n✅ Preços perfeitamente equilibrados. Sem mudanças.")
+        print("\n✅ Nenhum preço elegível requer alteração.")
 
     if caminho_relatorio:
         caminho_relatorio = os.path.abspath(caminho_relatorio)
