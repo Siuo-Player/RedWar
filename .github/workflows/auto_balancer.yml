@@ -98,8 +98,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-            name: redwar-training-telemetry-${{ github.run_id }}
-            path: |
-              data/estatisticas_treino.json
-              logs/trainer_failures/**
-            if-no-files-found: warn
+          name: redwar-training-telemetry-${{ github.run_id }}
+          path: |
+            data/estatisticas_treino.json
+            logs/trainer_failures/**
+          if-no-files-found: warn
