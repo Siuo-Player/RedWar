@@ -24,6 +24,19 @@ EXPECTED_TOP_LEVEL = {
     "ui",
 }
 
+# These are legitimate local/generated directories, not project modules.
+IGNORED_TOP_LEVEL = {
+    ".git",
+    ".github",
+    ".vscode",
+    ".venv",
+    ".pytest_cache",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+}
+
 LEGACY_PATHS = {
     "tools/analytics/opening_tester.py": "usar tools/analytics/opening_book.py",
     "tools/analytics/calibrate_elo_chain.py": "usar Arena/medição estatística atual",
@@ -39,7 +52,7 @@ def audit(root: Path = ROOT) -> list[str]:
     for name in missing:
         findings.append(f"MISSING-DIR: {name}/")
 
-    unexpected = sorted(actual - EXPECTED_TOP_LEVEL - {".git", ".github", ".vscode", "venv", "__pycache__"})
+    unexpected = sorted(actual - EXPECTED_TOP_LEVEL - IGNORED_TOP_LEVEL)
     for name in unexpected:
         findings.append(f"UNEXPECTED-TOP-LEVEL: {name}/")
 
