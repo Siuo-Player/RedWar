@@ -1,0 +1,603 @@
+# RedWar Ares search trace
+# Detail is intentionally bounded; this is a decision/pruning summary, not a node dump.
+ROOT-ORDER depth=1 ply=0 count=9
+  ORDER 0 score=41920 move=STUN A5 D5
+  ORDER 1 score=40960 move=STUN A5 C6
+  ORDER 2 score=40960 move=STUN A5 C4
+  ORDER 3 score=40480 move=STUN A5 B5
+  ORDER 4 score=40480 move=STUN A5 C5
+  ORDER 5 score=0 move=MOVE A5 B6
+  ORDER 6 score=0 move=MOVE A5 C7
+  ORDER 7 score=0 move=MOVE A5 B4
+  ORDER 8 score=0 move=MOVE A5 C3
+EXTEND ply_stun move=STUN A5 D5 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A5 D5 score=41920 child=1
+ORDER depth=1 ply=1 count=3
+  ORDER 0 score=0 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=43200 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C6
+  ORDER 2 score=41600 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=66
+TRY ply=1 depth=1 move=MOVE D7 C7 child=0
+TRY ply=1 depth=1 move=MOVE D7 E7 child=0
+ROOT-RESULT depth=1 move=STUN A5 D5 value=66
+EXTEND ply_stun move=STUN A5 C6 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A5 C6 score=40960 child=1
+ORDER depth=1 ply=1 count=11
+  ORDER 0 score=0 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE E5 E6
+  ORDER 4 score=0 move=MOVE E5 E4
+  ORDER 5 score=0 move=MOVE E5 D5
+  ORDER 6 score=0 move=MOVE E5 F5
+  ORDER 7 score=0 move=MOVE D4 D5
+  ORDER 8 score=0 move=MOVE D4 D3
+  ORDER 9 score=0 move=MOVE D4 C4
+  ORDER 10 score=0 move=MOVE D4 E4
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42560 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=9999998
+BETA-CUTOFF ply=1 depth=1 move=MOVE D7 D8 alpha=9999998 beta=9999998
+ORDER depth=1 ply=1 count=11
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE E5 E6
+  ORDER 4 score=0 move=MOVE E5 E4
+  ORDER 5 score=0 move=MOVE E5 D5
+  ORDER 6 score=0 move=MOVE E5 F5
+  ORDER 7 score=0 move=MOVE D4 D5
+  ORDER 8 score=0 move=MOVE D4 D3
+  ORDER 9 score=0 move=MOVE D4 C4
+  ORDER 10 score=0 move=MOVE D4 E4
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42560 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=124
+TRY ply=1 depth=1 move=MOVE D7 C7 child=0
+TRY ply=1 depth=1 move=MOVE D7 E7 child=0
+TRY ply=1 depth=1 move=MOVE E5 E6 child=0
+TRY ply=1 depth=1 move=MOVE E5 E4 child=0
+TRY ply=1 depth=1 move=MOVE E5 D5 child=0
+TRY ply=1 depth=1 move=MOVE E5 F5 child=0
+TRY ply=1 depth=1 move=MOVE D4 D5 child=0
+TRY ply=1 depth=1 move=MOVE D4 D3 child=0
+TRY ply=1 depth=1 move=MOVE D4 C4 child=0
+TRY ply=1 depth=1 move=MOVE D4 E4 child=0
+ROOT-RESULT depth=1 move=STUN A5 C6 value=124
+EXTEND ply_stun move=STUN A5 C4 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A5 C4 score=40960 child=1
+ORDER depth=1 ply=1 count=10
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE D6 D5
+  ORDER 4 score=0 move=MOVE D6 C6
+  ORDER 5 score=0 move=MOVE D6 E6
+  ORDER 6 score=0 move=MOVE E5 E6
+  ORDER 7 score=0 move=MOVE E5 E4
+  ORDER 8 score=0 move=MOVE E5 D5
+  ORDER 9 score=0 move=MOVE E5 F5
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42560 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C4
+  ORDER 2 score=41280 move=STUN A5 C6
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=9999998
+BETA-CUTOFF ply=1 depth=1 move=MOVE D7 D8 alpha=9999998 beta=9999998
+ORDER depth=1 ply=1 count=10
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE D6 D5
+  ORDER 4 score=0 move=MOVE D6 C6
+  ORDER 5 score=0 move=MOVE D6 E6
+  ORDER 6 score=0 move=MOVE E5 E6
+  ORDER 7 score=0 move=MOVE E5 E4
+  ORDER 8 score=0 move=MOVE E5 D5
+  ORDER 9 score=0 move=MOVE E5 F5
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42560 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C4
+  ORDER 2 score=41280 move=STUN A5 C6
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=178
+TRY ply=1 depth=1 move=MOVE D7 C7 child=0
+TRY ply=1 depth=1 move=MOVE D7 E7 child=0
+TRY ply=1 depth=1 move=MOVE D6 D5 child=0
+TRY ply=1 depth=1 move=MOVE D6 C6 child=0
+TRY ply=1 depth=1 move=MOVE D6 E6 child=0
+TRY ply=1 depth=1 move=MOVE E5 E6 child=0
+TRY ply=1 depth=1 move=MOVE E5 E4 child=0
+TRY ply=1 depth=1 move=MOVE E5 D5 child=0
+TRY ply=1 depth=1 move=MOVE E5 F5 child=0
+ROOT-RESULT depth=1 move=STUN A5 C4 value=178
+EXTEND ply_stun move=STUN A5 B5 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A5 B5 score=40480 child=1
+ORDER depth=1 ply=1 count=14
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE D6 D5
+  ORDER 4 score=0 move=MOVE D6 C6
+  ORDER 5 score=0 move=MOVE D6 E6
+  ORDER 6 score=0 move=MOVE E5 E6
+  ORDER 7 score=0 move=MOVE E5 E4
+  ORDER 8 score=0 move=MOVE E5 D5
+  ORDER 9 score=0 move=MOVE E5 F5
+  ORDER 10 score=0 move=MOVE D4 D5
+  ORDER 11 score=0 move=MOVE D4 D3
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=9999998
+BETA-CUTOFF ply=1 depth=1 move=MOVE D7 D8 alpha=9999998 beta=9999998
+ORDER depth=1 ply=1 count=14
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE D6 D5
+  ORDER 4 score=0 move=MOVE D6 C6
+  ORDER 5 score=0 move=MOVE D6 E6
+  ORDER 6 score=0 move=MOVE E5 E6
+  ORDER 7 score=0 move=MOVE E5 E4
+  ORDER 8 score=0 move=MOVE E5 D5
+  ORDER 9 score=0 move=MOVE E5 F5
+  ORDER 10 score=0 move=MOVE D4 D5
+  ORDER 11 score=0 move=MOVE D4 D3
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=210
+TRY ply=1 depth=1 move=MOVE D7 C7 child=0
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41760 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+  ORDER 5 score=40480 move=STUN A5 B7
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D7 E7 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D6 D5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C5
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 C6
+  ORDER 4 score=40800 move=STUN A5 B5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D6 C6 child=0
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+  ORDER 5 score=40480 move=STUN A5 B6
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+  ORDER 5 score=40480 move=STUN A5 B6
+BEST ply=1 depth=1 move=MOVE D6 C6 value=207
+TRY ply=1 depth=1 move=MOVE D6 E6 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C4
+  ORDER 2 score=40800 move=STUN A5 C6
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 E6 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 E4 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 D5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 F5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 D5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C4
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 D3 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=40800 move=STUN A5 B5
+  ORDER 3 score=40800 move=STUN A5 C5
+  ORDER 4 score=40800 move=STUN A5 C4
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 C4 child=0
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+  ORDER 5 score=40480 move=STUN A5 B4
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 E4 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=40800 move=STUN A5 B5
+  ORDER 3 score=40800 move=STUN A5 C5
+  ORDER 4 score=40800 move=STUN A5 C4
+QCUTOFF ply=2 move=STUN A5 D5
+ROOT-RESULT depth=1 move=STUN A5 B5 value=207
+EXTEND ply_stun move=STUN A5 C5 depth=1 child_depth=1
+ROOT-TRY depth=1 move=STUN A5 C5 score=40480 child=1
+ORDER depth=1 ply=1 count=14
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE D6 D5
+  ORDER 4 score=0 move=MOVE D6 C6
+  ORDER 5 score=0 move=MOVE D6 E6
+  ORDER 6 score=0 move=MOVE E5 E6
+  ORDER 7 score=0 move=MOVE E5 E4
+  ORDER 8 score=0 move=MOVE E5 D5
+  ORDER 9 score=0 move=MOVE E5 F5
+  ORDER 10 score=0 move=MOVE D4 D5
+  ORDER 11 score=0 move=MOVE D4 D3
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=9999998
+BETA-CUTOFF ply=1 depth=1 move=MOVE D7 D8 alpha=9999998 beta=9999998
+ORDER depth=1 ply=1 count=14
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE D6 D5
+  ORDER 4 score=0 move=MOVE D6 C6
+  ORDER 5 score=0 move=MOVE D6 E6
+  ORDER 6 score=0 move=MOVE E5 E6
+  ORDER 7 score=0 move=MOVE E5 E4
+  ORDER 8 score=0 move=MOVE E5 D5
+  ORDER 9 score=0 move=MOVE E5 F5
+  ORDER 10 score=0 move=MOVE D4 D5
+  ORDER 11 score=0 move=MOVE D4 D3
+TRY ply=1 depth=1 move=MOVE D7 D8 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+BEST ply=1 depth=1 move=MOVE D7 D8 value=228
+TRY ply=1 depth=1 move=MOVE D7 C7 child=0
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41760 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+  ORDER 5 score=40480 move=STUN A5 B7
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D7 E7 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D6 D5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C5
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 C6
+  ORDER 4 score=40800 move=STUN A5 B5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D6 C6 child=0
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+  ORDER 5 score=40480 move=STUN A5 B6
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+  ORDER 5 score=40480 move=STUN A5 B6
+BEST ply=1 depth=1 move=MOVE D6 C6 value=225
+TRY ply=1 depth=1 move=MOVE D6 E6 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C4
+  ORDER 2 score=40800 move=STUN A5 C6
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 E6 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 E4 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 D5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE E5 F5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 D5 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=42240 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C4
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 D3 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=40800 move=STUN A5 B5
+  ORDER 3 score=40800 move=STUN A5 C5
+  ORDER 4 score=40800 move=STUN A5 C4
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 C4 child=0
+QORDER depth=0 ply=2 count=6
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C5
+  ORDER 3 score=41280 move=STUN A5 C4
+  ORDER 4 score=40800 move=STUN A5 B5
+  ORDER 5 score=40480 move=STUN A5 B4
+QCUTOFF ply=2 move=STUN A5 D5
+TRY ply=1 depth=1 move=MOVE D4 E4 child=0
+QORDER depth=0 ply=2 count=5
+  ORDER 0 score=41760 move=STUN A5 D5
+  ORDER 1 score=41280 move=STUN A5 C6
+  ORDER 2 score=40800 move=STUN A5 B5
+  ORDER 3 score=40800 move=STUN A5 C5
+  ORDER 4 score=40800 move=STUN A5 C4
+QCUTOFF ply=2 move=STUN A5 D5
+ROOT-RESULT depth=1 move=STUN A5 C5 value=225
+ROOT-TRY depth=1 move=MOVE A5 B6 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A5 B6 value=225
+ROOT-TRY depth=1 move=MOVE A5 C7 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A5 C7 value=225
+ROOT-TRY depth=1 move=MOVE A5 B4 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A5 B4 value=225
+ROOT-TRY depth=1 move=MOVE A5 C3 score=0 child=0
+ROOT-RESULT depth=1 move=MOVE A5 C3 value=225
+ITERATION depth=1 best=STUN A5 C5 value=225
+ROOT-ORDER depth=2 ply=0 count=9
+  ORDER 0 score=41920 move=STUN A5 D5
+  ORDER 1 score=40960 move=STUN A5 C6
+  ORDER 2 score=40960 move=STUN A5 C4
+  ORDER 3 score=40480 move=STUN A5 B5
+  ORDER 4 score=40480 move=STUN A5 C5
+  ORDER 5 score=0 move=MOVE A5 B6
+  ORDER 6 score=0 move=MOVE A5 C7
+  ORDER 7 score=0 move=MOVE A5 B4
+  ORDER 8 score=0 move=MOVE A5 C3
+EXTEND ply_stun move=STUN A5 D5 depth=2 child_depth=2
+ROOT-TRY depth=2 move=STUN A5 D5 score=41920 child=2
+ORDER depth=2 ply=1 count=3
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+TRY ply=1 depth=2 move=MOVE D7 D8 child=1
+ORDER depth=1 ply=2 count=9
+  ORDER 0 score=43200 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C6
+  ORDER 2 score=41600 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+  ORDER 5 score=0 move=MOVE A5 B6
+  ORDER 6 score=0 move=MOVE A5 C7
+  ORDER 7 score=0 move=MOVE A5 B4
+  ORDER 8 score=0 move=MOVE A5 C3
+TRY ply=2 depth=1 move=STUN A5 D5 child=0
+BEST ply=2 depth=1 move=STUN A5 D5 value=231
+TRY ply=2 depth=1 move=STUN A5 C6 child=0
+BEST ply=2 depth=1 move=STUN A5 C6 value=235
+TRY ply=2 depth=1 move=STUN A5 C4 child=0
+BEST ply=2 depth=1 move=STUN A5 C4 value=253
+TRY ply=2 depth=1 move=STUN A5 B5 child=0
+BEST ply=2 depth=1 move=STUN A5 B5 value=273
+TRY ply=2 depth=1 move=STUN A5 C5 child=0
+BEST ply=2 depth=1 move=STUN A5 C5 value=300
+TRY ply=2 depth=1 move=MOVE A5 B6 child=0
+BEST ply=2 depth=1 move=MOVE A5 B6 value=327
+TRY ply=2 depth=1 move=MOVE A5 C7 child=0
+BEST ply=2 depth=1 move=MOVE A5 C7 value=343
+TRY ply=2 depth=1 move=MOVE A5 B4 child=0
+BEST ply=2 depth=1 move=MOVE A5 B4 value=408
+TRY ply=2 depth=1 move=MOVE A5 C3 child=0
+BEST ply=2 depth=1 move=MOVE A5 C3 value=444
+BEST ply=1 depth=2 move=MOVE D7 D8 value=444
+TRY ply=1 depth=2 move=MOVE D7 C7 child=1
+ORDER depth=1 ply=2 count=9
+  ORDER 0 score=43200 move=STUN A5 D5
+  ORDER 1 score=42080 move=STUN A5 C6
+  ORDER 2 score=41600 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+  ORDER 5 score=40480 move=STUN A5 B7
+  ORDER 6 score=0 move=MOVE A5 B6
+  ORDER 7 score=0 move=MOVE A5 B4
+  ORDER 8 score=0 move=MOVE A5 C3
+TRY ply=2 depth=1 move=STUN A5 D5 child=0
+BEST ply=2 depth=1 move=STUN A5 D5 value=466
+BETA-CUTOFF ply=2 depth=1 move=STUN A5 D5 alpha=466 beta=444
+TRY ply=1 depth=2 move=MOVE D7 E7 child=1
+ORDER depth=1 ply=2 count=9
+  ORDER 0 score=43200 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C6
+  ORDER 2 score=41600 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+  ORDER 5 score=0 move=MOVE A5 B6
+  ORDER 6 score=0 move=MOVE A5 C7
+  ORDER 7 score=0 move=MOVE A5 B4
+  ORDER 8 score=0 move=MOVE A5 C3
+TRY ply=2 depth=1 move=STUN A5 D5 child=0
+BEST ply=2 depth=1 move=STUN A5 D5 value=465
+BETA-CUTOFF ply=2 depth=1 move=STUN A5 D5 alpha=465 beta=444
+ROOT-RESULT depth=2 move=STUN A5 D5 value=444
+EXTEND ply_stun move=STUN A5 C6 depth=2 child_depth=2
+ROOT-TRY depth=2 move=STUN A5 C6 score=40960 child=2
+ORDER depth=2 ply=1 count=11
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE E5 E6
+  ORDER 4 score=0 move=MOVE E5 E4
+  ORDER 5 score=0 move=MOVE E5 D5
+  ORDER 6 score=0 move=MOVE E5 F5
+  ORDER 7 score=0 move=MOVE D4 D5
+  ORDER 8 score=0 move=MOVE D4 D3
+  ORDER 9 score=0 move=MOVE D4 C4
+  ORDER 10 score=0 move=MOVE D4 E4
+TRY ply=1 depth=2 move=MOVE D7 D8 child=1
+ORDER depth=1 ply=2 count=9
+  ORDER 0 score=42560 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+  ORDER 5 score=0 move=MOVE A5 B6
+  ORDER 6 score=0 move=MOVE A5 C7
+  ORDER 7 score=0 move=MOVE A5 B4
+  ORDER 8 score=0 move=MOVE A5 C3
+EXTEND ply_stun move=STUN A5 D5 depth=1 child_depth=1
+TRY ply=2 depth=1 move=STUN A5 D5 child=1
+BEST ply=2 depth=1 move=STUN A5 D5 value=9999998
+TRY ply=2 depth=1 move=STUN A5 C6 child=0
+EXTEND ply_stun move=STUN A5 C4 depth=1 child_depth=1
+TRY ply=2 depth=1 move=STUN A5 C4 child=1
+TRY ply=2 depth=1 move=STUN A5 B5 child=0
+TRY ply=2 depth=1 move=STUN A5 C5 child=0
+TRY ply=2 depth=1 move=MOVE A5 B6 child=0
+TRY ply=2 depth=1 move=MOVE A5 C7 child=0
+TRY ply=2 depth=1 move=MOVE A5 B4 child=0
+TRY ply=2 depth=1 move=MOVE A5 C3 child=0
+BEST ply=1 depth=2 move=MOVE D7 D8 value=9999998
+BETA-CUTOFF ply=1 depth=2 move=MOVE D7 D8 alpha=9999998 beta=9999998
+ORDER depth=2 ply=1 count=11
+  ORDER 0 score=10000 move=MOVE D7 D8
+  ORDER 1 score=0 move=MOVE D7 C7
+  ORDER 2 score=0 move=MOVE D7 E7
+  ORDER 3 score=0 move=MOVE E5 E6
+  ORDER 4 score=0 move=MOVE E5 E4
+  ORDER 5 score=0 move=MOVE E5 D5
+  ORDER 6 score=0 move=MOVE E5 F5
+  ORDER 7 score=0 move=MOVE D4 D5
+  ORDER 8 score=0 move=MOVE D4 D3
+  ORDER 9 score=0 move=MOVE D4 C4
+  ORDER 10 score=0 move=MOVE D4 E4
+TRY ply=1 depth=2 move=MOVE D7 D8 child=1
+ORDER depth=1 ply=2 count=9
+  ORDER 0 score=42560 move=STUN A5 D5
+  ORDER 1 score=41600 move=STUN A5 C6
+  ORDER 2 score=41280 move=STUN A5 C4
+  ORDER 3 score=40800 move=STUN A5 B5
+  ORDER 4 score=40800 move=STUN A5 C5
+  ORDER 5 score=0 move=MOVE A5 B6
+  ORDER 6 score=0 move=MOVE A5 C7
+  ORDER 7 score=0 move=MOVE A5 B4
+  ORDER 8 score=0 move=MOVE A5 C3
+EXTEND ply_stun move=STUN A5 D5 depth=1 child_depth=1
+TRY ply=2 depth=1 move=STUN A5 D5 child=1
+SUMMARY nodes=325000 qnodes=155676 tt_hits=1841 tt_cutoffs=566 beta_cutoffs=40252 stun_extensions=20333 trace_lines=600
