@@ -15,6 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DEFAULT_ENGINE = os.path.join(
     ROOT, "ai", "cpp_engine", "engine.exe" if sys.platform == "win32" else "engine"
 )
+DEFAULT_NODES = [10_000, 100_000, 500_000]
 
 # FrostMage on D5 can stun the enemy at G5; the 3-range area contains five
 # clustered enemies around G5. A second stun on the next FrostMage turn can
@@ -67,8 +68,18 @@ def query(engine: str, nodes: int) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Diagnóstico táctico do FrostMage para Ares")
     parser.add_argument("--engine", default=DEFAULT_ENGINE)
-    parser.add_argument("--nodes", type=int, action="append", default=[10_000, 100_000, 500_000])
+    parser.add_argument(
+        "--nodes",
+        type=int,
+        action="append",
+        default=None,
+        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10000, 100000, 500000.",
+    )
     args = parser.parse_args()
+    node_budgets = args.nodes if args.nodes else DEFAULT_NODES
+
+    if any(nodes <= 0 for nodes in node_budgets):
+        parser.error("--nodes deve conter apenas inteiros positivos")
 
     if not os.path.isfile(args.engine):
         raise FileNotFoundError(f"Engine não encontrada: {args.engine}")
@@ -78,7 +89,7 @@ def main() -> int:
     print("expected tactical class: STUN")
     print()
     failures = 0
-    for nodes in args.nodes:
+    for nodes in node_budgets:
         bestmove = query(args.engine, nodes)
         ok = bestmove.startswith("STUN ")
         if not ok:
@@ -89,7 +100,7 @@ def main() -> int:
     if failures:
         print(
             "DIAGNOSTIC: Ares failed to select the immediate 5-target FrostMage "
-            f"stun at {failures}/{len(args.nodes)} tested budgets."
+            f"stun at {failures}/{len(node_budgets)} tested budgets."
         )
         return 1
 
