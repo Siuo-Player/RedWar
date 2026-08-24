@@ -20,6 +20,7 @@ class CppEngineBot:
             binary_name = "engine.exe" if sys.platform == "win32" else "engine"
             self.exe_path = os.path.join(os.path.dirname(__file__), "cpp_engine", binary_name)
         self.process = None
+        self.last_position_rwen = None
 
     def _ensure_engine_running(self):
         if self.process is None or self.process.poll() is not None:
@@ -47,7 +48,9 @@ class CppEngineBot:
         return self.process.stdout.readline().strip()
 
     def start_pondering(self, game_state):
-        self._send_command(f"position rwen {game_state.to_rwen()}")
+        rwen = game_state.to_rwen()
+        self.last_position_rwen = rwen
+        self._send_command(f"position rwen {rwen}")
         self._send_command("go infinite")
 
     def stop_pondering(self):
@@ -57,24 +60,34 @@ class CppEngineBot:
             if response and response.startswith("bestmove"): break
 
     def escolher_jogada(self, game_state):
-        self._send_command(f"position rwen {game_state.to_rwen()}")
+        rwen = game_state.to_rwen()
+        self.last_position_rwen = rwen
+        self._send_command(f"position rwen {rwen}")
         self._send_command(f"go nodes {self.nodes}")
         while True:
             response = self._read_response()
-            if not response: break
+            if not response:
+                raise RuntimeError(f"C++ engine returned no response for position: {rwen}")
             if response.startswith("bestmove"):
                 parts = response.split(" ", 1)
-                if len(parts) > 1:
-                    parsed = ActionParser.parse(parts[1].strip())
-                    if not parsed: return None
-                    final_action = {
-                        "type": parsed["action"].lower(),
-                        "start": ActionParser.alg_to_coords(parsed["origin"], LINHAS),
-                        "end": ActionParser.alg_to_coords(parsed["target"], LINHAS)
-                    }
-                    if "spell" in parsed: final_action["spell_name"] = parsed["spell"]
-                    if "hero" in parsed: final_action["spawn_name"] = parsed["hero"]
-                    return final_action
+                move_text = parts[1].strip() if len(parts) > 1 else ""
+                if move_text == "0000":
+                    raise RuntimeError(
+                        f"C++ engine returned bestmove 0000 at {rwen} (nodes={self.nodes})"
+                    )
+                parsed = ActionParser.parse(move_text)
+                if not parsed:
+                    raise RuntimeError(
+                        f"C++ engine returned unparseable move {move_text!r} at {rwen} (nodes={self.nodes})"
+                    )
+                final_action = {
+                    "type": parsed["action"].lower(),
+                    "start": ActionParser.alg_to_coords(parsed["origin"], LINHAS),
+                    "end": ActionParser.alg_to_coords(parsed["target"], LINHAS)
+                }
+                if "spell" in parsed: final_action["spell_name"] = parsed["spell"]
+                if "hero" in parsed: final_action["spawn_name"] = parsed["hero"]
+                return final_action
         return None
 
     def __del__(self):
