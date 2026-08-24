@@ -1,6 +1,7 @@
 # Ambientes Virtuais
 venv/
 env/
+.venv/
 .env/
 
 # Pytest e Coverage
