@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   guard:
@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Reject direct pushes not originating from a merged PR
+      - name: Detect direct pushes not originating from a merged PR
         env:
           GH_TOKEN: ${{ github.token }}
           BEFORE: ${{ github.event.before }}
@@ -26,7 +26,6 @@ jobs:
         run: |
           set -euo pipefail
           unauthorized=()
-
           while IFS= read -r sha; do
             [ -z "$sha" ] && continue
             merged_pr="$(gh api \
@@ -43,18 +42,7 @@ jobs:
             exit 0
           fi
 
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          for sha in "${unauthorized[@]}"; do
-            parents="$(git rev-list --parents -n 1 "$sha")"
-            parent_count=$(( $(wc -w <<< "$parents") - 1 ))
-            if [ "$parent_count" -gt 1 ]; then
-              git revert --no-edit -m 1 "$sha"
-            else
-              git revert --no-edit "$sha"
-            fi
-          done
-
-          git commit --amend -m "chore(guard): revert unauthorized direct push [skip ci]" || true
-          git push origin HEAD:main
+          echo "ERROR: direct commits to main detected that do not originate from merged PRs."
+          printf 'Unauthorized commit: %s\n' "${unauthorized[@]}"
+          echo "Use branch protection / pull requests to correct this state."
+          exit 1

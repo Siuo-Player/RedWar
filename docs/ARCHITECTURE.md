@@ -1,174 +1,178 @@
 # RedWar — Arquitetura Técnica
 
-## Objetivo
+## 1. Princípio central
 
-A arquitetura deve permitir que o mesmo jogo seja executado:
+RedWar deve ter **uma semântica única do jogo**. A UI, a IA, a Arena e o servidor não devem inventar regras próprias.
 
-- na aplicação local;
-- na IA;
-- em simulações massivas;
-- no futuro cliente web;
-- no servidor multiplayer.
-
-A regra principal é evitar que cada camada invente a sua própria versão das regras.
-
-## Estado atual
-
-O projeto está numa fase de transição.
-
-Existem implementações Python/Cython e um núcleo C++ da Ares. Algumas regras e comportamentos ainda existem em mais de uma camada, o que é uma fonte de risco.
+A divisão atual é:
 
 ```text
-Python
-├── engine/game_state.py
-├── engine/pieces.py
-├── engine/action_parser.py
-└── ai/*.py / evaluator.pyx
-
-C++
-└── ai/cpp_engine/
-    ├── types.hpp
-    ├── board.cpp
-    ├── movegen.cpp
-    ├── evaluate.cpp
-    ├── search.cpp
-    ├── main.cpp
-    └── SmokeTest.cpp
-```
-
-## Arquitetura alvo
-
-A longo prazo deve existir uma definição autoritativa das regras e uma interface estável para os restantes sistemas.
-
-```text
-                     ┌────────────────┐
-                     │ UI desktop/web │
-                     └───────┬────────┘
-                             │ ações/estado
+                      Produto / interfaces
+                ┌────────────┬────────────┐
+                ▼            ▼            ▼
+               UI         Online        CLI/tools
+                │            │            │
+                └────────────┼────────────┘
                              ▼
-                    ┌──────────────────┐
-                    │    Game Core      │
-                    │ estado + regras   │
-                    └───────┬──────────┘
-                            │
-                ┌───────────┴────────────┐
-                ▼                        ▼
-        ┌───────────────┐       ┌────────────────┐
-        │   Local Ares  │       │ Online Server  │
-        │ análise / IA  │       │ valida / sync  │
-        └───────────────┘       └───────┬────────┘
-                                        │
-                                        ▼
-                                 ┌──────────────┐
-                                 │    Ares      │
-                                 │  C++ core    │
-                                 └──────────────┘
+                      Game Core / Rules
+                             │
+                ┌────────────┴────────────┐
+                ▼                         ▼
+             Ares                      Services
+          search/eval                telemetry/data
 ```
 
-## `engine/`
+`engine/` é a referência das regras durante a migração. `ai/` deve consumir o estado e as regras, não reimplementá-los sem uma razão explícita de performance/portabilidade.
 
-Define o jogo.
+## 2. Estado atual — 2026-08-23
 
-Responsabilidades:
-
-- estado do tabuleiro;
-- legalidade das ações;
-- transformação do estado;
-- timers;
-- efeitos;
-- condições de vitória;
-- dados e regras dos heróis.
-
-`engine/` não deve depender da UI.
-
-## `ai/`
-
-Define como procurar a melhor ação.
-
-Responsabilidades:
-
-- geração/ordenação eficiente de ações quando isso for parte do motor;
-- avaliação;
-- alpha-beta/minimax;
-- transposition table;
-- heurísticas de ordering;
-- limites de tempo/nodes;
-- benchmarking;
-- integração com a Arena.
-
-A IA pode conhecer profundamente o jogo, mas não deve redefinir regras arbitrariamente.
-
-## C++
-
-C++ é a direção preferida para o hot path da IA devido a desempenho e previsibilidade.
-
-A linguagem não é um requisito ideológico. Se uma tecnologia melhor surgir para a pesquisa, poderá substituir C++ onde fizer sentido.
-
-## Python/C++ durante a migração
-
-Enquanto existirem os dois caminhos, devem existir testes diferenciais:
+O projeto continua numa migração Python/Cython → C++ para o hot path da Ares.
 
 ```text
-mesma posição
-   ↓
-Python core   ─────┐
-                   ├──> mesmas ações / mesmo estado / mesmo resultado
-C++ core      ─────┘
+engine/
+  estado, regras, heróis e parser de ações
+
+ai/
+  integração de bots + C++ Ares
+
+ui/
+  apresentação local
+
+online/
+  cliente/rede/servidor em desenvolvimento
+
+tools/
+  Arena, análise, balanceamento, NNUE, build e auditoria
+
+tests/
+  regressões Python/C++ e testes de invariantes
+
+data/
+  telemetria/datasets/modelos gerados
+
+docs/
+  decisões, arquitetura, metodologia e roadmap
 ```
 
-Os testes mais importantes são:
+O **PR #49** é a branch ativa de NNUE RPG. A avaliação NNUE continua opcional; sem modelo carregado, a Ares mantém a avaliação clássica.
 
-- `make -> unmake` devolve exatamente à posição original;
-- hash incremental == hash recalculado;
-- mesma posição -> mesmas ações legais;
-- mesma ação -> mesma transformação do estado;
-- mesmos estados terminais.
+## 3. Fronteiras
 
-## Modularidade
+### `engine/`
 
-Um ficheiro com cerca de 1000 linhas deve ser tratado como candidato a divisão.
+Responsável por:
 
-Exceção: a lista/configuração de heróis pode permanecer concentrada quando isso tornar novos heróis significativamente mais simples.
+- representação da posição;
+- legalidade de ações;
+- transições de estado;
+- timers e efeitos;
+- condições de fim;
+- configuração/data dos heróis.
 
-## Dependências
+Não deve depender de UI.
 
-A direção desejada é:
+### `ai/`
+
+Responsável por:
+
+- geração e ordenação de ações quando fazem parte do motor;
+- pesquisa alpha-beta/PVS;
+- TT, heurísticas e quiescence;
+- avaliação clássica e NNUE;
+- limites de nodes/tempo;
+- protocolo de comunicação com bots.
+
+A pesquisa deve continuar separada da apresentação.
+
+### `tools/`
+
+Responsável por processos **fora do caminho de uma partida normal**:
 
 ```text
-UI
- ↓
-Game Core
- ↓
-Ares / Online / Tools
+tools/
+├── analytics/     # Arena, abertura determinística, análise de jogos, trainer
+├── balance/       # auto-pricer e balanceamento
+├── nnue/          # features, teacher data, treino/exportação
+└── scripts/       # build e auditorias de desenvolvimento
 ```
 
-Evitar:
+Uma ferramenta não deve duplicar a definição de regras do `engine/` apenas para facilitar um script.
+
+### `tests/`
+
+Os testes verificam invariantes. Não são uma segunda implementação do jogo.
+
+Prioridades:
+
+- make/unmake;
+- hash incremental vs estado restaurado;
+- ações legais/ilegais;
+- timers/effects/stun;
+- diferenças Python/C++;
+- overflow/valores extremos em fronteiras de dados;
+- paridade Python/C++ das features NNUE.
+
+## 4. Direção de longo prazo
+
+O objetivo é chegar a uma fronteira estável:
 
 ```text
-UI → AI → UI → Rules → AI → Config
+                    Game Core
+                ┌───────┼────────┐
+                ▼       ▼        ▼
+              Ares    Server      UI
+                │       │
+                ▼       ▼
+              Tools / telemetry
 ```
 
-ou dependências circulares entre regras e apresentação.
+O detalhe de implementação pode mudar. A interface entre estas áreas deve mudar muito menos.
 
-## Multiplayer
+## 5. Python e C++
 
-O futuro servidor deverá possuir a autoridade sobre a validade das ações.
+Durante a migração, uma posição deve poder ser comparada entre as duas implementações:
 
-O cliente não deve poder enviar “o resultado da jogada”; deve enviar uma intenção válida, que o servidor valide contra o estado oficial.
+```text
+RWEN / BoardState
+      │
+      ├── Python
+      └── C++
+            │
+            ▼
+      estado equivalente
+```
 
-A solução concreta de backend, base de dados, hosting e autenticação ainda está por escolher.
+Invariantes importantes:
 
-## Observabilidade
+1. mesma posição → mesmas ações legais;
+2. `make → unmake` → posição original;
+3. hash incremental consistente;
+4. mesmos estados terminais;
+5. mesma interpretação dos timers/efeitos;
+6. features NNUE idênticas quando alimentadas com a mesma posição.
 
-Os componentes devem produzir dados suficientes para responder a:
+## 6. Observabilidade
 
-- por que terminou uma partida;
-- qual ação foi jogada;
-- qual era o estado;
-- qual versão da IA participou;
-- quanto tempo/nodes a IA utilizou;
-- por que uma Arena aceitou/rejeitou uma alteração.
+Cada experimento importante deve poder responder:
 
-## Direção de longo prazo
+- qual versão foi testada;
+- que posição/dataset foi usado;
+- orçamento de nodes/tempo;
+- resultado e seed;
+- custo de CPU;
+- se a partida foi válida;
+- se a alteração foi aceite ou rejeitada e porquê.
 
-A melhor arquitetura não é a que contém mais módulos. É a que mantém uma única semântica de RedWar enquanto permite substituir a implementação de um componente sem reescrever o resto do produto.
+Isto aproxima o projeto do modelo de engines maiores: o código é apenas uma parte do sistema; a medição reprodutível é outra.
+
+## 7. Regra de modularidade
+
+Ficheiros de produção acima de aproximadamente 1000 linhas são candidatos a divisão. A configuração extensa de heróis é uma exceção possível quando a concentração simplifica manutenção.
+
+Não criar módulos apenas para reduzir o número de linhas. Um módulo deve ter uma responsabilidade identificável.
+
+## 8. Reestruturação segura
+
+A estrutura deve evoluir por blocos pequenos. Scripts de reorganização destrutivos foram removidos: o tooling de estrutura deve **auditar por defeito** e nunca apagar/substituir um ficheiro automaticamente.
+
+Mudanças de diretórios que exijam alterar imports/workflows devem ser feitas como um bloco dedicado, com testes de referências antes e depois.

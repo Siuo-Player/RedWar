@@ -11,6 +11,8 @@ MIN_COST = 5
 MAX_COST = 200
 ELO_SCALE = 400.0
 ADJUSTMENT_K = 50.0
+MAX_DRAFT_QUANTITY = 64
+MIN_SAMPLES_FOR_ADJUSTMENT = 100
 
 
 def calcular_win_esperada(elo_a, elo_b):
@@ -35,11 +37,29 @@ def calcular_win_esperada(elo_a, elo_b):
 def obter_partidas_validas(stats):
     """Filtra partidas descartadas pelo trainer sem alterar o histórico original."""
     matches = stats.get("matches", [])
+    if not isinstance(matches, list):
+        raise ValueError("Histórico de partidas inválido: 'matches' deve ser uma lista.")
     return [match for match in matches if match.get("valid", True)]
+
+
+def _validar_draft(draft, lado):
+    if not isinstance(draft, dict):
+        raise ValueError(f"Draft inválido para {lado}: esperado objeto JSON.")
+    for peca, qtd in draft.items():
+        if not isinstance(qtd, int) or isinstance(qtd, bool):
+            raise ValueError(f"Quantidade inválida para {lado}/{peca}: {qtd!r}")
+        if qtd < 0 or qtd > MAX_DRAFT_QUANTITY:
+            raise ValueError(
+                f"Quantidade fora de gama para {lado}/{peca}: {qtd!r} "
+                f"(0..{MAX_DRAFT_QUANTITY})"
+            )
 
 
 def calcular_balanceamento(stats, heroes):
     """Calcula propostas de preço sem escrever ficheiros."""
+    if not isinstance(stats, dict) or not isinstance(heroes, dict):
+        raise ValueError("Stats e configuração de heróis devem ser objetos JSON.")
+
     custos_atuais = {name: data.get("cost", 0) for name, data in heroes.items()}
     valid_matches = obter_partidas_validas(stats)
     total_matches = len(stats.get("matches", []))
@@ -49,9 +69,11 @@ def calcular_balanceamento(stats, heroes):
         raise ValueError("Nenhuma partida válida disponível para balanceamento.")
 
     piece_score_delta = {peca: 0.0 for peca in custos_atuais}
-    piece_volume = {peca: 0.0 for peca in custos_atuais}
+    piece_volume = {peca: 0 for peca in custos_atuais}
 
     for match in valid_matches:
+        if not isinstance(match, dict):
+            raise ValueError(f"Partida inválida no histórico: {match!r}")
         try:
             w_elo = match["white_elo"]
             b_elo = match["black_elo"]
@@ -63,6 +85,9 @@ def calcular_balanceamento(stats, heroes):
 
         if result not in (0.0, 0.5, 1.0):
             raise ValueError(f"Resultado inválido no histórico: {result!r}")
+
+        _validar_draft(w_draft, "white")
+        _validar_draft(b_draft, "black")
 
         e_white = calcular_win_esperada(w_elo, b_elo)
         e_black = 1.0 - e_white
@@ -85,17 +110,20 @@ def calcular_balanceamento(stats, heroes):
             continue
 
         custo_antigo = int(custos_atuais[peca])
-        media_delta = piece_score_delta[peca] / piece_volume[peca]
-        ajuste = int(round(media_delta * ADJUSTMENT_K))
+        samples = piece_volume[peca]
+        media_delta = piece_score_delta[peca] / samples
+        eligible = samples >= MIN_SAMPLES_FOR_ADJUSTMENT
+        ajuste = int(round(media_delta * ADJUSTMENT_K)) if eligible else 0
         novo_custo = max(MIN_COST, min(MAX_COST, custo_antigo + ajuste))
         changes.append(
             {
                 "hero": peca,
-                "samples": piece_volume[peca],
+                "samples": samples,
                 "performance_delta": media_delta,
                 "old_cost": custo_antigo,
                 "new_cost": novo_custo,
-                "changed": novo_custo != custo_antigo,
+                "eligible_for_adjustment": eligible,
+                "changed": eligible and novo_custo != custo_antigo,
             }
         )
 
@@ -106,6 +134,8 @@ def calcular_balanceamento(stats, heroes):
         "min_cost": MIN_COST,
         "max_cost": MAX_COST,
         "adjustment_k": ADJUSTMENT_K,
+        "max_draft_quantity": MAX_DRAFT_QUANTITY,
+        "min_samples_for_adjustment": MIN_SAMPLES_FOR_ADJUSTMENT,
         "changes": changes,
     }
 
@@ -130,7 +160,7 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
 
     mudancas = False
     print("\n📊 Análise de Performance Absoluta (Impacto sobre ELO Base)")
-    print("-" * 65)
+    print("-" * 76)
 
     for change in relatorio["changes"]:
         peca = change["hero"]
@@ -145,6 +175,11 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
             print(
                 f"{peca.ljust(12)} | N={samples:.0f} | Performance: {sinal}{media_delta * 100:.1f}% | "
                 f"{custo_antigo} -> {novo_custo} ({estado})"
+            )
+        elif not change["eligible_for_adjustment"]:
+            print(
+                f"{peca.ljust(12)} | N={samples:.0f} | Performance: {media_delta * 100:+.1f}% | "
+                f"{custo_antigo} (Sem amostra suficiente; mínimo {MIN_SAMPLES_FOR_ADJUSTMENT})"
             )
         else:
             print(
@@ -163,7 +198,7 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
         else:
             print("\nℹ️ Alterações calculadas, mas escrita de heroes_config.json desativada.")
     else:
-        print("\n✅ Preços perfeitamente equilibrados. Sem mudanças.")
+        print("\n✅ Nenhum preço elegível requer alteração.")
 
     if caminho_relatorio:
         caminho_relatorio = os.path.abspath(caminho_relatorio)

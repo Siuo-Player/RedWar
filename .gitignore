@@ -1,6 +1,7 @@
 # Ambientes Virtuais
 venv/
 env/
+.venv/
 .env/
 
 # Pytest e Coverage
@@ -23,7 +24,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Cython e Compilacao
+# Cython e compilacao
 *.c
 *.obj
 *.pyd
@@ -31,3 +32,18 @@ Thumbs.db
 *.exp
 build/
 *.exe
+
+# Artefactos NNUE e treino
+*.nnue
+*.pt
+*.pth
+*.ckpt
+data/nnue/datasets/
+tools/nnue/checkpoints/
+
+# Diagnosticos e resultados gerados
+logs/*
+!logs/.gitkeep
+
+data/auto_balance_report.json
+data/estatisticas_treino.json

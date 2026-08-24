@@ -1,11 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+
 
 a = Analysis(
-    ['main.py'],
-    pathex=[],
-    binaries=[('ai/evaluator.cp312-win_amd64.pyd', 'ai/')],
-    datas=[('ui/assets/*.png', 'ui/assets/'), ('engine/mobs_config.json', 'engine/'), ('ai/elo_config.json', 'ai/')],
+    [str(ROOT / 'main.py')],
+    pathex=[str(ROOT)],
+    binaries=[],
+    datas=[
+        (str(ROOT / 'ui' / 'assets' / '*.png'), 'ui/assets/'),
+        (str(ROOT / 'engine' / 'heroes_config.json'), 'engine/'),
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

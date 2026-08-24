@@ -1,5 +1,0 @@
-RELATÓRIO DE BUILD E VALIDAÇÃO LOCAL
-==================================
-Compilação C++: OK
-Testes Unitários: OK
-Telemetria & Balanceamento: Delegados para a Cloud (GitHub Actions).

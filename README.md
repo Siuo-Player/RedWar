@@ -19,8 +19,6 @@ O repositório contém atualmente o jogo e a IA no mesmo projeto, mas a separaç
 
 A ideia é semelhante ao modelo do Stockfish: a IA pode tornar-se uma zona aberta de otimização competitiva, enquanto a definição do jogo e o produto permanecem sob controlo do projeto.
 
-O repositório está público, mas **isso não significa que qualquer alteração seja automaticamente aceite**.
-
 ## 🎮 O jogo
 
 ### Estado atual
@@ -149,6 +147,10 @@ Funções pretendidas:
 
 A implementação está em transição para um núcleo C++ mais rápido, mantendo ferramentas Python onde isso for conveniente.
 
+A metodologia de desenvolvimento segue uma abordagem **Stockfish-like adaptada ao RPG**: separar estado, pesquisa, avaliação e move ordering, manter o hot path pequeno e exigir evidência antes de aceitar alterações funcionais.
+
+O Ares suporta atualmente uma avaliação clássica e um caminho **NNUE opcional**. A rede não é considerada superior só por existir: o objetivo é demonstrar ganho de força por CPU-segundo antes de a tornar default.
+
 ### Princípio de otimização
 
 > **Uma alteração na IA só deve sobreviver se melhorar a IA.**
@@ -169,11 +171,11 @@ versão proposta no Pull Request
 
 usando condições equivalentes de pesquisa e alternando cores para evitar que a primeira jogada determine artificialmente o resultado.
 
-O número de jogos e a margem necessários ainda estão sujeitos a calibração estatística. O workflow atual usa 100 jogos e margem 10, mas esta configuração não deve ser tratada como matemática definitiva.
+O workflow atual compara **base vs HEAD** em benchmark determinístico e depois executa um torneio Arena separado. Para PRs de performance existe um guard de regressão de 10% no benchmark.
 
 A Arena mede **força relativa entre versões da IA**, não qualidade do jogo como produto.
 
-Resultados históricos devem futuramente guardar pelo menos:
+Resultados históricos devem guardar, quando disponíveis:
 
 - versão da IA;
 - cores;
@@ -184,6 +186,55 @@ Resultados históricos devem futuramente guardar pelo menos:
 - métricas relevantes.
 
 A longo prazo, os resultados deverão alimentar um sistema de rating/ELO válido para engines.
+
+## 🔬 Workflows e validação
+
+Os workflows do projeto são intencionalmente separados por responsabilidade. Uma falha experimental não deve mascarar a saúde de outro subsistema.
+
+```text
+auto_balancer.yml  -> regressões numéricas + trainer + Auto-Pricer
+ai_arena.yml       -> força relativa / jogos comparativos
+ai_quality_gate.yml-> decisão de qualidade da AI nos PRs
+nnue_nightly.yml   -> teacher data + treino NNUE experimental
+main_guard.yml     -> política de proteção da main
+```
+
+O **Auto-Balancer não treina NNUE**. O treino PyTorch pertence ao workflow nightly NNUE. Assim, uma falha de PyTorch, dataset ou exportação NNUE não deve aparecer como uma falsa falha do balanceamento económico.
+
+## 🛠️ Tooling e desenvolvimento
+
+As ferramentas estão separadas por função:
+
+```text
+tools/analytics  -> Arena, trainer e análise de jogos
+tools/balance    -> auto-pricer e balanceamento
+tools/nnue       -> features, teacher data, treino e export
+tools/scripts    -> build e auditorias de desenvolvimento
+```
+
+Scripts obsoletos não devem permanecer apenas porque “podem ser úteis um dia”. Nesta fase foram removidos os caminhos legados de opening testing, calibração ELO e reorganização destrutiva.
+
+O ciclo de branch é deliberadamente simples:
+
+```text
+branch nova
+   ↓
+roadmap atualizado
+   ↓
+bloco completo
+   ↓
+testes + benchmark
+   ↓
+PR
+   ↓
+merge
+   ↓
+apagar branch
+   ↓
+próxima branch
+```
+
+Erros encontrados durante o bloco são corrigidos na própria branch.
 
 ## 🌐 Aplicação e web
 
@@ -238,7 +289,7 @@ A arquitetura de servidor ainda está em definição. A intenção é usar servi
 
 O servidor deverá, por princípio, validar as ações recebidas pelo cliente e impedir que o cliente possa simplesmente declarar um estado impossível.
 
-## 🛠️ Desenvolvimento
+## 🧪 Desenvolvimento local
 
 ### Testes Python
 
@@ -252,39 +303,30 @@ pytest tests/
 python setup.py build_ext --inplace
 ```
 
-### Build C++
+### Build C++ recomendado
 
 ```bash
-cd ai/cpp_engine
-g++ -std=c++17 -O3 board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp -o engine
+python tools/scripts/build_cpp_engine.py
+python tools/scripts/build_cpp_engine.py --smoke
 ```
 
-No Windows existe ainda o pipeline local acionado pelo Git hook de `pre-push`.
+O script usa uma lista explícita de fontes e inclui o caminho NNUE quando aplicável.
 
-### Princípios de manutenção
+## 📚 Documentação atual
 
-- Evitar ficheiros com mais de ~1000 linhas.
-- Separar responsabilidades em módulos menores.
-- Manter uma única implementação autoritativa das regras do jogo.
-- Testar equivalência entre Python/C++ enquanto a migração existir.
-- Não otimizar prematuramente sem medir.
-- Não introduzir comportamento silencioso para configurações inválidas.
-- Preferir falhar claramente a continuar com estado incorreto.
-
-## 📚 Documentação
-
-| Documento | Público | Conteúdo |
-|---|---|---|
-| `README.md` | Jogadores + devs | Visão geral e estado do projeto |
-| `docs/GAME_RULES.md` | Jogadores | Regras atuais do jogo |
-| `docs/GAME_DESIGN.md` | Designers/devs | Filosofia e decisões de design |
-| `docs/ARCHITECTURE.md` | Devs | Arquitetura técnica atual e alvo |
-| `docs/AI_ENGINE.md` | Devs de IA | Ares, search, avaliação e Arena |
-| `docs/HERO_SYSTEM.md` | Devs/designers | Modelo de heróis e data-driven design |
-| `docs/WEB_MULTIPLAYER.md` | Devs | Visão de web, contas e multiplayer |
-| `docs/CONTRIBUTING.md` | Contribuidores | Regras para contribuições |
-| `docs/ROADMAP.md` | Todos | O que existe, o que vem a seguir e o que está indefinido |
-| `engine/HEROES_SCHEMA.md` | Devs | Formato técnico de `heroes_config.json` |
+| Documento | Conteúdo |
+|---|---|
+| `README.md` | Visão geral, jogo, produto e estado atual |
+| `docs/Documento_Design_Jogo.md` | Filosofia e decisões de design do jogo |
+| `docs/Estrutura_Projeto.md` | Estrutura do projeto |
+| `docs/ARCHITECTURE.md` | Fronteiras e dependências técnicas |
+| `docs/AI_ENGINE.md` | Ares, search, avaliação, NNUE e Arena |
+| `docs/NNUE.md` | Arquitetura, formato, treino e validação NNUE |
+| `docs/TOOLING.md` | Ferramentas e contratos de tooling |
+| `docs/DEVELOPMENT_WORKFLOW.md` | Ciclo branch → validação → PR → merge |
+| `docs/CONTRIBUTING.md` | Regras de contribuição e validação |
+| `docs/ROADMAP.md` | Estado, prioridades e próximos blocos |
+| `engine/HEROES_SCHEMA.md` | Formato técnico de `heroes_config.json` |
 
 ## 🗺️ Estado do projeto
 
@@ -295,11 +337,12 @@ A prioridade atual é:
 1. estabilizar e acelerar a Ares;
 2. tornar as regras do jogo consistentes e testáveis;
 3. melhorar a criação/configuração de heróis;
-4. desenvolver a aplicação;
-5. desenvolver a versão web e o multiplayer;
-6. criar contas, matchmaking, ranking e histórico;
-7. abrir o projeto da Ares a contribuições automatizadas;
-8. só então considerar o lançamento público completo.
+4. manter Arena, datasets e tooling reproduzíveis;
+5. desenvolver a aplicação;
+6. desenvolver a versão web e o multiplayer;
+7. criar contas, matchmaking, ranking e histórico;
+8. abrir o projeto da Ares a contribuições automatizadas;
+9. só então considerar o lançamento público completo.
 
 ### 10×10 e outros modos
 
@@ -314,10 +357,6 @@ A política de licenciamento ainda precisa de uma revisão formal antes do lanç
 O projeto foi desenvolvido com assistência de sistemas de IA e utiliza arte baseada em recursos externos, incluindo referências a **game-icons.net**. Antes de uma distribuição pública, devem ser auditadas as licenças do código, dos assets e de qualquer conteúdo gerado/derivado para garantir que os direitos e atribuições estão corretos.
 
 ## Projeto em evolução
-
-RedWar começou como um jogo de tabuleiro inspirado no xadrez e evoluiu para um RPG de estratégia com muitos heróis e efeitos específicos.
-
-Por isso, nem todas as decisões de design estão congeladas.
 
 Quando este documento disser **“atual”**, significa o comportamento que o projeto pretende tratar como regra neste momento.
 

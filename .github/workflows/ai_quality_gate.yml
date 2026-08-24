@@ -1,0 +1,126 @@
+name: RedWar AI Quality Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+concurrency:
+  group: redwar-ai-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: '0'
+
+jobs:
+  ai-quality-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+    - name: Checkout PR history
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Fetch PR base
+      run: git fetch origin "${{ github.event.pull_request.base.ref || 'main' }}" --no-tags
+
+    - name: Detect AI changes
+      id: ai_changes
+      shell: bash
+      run: |
+        set -euo pipefail
+        BASE="${{ github.event.pull_request.base.sha }}"
+        git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
+        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp|\.github/workflows/(ai_quality_gate|ai_arena)\.yml)' /tmp/changed-files.txt; then
+          echo "has_ai_changes=true" >> "$GITHUB_OUTPUT"
+          echo "AI-related changes detected:"
+          cat /tmp/changed-files.txt
+        else
+          echo "has_ai_changes=false" >> "$GITHUB_OUTPUT"
+          echo "No AI-related changes; no Arena promotion test required."
+        fi
+
+    - name: Build challenger on current PR rules
+      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        git worktree add --detach /tmp/redwar-quality-head HEAD
+        cd /tmp/redwar-quality-head
+        cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/main.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
+        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
+        chmod +x ai/cpp_engine/engine
+
+    - name: Build main AI on current PR rules
+      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        BASE="${{ github.event.pull_request.base.sha }}"
+        git worktree add --detach /tmp/redwar-quality-base-ai HEAD
+        if ! git -C /tmp/redwar-quality-base-ai restore --source="$BASE" -- ai; then
+          echo "Could not overlay main AI onto current PR rules."
+          exit 1
+        fi
+        cd /tmp/redwar-quality-base-ai
+        cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/main.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
+        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
+        g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
+        chmod +x ai/cpp_engine/engine
+
+    - name: Benchmark main AI and challenger
+      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        python tools/analytics/benchmark_engine.py --engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine | tee /tmp/main-ai-benchmark.txt
+        python tools/analytics/benchmark_engine.py --engine /tmp/redwar-quality-head/ai/cpp_engine/engine | tee /tmp/head-benchmark.txt
+
+    - name: Run promotion Arena
+      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      run: |
+        set -euo pipefail
+        python /tmp/redwar-quality-head/tools/analytics/arena_tournament.py \
+          --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
+          --baseline-engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine \
+          --jogos 100 \
+          --margem-vitorias 10 \
+          --nodes 10000 \
+          --results /tmp/ai-quality-games.jsonl \
+          | tee /tmp/ai-quality-arena.txt
+
+    - name: Upload AI quality evidence
+      if: always() && steps.ai_changes.outputs.has_ai_changes == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: redwar-ai-quality-${{ github.event.pull_request.number }}
+        path: |
+          /tmp/changed-files.txt
+          /tmp/main-ai-benchmark.txt
+          /tmp/head-benchmark.txt
+          /tmp/ai-quality-arena.txt
+          /tmp/ai-quality-games.jsonl
+          /tmp/ai-quality-games.jsonl.summary.json
+        if-no-files-found: warn
+        retention-days: 30
+
+    - name: Cleanup worktrees
+      if: always()
+      run: |
+        git worktree remove --force /tmp/redwar-quality-base-ai 2>/dev/null || true
+        git worktree remove --force /tmp/redwar-quality-head 2>/dev/null || true
