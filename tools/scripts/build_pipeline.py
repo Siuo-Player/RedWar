@@ -47,6 +47,11 @@ def main() -> int:
         env,
     )
     run(
+        [sys.executable, "tools/scripts/build_cpp_engine.py", "--bridge-test"],
+        "Build C++ make/unmake bridge test",
+        env,
+    )
+    run(
         [sys.executable, "-m", "pytest", "tests/"],
         "Python test suite",
         env,
@@ -63,6 +68,7 @@ def main() -> int:
             "RedWar local build pipeline: PASS\n"
             "C++ engine: PASS\n"
             "C++ smoke test build: PASS\n"
+            "C++ make/unmake bridge: PASS\n"
             "Python tests: PASS\n"
             "Structure audit: PASS\n"
             "Trainer/Auto-Balancer: not run by this pipeline\n",
