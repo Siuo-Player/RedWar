@@ -15,7 +15,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DEFAULT_ENGINE = os.path.join(
     ROOT, "ai", "cpp_engine", "engine.exe" if sys.platform == "win32" else "engine"
 )
-DEFAULT_NODES = [10_000, 100_000, 500_000]
+# Dense enough to observe the failure threshold moving after search optimisations,
+# without jumping directly from 100k to 500k.
+DEFAULT_NODES = [10_000, 100_000, 150_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000]
 
 # FrostMage on D5 can stun the enemy at G5; the 3-range area contains five
 # clustered enemies around G5. A second stun on the next FrostMage turn can
@@ -73,7 +75,7 @@ def main() -> int:
         type=int,
         action="append",
         default=None,
-        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10000, 100000, 500000.",
+        help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10k, 100k..500k em passos de 50k.",
     )
     args = parser.parse_args()
     node_budgets = args.nodes if args.nodes else DEFAULT_NODES
@@ -97,6 +99,7 @@ def main() -> int:
         print(f"nodes={nodes:>8} bestmove={bestmove:<24} {'PASS' if ok else 'FAIL'}")
 
     print()
+    print(f"threshold scan: {len(node_budgets)} node budgets tested")
     if failures:
         print(
             "DIAGNOSTIC: Ares failed to select the immediate 5-target FrostMage "
