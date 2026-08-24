@@ -45,7 +45,7 @@ jobs:
         set -euo pipefail
         BASE="${{ github.event.pull_request.base.sha }}"
         git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
-        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp|\.github/workflows/(ai_quality_gate|ai_arena)\.yml)' /tmp/changed-files.txt; then
+        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py|\.github/workflows/(ai_quality_gate|ai_arena)\.yml)' /tmp/changed-files.txt; then
           echo "has_ai_changes=true" >> "$GITHUB_OUTPUT"
           echo "AI-related changes detected:"
           cat /tmp/changed-files.txt
@@ -79,7 +79,7 @@ jobs:
         fi
         cd /tmp/redwar-quality-base-ai
         cpp_sources=(ai/cpp_engine/board.cpp ai/cpp_engine/evaluate.cpp ai/cpp_engine/main.cpp ai/cpp_engine/movegen.cpp ai/cpp_engine/search.cpp)
-        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
+        if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
         chmod +x ai/cpp_engine/engine
 
@@ -90,6 +90,17 @@ jobs:
         set -euo pipefail
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine | tee /tmp/main-ai-benchmark.txt
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-quality-head/ai/cpp_engine/engine | tee /tmp/head-benchmark.txt
+
+    - name: Run FrostMage tactical regression
+      if: steps.ai_changes.outputs.has_ai_changes == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        python tools/analytics/frostmage_benchmark.py \
+          --engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
+          --nodes 100 \
+          --nodes 1000 \
+          | tee /tmp/frostmage-quality.txt
 
     - name: Run promotion Arena
       if: steps.ai_changes.outputs.has_ai_changes == 'true'
@@ -113,6 +124,7 @@ jobs:
           /tmp/changed-files.txt
           /tmp/main-ai-benchmark.txt
           /tmp/head-benchmark.txt
+          /tmp/frostmage-quality.txt
           /tmp/ai-quality-arena.txt
           /tmp/ai-quality-games.jsonl
           /tmp/ai-quality-games.jsonl.summary.json
