@@ -31,6 +31,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Build C++ make/unmake bridge test
+        run: |
+          g++ -std=c++17 -O2 -pipe \
+            ai/cpp_engine/board.cpp \
+            ai/cpp_engine/evaluate.cpp \
+            ai/cpp_engine/movegen.cpp \
+            ai/cpp_engine/search.cpp \
+            ai/cpp_engine/nnue.cpp \
+            tests/cpp_make_unmake_bridge_test.cpp \
+            -o cpp_make_unmake_bridge_test
       - name: Run full Python regression suite
         run: pytest -q tests/
       - name: Run C++ numeric evaluation regression
@@ -88,8 +98,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: redwar-training-telemetry-${{ github.run_id }}
-          path: |
-            data/estatisticas_treino.json
-            logs/trainer_failures/**
-          if-no-files-found: warn
+            name: redwar-training-telemetry-${{ github.run_id }}
+            path: |
+              data/estatisticas_treino.json
+              logs/trainer_failures/**
+            if-no-files-found: warn
