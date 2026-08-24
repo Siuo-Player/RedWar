@@ -19,8 +19,9 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 
 ## Estado do projeto
 
-- **PR #52** integrou a estabilização do trainer e a extensão seletiva de segundo STUN.
-- **PR #53** integrou as melhorias de CI, benchmarks FrostMage e separação entre gates de CI e gates de promoção da AI.
+- **PR #52** integrou a continuação seletiva do segundo STUN no mesmo centro, apenas quando o primeiro STUN atingiu um adversário, e a estabilização necessária do trainer.
+- **PR #53** integrou as melhorias de CI e a separação entre gates de CI/tooling e gates de promoção da AI.
+- **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -31,26 +32,28 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Diagnóstico automático com RWEN, stdout/stderr e search trace.
 - [x] Extensão seletiva para a continuação do segundo STUN no mesmo centro, apenas quando o primeiro STUN atingiu um adversário.
 - [x] Benchmark FrostMage com failure-threshold e traces opcionais.
+- [x] Suite reutilizável de benchmarks táticos com validação de schema.
 - [x] CI distingue mudanças reais da AI de alterações apenas de tooling/workflows.
 - [x] Auto-Balancer usa timeout explícito e suite Python completa.
+- [x] Documentação principal sincronizada com o estado real pós-#54.
 
 ## Ares — sequência atual
 
-### 1. Suite de benchmarks táticos — **bloco atual**
+### 1. Suite de benchmarks táticos — **concluído; expansão incremental continua**
 
-Manter uma coleção de posições adversariais independentes do código de pesquisa.
+A infraestrutura determinística já existe em `tools/analytics/tactical_benchmark_suite.py`. As posições devem permanecer independentes do código de pesquisa.
 
-Para cada posição:
+Para cada nova posição:
 
 - executar com orçamento alto até obter uma solução de referência estável;
-- testar orçamentos progressivamente menores, começando com uma progressão exponencial;
+- testar orçamentos progressivamente menores, começando com progressão exponencial;
 - registar o **failure threshold**;
 - guardar um trace resumido quando necessário para explicar a pesquisa;
 - comparar cada alteração de IA contra exatamente as mesmas posições.
 
-O harness reutilizável já existe em `tools/analytics/tactical_benchmark_suite.py`. O primeiro caso é o FrostMage de cinco alvos; novas posições só entram como referências depois de serem validadas com orçamento alto e várias execuções.
+O FrostMage de cinco alvos é o primeiro caso de referência. O ponto de `10 nodes` é um marcador de progresso: se uma otimização resolver corretamente a posição nesse orçamento, o benchmark deve passar e isso constitui uma melhoria.
 
-A suite deve crescer para incluir:
+Novas posições a validar e adicionar:
 
 - [ ] segundo STUN letal num único alvo;
 - [ ] multi-stun com menos alvos;
@@ -63,7 +66,7 @@ A suite deve crescer para incluir:
 - [ ] lifespan/cooldown;
 - [ ] capturas de alto valor.
 
-### 2. Search / move ordering RPG
+### 2. Search / move ordering RPG — **próximo bloco de IA**
 
 O primeiro eixo de otimização não deve ser simplesmente aumentar os valores materiais.
 
@@ -79,7 +82,7 @@ Situação atual:
 
 ### 3. Baseline incremental NNUE
 
-Só depois de estabilizar a pesquisa-base e os benchmarks:
+Depois de estabilizar a pesquisa-base e ter benchmarks independentes suficientes:
 
 1. manter `sync_board()` como referência de correção;
 2. ligar mudanças de peça, stun, lifespan, cooldown, efeitos, TWC e lado a jogar ao accumulator;
