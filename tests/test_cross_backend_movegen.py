@@ -108,6 +108,7 @@ def make_cases() -> list[tuple[str, GameState]]:
     put(spells, 5, 5, "Trickster", "brancas")
     put(spells, 5, 2, "Geomancer", "brancas")
     put(spells, 2, 2, "Pyromancer", "brancas")
+    put(spells, 2, 5, "Templar", "pretas")
     put(spells, 1, 6, "Templar", "pretas")
     cases.append(("spells", spells))
 
@@ -174,3 +175,7 @@ def test_python_cpp_move_generation_equivalence():
             f"Missing in C++ ({len(missing)}): {missing}\n"
             f"Extra in C++ ({len(extra)}): {extra}"
         )
+
+    spells = python_actions(cases[2][1])
+    assert "SPELL ignite C6 F6" in spells
+    assert "SPELL ignite C6 E4" not in spells
