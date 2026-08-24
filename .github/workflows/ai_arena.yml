@@ -8,8 +8,10 @@ on:
       - 'ai/**'
       - 'tools/analytics/benchmark_engine.py'
       - 'tools/analytics/arena_tournament.py'
+      - 'tools/analytics/frostmage_benchmark.py'
       - 'tools/nnue/**'
       - 'tests/cpp_nnue_test.cpp'
+      - 'tests/test_frostmage_benchmark.py'
       - '.github/workflows/ai_arena.yml'
   workflow_dispatch:
 
@@ -56,7 +58,7 @@ jobs:
         : > /tmp/ai-commits.txt
         while read -r COMMIT; do
           FILES=$(git diff-tree --no-commit-id --name-only -r "$COMMIT")
-          if echo "$FILES" | grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament)\.py|tests/cpp_nnue_test\.cpp|\.github/workflows/ai_arena\.yml)'; then
+          if echo "$FILES" | grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py|\.github/workflows/ai_arena\.yml)'; then
             echo "$COMMIT" >> /tmp/ai-commits.txt
           fi
         done < /tmp/all-commits.txt
@@ -108,8 +110,6 @@ jobs:
           chmod +x engine
           popd >/dev/null
 
-          # Use the current branch's harness: historical AI is the candidate,
-          # while the game rules and test protocol stay current.
           set +e
           python "$GITHUB_WORKSPACE/tools/analytics/arena_tournament.py" \
             --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
@@ -133,8 +133,6 @@ jobs:
         echo "historical_failures=$historical_failures"
         echo "current_head_failed=$current_head_failed"
 
-        # Historical failures are preserved as evidence and identify non-candidates.
-        # The current revision itself must pass; otherwise the branch must not merge.
         if [[ "$current_head_failed" -ne 0 ]]; then
           echo "Current AI revision failed Arena validation."
           exit 1
