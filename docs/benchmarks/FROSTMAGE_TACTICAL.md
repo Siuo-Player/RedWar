@@ -4,7 +4,7 @@
 
 `FrostMage` costs 5 points but can apply an area stun at range 3. Under the RedWar rule that a second stun while the target remains stunned becomes a death, a single FrostMage can create an extreme tactical sequence: stun a cluster now and, on the next available FrostMage turn, convert the same cluster into kills.
 
-This makes FrostMage a deliberate adversarial benchmark for Ares. Ares must not evaluate the unit from material cost alone; it must recognise the tactical value of multi-target stun and the future conversion into deaths.
+This makes FrostMage a deliberate adversarial benchmark for Ares. Ares must not replace the configured hero costs with hidden material constants; the costs in `heroes_config.json` remain the base values used by evaluation and search heuristics.
 
 ## Benchmark position
 
@@ -22,33 +22,66 @@ Measured on the current Ares build:
 500,000 nodes  -> STUN A5 D5   PASS
 ```
 
-The first baseline therefore has a failure threshold between 100k and 500k nodes for this position.
+A denser threshold scan should normally be used around the transition, for example every 25k nodes between the last failing and first passing budget.
+
+## Search trace
+
+The benchmark supports `--trace`. When enabled, each node budget gets a separate file under `logs/benchmarks/frostmage/`.
+
+The trace is deliberately bounded and records:
+
+- root move ordering and ordering scores;
+- first few internal move orders;
+- move attempts at shallow plies;
+- best-move changes;
+- transposition-table hits and cutoffs;
+- alpha-beta/quiescence cutoffs;
+- STUN selective extensions;
+- best move at each completed iterative-deepening depth;
+- final node count and aggregate counters.
+
+This is a decision/pruning summary, not a complete node dump. The objective is to compare a failing threshold (for example 325k) against a passing one (350k) and identify where the search tree diverges.
 
 ## Interpretation
 
 This is evidence of a tactical search weakness, not evidence that FrostMage should receive a lower cost. The unit is already at the minimum configured cost.
 
-The current search already orders `STUN` moves above ordinary moves, but its quiescence `is_forcing_move()` logic only treats a stun as forcing when it sees an already-stunned target. A first multi-target stun against fresh targets can therefore fall outside the tactical continuation that quiescence searches.
+The current search treats any `STUN` that hits at least one enemy as a forcing action and gives that branch a selective +1 ply extension. This is intended to expose the immediate `STUN -> opponent reply -> second STUN` conversion without increasing search depth for unrelated moves.
 
-Other candidate causes are:
+Other candidate causes, if the extension is insufficient, are:
 
-- insufficient value given to simultaneous stun pressure;
-- horizon effects hiding the second-stun conversion;
-- move ordering that does not distinguish high-impact tactical actions deeply enough;
-- lack of selective extensions after a strong tactical event;
-- spells and passives being considered in static material rather than as future tactical potential;
+- move ordering that does not distinguish tactical actions deeply enough;
+- horizon effects beyond the single extension;
+- transposition-table/pruning interactions;
+- spells and passives needing better tactical-potential signals;
 - NNUE not yet representing the tactical structure strongly enough.
 
 ## Optimization methodology
 
-For each search change, rerun this exact position at the same budgets. A successful optimization lowers the failure threshold or keeps it stable without materially increasing evaluation cost.
+For each search change, rerun the same position at the same node budgets. A successful optimization lowers the failure threshold or keeps it stable without materially increasing evaluation cost.
 
-The broader benchmark suite follows the same principle: high-node reference first, progressively lower node budgets afterward, then compare the threshold before/after each isolated search change.
+Recommended workflow:
+
+```text
+high-node reference
+      ↓
+find failure threshold
+      ↓
+make one isolated search change
+      ↓
+rerun the same budgets
+      ↓
+compare threshold + NPS/cost
+      ↓
+confirm with Arena
+```
+
+The benchmark must remain generic: it must exercise real RedWar rules and engine logic, never hardcode the answer for this position.
 
 ## Planned tests
 
-1. Treat multi-target stun as a forcing tactical event in quiescence when appropriate.
-2. Add selective search extension after high-impact multi-target stun.
-3. Improve generic tactical scoring of spells and passives without hardcoding benchmark positions.
-4. Add more adversarial positions for spells, passives, aura denial, lifespan, cooldown and chained effects.
-5. Validate the winner in Arena after the micro-benchmark improves.
+1. Validate the current STUN extension with dense threshold scans and traces.
+2. Add more adversarial positions for chained stuns and defensive replies.
+3. Add spells/passives/aura positions where tactical potential matters without changing base hero costs.
+4. Measure move ordering and pruning changes against the same reference suite.
+5. Validate the winner in Arena after the micro-benchmarks improve.
