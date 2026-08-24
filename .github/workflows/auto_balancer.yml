@@ -41,6 +41,18 @@ jobs:
             ai/cpp_engine/nnue.cpp \
             tests/cpp_make_unmake_bridge_test.cpp \
             -o cpp_make_unmake_bridge_test
+          chmod +x cpp_make_unmake_bridge_test
+      - name: Build C++ movegen differential bridge test
+        run: |
+          g++ -std=c++17 -O2 -pipe \
+            ai/cpp_engine/board.cpp \
+            ai/cpp_engine/evaluate.cpp \
+            ai/cpp_engine/movegen.cpp \
+            ai/cpp_engine/search.cpp \
+            ai/cpp_engine/nnue.cpp \
+            tests/cpp_movegen_bridge_test.cpp \
+            -o cpp_movegen_bridge_test
+          chmod +x cpp_movegen_bridge_test
       - name: Run full Python regression suite
         run: pytest -q tests/
       - name: Run C++ numeric evaluation regression
@@ -76,7 +88,6 @@ jobs:
           g++ -std=c++17 -O3 -DNDEBUG -pipe \
             board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp \
             -o engine
-          chmod +x engine
       - name: Generate Telemetry (Trainer)
         run: |
           python tools/analytics/trainer.py \
