@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -7,7 +8,8 @@ from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
 
 ROOT = Path(__file__).resolve().parents[1]
-BRIDGE = ROOT / "cpp_make_unmake_bridge_test.exe"
+BRIDGE_NAME = "cpp_make_unmake_bridge_test.exe" if os.name == "nt" else "cpp_make_unmake_bridge_test"
+BRIDGE = ROOT / BRIDGE_NAME
 
 
 def put(gs: GameState, row: int, col: int, name: str, team: str, *, stun: int = 0, lifespan=None, cooldown: int = 0) -> None:
@@ -126,7 +128,7 @@ def make_cases() -> list[tuple[str, GameState]]:
 def test_python_cpp_make_unmake_equivalence():
     assert BRIDGE.exists(), f"C++ bridge binary missing: {BRIDGE}. Run build_cpp_engine.py --bridge-test."
 
-    requests: list[tuple[str, str, str]] = []
+    requests: list[tuple[str, str, str, str]] = []
     found_types: set[str] = set()
 
     for label, state in make_cases():
@@ -139,11 +141,9 @@ def test_python_cpp_make_unmake_equivalence():
 
         python_after = state.fast_clone()
         python_after.execute_action(action)
-        requests.append((label, state.to_rwen(), move_text(action)))
-        expected_after = python_after.to_rwen()
-        requests[-1] = (label, requests[-1][1], requests[-1][2] + "\n" + expected_after)
+        requests.append((label, state.to_rwen(), move_text(action), python_after.to_rwen()))
 
-    payload = "".join(f"{rwen}\n{move}\n" for _, rwen, move_with_expected in requests for move, _ in [move_with_expected.split("\n", 1)])
+    payload = "".join(f"{rwen}\n{move}\n" for _, rwen, move, _expected_after in requests)
     result = subprocess.run(
         [str(BRIDGE)],
         input=payload,
@@ -157,17 +157,17 @@ def test_python_cpp_make_unmake_equivalence():
     lines = [line for line in result.stdout.splitlines() if line]
     assert len(lines) == len(requests) * 2
 
-    for index, (label, _rwen, move_with_expected) in enumerate(requests):
-        _move, expected_after = move_with_expected.split("\n", 1)
+    for index, (label, rwen, move, expected_after) in enumerate(requests):
         actual_after = lines[index * 2]
         restored = lines[index * 2 + 1]
 
         assert actual_after.startswith("AFTER "), f"{label}: malformed C++ output: {actual_after}"
         assert restored.startswith("RESTORED "), f"{label}: malformed C++ restore output: {restored}"
         assert actual_after.removeprefix("AFTER ") == expected_after, (
-            f"{label}: Python/C++ state mismatch after {_move}\n"
+            f"{label}: Python/C++ state mismatch after {move}\n"
             f"Python: {expected_after}\n"
             f"C++:    {actual_after.removeprefix('AFTER ')}"
         )
+        assert restored.removeprefix("RESTORED ") == rwen, f"{label}: C++ make/unmake did not restore the root state"
 
     assert {"move", "attack", "stun", "spawn", "spell"}.issubset(found_types), found_types
