@@ -17,14 +17,14 @@ from pathlib import Path
 # Canonical RWEN: 8x8 board, with piece:effect in every cell. This matches
 # GameState.to_rwen() and the C++ parser.
 SCENARIO = (
-    ".:.,.:.,B_Sentry_0_N_0:.,.:.,.:.,.:.,B_Ranger_0_N_0:.,:."
-    "/.:.,B_Phantom_0_N_0:.,.:.,.:.,.:.,B_FrostMage_0_N_0:.,.:.,:."
-    "/.:.,.:.,.:.,B_Templar_0_N_0:.,.:.,.:.,.:."
+    ".:.,.:.,B_Sentry_0_N_0:.,.:.,.:.,.:.,B_Ranger_0_N_0:.,.:."
+    "/.:.,B_Phantom_0_N_0:.,.:.,.:.,.:.,B_FrostMage_0_N_0:.,.:.,.:."
+    "/.:.,.:.,.:.,B_Templar_0_N_0:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
-    "/.:.,W_Templar_0_N_0:.,.:.,.:.,W_Phantom_0_N_0:.,.:.,:."
-    "/.:.,W_FrostMage_0_N_0:.,.:.,.:.,.:.,W_Ranger_0_N_0:.,:."
-    "/W_Sentry_0_N_0:.,.:.,.:.,.:.,W_Inquisitor_0_N_0:.,.:.,:."
+    "/.:.,W_Templar_0_N_0:.,.:.,.:.,W_Phantom_0_N_0:.,.:.,.:."
+    "/.:.,W_FrostMage_0_N_0:.,.:.,.:.,.:.,W_Ranger_0_N_0:.,.:.,.:."
+    "/W_Sentry_0_N_0:.,.:.,.:.,.:.,W_Inquisitor_0_N_0:.,.:.,.:."
     " W 0"
 )
 
