@@ -3,7 +3,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
+import subprocess
 import sys
 import threading
 import time
@@ -28,6 +30,8 @@ POOL_BOTS = [
 MAX_TURNS_PER_GAME = 200
 DEFAULT_BOT_MOVE_TIMEOUT_SECONDS = 60.0
 DEFAULT_OUTPUT = ROOT / "data" / "estatisticas_treino.json"
+DEFAULT_DIAGNOSTIC_DIR = ROOT / "logs" / "trainer_failures"
+DIAGNOSTIC_TIMEOUT_SECONDS = 15.0
 
 
 def formatar_tempo(segundos: float) -> str:
@@ -132,6 +136,108 @@ def _reset_cpp_bot_process(bot) -> None:
         pass
 
 
+def _safe_diagnostic_name(value: str) -> str:
+    return "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in value)[:80] or "bot"
+
+
+def _capture_cpp_search_diagnostic(
+    bot,
+    gs: GameState,
+    reason: str,
+    turn: int,
+    elapsed_seconds: float,
+) -> Path | None:
+    """Re-run one failed C++ search in an isolated process with bounded tracing."""
+    exe_path = getattr(bot, "exe_path", None)
+    nodes = _bot_nodes(bot)
+    if not exe_path or nodes is None:
+        return None
+
+    failure_id = f"turn_{turn:03d}_{int(time.time() * 1000)}_{_safe_diagnostic_name(getattr(bot, 'nome', 'bot'))}"
+    failure_dir = DEFAULT_DIAGNOSTIC_DIR / failure_id
+    failure_dir.mkdir(parents=True, exist_ok=True)
+    rwen_path = failure_dir / "position.rwen"
+    trace_path = failure_dir / "search_trace.log"
+    metadata_path = failure_dir / "metadata.json"
+    stdout_path = failure_dir / "engine_stdout.log"
+    stderr_path = failure_dir / "engine_stderr.log"
+    rwen = gs.to_rwen()
+    rwen_path.write_text(rwen + "\n", encoding="utf-8")
+
+    metadata = {
+        "reason": reason,
+        "bot": getattr(bot, "nome", bot.__class__.__name__),
+        "nodes": nodes,
+        "turn": turn,
+        "elapsed_seconds": round(elapsed_seconds, 6),
+        "rwen": rwen,
+        "executable": str(exe_path),
+        "diagnostic_timeout_seconds": DIAGNOSTIC_TIMEOUT_SECONDS,
+        "trace_file": str(trace_path),
+    }
+
+    process = None
+    stdout_text = ""
+    stderr_text = ""
+    status = "not_started"
+    try:
+        if not os.path.exists(exe_path):
+            raise FileNotFoundError(exe_path)
+
+        env = os.environ.copy()
+        env["ARES_SEARCH_TRACE_PATH"] = str(trace_path.resolve())
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(exe_path)))
+        process = subprocess.Popen(
+            [exe_path],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            cwd=project_root,
+            env=env,
+        )
+        commands = f"isready\nposition rwen {rwen}\ngo nodes {nodes}\n"
+        stdout_text, stderr_text = process.communicate(
+            commands,
+            timeout=DIAGNOSTIC_TIMEOUT_SECONDS,
+        )
+        status = "completed"
+    except subprocess.TimeoutExpired as exc:
+        stdout_text = exc.stdout or ""
+        stderr_text = exc.stderr or ""
+        status = "diagnostic_timeout"
+        if process is not None:
+            process.kill()
+            try:
+                tail_stdout, tail_stderr = process.communicate(timeout=2)
+                stdout_text += tail_stdout or ""
+                stderr_text += tail_stderr or ""
+            except Exception:
+                pass
+    except Exception as exc:
+        status = "diagnostic_error"
+        stderr_text = f"{type(exc).__name__}: {exc}\n"
+    finally:
+        if process is not None and process.poll() is None:
+            try:
+                process.kill()
+                process.wait(timeout=2)
+            except Exception:
+                pass
+
+    stdout_path.write_text(stdout_text, encoding="utf-8")
+    stderr_path.write_text(stderr_text, encoding="utf-8")
+    metadata["status"] = status
+    metadata["bestmove_seen"] = any(line.startswith("bestmove") for line in stdout_text.splitlines())
+    metadata["stdout_lines"] = len(stdout_text.splitlines())
+    metadata_path.write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return failure_dir
+
+
 def _run_bot_move_with_timeout(bot, gs, timeout_seconds: float):
     result_queue: list[tuple[bool, object]] = []
 
@@ -182,9 +288,8 @@ def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT
     invalid_action_bot = None
     invalid_action_nodes = None
     invalid_action_elapsed = None
+    diagnostic_dir = None
     engine_time_seconds = 0.0
-    last_bot_name = None
-    last_bot_nodes = None
     while not gs.game_over and turnos < MAX_TURNS_PER_GAME:
         turnos += 1
         active_bot = bot_brancas if gs.white_to_move else bot_pretas
@@ -200,12 +305,16 @@ def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT
             invalid_action_bot = last_bot_name
             invalid_action_nodes = last_bot_nodes
             invalid_action_elapsed = elapsed
+            diagnostic_dir = _capture_cpp_search_diagnostic(
+                active_bot, gs, invalid_action, turnos, elapsed
+            )
             _reset_cpp_bot_process(active_bot)
             gs.game_over = True
             gs.winner = "Ação inválida do bot" if not isinstance(exc, TimeoutError) else "Timeout do bot"
             break
         engine_time_seconds += time.perf_counter() - move_start
         if not parsed:
+            elapsed = time.perf_counter() - move_start
             _reset_cpp_bot_process(active_bot)
             gs.check_game_over()
             if not gs.game_over:
@@ -213,7 +322,10 @@ def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT
             invalid_action = "Bot returned no action"
             invalid_action_bot = last_bot_name
             invalid_action_nodes = last_bot_nodes
-            invalid_action_elapsed = time.perf_counter() - move_start
+            invalid_action_elapsed = elapsed
+            diagnostic_dir = _capture_cpp_search_diagnostic(
+                active_bot, gs, invalid_action, turnos, elapsed
+            )
             break
         try:
             executar_acao_treino(gs, parsed)
@@ -222,6 +334,9 @@ def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT
             invalid_action_bot = active_bot.nome
             invalid_action_nodes = _bot_nodes(active_bot)
             invalid_action_elapsed = time.perf_counter() - move_start
+            diagnostic_dir = _capture_cpp_search_diagnostic(
+                active_bot, gs, invalid_action, turnos, invalid_action_elapsed
+            )
             gs.game_over = True
             gs.winner = "Ação inválida do bot"
             break
@@ -252,6 +367,8 @@ def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT
         match["invalid_action_bot"] = invalid_action_bot
         match["invalid_action_nodes"] = invalid_action_nodes
         match["invalid_action_elapsed_seconds"] = round(invalid_action_elapsed or 0.0, 6)
+        if diagnostic_dir is not None:
+            match["diagnostic_dir"] = str(diagnostic_dir)
     return match
 
 
@@ -300,6 +417,8 @@ def gerar_estatisticas_treino(
                 f"{result.get('invalid_action_bot', 'unknown')}: "
                 f"{result.get('invalid_action', 'unknown')}"
             )
+            if result.get("diagnostic_dir"):
+                print(f"   🔎 diagnóstico: {result['diagnostic_dir']}")
         historico_partidas.append(result)
         sys.stdout.write(f"\rProgresso: {index + 1}/{num_jogos}")
         sys.stdout.flush()
@@ -311,6 +430,7 @@ def gerar_estatisticas_treino(
         "seed": seed,
         "max_turns_per_game": MAX_TURNS_PER_GAME,
         "bot_move_timeout_seconds": bot_move_timeout_seconds,
+        "diagnostic_dir": str(DEFAULT_DIAGNOSTIC_DIR),
         "matches": historico_partidas,
     }
     _atomic_write_json(output, stats)
