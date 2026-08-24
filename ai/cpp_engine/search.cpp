@@ -504,10 +504,11 @@ std::string search_best_move(int max_depth) {
         int best_value = (board.turn == 'W') ? -INFINITO : INFINITO;
         Move best_move_this_depth = root_moves.front();
         bool first_move = true;
+        const char root_turn = board.turn;
 
         for (const Move& move : root_moves) {
             UndoInfo undo = make_move(move);
-            const int child_depth = child_depth_for_move(move, depth, board.turn);
+            const int child_depth = child_depth_for_move(move, depth, root_turn);
             if (trace_enabled) trace_line("ROOT-TRY depth=" + std::to_string(depth) + " move=" + move.to_uci() + " score=" + std::to_string(move.score) + " child=" + std::to_string(child_depth));
             int value;
             if (first_move) {
