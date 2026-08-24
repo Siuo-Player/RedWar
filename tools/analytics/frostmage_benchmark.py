@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from pathlib import Path
 import subprocess
 import sys
 import time
@@ -15,13 +16,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 DEFAULT_ENGINE = os.path.join(
     ROOT, "ai", "cpp_engine", "engine.exe" if sys.platform == "win32" else "engine"
 )
-# Dense enough to observe the failure threshold moving after search optimisations,
-# without jumping directly from 100k to 500k.
 DEFAULT_NODES = [10_000, 100_000, 150_000, 200_000, 250_000, 300_000, 350_000, 400_000, 450_000, 500_000]
 
-# FrostMage on D5 can stun the enemy at G5; the 3-range area contains five
-# clustered enemies around G5. A second stun on the next FrostMage turn can
-# convert the same cluster into five kills under RedWar's two-stun rule.
 FROST_CLUSTER = (
     ".,.,.,.,.,.,.,./"
     ".,.,.,B_Bone_0_N_0,.,.,.,./"
@@ -34,7 +30,14 @@ FROST_CLUSTER = (
 )
 
 
-def query(engine: str, nodes: int) -> str:
+def query(engine: str, nodes: int, trace_path: Path | None = None) -> tuple[str, Path | None]:
+    env = os.environ.copy()
+    if trace_path is not None:
+        trace_path.parent.mkdir(parents=True, exist_ok=True)
+        env["ARES_SEARCH_TRACE_PATH"] = str(trace_path)
+    else:
+        env.pop("ARES_SEARCH_TRACE_PATH", None)
+
     proc = subprocess.Popen(
         [engine],
         stdin=subprocess.PIPE,
@@ -42,6 +45,7 @@ def query(engine: str, nodes: int) -> str:
         stderr=subprocess.DEVNULL,
         text=True,
         cwd=ROOT,
+        env=env,
     )
     try:
         proc.stdin.write("isready\n")
@@ -55,7 +59,7 @@ def query(engine: str, nodes: int) -> str:
                 break
             line = line.strip()
             if line.startswith("bestmove"):
-                return line.split(" ", 1)[1] if " " in line else "0000"
+                return (line.split(" ", 1)[1] if " " in line else "0000", trace_path)
         raise TimeoutError("engine did not return bestmove within 30 seconds")
     finally:
         try:
@@ -77,6 +81,11 @@ def main() -> int:
         default=None,
         help="Budget de nodes a testar; pode repetir a opção. Por omissão: 10k, 100k..500k em passos de 50k.",
     )
+    parser.add_argument(
+        "--trace",
+        action="store_true",
+        help="Grava um trace resumido da pesquisa em logs/benchmarks/frostmage.",
+    )
     args = parser.parse_args()
     node_budgets = args.nodes if args.nodes else DEFAULT_NODES
 
@@ -86,17 +95,25 @@ def main() -> int:
     if not os.path.isfile(args.engine):
         raise FileNotFoundError(f"Engine não encontrada: {args.engine}")
 
+    trace_dir = Path(ROOT) / "logs" / "benchmarks" / "frostmage" if args.trace else None
+
     print("FrostMage tactical benchmark")
     print("position: 5 clustered enemies within one 3-range stun area")
     print("expected tactical class: STUN")
+    if args.trace:
+        print(f"trace directory: {trace_dir}")
     print()
+
     failures = 0
     for nodes in node_budgets:
-        bestmove = query(args.engine, nodes)
+        trace_path = trace_dir / f"trace_{nodes}.log" if trace_dir else None
+        bestmove, saved_trace = query(args.engine, nodes, trace_path)
         ok = bestmove.startswith("STUN ")
         if not ok:
             failures += 1
         print(f"nodes={nodes:>8} bestmove={bestmove:<24} {'PASS' if ok else 'FAIL'}")
+        if saved_trace:
+            print(f"  trace={saved_trace}")
 
     print()
     print(f"threshold scan: {len(node_budgets)} node budgets tested")
