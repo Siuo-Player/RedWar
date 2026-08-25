@@ -49,7 +49,7 @@ def build_experiment_metadata(
         "games": int(num_games),
         "opening_count": int(openings),
         "colour_policy": "alternating_per_game",
-        "opening_policy": "game_index_mod_opening_count",
+        "opening_policy": "same_opening_per_pair",
         "pairing_policy": "adjacent_games_same_opening_with_inverted_challenger_colour",
         "termination_policy": f"game_over_or_{ARENA_MAX_PLIES}_plies",
     }
@@ -206,7 +206,7 @@ def start_tournament(
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
     try:
         for i in range(num_games):
-            opening_index = i % 16
+            opening_index = (i // 2) % 16
             pair_id = make_pair_id(i)
             pair_member = i % 2
             if i % 2 == 0:
