@@ -30,6 +30,33 @@ def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: in
     return vitorias_desafiante - vitorias_atual >= margem
 
 
+def build_experiment_metadata(
+    challenger_version: str,
+    baseline_version: str,
+    rules_version: str,
+    nodes: int,
+    num_games: int,
+    openings: int = 16,
+) -> dict:
+    """Build immutable metadata describing the Arena experiment contract."""
+
+    if not challenger_version or not baseline_version or not rules_version:
+        raise ValueError("Arena experiment versions must be explicit")
+    if nodes <= 0 or num_games <= 0 or openings <= 0:
+        raise ValueError("Arena experiment sizes must be positive")
+    return {
+        "challenger_version": str(challenger_version),
+        "baseline_version": str(baseline_version),
+        "rules_version": str(rules_version),
+        "node_budget": int(nodes),
+        "games": int(num_games),
+        "opening_count": int(openings),
+        "colour_policy": "alternating_per_game",
+        "opening_policy": "game_index_mod_opening_count",
+        "termination_policy": f"game_over_or_{ARENA_MAX_PLIES}_plies",
+    }
+
+
 def _normalizar_acao(acao: dict) -> dict:
     result = {"type": str(acao.get("type", "move")).lower()}
     for key in ("start", "end"):
@@ -133,6 +160,9 @@ def start_tournament(
     win_threshold: int,
     nodes: int,
     results_path: str | None = None,
+    challenger_version: str = "unknown",
+    baseline_version: str = "unknown",
+    rules_version: str = "unknown",
 ) -> int:
     print(
         f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS "
@@ -144,6 +174,13 @@ def start_tournament(
     wins_challenger = wins_baseline = draws = 0
     aggregate_actions = Counter()
     games = []
+    experiment_metadata = build_experiment_metadata(
+        challenger_version=challenger_version,
+        baseline_version=baseline_version,
+        rules_version=rules_version,
+        nodes=nodes,
+        num_games=num_games,
+    )
 
     challenger = CppEngineBot(nodes=nodes, executable_path=challenger_engine)
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
@@ -174,6 +211,7 @@ def start_tournament(
                 "game_index": i,
                 "challenger_color": challenger_color,
                 "baseline_color": "black" if challenger_color == "white" else "white",
+                "experiment": experiment_metadata,
                 "outcome": outcome,
                 **game,
             }
@@ -196,6 +234,7 @@ def start_tournament(
             "win_threshold": win_threshold,
             "challenger_engine": str(Path(challenger_engine).resolve()),
             "baseline_engine": str(Path(baseline_engine).resolve()),
+            "experiment": experiment_metadata,
             "wins_challenger": wins_challenger,
             "wins_baseline": wins_baseline,
             "draws": draws,
@@ -254,6 +293,9 @@ def main() -> int:
     parser.add_argument("--margem-vitorias", type=int, default=10)
     parser.add_argument("--nodes", type=int, default=10_000)
     parser.add_argument("--results", help="JSONL de jogos + .summary.json")
+    parser.add_argument("--challenger-version", default="unknown")
+    parser.add_argument("--baseline-version", default="unknown")
+    parser.add_argument("--rules-version", default="unknown")
     args = parser.parse_args()
 
     return start_tournament(
@@ -263,6 +305,9 @@ def main() -> int:
         win_threshold=args.margem_vitorias,
         nodes=args.nodes,
         results_path=args.results,
+        challenger_version=args.challenger_version,
+        baseline_version=args.baseline_version,
+        rules_version=args.rules_version,
     )
 
 
