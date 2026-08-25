@@ -209,6 +209,10 @@ HeroBehavior compile_behavior(const json& beh) {
 
     const json attack = beh.contains("attack") ? beh["attack"] : json();
     bool attack_explicitly_disabled = false;
+    if (!attack.is_null() && attack.is_object() && attack.value("attack_action", "") == "spell") {
+        result.attack_is_spell = true;
+        result.attack_spell_name = attack.value("spell_name", "");
+    }
     if (!attack.is_null()) {
         if (attack.value("type", "") == "none") {
             attack_explicitly_disabled = true;
@@ -425,7 +429,13 @@ std::vector<Move> generate_valid_moves(char current_turn) {
 
                     if (board.pieces[nr][nc].is_empty) continue;
                     if (board.pieces[nr][nc].team != current_turn && step >= mv.min_steps) {
-                        moves.push_back({r, c, nr, nc, "ATTACK", "", "", 0});
+                        if (behavior.attack_is_spell) {
+                            if (!piece_silenced) {
+                                moves.push_back({r, c, nr, nc, "SPELL", behavior.attack_spell_name, "", 0});
+                            }
+                        } else {
+                            moves.push_back({r, c, nr, nc, "ATTACK", "", "", 0});
+                        }
                     }
                     break;
                 }
@@ -460,7 +470,7 @@ std::vector<Move> generate_valid_moves(char current_turn) {
                                 break;
                             }
                         }
-                        if (has_enemy) moves.push_back({r, c, fr, fc, "STUN", "", "", 0});
+                        if (has_enemy) moves.push_back({r, c, fr, fc, "SPELL", "nevada", "", 0});
                     }
                 }
             }

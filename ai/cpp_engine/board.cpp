@@ -465,7 +465,41 @@ UndoInfo make_move(const Move& m) {
         updated_actor.spawn_cooldown = 4;
         update_piece(m.sr, m.sc, updated_actor);
     } else if (m.type == "SPELL") {
-        if (m.spell_name == "jump") {
+        if (m.spell_name == "bone_v" || m.spell_name == "spectral_strike" ||
+            m.spell_name == "aimed_shot" || m.spell_name == "sentinel_shot") {
+            if (undo.target_piece.is_empty || undo.target_piece.team == undo.actor_piece.team) {
+                throw std::runtime_error("Special attack spell requires an enemy target");
+            }
+            board.twc = 0;
+            if (m.spell_name == "bone_v") {
+                update_piece(m.er, m.ec, create_piece("Bone", undo.actor_piece.team));
+            } else {
+                update_piece(m.er, m.ec, empty);
+            }
+        } else if (m.spell_name == "nevada") {
+            ++board.twc;
+            if (undo.num_effects >= MAX_UNDO_EFFECTS) throw std::runtime_error("UndoInfo effect capacity exceeded");
+            undo.overwritten_effects[undo.num_effects++] = {m.er, m.ec, board.effects[m.er][m.ec]};
+            update_effect(m.er, m.ec, TileEffect{false, undo.actor_piece.team, "ice", 3});
+            constexpr int DR[5] = {0, -1, 1, 0, 0};
+            constexpr int DC[5] = {0, 0, 0, -1, 1};
+            for (int i = 0; i < 5; ++i) {
+                const int ar = m.er + DR[i];
+                const int ac = m.ec + DC[i];
+                if (!valid_square(ar, ac)) continue;
+                Piece target = board.pieces[ar][ac];
+                if (target.is_empty || target.team == undo.actor_piece.team) continue;
+                if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
+                undo.aoe_victims[undo.num_victims++] = {ar, ac, target};
+                if (target.stun_timer > 0) {
+                    update_piece(ar, ac, empty);
+                    if (target.lifespan >= 999) board.twc = 0;
+                } else {
+                    target.stun_timer = 2;
+                    update_piece(ar, ac, target);
+                }
+            }
+        } else if (m.spell_name == "jump") {
             board.twc = undo.target_piece.is_empty ? (board.twc + 1) : 0;
             update_piece(m.sr, m.sc, empty);
             update_piece(m.er, m.ec, undo.actor_piece);
@@ -535,7 +569,7 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
     board.turn = (board.turn == 'W') ? 'B' : 'W';
     board.twc = undo.twc_backup;
 
-    if (m.spell_name == "ignite") {
+    if (m.spell_name == "ignite" || m.spell_name == "nevada") {
         for (int i = 0; i < undo.num_effects; ++i) {
             const int r = undo.overwritten_effects[i].r;
             const int c = undo.overwritten_effects[i].c;
@@ -543,7 +577,7 @@ void unmake_move(const Move& m, const UndoInfo& undo) {
         }
     }
 
-    if (m.type == "ATTACK" || m.type == "STUN" || m.spell_name == "ignite") {
+    if (m.type == "ATTACK" || m.type == "STUN" || m.spell_name == "ignite" || m.spell_name == "nevada") {
         for (int i = undo.num_victims - 1; i >= 0; --i) {
             update_piece(undo.aoe_victims[i].r, undo.aoe_victims[i].c, undo.aoe_victims[i].p);
         }

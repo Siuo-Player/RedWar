@@ -214,6 +214,19 @@ class GameState:
             if not (0 <= r < LINHAS and 0 <= c < COLUNAS):
                 raise ValueError(f"Coordinate outside board: {position}")
 
+    def _is_silenced_piece(self, piece, row, col) -> bool:
+        if piece is None:
+            return False
+        for r in range(LINHAS):
+            for c in range(COLUNAS):
+                source = self.board[r][c]
+                if not source or source.team == piece.team or source.name != "Inquisitor":
+                    continue
+                radius = int(HERO_DEFS.get("Inquisitor", {}).get("aura_radius", 2))
+                if max(abs(row - r), abs(col - c)) <= radius:
+                    return True
+        return False
+
     def make_action(
         self,
         start_pos,
@@ -278,7 +291,45 @@ class GameState:
 
         elif action_type == "spell" and spell_name:
             spell_name = str(spell_name).lower()
-            if spell_name == "ignite":
+            if self._is_silenced_piece(piece, start_row, start_col):
+                raise ValueError("SPELL is blocked by Inquisitor silence")
+
+            if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot"}:
+                target = self.board[end_row][end_col]
+                if not target or target.team == piece.team:
+                    raise ValueError("Special attack spell requires an enemy target")
+                captured_real_piece = target.lifespan is None
+                self.remove_piece_hash(end_row, end_col)
+                if spell_name == "bone_v":
+                    from engine.pieces import Bone
+                    spawned = Bone(piece.team)
+                    self.board[end_row][end_col] = spawned
+                    self.add_piece_hash(end_row, end_col, spawned)
+                else:
+                    self.board[end_row][end_col] = None
+            elif spell_name == "nevada":
+                # Nevada keeps the current cross AoE semantics. The center is also
+                # turned into ice; the spell itself applies stun/capture around it.
+                self.set_tile_effect(end_row, end_col, {"type": "ice", "timer": 3, "team": piece.team})
+                for dr, dc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    fr, fc = end_row + dr, end_col + dc
+                    if not (0 <= fr < LINHAS and 0 <= fc < COLUNAS):
+                        continue
+                    tile = self.tile_effects[fr][fc]
+                    if tile and tile.get("type") == "ice" and (fr, fc) != (end_row, end_col):
+                        continue
+                    target = self.board[fr][fc]
+                    if not target or target.team == piece.team:
+                        continue
+                    if target.stun_timer > 0:
+                        captured_real_piece = captured_real_piece or target.lifespan is None
+                        self.remove_piece_hash(fr, fc)
+                        self.board[fr][fc] = None
+                    else:
+                        self.remove_piece_hash(fr, fc)
+                        target.stun_timer = 2
+                        self.add_piece_hash(fr, fc, target)
+            elif spell_name == "ignite":
                 for dr, dc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
                     fr, fc = end_row + dr, end_col + dc
                     if not (0 <= fr < LINHAS and 0 <= fc < COLUNAS):
