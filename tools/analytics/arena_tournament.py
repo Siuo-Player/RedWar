@@ -20,6 +20,9 @@ from engine.game_state import GameState
 from tools.analytics.opening_book import carregar_abertura_do_book
 
 
+ARENA_MAX_PLIES = 10_000
+
+
 def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
     return vitorias_desafiante - vitorias_atual >= margem
 
@@ -50,7 +53,7 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0):
     action_types = Counter()
 
     turnos = 0
-    while not gs.game_over and turnos < 200:
+    while not gs.game_over and turnos < ARENA_MAX_PLIES:
         turnos += 1
         white_to_move = gs.white_to_move
         bot = bot_brancas if white_to_move else bot_pretas
