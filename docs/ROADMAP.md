@@ -26,6 +26,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
 - **PR #61** integrou a equivalência Python/C++ da geração de ações e as regressões de compatibilidade associadas.
 - **PR #65** integrou a execução manual reproduzível da Arena mesmo sem alterações de AI/NNUE.
+- **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
+- **PR #67** integrou a primeira propriedade metamórfica de simetria entre cores/lado a jogar.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -44,6 +46,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Documentação metodológica e de inspirações consolidada.
 - [x] Arena headless com guardrail de 10.000 plies.
 - [x] Execução manual da Arena separada da promoção automática.
+- [x] Sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
+- [x] Propriedade metamórfica de simetria entre cores/lado a jogar.
 
 ## Ares — sequência atual
 
@@ -58,8 +62,6 @@ Para cada nova posição:
 - registar o **failure threshold**;
 - guardar um trace resumido quando necessário para explicar a pesquisa;
 - comparar cada alteração de IA contra exatamente as mesmas posições.
-
-O FrostMage de cinco alvos é o primeiro caso de referência. O ponto de `10 nodes` é um marcador de progresso: se uma otimização resolver corretamente a posição nesse orçamento, o benchmark deve passar e isso constitui uma melhoria.
 
 Novas posições a validar e adicionar:
 
@@ -76,23 +78,16 @@ Novas posições a validar e adicionar:
 
 ### 2. Property / differential sequences — **aprofundamento em curso**
 
-O primeiro nível de sequências está implementado em `tests/test_cross_backend_sequences.py`.
+A suite atual combina sequências determinísticas e pseudo-aleatórias com seeds fixas. Todas as transições importantes devem comparar Python/C++ após cada ply e verificar `make/unmake` contra a raiz.
 
-Cada sequência:
-
-- começa numa abertura determinística;
-- escolhe ações legais de forma determinística durante vários plies;
-- compara o estado Python e C++ após **cada** ação;
-- verifica que o C++ `make/unmake` restaura a raiz de cada transição.
-
-A expansão atual acrescenta propriedades metamórficas em `tests/test_metamorphic_properties.py`, começando pela simetria de cores/lado a jogar: uma troca pura de equipas deve preservar o conjunto estrutural de ações legais e a execução de uma ação deve ser equivalente após desfazer a troca.
+A expansão atual acrescenta cobertura dirigida de estados persistentes e categorias de ação, em `tests/test_cross_backend_persistent_state.py`, para evitar depender apenas da probabilidade de uma sequência aleatória atingir casos raros.
 
 Próximos níveis:
 
 - [x] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
 - [x] propriedades metamórficas de simetria de cores/lado a jogar;
-- [ ] cobertura explícita de transições que atravessem MOVE → ATTACK → SPELL → STUN → SPAWN;
-- [ ] sequências com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
+- [x] cobertura dirigida de categorias de ação e estado persistente;
+- [ ] sequências longas com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
 - [ ] shrink/reprodução automática da primeira divergência;
 - [ ] integração com perft/node-count differential.
 
