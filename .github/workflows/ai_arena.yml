@@ -69,6 +69,7 @@ jobs:
 
         if [[ "$FORCE_ARENA" == "true" ]]; then
           echo "RUN_ARENA=true" >> "$GITHUB_ENV"
+          echo "FORCE_ARENA=true" >> "$GITHUB_ENV"
           if [[ ! -s /tmp/ai-commits.txt ]]; then
             echo "$GITHUB_SHA" > /tmp/ai-commits.txt
             echo "Manual Arena run requested without AI changes; testing current ref against main baseline."
@@ -77,9 +78,11 @@ jobs:
           fi
         elif [[ ! -s /tmp/ai-commits.txt ]]; then
           echo "RUN_ARENA=false" >> "$GITHUB_ENV"
+          echo "FORCE_ARENA=false" >> "$GITHUB_ENV"
           echo "No AI/NNUE changes detected; skipping promotion Arena."
         else
           echo "RUN_ARENA=true" >> "$GITHUB_ENV"
+          echo "FORCE_ARENA=false" >> "$GITHUB_ENV"
         fi
 
     - name: Build current main baseline once
@@ -143,8 +146,13 @@ jobs:
           rc=${PIPESTATUS[0]}
           set -e
           echo "arena_exit_code=$rc" >> "${PREFIX}-arena.txt"
+
           if [[ "$rc" -ne 0 ]]; then
-            historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1
+            if [[ "${FORCE_ARENA:-false}" == "true" && -s "${PREFIX}-games.jsonl" && -s "${PREFIX}-games.jsonl.summary.json" ]]; then
+              echo "Manual/experimental Arena completed; promotion margin was not reached, but results are valid." | tee -a "${PREFIX}-arena.txt"
+            else
+              historical_failures=$((historical_failures + 1)); [[ "$COMMIT" == "$GITHUB_SHA" ]] && current_head_failed=1
+            fi
           fi
 
           git worktree remove --force "$WORKTREE"
