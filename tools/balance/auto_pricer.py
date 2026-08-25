@@ -2,6 +2,7 @@ import argparse
 import json
 import math
 import os
+from collections import Counter
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ARQUIVO_HEROES = os.path.join(ROOT_DIR, "engine", "heroes_config.json")
@@ -34,12 +35,58 @@ def calcular_win_esperada(elo_a, elo_b):
     return 1.0 / (1.0 + math.pow(10.0, x))
 
 
+def _classificar_falha(match):
+    """Preserva a proveniência de resultados descartados sem inferir causalidade."""
+    explicit_reason = match.get("failure_reason")
+    if isinstance(explicit_reason, str) and explicit_reason.strip():
+        return explicit_reason.strip()
+
+    winner = str(match.get("winner", ""))
+    if "Timeout" in winner:
+        return "timeout"
+    if match.get("invalid_action"):
+        return "invalid_action"
+    if match.get("diagnostic_dir"):
+        return "diagnostic_failure"
+    return "invalid_unspecified"
+
+
 def obter_partidas_validas(stats):
-    """Filtra partidas descartadas pelo trainer sem alterar o histórico original."""
+    """Filtra partidas válidas e mantém a proveniência dos resultados descartados."""
     matches = stats.get("matches", [])
     if not isinstance(matches, list):
         raise ValueError("Histórico de partidas inválido: 'matches' deve ser uma lista.")
-    return [match for match in matches if match.get("valid", True)]
+
+    valid_matches = []
+    for index, match in enumerate(matches):
+        if not isinstance(match, dict):
+            raise ValueError(f"Partida inválida no histórico no índice {index}: esperado objeto JSON.")
+        if "valid" not in match or not isinstance(match["valid"], bool):
+            raise ValueError(
+                f"Partida {index} sem proveniência explícita: 'valid' deve ser booleano."
+            )
+        if match["valid"]:
+            valid_matches.append(match)
+    return valid_matches
+
+
+def obter_proveniencia_invalidas(stats):
+    """Resume razões explícitas das observações excluídas do cálculo."""
+    matches = stats.get("matches", [])
+    if not isinstance(matches, list):
+        raise ValueError("Histórico de partidas inválido: 'matches' deve ser uma lista.")
+
+    counts = Counter()
+    for index, match in enumerate(matches):
+        if not isinstance(match, dict):
+            raise ValueError(f"Partida inválida no histórico no índice {index}: esperado objeto JSON.")
+        if "valid" not in match or not isinstance(match["valid"], bool):
+            raise ValueError(
+                f"Partida {index} sem proveniência explícita: 'valid' deve ser booleano."
+            )
+        if not match["valid"]:
+            counts[_classificar_falha(match)] += 1
+    return dict(sorted(counts.items()))
 
 
 def _validar_draft(draft, lado):
@@ -56,7 +103,7 @@ def _validar_draft(draft, lado):
 
 
 def calcular_balanceamento(stats, heroes):
-    """Calcula propostas de preço sem escrever ficheiros."""
+    """Calcula propostas heurísticas de preço sem pretender estimar poder causal."""
     if not isinstance(stats, dict) or not isinstance(heroes, dict):
         raise ValueError("Stats e configuração de heróis devem ser objetos JSON.")
 
@@ -64,6 +111,7 @@ def calcular_balanceamento(stats, heroes):
     valid_matches = obter_partidas_validas(stats)
     total_matches = len(stats.get("matches", []))
     invalid_count = total_matches - len(valid_matches)
+    invalid_provenance = obter_proveniencia_invalidas(stats)
 
     if not valid_matches:
         raise ValueError("Nenhuma partida válida disponível para balanceamento.")
@@ -72,8 +120,6 @@ def calcular_balanceamento(stats, heroes):
     piece_volume = {peca: 0 for peca in custos_atuais}
 
     for match in valid_matches:
-        if not isinstance(match, dict):
-            raise ValueError(f"Partida inválida no histórico: {match!r}")
         try:
             w_elo = match["white_elo"]
             b_elo = match["black_elo"]
@@ -128,9 +174,12 @@ def calcular_balanceamento(stats, heroes):
         )
 
     return {
+        "method": "elo_adjusted_occurrence_heuristic",
+        "interpretation": "diagnostic_pricing_heuristic_not_causal_power_estimate",
         "total_matches": total_matches,
         "valid_matches": len(valid_matches),
         "invalid_matches": invalid_count,
+        "invalid_provenance": invalid_provenance,
         "min_cost": MIN_COST,
         "max_cost": MAX_COST,
         "adjustment_k": ADJUSTMENT_K,
@@ -141,7 +190,7 @@ def calcular_balanceamento(stats, heroes):
 
 
 def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=None):
-    print("📈 A executar Avaliação Económica Ponderada por ELO...")
+    print("📈 A executar heurística de pricing ajustada por ELO...")
 
     if not os.path.exists(ARQUIVO_STATS):
         raise FileNotFoundError("Ficheiro estatisticas_treino.json não encontrado.")
@@ -155,11 +204,13 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
     relatorio = calcular_balanceamento(stats, heroes)
     print(
         f"🧪 Telemetria: {relatorio['valid_matches']} partidas válidas, "
-        f"{relatorio['invalid_matches']} descartadas por ação inválida."
+        f"{relatorio['invalid_matches']} descartadas com proveniência explícita."
     )
+    if relatorio["invalid_provenance"]:
+        print(f"   Motivos: {relatorio['invalid_provenance']}")
 
     mudancas = False
-    print("\n📊 Análise de Performance Absoluta (Impacto sobre ELO Base)")
+    print("\n📊 Diagnóstico heurístico de pricing por ELO")
     print("-" * 76)
 
     for change in relatorio["changes"]:
@@ -211,7 +262,7 @@ def executar_balanceamento_automatico(escrever_config=True, caminho_relatorio=No
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Calcula e opcionalmente aplica preços de heróis.")
+    parser = argparse.ArgumentParser(description="Calcula e opcionalmente aplica preços heurísticos de heróis.")
     parser.add_argument(
         "--no-write",
         action="store_true",
