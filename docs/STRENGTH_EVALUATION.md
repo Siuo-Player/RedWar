@@ -1,23 +1,23 @@
-# RedWar — Strength Evaluation Framework
+# RedWar — Ares Strength Evaluation Framework
 
 ## Objetivo
 
-Este documento define como medir **força geral da Ares** sem confundir melhoria num pequeno conjunto de posições com melhoria global.
+Este documento define como medir **a força geral da Ares** sem confundir melhoria num pequeno conjunto de posições com melhoria global.
 
-A pergunta que o framework deve responder é:
+A pergunta central é:
 
 > "Esta revisão da Ares joga melhor, em média, contra a mesma população de estados e adversários, sob condições controladas, e quão certa estamos dessa conclusão?"
 
-Um benchmark táctico conhecido pode provar que uma capacidade funciona. Não prova, sozinho, que a engine ficou mais forte.
+A **Arena é o instrumento principal para medir a força da Ares**. Benchmarks tácteis, differential tests e hold-out servem para proteger, explicar e complementar essa medição; não a substituem.
 
 ## 1. Inspiração: desenvolvimento do Stockfish
 
 O modelo de desenvolvimento do Stockfish/Fishtest é a principal inspiração operacional:
 
 ```text
-engine version A
+Ares revision A
       vs
-engine version B
+Ares revision B
       ↓
 controlled self-play
       ↓
@@ -32,9 +32,9 @@ sequential test (SPRT)
 accept / reject / continue
 ```
 
-O RedWar não deve copiar literalmente todos os pressupostos do xadrez. Deve reutilizar o princípio: **força é medida por comparação experimental repetida, não por inspeção nem por poucos puzzles seleccionados**.
+O RedWar não deve copiar literalmente todos os pressupostos do xadrez. Deve reutilizar o princípio: **a força da Ares é medida por comparação experimental repetida, não por inspeção nem por poucos puzzles seleccionados**.
 
-Referência prática principal: Stockfish Fishtest, incluindo a utilização de paired games, ratings e SPRT.
+Referência prática principal: Stockfish Fishtest.
 
 - https://github.com/official-stockfish/fishtest
 - https://official-stockfish.github.io/docs/fishtest-wiki/Creating-my-first-test.html
@@ -42,43 +42,79 @@ Referência prática principal: Stockfish Fishtest, incluindo a utilização de 
 
 ## 2. O que o rating representa
 
-Para uma comparação A vs B, queremos estimar uma variável latente de força:
+Para duas revisões da Ares queremos estimar:
 
 ```text
-R_A - R_B
+R_Ares,new - R_Ares,baseline
 ```
 
-A força absoluta é arbitrária; o que interessa operacionalmente é a diferença entre versões.
+A força absoluta é arbitrária; a diferença entre revisões é o que importa operacionalmente.
 
-A escala pode começar compatível com Elo, mas a implementação deve ser modelada como **paired-comparison strength**, permitindo evoluir para Bradley–Terry ou uma formulação bayesiana.
+A primeira implementação no repositório está em `tools/analytics/strength_rating.py`. É um baseline Elo-compatible, com resultados explícitos de partidas e uma estimativa conservadora de incerteza. **Ainda não é um SPRT nem um modelo Bradley–Terry/Bayesiano completo.**
 
-A primeira implementação no repositório está em `tools/analytics/strength_rating.py`. Ela fornece um baseline Elo-compatible, com resultados de partidas explícitos e uma estimativa conservadora de incerteza. Esta implementação é deliberadamente provisória: **não é ainda o SPRT nem um modelo Bradley–Terry/Bayesiano completo**.
-
-Um resultado futuro deve poder ser expresso como:
+Um resultado futuro deverá poder ser expresso como:
 
 ```text
-Ares-v42
+Ares revision X
 rating = 1678
 uncertainty = ±18
 ```
 
-em vez de apenas:
-
-```text
-Ares-v42 = 1678
-```
-
 A incerteza é parte do resultado.
 
-## 3. Modelo de comparação
+## 3. Arena = medição de força geral
 
-Para uma baseline A e challenger B, uma formulação inicial compatível com Elo pode usar:
+A função dos diferentes mecanismos é:
+
+```text
+correctness / differential
+        ↓
+regression benchmarks
+        ↓
+hold-out validation
+        ↓
+Ares Arena
+        ↓
+Strength Rating + uncertainty
+        ↓
+SPRT / sequential decision
+```
+
+### Differential / correctness
+
+> A Ares continua semanticamente correta?
+
+### Benchmarks tácticos
+
+> Capacidades específicas importantes continuam a funcionar ou melhoraram?
+
+### Hold-out
+
+> A alteração generaliza para casos não usados durante o desenvolvimento?
+
+### Arena
+
+> **A nova revisão da Ares é realmente mais forte no jogo global?**
+
+### Strength Rating
+
+> Qual é o tamanho estimado da diferença?
+
+### SPRT / teste sequencial
+
+> Existe evidência suficiente para aceitar, rejeitar ou continuar?
+
+Assim, uma melhoria da Ares **não é promovida apenas porque passou FrostMage ou outros puzzles dirigidos**. A Arena é a medição competitiva global.
+
+## 4. Modelo de comparação
+
+Uma formulação inicial compatível com Elo pode usar:
 
 ```text
 P(B vence A) = logistic((R_B - R_A + context_effects) / scale)
 ```
 
-Em evolução posterior pode ser usado um modelo Bradley–Terry completo:
+Em evolução posterior pode ser usado Bradley–Terry:
 
 ```text
 P(B > A) = strength_B / (strength_A + strength_B)
@@ -86,13 +122,11 @@ P(B > A) = strength_B / (strength_A + strength_B)
 
 com tratamento explícito de empate.
 
-Não é necessário escolher já a implementação definitiva. O requisito é guardar dados suficientemente ricos para permitir esta evolução sem repetir todas as partidas.
+Os dados devem ser guardados de forma suficientemente rica para permitir a evolução do modelo sem repetir todas as partidas.
 
-A implementação inicial usa `MatchResult(left, right, outcome)` e suporta `win`, `draw` e `loss`; o módulo é independente da search/evaluation para que o modelo estatístico possa evoluir sem tocar na Ares.
+## 5. Dados mínimos por partida da Arena
 
-## 4. Dados mínimos por partida
-
-Cada partida de medição de força deve guardar, no mínimo:
+Cada partida de medição de força entre revisões da Ares deve guardar, no mínimo:
 
 - versão/commit do challenger;
 - versão/commit da baseline;
@@ -104,9 +138,9 @@ Cada partida de medição de força deve guardar, no mínimo:
 - número de plies;
 - motivo de terminação;
 - versão das regras;
-- resultado de validade da partida.
+- validade da partida.
 
-Quando possível guardar também:
+Quando possível:
 
 - hardware class;
 - tempo total;
@@ -116,9 +150,9 @@ Quando possível guardar também:
 
 O JSONL bruto da Arena deve continuar a ser a fonte de dados; os resumos estatísticos devem ser derivados dele.
 
-## 5. Controlo experimental
+## 6. Controlo experimental
 
-Comparações de força devem controlar ou equilibrar:
+Comparações de força da Ares devem controlar ou equilibrar:
 
 ```text
 same rules
@@ -131,106 +165,34 @@ same invalid-game policy
 
 O challenger não pode receber sistematicamente uma cor ou família de openings que o favoreça.
 
-Para uma comparação A/B, o ideal é que cada configuração relevante apareça de forma aproximadamente simétrica:
+Para uma comparação A/B:
 
 ```text
-A as White vs B as Black
-A as Black vs B as White
+Ares-new as White vs Ares-old as Black
+Ares-new as Black vs Ares-old as White
 ```
 
 O book/opening set deve ser fixado antes da análise.
 
-## 6. Três conjuntos diferentes
-
-O RedWar deve separar claramente:
+## 7. Development, regression e hold-out
 
 ### Regression set
 
-Casos que nunca podem quebrar.
-
-Exemplos: bugs corrigidos, regras específicas e invariantes do engine.
-
-Objetivo:
-
-```text
-não regressar
-```
+Casos que nunca podem quebrar. Servem para detectar regressões conhecidas.
 
 ### Development set
 
-Casos usados durante o desenvolvimento para observar se uma hipótese está a produzir o efeito esperado.
-
-Objetivo:
-
-```text
-orientar engenharia
-```
+Casos usados durante o desenvolvimento para testar hipóteses de engenharia.
 
 ### Hold-out set
 
-Casos que não devem ser usados para orientar a alteração corrente e que só são abertos para validação.
+Casos que não orientam a alteração corrente e só são abertos na validação.
 
-Objetivo:
-
-```text
-generalização
-```
-
-Uma alteração que melhora apenas o development set mas piora consistentemente o hold-out **não é uma melhoria geral**.
+Uma alteração que melhora development mas piora consistentemente hold-out **não é uma melhoria geral da Ares**.
 
 O hold-out não deve ser reciclado continuamente para development; caso contrário deixa de ser independente.
 
-## 7. Pipeline de evidência
-
-A decisão de promover uma alteração deve evoluir para:
-
-```text
-1. correctness
-   ↓
-2. known regressions
-   ↓
-3. development evidence
-   ↓
-4. hold-out evidence
-   ↓
-5. A/B self-play
-   ↓
-6. strength estimate + uncertainty
-   ↓
-7. sequential statistical test
-   ↓
-8. promotion decision
-```
-
-Cada etapa responde a uma pergunta diferente.
-
-### Correctness
-
-A implementação faz aquilo que deveria fazer?
-
-### Regression
-
-Coisas anteriormente corretas continuam corretas?
-
-### Development
-
-A hipótese de engenharia parece produzir o efeito desejado?
-
-### Hold-out
-
-O efeito generaliza para casos não utilizados durante a alteração?
-
-### A/B
-
-A alteração melhora efectivamente o comportamento competitivo?
-
-### Strength estimate
-
-Qual é o tamanho estimado da melhoria/regressão?
-
-### Statistical test
-
-Temos evidência suficiente para tomar uma decisão?
+O hold-out é uma protecção contra overfitting; **a Arena continua a ser o teste principal da força global**.
 
 ## 8. Arena e draws
 
@@ -248,23 +210,25 @@ automaticamente em:
 draw
 ```
 
-sem que isso represente uma regra real do jogo.
+sem que isso corresponda a uma regra real do jogo.
 
-O guardrail actual de 10.000 plies é uma protecção experimental. Caso ocorram partidas sem vencedor, o `GameState` deve ser investigado antes de o resultado ser interpretado como empate legítimo.
+O guardrail actual de 10.000 plies é uma protecção experimental. Caso ocorram partidas sem vencedor, o `GameState` deve ser investigado antes de interpretar o resultado como empate legítimo.
+
+A execução manual `main vs main` introduzida no workflow é um **experimento de infraestrutura/comportamento da Arena** (por exemplo, observar draws/terminação). Isso não substitui a utilização normal da Arena para comparar duas revisões da Ares.
 
 ## 9. Elo não é suficiente sozinho
 
 O rating global pode esconder intransitividade:
 
 ```text
-A > B
-B > C
-C > A
+Ares A > Ares B
+Ares B > Ares C
+Ares C > Ares A
 ```
 
-Isto pode surgir em RedWar por composição, matchup, cor ou estilos de jogo.
+Isto pode surgir em RedWar por composição, matchup, cor ou estilo.
 
-O sistema deve portanto preservar a possibilidade de análises condicionais:
+Devemos preservar análises condicionais para explicar resultados:
 
 ```text
 strength global
@@ -274,7 +238,7 @@ strength por cor
 strength por classe táctica
 ```
 
-Estas análises não substituem o rating global; servem para explicar o resultado e detectar regressões localizadas.
+Essas análises explicam o rating global; não o substituem.
 
 Referência académica sobre limitações do Elo em presença de intransitividade:
 
@@ -284,9 +248,9 @@ Referência académica sobre limitações do Elo em presença de intransitividad
 
 Resultado de jogo e qualidade de decisão são dimensões diferentes.
 
-A investigação de **Intrinsic Chess Ratings** mostra uma linha de trabalho em que a força pode ser estimada pela qualidade das decisões, além do resultado bruto das partidas.
+A investigação de **Intrinsic Chess Ratings** mostra uma linha de trabalho que estima força pela qualidade das decisões, além do resultado bruto.
 
-No RedWar, esta ideia deve ser adaptada para uma segunda métrica experimental, por exemplo:
+No RedWar, isto pode tornar-se uma segunda métrica experimental:
 
 ```text
 posição
@@ -298,7 +262,7 @@ perda de avaliação / tactical regret
 move-quality score
 ```
 
-Pode posteriormente incluir:
+Pode incluir, no futuro:
 
 - oportunidade de stun perdida;
 - spell forçante ignorado;
@@ -307,16 +271,16 @@ Pode posteriormente incluir:
 - perda material;
 - alteração inesperada de TWC/lifespan/cooldown.
 
-Isto **não substitui A/B strength**. Serve para explicar por que uma versão parece mais forte.
+Isto **não substitui a Arena**. Serve para explicar por que uma revisão parece mais forte ou mais fraca.
 
-Referência:
+Referências:
 
 - Regan & Haworth, *Intrinsic Chess Ratings*, AAAI 2011: https://ojs.aaai.org/index.php/AAAI/article/view/7951
 - Ferreira, *Determining the Strength of Chess Players Based on Actual Play*: https://journals.sagepub.com/doi/pdf/10.3233/ICG-2012-35102
 
 ## 11. Modelo estatístico futuro
 
-A primeira implementação pode manter a simplicidade de Elo, mas o desenho de dados deve permitir evoluir para:
+A primeira implementação pode manter Elo, mas o desenho deve permitir evoluir para:
 
 1. Elo-compatible paired comparison;
 2. Bradley–Terry;
@@ -330,39 +294,37 @@ Referências académicas:
 - *A Bayesian approach to time-varying latent strengths in pairwise comparisons*: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0251945
 - *Rating players by Laplace's approximation and dynamic modeling*: https://www.sciencedirect.com/science/article/pii/S0169207023001036
 
-## 12. Critérios de promoção
+## 12. Critérios de promoção da Ares
 
-Até existir uma implementação estatística completa, **não usar um limiar arbitrário de vitórias como prova de melhoria geral**.
-
-A política provisória é:
+Uma alteração que pretende melhorar a força da Ares deve satisfazer:
 
 ```text
 regression suite = obrigatória
-hold-out = obrigatório para alterações de força
-Arena = obrigatória para alegar aumento de força
+hold-out = obrigatório
+Arena = obrigatória
 rating = guardar quando disponível
 uncertainty = não omitir
 manual investigation = necessária em resultados anómalos
 ```
 
-Quando o sistema de rating estiver implementado:
+Quando o sistema estatístico estiver maduro:
 
 ```text
 ACCEPT
-    efeito positivo suficientemente suportado
+    evidência suficiente de aumento de força na Arena
 
 REJECT
-    evidência suficiente de regressão
+    evidência suficiente de regressão na Arena
 
 CONTINUE
     dados insuficientes / intervalo demasiado largo
 ```
 
-O terceiro resultado é importante: **não forçar uma decisão quando não existe evidência suficiente**.
+**CONTINUE é uma decisão válida.** Não se deve forçar uma promoção por falta de dados.
 
 ## 13. Anti-overfitting
 
-Não é permitido desenhar uma melhoria para passar apenas:
+Não é permitido desenhar uma melhoria da Ares para passar apenas:
 
 - FrostMage;
 - um único tactical puzzle;
@@ -371,9 +333,9 @@ Não é permitido desenhar uma melhoria para passar apenas:
 - uma única composição;
 - uma única faixa de nodes.
 
-Os benchmarks dirigidos continuam importantes, mas como testes de capacidade/regressão.
+Esses casos continuam importantes como capability/regression probes.
 
-A força geral deve ser demonstrada num conjunto experimental suficientemente variado e com um hold-out protegido.
+A força geral deve aparecer na **Arena**, usando uma população suficientemente variada de partidas e controlo experimental.
 
 ## 14. Roadmap de implementação
 
@@ -387,8 +349,8 @@ A força geral deve ser demonstrada num conjunto experimental suficientemente va
 [ ] equilibrar cores/openings/seeds
 [ ] separar development/regression/hold-out
 [ ] criar hold-out congelado
-[ ] integrar rating na Arena
-[ ] comparar versões por rating delta
+[ ] integrar rating na Arena Ares-vs-Ares
+[ ] comparar revisões por rating delta
 [ ] adicionar matchup/intransitivity analysis
 [ ] adicionar SPRT/teste sequencial
 [ ] estudar intrinsic move-quality score
@@ -396,4 +358,4 @@ A força geral deve ser demonstrada num conjunto experimental suficientemente va
 
 ## 15. Regra central
 
-> **Nenhum benchmark individual define a força da Ares. A força é uma propriedade emergente de muitas partidas controladas e de uma medição estatística com incerteza conhecida.**
+> **Nenhum benchmark individual define a força da Ares. A Arena mede a força competitiva geral; benchmarks, differential tests e hold-out tornam essa medição segura, explicável e resistente a overfitting.**
