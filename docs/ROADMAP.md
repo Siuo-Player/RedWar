@@ -25,6 +25,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #53** integrou as melhorias de CI e a separação entre gates de CI/tooling e gates de promoção da AI.
 - **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
 - **PR #61** integrou a equivalência Python/C++ da geração de ações e as regressões de compatibilidade associadas.
+- **PR #65** integrou a execução manual reproduzível da Arena mesmo sem alterações de AI/NNUE.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -41,6 +42,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Equivalência Python/C++ da geração de ações legais.
 - [x] Sequências diferenciais determinísticas Python/C++ por múltiplos plies.
 - [x] Documentação metodológica e de inspirações consolidada.
+- [x] Arena headless com guardrail de 10.000 plies.
+- [x] Execução manual da Arena separada da promoção automática.
 
 ## Ares — sequência atual
 
@@ -71,7 +74,7 @@ Novas posições a validar e adicionar:
 - [ ] lifespan/cooldown;
 - [ ] capturas de alto valor.
 
-### 2. Property / differential sequences — **base determinística concluída; aprofundamento continua**
+### 2. Property / differential sequences — **aprofundamento em curso**
 
 O primeiro nível de sequências está implementado em `tests/test_cross_backend_sequences.py`.
 
@@ -82,12 +85,14 @@ Cada sequência:
 - compara o estado Python e C++ após **cada** ação;
 - verifica que o C++ `make/unmake` restaura a raiz de cada transição.
 
-A próxima expansão deve ser:
+A expansão atual acrescenta propriedades metamórficas em `tests/test_metamorphic_properties.py`, começando pela simetria de cores/lado a jogar: uma troca pura de equipas deve preservar o conjunto estrutural de ações legais e a execução de uma ação deve ser equivalente após desfazer a troca.
 
-- [ ] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
+Próximos níveis:
+
+- [x] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
+- [x] propriedades metamórficas de simetria de cores/lado a jogar;
 - [ ] cobertura explícita de transições que atravessem MOVE → ATTACK → SPELL → STUN → SPAWN;
 - [ ] sequências com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
-- [ ] testes metamórficos de propriedades invariantes;
 - [ ] shrink/reprodução automática da primeira divergência;
 - [ ] integração com perft/node-count differential.
 
@@ -121,14 +126,15 @@ Depois de estabilizar a pesquisa-base e ter benchmarks independentes suficientes
 
 Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o mesmo orçamento de nodes/regras.
 
-A Arena de promoção não é usada como gate de uma alteração apenas de CI/tooling; para esse caso usamos benchmarks determinísticos e testes de consistência.
+A Arena de promoção não é usada como gate de uma alteração apenas de CI/tooling; para esse caso usamos benchmarks determinísticos e testes de consistência. Execuções manuais podem produzir dados experimentais sem exigir a margem de promoção.
 
 A evolução da Arena deve privilegiar evidência estatística progressivamente mais forte, incluindo controlo de seeds/openings/cores, tratamento explícito de inválidos e, quando a infraestrutura estiver madura, teste sequencial e intervalos de incerteza. Ver [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
 
 #### Limite de duração das partidas
 
 - [x] Aumentar o limite de segurança da Arena headless de **200 para 10.000 plies**.
-- [ ] Na próxima iteração, observar se continuam a aparecer partidas sem vencedor.
+- [x] Primeira Arena experimental com 20 partidas a 10.000 plies: **0 draws observados**.
+- [ ] Continuar a observar partidas sem vencedor em amostras futuras.
 - [ ] Se continuarem, localizar no `GameState` a origem de cada caso e garantir um desempate determinístico e simétrico entre as cores, sem transformar silenciosamente o limite de segurança num empate.
 
 O limite de 10.000 plies é apenas um **guardrail de segurança da Arena**, não uma regra nova de resultado do jogo.
@@ -179,20 +185,4 @@ Quando esta camada começar, preservar a regra de servidor autoritativo e separa
 
 ## Regra de manutenção
 
-No início de cada branch:
-
-- atualizar o último PR confirmado;
-- atualizar o estado relevante do sistema;
-- escrever objetivo e plano;
-- definir critérios de conclusão/abandono;
-- eliminar relíquias tocadas pela nova branch.
-
-Depois de cada merge:
-
-- atualizar documentação;
-- apagar a branch remota;
-- confirmar que não ficaram branches experimentais sem necessidade.
-
-## Lançamento
-
-Só considerar o projeto concluído quando a aplicação local estiver utilizável, a Ares estiver suficientemente forte/rápida, a Arena funcional e existir uma versão web/multiplayer utilizável.
+Cada bloco deve terminar com testes, documentação e uma conclusão experimental clara. PRs de infraestrutura, CI e documentação não devem ser usados como proxies para promoção da Ares.
