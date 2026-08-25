@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "set_id": "ares-holdout-v1",
+  "purpose": "Protected validation set for general Ares strength evaluation.",
+  "policy": "Do not use these cases to tune the current engine revision.",
+  "cases": [
+    {"id": "holdout-001", "seed": 17001, "opening_index": 0},
+    {"id": "holdout-002", "seed": 17003, "opening_index": 3},
+    {"id": "holdout-003", "seed": 17011, "opening_index": 7},
+    {"id": "holdout-004", "seed": 17021, "opening_index": 11},
+    {"id": "holdout-005", "seed": 17027, "opening_index": 15},
+    {"id": "holdout-006", "seed": 17033, "opening_index": 4},
+    {"id": "holdout-007", "seed": 17041, "opening_index": 8},
+    {"id": "holdout-008", "seed": 17047, "opening_index": 12}
+  ]
+}
