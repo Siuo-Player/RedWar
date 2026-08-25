@@ -1,0 +1,112 @@
+name: RedWar Ares Strength Experiment
+
+on:
+  workflow_dispatch:
+    inputs:
+      games:
+        description: 'Number of A/B games (must be even for complete pairs)'
+        required: false
+        default: '100'
+        type: string
+      nodes:
+        description: 'Node budget per move'
+        required: false
+        default: '10000'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  strength-experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build baseline from main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main --no-tags
+          BASE_SHA=$(git rev-parse origin/main)
+          echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
+          git worktree add --detach /tmp/redwar-baseline "$BASE_SHA"
+          pushd /tmp/redwar-baseline/ai/cpp_engine >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+          chmod +x engine
+          popd >/dev/null
+
+      - name: Run long strength experiment
+        shell: bash
+        env:
+          GAMES: ${{ inputs.games }}
+          NODES: ${{ inputs.nodes }}
+        run: |
+          set -u
+          if (( GAMES % 2 != 0 )); then
+            echo 'games must be even so each opening has paired colours.'
+            exit 2
+          fi
+          mkdir -p /tmp/redwar-strength-results
+          WORKTREE="/tmp/redwar-$GITHUB_SHA"
+          PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
+          git worktree add --detach "$WORKTREE" "$GITHUB_SHA"
+          pushd "$WORKTREE/ai/cpp_engine" >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          if ! g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine; then
+            echo 'challenger build failed'
+            popd >/dev/null
+            git worktree remove --force "$WORKTREE"
+            git worktree remove --force /tmp/redwar-baseline
+            exit 1
+          fi
+          chmod +x engine
+          popd >/dev/null
+
+          set +e
+          python "$GITHUB_WORKSPACE/tools/analytics/arena_tournament.py" \
+            --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
+            --baseline-engine "/tmp/redwar-baseline/ai/cpp_engine/engine" \
+            --challenger-version "$GITHUB_SHA" \
+            --baseline-version "$BASE_SHA" \
+            --rules-version "$BASE_SHA" \
+            --jogos "$GAMES" \
+            --margem-vitorias 0 \
+            --nodes "$NODES" \
+            --results "${PREFIX}-games.jsonl" \
+            2>&1 | tee "${PREFIX}-arena.txt"
+          rc=${PIPESTATUS[0]}
+          set -e
+
+          echo "arena_exit_code=$rc" | tee -a "${PREFIX}-arena.txt"
+          git worktree remove --force "$WORKTREE"
+          git worktree remove --force /tmp/redwar-baseline
+
+          # This workflow is experimental and must not fail just because the
+          # fixed promotion margin was not reached. The raw result is the output.
+          exit 0
+
+      - name: Upload experiment artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ares-strength-experiment-${{ github.sha }}
+          path: /tmp/redwar-strength-results/
+          if-no-files-found: warn
