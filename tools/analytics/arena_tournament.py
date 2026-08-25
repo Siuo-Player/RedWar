@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 
 from ai.bot import CppEngineBot
 from engine.game_state import GameState
+from tools.analytics.arena_pairs import GameOutcome, aggregate_pentanomial, incomplete_pairs, make_pair_id, validate_pair_structure
 from tools.analytics.opening_book import carregar_abertura_do_book
 from tools.analytics.strength_rating import MatchResult, Rating, compare, estimate
 
@@ -49,6 +50,7 @@ def build_experiment_metadata(
         "opening_count": int(openings),
         "colour_policy": "alternating_per_game",
         "opening_policy": "game_index_mod_opening_count",
+        "pairing_policy": "adjacent_games_same_opening_with_inverted_challenger_colour",
         "termination_policy": f"game_over_or_{ARENA_MAX_PLIES}_plies",
     }
 
@@ -83,6 +85,29 @@ def summarize_experiment_balance(games: list[dict]) -> dict:
         "colour_wins_difference": abs(white["challenger"] - black["challenger"]),
         "opening_games": {str(index): count for index, count in sorted(openings.items())},
         "opening_seed_sequences": seeds_by_opening,
+    }
+
+
+def summarize_pentanomial(games: list[dict]) -> dict:
+    """Aggregate complete adjacent A/B game pairs without changing the promotion gate."""
+    outcomes = [
+        GameOutcome(
+            game_index=int(game["game_index"]),
+            pair_id=str(game["pair_id"]),
+            opening_index=int(game["opening_index"]),
+            challenger_color=str(game["challenger_color"]),
+            outcome=str(game["outcome"]),
+        )
+        for game in games
+    ]
+    validate_pair_structure(outcomes)
+    counts = aggregate_pentanomial(outcomes)
+    incomplete = sorted(incomplete_pairs(outcomes))
+    return {
+        "complete_pairs": sum(counts.values()),
+        "incomplete_pair_ids": incomplete,
+        "bins": dict(counts),
+        "paired_games_used": sum(counts.values()) * 2,
     }
 
 
@@ -182,6 +207,8 @@ def start_tournament(
     try:
         for i in range(num_games):
             opening_index = i % 16
+            pair_id = make_pair_id(i)
+            pair_member = i % 2
             if i % 2 == 0:
                 challenger_color = "white"
                 game = run_headless_match(challenger, baseline, opening_index)
@@ -201,6 +228,8 @@ def start_tournament(
             aggregate_actions.update(game["action_counts"])
             games.append({
                 "game_index": i,
+                "pair_id": pair_id,
+                "pair_member": pair_member,
                 "challenger_color": challenger_color,
                 "baseline_color": "black" if challenger_color == "white" else "white",
                 "experiment": experiment_metadata,
@@ -215,6 +244,7 @@ def start_tournament(
         promoted = verificar_promocao(wins_challenger, wins_baseline, win_threshold)
         rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width = _strength_from_games(games)
         balance = summarize_experiment_balance(games)
+        pentanomial = summarize_pentanomial(games)
         summary = {
             "games": num_games,
             "nodes": nodes,
@@ -234,12 +264,16 @@ def start_tournament(
             "rating_delta": rating_delta,
             "rating_delta_ci95_half_width": rating_ci95_half_width,
             "balance_audit": balance,
+            "pentanomial": pentanomial,
             "action_counts": dict(aggregate_actions),
         }
         print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws}")
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
         print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (IC95 ±{rating_ci95_half_width:.1f})")
+        print(f"Pentanomial: {pentanomial['bins']} | Pares completos: {pentanomial['complete_pairs']}")
+        if pentanomial["incomplete_pair_ids"]:
+            print(f"Pares incompletos: {pentanomial['incomplete_pair_ids']}")
         if promoted:
             print("👑 SUCESSO: Challenger superou a baseline por margem suficiente.")
         else:
