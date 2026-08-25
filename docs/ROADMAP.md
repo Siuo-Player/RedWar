@@ -24,6 +24,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #52** integrou a continuação seletiva do segundo STUN no mesmo centro, apenas quando o primeiro STUN atingiu um adversário, e a estabilização necessária do trainer.
 - **PR #53** integrou as melhorias de CI e a separação entre gates de CI/tooling e gates de promoção da AI.
 - **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
+- **PR #61** integrou a equivalência Python/C++ da geração de ações e as regressões de compatibilidade associadas.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -37,7 +38,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Suite reutilizável de benchmarks táticos com validação de schema.
 - [x] CI distingue mudanças reais da AI de alterações apenas de tooling/workflows.
 - [x] Auto-Balancer usa timeout explícito e suite Python completa.
-- [x] Documentação principal sincronizada com o estado real pós-#54.
+- [x] Equivalência Python/C++ da geração de ações legais.
+- [x] Documentação metodológica e de inspirações consolidada.
 
 ## Ares — sequência atual
 
@@ -99,6 +101,14 @@ Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o 
 A Arena de promoção não é usada como gate de uma alteração apenas de CI/tooling; para esse caso usamos benchmarks determinísticos e testes de consistência.
 
 A evolução da Arena deve privilegiar evidência estatística progressivamente mais forte, incluindo controlo de seeds/openings/cores, tratamento explícito de inválidos e, quando a infraestrutura estiver madura, teste sequencial e intervalos de incerteza. Ver [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
+
+#### Limite de duração das partidas
+
+- [x] Aumentar o limite de segurança da Arena headless de **200 para 10.000 plies**.
+- [ ] Na próxima iteração, observar se continuam a aparecer partidas sem vencedor.
+- [ ] Se continuarem, localizar no `GameState` a origem de cada caso e garantir um desempate determinístico e simétrico entre as cores, sem transformar silenciosamente o limite de segurança num empate.
+
+O limite de 10.000 plies é apenas um **guardrail de segurança da Arena**, não uma regra nova de resultado do jogo.
 
 ## Heróis e balanceamento
 
