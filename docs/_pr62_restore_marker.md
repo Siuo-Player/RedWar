@@ -1,0 +1,1 @@
+Temporary marker for PR #62 repair; this file is intentionally removed immediately after the accidental main-branch document commit is reverted.
