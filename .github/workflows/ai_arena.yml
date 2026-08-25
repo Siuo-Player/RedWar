@@ -10,6 +10,12 @@ on:
       - 'tools/analytics/arena_tournament.py'
       - '.github/workflows/ai_arena.yml'
   workflow_dispatch:
+    inputs:
+      force_arena:
+        description: 'Run Arena even when this ref has no AI/NNUE changes'
+        required: false
+        default: true
+        type: boolean
 
 concurrency:
   group: redwar-ai-arena-${{ github.ref }}
@@ -46,6 +52,8 @@ jobs:
 
     - name: Select AI commits since main
       shell: bash
+      env:
+        FORCE_ARENA: ${{ github.event_name == 'workflow_dispatch' && inputs.force_arena || false }}
       run: |
         set -euo pipefail
         BASE=$(git merge-base HEAD origin/main)
@@ -58,7 +66,16 @@ jobs:
             echo "$COMMIT" >> /tmp/ai-commits.txt
           fi
         done < /tmp/all-commits.txt
-        if [[ ! -s /tmp/ai-commits.txt ]]; then
+
+        if [[ "$FORCE_ARENA" == "true" ]]; then
+          echo "RUN_ARENA=true" >> "$GITHUB_ENV"
+          if [[ ! -s /tmp/ai-commits.txt ]]; then
+            echo "$GITHUB_SHA" > /tmp/ai-commits.txt
+            echo "Manual Arena run requested without AI changes; testing current ref against main baseline."
+          else
+            echo "Manual Arena run requested; testing AI revisions on this ref."
+          fi
+        elif [[ ! -s /tmp/ai-commits.txt ]]; then
           echo "RUN_ARENA=false" >> "$GITHUB_ENV"
           echo "No AI/NNUE changes detected; skipping promotion Arena."
         else
