@@ -7,7 +7,31 @@
 3. **Web / multiplayer.** Avança incrementalmente, mas só fecha o projeto quando esta camada estiver utilizável.
 4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis.
 
-A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md), o protocolo para evitar overfitting dos benchmarks está em [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md), e o futuro modelo de medição de força está em [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md).
+A metodologia de decomposição e gestão do desenvolvimento está em [`PROJECT_DEVELOPMENT_METHODOLOGY.md`](PROJECT_DEVELOPMENT_METHODOLOGY.md). A metodologia transversal para engenharia e investigação está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md), o protocolo para evitar overfitting dos benchmarks está em [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md), e o modelo de medição de força está em [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md).
+
+## Como o roadmap é dividido
+
+O RedWar é melhor descrito como um **projeto de pequena equipa com complexidade sistémica e múltiplos subsistemas**, não como um projecto "large-scale" no sentido organizacional de estudos com dezenas de equipas. Ainda assim, princípios de decomposição de trabalho, desenvolvimento incremental, modularidade e gestão explícita de dependências são aplicáveis.
+
+Cada bloco do roadmap deve funcionar como um work package coerente e, quando adequado, ser entregue por uma PR isolada:
+
+```text
+objetivo do projeto
+    ↓
+área estratégica / subsistema
+    ↓
+bloco do roadmap
+    ↓
+PR / unidade de trabalho coerente
+    ↓
+implementação + testes + documentação
+    ↓
+validação
+    ↓
+merge / novo baseline
+```
+
+O documento [`PROJECT_DEVELOPMENT_METHODOLOGY.md`](PROJECT_DEVELOPMENT_METHODOLOGY.md) explica a base académica e as regras de decomposição, dependências e conclusão.
 
 ## Metodologia da Ares
 
