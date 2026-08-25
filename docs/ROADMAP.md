@@ -7,7 +7,7 @@
 3. **Web / multiplayer.** Avança incrementalmente, mas só fecha o projeto quando esta camada estiver utilizável.
 4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis.
 
-A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md). Ela define a evidência esperada para correctness, differential testing, benchmarks, força A/B, balanceamento e futura validação com jogadores.
+A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), e as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md).
 
 ## Metodologia da Ares
 
