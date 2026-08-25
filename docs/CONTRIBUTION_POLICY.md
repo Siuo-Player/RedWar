@@ -32,6 +32,33 @@ Isto inclui:
 
 Contribuições são bem-vindas como propostas, mas só o autor decide o merge.
 
+## Continuidade do conhecimento
+
+Uma contribuição não deve introduzir conhecimento essencial que só exista na conversa entre o autor e a pessoa/IA que a produziu.
+
+Decisões relevantes devem seguir `docs/DECISION_AND_KNOWLEDGE_PROTOCOL.md`:
+
+```text
+problema / descoberta
+ → evidência
+ → opções
+ → decisão
+ → implementação
+ → teste
+ → resultado
+```
+
+Isso é especialmente obrigatório para alterações de:
+
+- arquitetura;
+- regras/semântica;
+- Ares/search/evaluation;
+- Arena/estatística;
+- balanceamento;
+- workflows;
+- dependências externas;
+- políticas do roadmap.
+
 ## Futuro split de repositórios
 
 O projeto pode vir a separar:
@@ -63,4 +90,5 @@ Uma contribuição assistida por IA deve:
 - ter testes adequados;
 - ser compreensível para quem a revê;
 - não esconder conteúdo de terceiros incompatível com a licença;
-- não introduzir comportamento sem documentação.
+- não introduzir comportamento sem documentação;
+- preservar a razão das decisões relevantes no repositório.
