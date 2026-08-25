@@ -6,6 +6,9 @@
 #include <cstdint>
 #include <vector>
 
+int action_history_table[2][ACTION_TYPE_COUNT][LINHAS][COLUNAS][LINHAS][COLUNAS]{};
+Move action_killer_moves[MAX_PLY][ACTION_TYPE_COUNT][KILLER_SLOTS];
+
 namespace {
 
 constexpr int QSEARCH_MAX_DEPTH = 5;
@@ -16,6 +19,9 @@ constexpr int SPELL_SCORE = 30'000;
 constexpr int SPAWN_SCORE = 20'000;
 constexpr int KILLER1_SCORE = 10'000;
 constexpr int KILLER2_SCORE = 9'000;
+constexpr int ACTION_HISTORY_BONUS_MAX = 1'200;
+constexpr int ACTION_KILLER1_BONUS = 1'500;
+constexpr int ACTION_KILLER2_BONUS = 1'200;
 
 struct StunContinuation {
     bool active = false;
@@ -76,6 +82,15 @@ inline int piece_cost(const Piece& piece) {
     if (piece.id >= 0 && piece.id < MAX_HEROES && PIECE_COSTS[piece.id] > 0) return PIECE_COSTS[piece.id];
     if (piece.cost > 0) return piece.cost;
     return 50;
+}
+
+int action_type_index(const Move& move) {
+    if (move.type == "MOVE") return 0;
+    if (move.type == "ATTACK") return 1;
+    if (move.type == "STUN") return 2;
+    if (move.type == "SPELL") return 3;
+    if (move.type == "SPAWN") return 4;
+    return 0;
 }
 
 bool stun_hits_enemy(const Move& move, char moving_team) {
@@ -149,6 +164,21 @@ StunContinuation continuation_after_move(
     return continuation;
 }
 
+int action_history_bonus(char current_turn, const Move& move) {
+    const int team_idx = (current_turn == 'W') ? 0 : 1;
+    const int type_idx = action_type_index(move);
+    const int raw = action_history_table[team_idx][type_idx][move.sr][move.sc][move.er][move.ec];
+    return std::min(ACTION_HISTORY_BONUS_MAX, raw / 64);
+}
+
+int action_killer_bonus(const Move& move, int ply) {
+    if (ply < 0 || ply >= MAX_PLY) return 0;
+    const int type_idx = action_type_index(move);
+    if (move == action_killer_moves[ply][type_idx][0]) return ACTION_KILLER1_BONUS;
+    if (move == action_killer_moves[ply][type_idx][1]) return ACTION_KILLER2_BONUS;
+    return 0;
+}
+
 void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char current_turn) {
     const int team_idx = (current_turn == 'W') ? 0 : 1;
 
@@ -205,25 +235,44 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
         else if (ply >= 0 && ply < MAX_PLY && move == killer_moves[ply][1]) {
             move.score = KILLER2_SCORE;
         }
-        else if (ply >= 0 && ply < MAX_PLY) {
+        else {
             move.score = history_table[team_idx][move.sr][move.sc][move.er][move.ec];
-        } else {
-            move.score = 0;
+        }
+
+        if (move.type != "MOVE") {
+            move.score += action_history_bonus(current_turn, move);
+            move.score += action_killer_bonus(move, ply);
         }
     }
 }
 
 void update_history(char current_turn, const Move& move, int depth) {
-    if (move.type != "MOVE") return;
+    if (depth <= 0 || move.type != "MOVE") return;
     const int team_idx = (current_turn == 'W') ? 0 : 1;
     int& value = history_table[team_idx][move.sr][move.sc][move.er][move.ec];
     value += depth * depth;
     value = std::min(value, 1'000'000);
 }
 
+void update_action_history(char current_turn, const Move& move, int depth) {
+    if (depth <= 0) return;
+    const int team_idx = (current_turn == 'W') ? 0 : 1;
+    const int type_idx = action_type_index(move);
+    int& value = action_history_table[team_idx][type_idx][move.sr][move.sc][move.er][move.ec];
+    value += depth * depth;
+    value = std::min(value, 1'000'000);
+}
+
 void update_killers(const Move& move, int ply) {
-    if (ply < 0 || ply >= MAX_PLY || move.type != "MOVE") return;
-    if (!(move == killer_moves[ply][0])) {
+    if (ply < 0 || ply >= MAX_PLY) return;
+
+    const int type_idx = action_type_index(move);
+    if (!(move == action_killer_moves[ply][type_idx][0])) {
+        action_killer_moves[ply][type_idx][1] = action_killer_moves[ply][type_idx][0];
+        action_killer_moves[ply][type_idx][0] = move;
+    }
+
+    if (move.type == "MOVE" && !(move == killer_moves[ply][0])) {
         killer_moves[ply][1] = killer_moves[ply][0];
         killer_moves[ply][0] = move;
     }
@@ -393,6 +442,7 @@ int alpha_beta(
             if (alpha >= beta) {
                 update_killers(move, ply);
                 update_history(current_turn, move, depth);
+                update_action_history(current_turn, move, depth);
                 break;
             }
         }
@@ -430,6 +480,7 @@ int alpha_beta(
         if (alpha >= beta) {
             update_killers(move, ply);
             update_history(current_turn, move, depth);
+            update_action_history(current_turn, move, depth);
             break;
         }
     }
@@ -458,9 +509,21 @@ std::string search_best_move(int max_depth) {
                     for (int ec = 0; ec < COLUNAS; ++ec)
                         history_table[team][sr][sc][er][ec] = 0;
 
+    for (int team = 0; team < 2; ++team)
+        for (int action = 0; action < ACTION_TYPE_COUNT; ++action)
+            for (int sr = 0; sr < LINHAS; ++sr)
+                for (int sc = 0; sc < COLUNAS; ++sc)
+                    for (int er = 0; er < LINHAS; ++er)
+                        for (int ec = 0; ec < COLUNAS; ++ec)
+                            action_history_table[team][action][sr][sc][er][ec] = 0;
+
     for (int i = 0; i < MAX_PLY; ++i) {
         killer_moves[i][0] = Move();
         killer_moves[i][1] = Move();
+        for (int action = 0; action < ACTION_TYPE_COUNT; ++action) {
+            action_killer_moves[i][action][0] = Move();
+            action_killer_moves[i][action][1] = Move();
+        }
     }
 
     std::vector<Move> root_moves = generate_valid_moves(board.turn);

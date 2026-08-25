@@ -16,7 +16,8 @@ constexpr int INFINITO = 9'999'999;
 constexpr int MAX_HEROES = 64;
 constexpr int MAX_PLY = 100;
 constexpr int KILLER_SLOTS = 2;
-constexpr int TT_SIZE_POWER = 20;
+constexpr int ACTION_TYPE_COUNT = 5;
+constexpr uint64_t TT_SIZE_POWER = 20;
 constexpr uint64_t TT_SIZE = 1ULL << TT_SIZE_POWER;
 constexpr uint64_t TT_MASK = TT_SIZE - 1;
 constexpr int MAX_UNDO_VICTIMS = 9;
@@ -27,6 +28,7 @@ constexpr int MAX_EXPIRED_PIECES = LINHAS * COLUNAS;
 
 extern uint64_t node_limit;
 extern int history_table[2][LINHAS][COLUNAS][LINHAS][COLUNAS];
+extern int action_history_table[2][ACTION_TYPE_COUNT][LINHAS][COLUNAS][LINHAS][COLUNAS];
 
 struct Piece { bool is_empty=true; char team='.'; std::string name; int stun_timer=0; int lifespan=999; int spawn_cooldown=0; int cost=0; int id=0; };
 struct MoveVector { int dr=0; int dc=0; int max_steps=1; int min_steps=1; bool ghost=false; };
@@ -66,6 +68,6 @@ struct UndoInfo{
     int num_expired_pieces=0;
 };
 enum TTFlag:uint8_t{TT_EXACT,TT_LOWERBOUND,TT_UPPERBOUND}; struct TTEntry{uint64_t zobrist_key=0;int depth=-1,value=0;TTFlag flag=TT_EXACT;Move best_move;bool occupied=false;};
-extern BoardState board;extern std::atomic<bool> abort_search;extern int nodes_evaluated;extern std::chrono::steady_clock::time_point search_start_time;extern double time_limit_ms;extern std::vector<TTEntry> transposition_table;extern Move killer_moves[MAX_PLY][KILLER_SLOTS];extern std::unordered_map<std::string,HeroBehavior> HERO_BEHAVIORS;extern bool HERO_BEHAVIORS_LOADED;extern std::unordered_map<std::string,int> PIECE_IDS;extern int PIECE_COSTS[MAX_HEROES];extern int next_piece_id;extern uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2];extern uint64_t Z_STUN[LINHAS][COLUNAS][6];extern uint64_t Z_LIFE[LINHAS][COLUNAS][15];extern uint64_t Z_CD[LINHAS][COLUNAS][8];extern uint64_t Z_EFFECT[LINHAS][COLUNAS][2][2][4];extern uint64_t ZOBRIST_SIDE_TO_MOVE;
+extern BoardState board;extern std::atomic<bool> abort_search;extern int nodes_evaluated;extern std::chrono::steady_clock::time_point search_start_time;extern double time_limit_ms;extern std::vector<TTEntry> transposition_table;extern Move killer_moves[MAX_PLY][KILLER_SLOTS];extern Move action_killer_moves[MAX_PLY][ACTION_TYPE_COUNT][KILLER_SLOTS];extern std::unordered_map<std::string,HeroBehavior> HERO_BEHAVIORS;extern bool HERO_BEHAVIORS_LOADED;extern std::unordered_map<std::string,int> PIECE_IDS;extern int PIECE_COSTS[MAX_HEROES];extern int next_piece_id;extern uint64_t Z_PIECE[LINHAS][COLUNAS][MAX_HEROES][2];extern uint64_t Z_STUN[LINHAS][COLUNAS][6];extern uint64_t Z_LIFE[LINHAS][COLUNAS][15];extern uint64_t Z_CD[LINHAS][COLUNAS][8];extern uint64_t Z_EFFECT[LINHAS][COLUNAS][2][2][4];extern uint64_t ZOBRIST_SIDE_TO_MOVE;
 void ensure_hero_behaviors_loaded();void parse_rwen(const std::string&);uint64_t compute_initial_hash();uint64_t get_piece_zobrist_key(int,int,const Piece&);uint64_t get_effect_zobrist_key(int,int,const TileEffect&);void compute_initial_eval();void update_piece(int,int,const Piece&);Piece create_piece(const std::string&, char);int get_piece_value(const Piece&,int,int);void update_timers(UndoInfo&);void restore_timers(const UndoInfo&);UndoInfo make_move(const Move&);void unmake_move(const Move&,const UndoInfo&);std::vector<Move> generate_valid_moves(char);int evaluate_board();int evaluate_classical_board();std::string search_best_move(int);
 #endif
