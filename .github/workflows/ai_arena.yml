@@ -138,6 +138,9 @@ jobs:
           python "$GITHUB_WORKSPACE/tools/analytics/arena_tournament.py" \
             --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
             --baseline-engine "/tmp/redwar-baseline/ai/cpp_engine/engine" \
+            --challenger-version "$COMMIT" \
+            --baseline-version "$BASE_SHA" \
+            --rules-version "$BASE_SHA" \
             --jogos 20 \
             --margem-vitorias 3 \
             --nodes 10000 \
