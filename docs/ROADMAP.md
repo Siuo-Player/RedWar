@@ -52,6 +52,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #65** integrou a execução manual reproduzível da Arena mesmo sem alterações de AI/NNUE.
 - **PR #67** integrou a primeira propriedade metamórfica de simetria entre cores/lado a jogar.
 - **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
+- A auditoria de observabilidade (#83) confirmou que, no modo local atual, a informação é secreta apenas durante `DRAFT`; em `BATALHA` o estado completo é público e legal para Ares.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -74,6 +75,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Modelo/documentação inicial para medição geral de força definido.
 - [x] Arena headless com guardrail de 10.000 plies.
 - [x] Execução manual da Arena separada da promoção automática.
+- [x] Observability Contract do modo local: segredo no `DRAFT`, informação pública em `BATALHA`.
 
 ## Ares — sequência atual
 
@@ -161,6 +163,8 @@ Até este bloco estar implementado, benchmarks tácticos podem provar correção
 
 ### 4. Search / move ordering RPG — **próximo bloco de IA após o Strength Evaluation Framework**
 
+A auditoria de observabilidade está resolvida para o modo local atual; full-state search é legal em `BATALHA`.
+
 O primeiro eixo de otimização não deve ser simplesmente aumentar os valores materiais.
 
 Situação atual:
@@ -243,6 +247,8 @@ A UI deve ser validada jogando o jogo, não apenas por inspeção de código.
 - [ ] Histórico.
 
 Quando esta camada começar, preservar a regra de servidor autoritativo e separar matchmaking/rating do balanceamento dos heróis. A metodologia futura de produto está documentada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
+
+Se uma futura variante de multiplayer mantiver draft/posicionamento secreto durante a batalha, ela não pode reutilizar automaticamente o full-state Ares interface: deve introduzir observação filtrada/information-set logic antes da AI.
 
 ## Regra de manutenção
 
