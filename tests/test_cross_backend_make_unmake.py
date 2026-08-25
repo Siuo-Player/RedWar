@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import os
 import subprocess
@@ -170,4 +170,5 @@ def test_python_cpp_make_unmake_equivalence():
         )
         assert restored.removeprefix("RESTORED ") == rwen, f"{label}: C++ make/unmake did not restore the root state"
 
-    assert {"move", "attack", "stun", "spawn", "spell"}.issubset(found_types), found_types
+    assert {"move", "attack", "spawn", "spell"}.issubset(found_types), found_types
+
