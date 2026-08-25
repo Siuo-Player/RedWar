@@ -3,8 +3,7 @@
 The Arena is both the primary strength-measurement path for Ares and a source of
 reproducible training/debugging material. Every game can optionally be saved as
 JSONL with its opening state, exact action sequence, result and aggregate tactical
-counters. Statistical summaries are derived from that raw JSONL-compatible game
-records.
+counters. Statistical summaries are derived from those raw game records.
 """
 
 import argparse
@@ -22,7 +21,6 @@ from engine.game_state import GameState
 from tools.analytics.opening_book import carregar_abertura_do_book
 from tools.analytics.strength_rating import MatchResult, Rating, compare, estimate
 
-
 ARENA_MAX_PLIES = 10_000
 
 
@@ -38,8 +36,6 @@ def build_experiment_metadata(
     num_games: int,
     openings: int = 16,
 ) -> dict:
-    """Build immutable metadata describing the Arena experiment contract."""
-
     if not challenger_version or not baseline_version or not rules_version:
         raise ValueError("Arena experiment versions must be explicit")
     if nodes <= 0 or num_games <= 0 or openings <= 0:
@@ -57,6 +53,39 @@ def build_experiment_metadata(
     }
 
 
+def summarize_experiment_balance(games: list[dict]) -> dict:
+    """Return auditable colour/opening balance diagnostics from raw game records."""
+    challenger_colour = Counter()
+    challenger_outcomes_by_colour = {
+        "white": Counter(),
+        "black": Counter(),
+    }
+    openings = Counter()
+    seeds_by_opening = {}
+
+    for game in games:
+        colour = game["challenger_color"]
+        challenger_colour[colour] += 1
+        challenger_outcomes_by_colour[colour][game["outcome"]] += 1
+        opening = int(game["opening_index"])
+        openings[opening] += 1
+        seeds_by_opening.setdefault(str(opening), []).append(game["seed"])
+
+    white = challenger_outcomes_by_colour["white"]
+    black = challenger_outcomes_by_colour["black"]
+    return {
+        "challenger_games_by_colour": dict(challenger_colour),
+        "challenger_outcomes_by_colour": {
+            "white": dict(white),
+            "black": dict(black),
+        },
+        "colour_game_count_difference": abs(challenger_colour["white"] - challenger_colour["black"]),
+        "colour_wins_difference": abs(white["challenger"] - black["challenger"]),
+        "opening_games": {str(index): count for index, count in sorted(openings.items())},
+        "opening_seed_sequences": seeds_by_opening,
+    }
+
+
 def _normalizar_acao(acao: dict) -> dict:
     result = {"type": str(acao.get("type", "move")).lower()}
     for key in ("start", "end"):
@@ -69,9 +98,7 @@ def _normalizar_acao(acao: dict) -> dict:
         if key in acao and acao[key] is not None:
             result[key] = str(acao[key])
     if "area" in acao and acao["area"] is not None:
-        result["area"] = [
-            [int(pos[0]), int(pos[1])] for pos in acao["area"]
-        ]
+        result["area"] = [[int(pos[0]), int(pos[1])] for pos in acao["area"]]
     return result
 
 
@@ -81,14 +108,12 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0):
     initial_rwen = gs.to_rwen()
     actions = []
     action_types = Counter()
-
     turnos = 0
     while not gs.game_over and turnos < ARENA_MAX_PLIES:
         turnos += 1
         white_to_move = gs.white_to_move
         bot = bot_brancas if white_to_move else bot_pretas
         best_move = bot.play(gs)
-
         if best_move:
             action = _normalizar_acao(best_move)
             actions.append({
@@ -103,15 +128,12 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0):
             if not gs.game_over:
                 gs.game_over, gs.winner = True, "Bloqueio"
             break
-
-    final_rwen = gs.to_rwen()
-    winner = gs.winner
     return {
-        "winner": winner,
+        "winner": gs.winner,
         "seed": seed,
         "opening_index": opening_index,
         "initial_rwen": initial_rwen,
-        "final_rwen": final_rwen,
+        "final_rwen": gs.to_rwen(),
         "plies": turnos,
         "actions": actions,
         "action_counts": dict(action_types),
@@ -128,29 +150,13 @@ def _winner_side(winner: object) -> str | None:
 
 
 def _strength_from_games(games: list[dict]) -> tuple[float, float, float, float]:
-    """Return challenger rating, baseline rating, delta and 95% delta half-width.
-
-    The initial 1500/1500 ratings are an arbitrary reference. The raw game records
-    remain the source of truth; this is only the first Elo-compatible summary layer.
-    """
-
-    results: list[MatchResult] = []
+    results = []
     for game in games:
-        outcome = game["outcome"]
-        relative = {"challenger": "win", "baseline": "loss", "draw": "draw"}[outcome]
+        relative = {"challenger": "win", "baseline": "loss", "draw": "draw"}[game["outcome"]]
         results.append(MatchResult("challenger", "baseline", relative))
-
-    ratings = estimate(
-        {"challenger": Rating(), "baseline": Rating()},
-        results,
-    )
+    ratings = estimate({"challenger": Rating(), "baseline": Rating()}, results)
     relative = compare(ratings["challenger"], ratings["baseline"])
-    return (
-        ratings["challenger"].value,
-        ratings["baseline"].value,
-        relative.delta,
-        1.96 * relative.delta_uncertainty,
-    )
+    return ratings["challenger"].value, ratings["baseline"].value, relative.delta, 1.96 * relative.delta_uncertainty
 
 
 def start_tournament(
@@ -164,27 +170,15 @@ def start_tournament(
     baseline_version: str = "unknown",
     rules_version: str = "unknown",
 ) -> int:
-    print(
-        f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS "
-        f"(margem exigida: {win_threshold}, nodes: {nodes})"
-    )
+    print(f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS (margem exigida: {win_threshold}, nodes: {nodes})")
     print(f"Challenger: {challenger_engine}")
     print(f"Baseline:   {baseline_engine}")
-
     wins_challenger = wins_baseline = draws = 0
     aggregate_actions = Counter()
     games = []
-    experiment_metadata = build_experiment_metadata(
-        challenger_version=challenger_version,
-        baseline_version=baseline_version,
-        rules_version=rules_version,
-        nodes=nodes,
-        num_games=num_games,
-    )
-
+    experiment_metadata = build_experiment_metadata(challenger_version, baseline_version, rules_version, nodes, num_games)
     challenger = CppEngineBot(nodes=nodes, executable_path=challenger_engine)
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
-
     try:
         for i in range(num_games):
             opening_index = i % 16
@@ -194,7 +188,6 @@ def start_tournament(
             else:
                 challenger_color = "black"
                 game = run_headless_match(baseline, challenger, opening_index)
-
             winner_side = _winner_side(game["winner"])
             if winner_side == challenger_color:
                 wins_challenger += 1
@@ -205,29 +198,23 @@ def start_tournament(
             else:
                 draws += 1
                 outcome = "draw"
-
             aggregate_actions.update(game["action_counts"])
-            game_record = {
+            games.append({
                 "game_index": i,
                 "challenger_color": challenger_color,
                 "baseline_color": "black" if challenger_color == "white" else "white",
                 "experiment": experiment_metadata,
                 "outcome": outcome,
                 **game,
-            }
-            games.append(game_record)
-
-            sys.stdout.write(
-                f"\rJogos completados: {i + 1}/{num_games} "
-                f"(seed {game['seed']}, resultado {outcome})"
-            )
+            })
+            sys.stdout.write(f"\rJogos completados: {i + 1}/{num_games} (seed {game['seed']}, resultado {outcome})")
             sys.stdout.flush()
 
         diferenca = wins_challenger - wins_baseline
         win_rate = wins_challenger / max(1, num_games) * 100.0
         promoted = verificar_promocao(wins_challenger, wins_baseline, win_threshold)
         rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width = _strength_from_games(games)
-
+        balance = summarize_experiment_balance(games)
         summary = {
             "games": num_games,
             "nodes": nodes,
@@ -246,25 +233,17 @@ def start_tournament(
             "rating_baseline": rating_baseline,
             "rating_delta": rating_delta,
             "rating_delta_ci95_half_width": rating_ci95_half_width,
+            "balance_audit": balance,
             "action_counts": dict(aggregate_actions),
         }
-
-        print(
-            f"\n\nResultados: Challenger {wins_challenger} | "
-            f"Baseline {wins_baseline} | Empates {draws}"
-        )
+        print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws}")
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
-        print(
-            f"Strength Rating: Challenger {rating_challenger:.1f} | "
-            f"Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} "
-            f"(IC95 ±{rating_ci95_half_width:.1f})"
-        )
+        print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (IC95 ±{rating_ci95_half_width:.1f})")
         if promoted:
             print("👑 SUCESSO: Challenger superou a baseline por margem suficiente.")
         else:
             print("❌ FALHA: Challenger não atingiu a margem exigida.")
-
         if results_path:
             output = Path(results_path)
             output.parent.mkdir(parents=True, exist_ok=True)
@@ -272,13 +251,9 @@ def start_tournament(
                 for game in games:
                     handle.write(json.dumps(game, ensure_ascii=False, separators=(",", ":")) + "\n")
             summary_path = output.with_suffix(output.suffix + ".summary.json")
-            summary_path.write_text(
-                json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
+            summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"📦 Jogos: {output}")
             print(f"📊 Resumo: {summary_path}")
-
         return 0 if promoted else 1
     finally:
         for bot in (challenger, baseline):
@@ -297,18 +272,7 @@ def main() -> int:
     parser.add_argument("--baseline-version", default="unknown")
     parser.add_argument("--rules-version", default="unknown")
     args = parser.parse_args()
-
-    return start_tournament(
-        challenger_engine=args.challenger_engine,
-        baseline_engine=args.baseline_engine,
-        num_games=args.jogos,
-        win_threshold=args.margem_vitorias,
-        nodes=args.nodes,
-        results_path=args.results,
-        challenger_version=args.challenger_version,
-        baseline_version=args.baseline_version,
-        rules_version=args.rules_version,
-    )
+    return start_tournament(args.challenger_engine, args.baseline_engine, args.jogos, args.margem_vitorias, args.nodes, args.results, args.challenger_version, args.baseline_version, args.rules_version)
 
 
 if __name__ == "__main__":
