@@ -152,6 +152,8 @@ A as Black vs B as White
 
 O book/opening set deve ser fixado antes da análise.
 
+A Arena agora também grava uma auditoria derivada das partidas para tornar esta hipótese verificável antes da inferência estatística. O contrato é implementado em `summarize_experiment_balance()` e os resultados ficam no `summary.json`.
+
 ## 6. Três conjuntos diferentes
 
 O RedWar deve separar claramente:
@@ -244,7 +246,46 @@ Qual é o tamanho estimado da melhoria/regressão?
 
 Temos evidência suficiente para tomar uma decisão?
 
-## 8. Arena e draws
+## 8. SPRT: primeira implementação experimental
+
+O repositório agora contém `tools/analytics/sprt.py` como uma **camada estatística isolada**. Ela não altera a Ares, a Arena nem o gate de promoção.
+
+A implementação compara duas hipóteses explícitas:
+
+```text
+H0: melhoria = elo0
+H1: melhoria = elo1
+```
+
+e acumula o **log-likelihood ratio (LLR)** à medida que chegam os resultados:
+
+```text
+LLR_n = Σ log( P(resultado_i | H1) / P(resultado_i | H0) )
+```
+
+O processo termina quando o LLR atravessa uma das fronteiras:
+
+```text
+LLR >= log((1-beta)/alpha)  → accept H1
+LLR <= log(beta/(1-alpha))   → reject H1
+caso contrário               → continue
+```
+
+A primeira versão usa um modelo deliberadamente simples: vitórias/derrotas seguem a probabilidade logística implícita na diferença Elo, enquanto a taxa de draws é um parâmetro fixo partilhado entre H0/H1. Neste modelo, um draw acrescenta LLR zero.
+
+**Isto ainda não é Fishtest-equivalent.** Antes de ligar o SPRT ao gate, precisamos de validar:
+
+- calibração da escala de Elo para RedWar;
+- tratamento adequado de draws;
+- impacto de cor/opening/seed;
+- independência efectiva das observações;
+- comportamento em jogos inválidos;
+- múltiplos testes/peças em paralelo;
+- escolha de `elo0`, `elo1`, `alpha` e `beta` apropriada ao custo da Arena.
+
+A implementação tem testes sintéticos para `accept_h1`, `reject_h1`, `continue`, draws e parâmetros inválidos. A próxima etapa é testar o comportamento contra resultados reais da Arena **sem ainda usar o SPRT para promoção automática**.
+
+## 9. Arena e draws
 
 Draws devem permanecer dados explícitos.
 
@@ -264,7 +305,7 @@ sem que isso represente uma regra real do jogo.
 
 O guardrail actual de 10.000 plies é uma protecção experimental. Caso ocorram partidas sem vencedor, o `GameState` deve ser investigado antes de o resultado ser interpretado como empate legítimo.
 
-## 9. Elo não é suficiente sozinho
+## 10. Elo não é suficiente sozinho
 
 O rating global pode esconder intransitividade:
 
@@ -292,7 +333,7 @@ Referência académica sobre limitações do Elo em presença de intransitividad
 
 - https://pmc.ncbi.nlm.nih.gov/articles/PMC12742789/
 
-## 10. Intrinsic / move-quality strength
+## 11. Intrinsic / move-quality strength
 
 Resultado de jogo e qualidade de decisão são dimensões diferentes.
 
@@ -326,7 +367,7 @@ Referência:
 - Regan & Haworth, *Intrinsic Chess Ratings*, AAAI 2011: https://ojs.aaai.org/index.php/AAAI/article/view/7951
 - Ferreira, *Determining the Strength of Chess Players Based on Actual Play*: https://journals.sagepub.com/doi/pdf/10.3233/ICG-2012-35102
 
-## 11. Modelo estatístico futuro
+## 12. Modelo estatístico futuro
 
 A primeira implementação pode manter a simplicidade de Elo, mas o desenho de dados deve permitir evoluir para:
 
@@ -342,7 +383,7 @@ Referências académicas:
 - *A Bayesian approach to time-varying latent strengths in pairwise comparisons*: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0251945
 - *Rating players by Laplace's approximation and dynamic modeling*: https://www.sciencedirect.com/science/article/pii/S0169207023001036
 
-## 12. Critérios de promoção
+## 13. Critérios de promoção
 
 Até existir uma implementação estatística completa, **não usar um limiar arbitrário de vitórias como prova de melhoria geral**.
 
@@ -357,7 +398,7 @@ uncertainty = não omitir
 manual investigation = necessária em resultados anómalos
 ```
 
-Quando o sistema de rating estiver implementado:
+Quando o sistema de rating + teste sequencial estiver validado:
 
 ```text
 ACCEPT
@@ -372,7 +413,7 @@ CONTINUE
 
 O terceiro resultado é importante: **não forçar uma decisão quando não existe evidência suficiente**.
 
-## 13. Anti-overfitting
+## 14. Anti-overfitting
 
 Não é permitido desenhar uma melhoria para passar apenas:
 
@@ -387,7 +428,7 @@ Os benchmarks dirigidos continuam importantes, mas como testes de capacidade/reg
 
 A força geral deve ser demonstrada num conjunto experimental suficientemente variado e, finalmente, pela Ares A/B Arena com um hold-out protegido a apoiar a generalização.
 
-## 14. Roadmap de implementação
+## 15. Roadmap de implementação
 
 ```text
 [x] definir data model de partida e resultado emparelhado
@@ -395,16 +436,18 @@ A força geral deve ser demonstrada num conjunto experimental suficientemente va
 [x] calcular rating incremental a partir de resultados
 [x] expor rating + incerteza e intervalo relativo
 [x] ligar o baseline ao resumo JSONL da Arena
-[ ] guardar version/commit metadata em cada jogo
-[ ] equilibrar cores/openings/seeds de forma auditável
-[ ] separar development/regression/hold-out
+[x] guardar metadata suficiente para reconstruir cada experiência
+[x] auditar cores/openings/seeds antes da inferência
+[ ] separar development/regression/hold-out em infraestrutura executável
 [ ] criar hold-out congelado
 [ ] comparar revisões de Ares por rating delta
-[ ] adicionar matchup/intransitivity analysis
-[ ] substituir heurística de margem por teste sequencial/SPRT
+[ ] adicionar comparação de força por contexto para detetar intransitividade/matchup
+[x] implementar SPRT como biblioteca/teste isolado
+[ ] calibrar SPRT com resultados reais da Arena
+[ ] substituir a margem heurística pelo teste sequencial, depois de validado
 [ ] estudar intrinsic move-quality score
 ```
 
-## 15. Regra central
+## 16. Regra central
 
 > **Nenhum benchmark individual define a força da Ares. A força é uma propriedade emergente de muitas partidas controladas da própria Ares e de uma medição estatística com incerteza conhecida.**
