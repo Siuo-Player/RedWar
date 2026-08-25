@@ -13,6 +13,11 @@ on:
         required: false
         default: '10000'
         type: string
+      baseline_ref:
+        description: 'Exact baseline ref/commit. Defaults to origin/main.'
+        required: false
+        default: 'origin/main'
+        type: string
 
 permissions:
   contents: read
@@ -37,13 +42,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build baseline from main
+      - name: Resolve and build baseline
         shell: bash
+        env:
+          BASELINE_REF: ${{ inputs.baseline_ref }}
         run: |
           set -euo pipefail
           git fetch origin main --no-tags
-          BASE_SHA=$(git rev-parse origin/main)
+          BASE_SHA=$(git rev-parse "${BASELINE_REF}^{commit}")
+          if [[ "$BASE_SHA" == "$GITHUB_SHA" ]]; then
+            echo "Invalid experiment: challenger and baseline resolve to the same commit: $BASE_SHA"
+            exit 2
+          fi
           echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
+          echo "BASELINE_REF=$BASELINE_REF" >> "$GITHUB_ENV"
           git worktree add --detach /tmp/redwar-baseline "$BASE_SHA"
           pushd /tmp/redwar-baseline/ai/cpp_engine >/dev/null
           cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
@@ -99,8 +111,6 @@ jobs:
           git worktree remove --force "$WORKTREE"
           git worktree remove --force /tmp/redwar-baseline
 
-          # This workflow is experimental and must not fail just because the
-          # fixed promotion margin was not reached. The raw result is the output.
           exit 0
 
       - name: Upload experiment artifacts
