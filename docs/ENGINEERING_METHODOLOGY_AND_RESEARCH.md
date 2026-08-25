@@ -2,13 +2,39 @@
 
 ## Objetivo
 
-Este documento consolida decisões metodológicas que devem orientar o desenvolvimento futuro do RedWar. Não é uma especificação de implementação nem substitui `ARCHITECTURE.md`, `ROADMAP.md`, `AI_ENGINE.md` ou `HEROES_SCHEMA.md`.
+Este documento consolida decisões metodológicas que devem orientar o desenvolvimento futuro do RedWar. Não é uma especificação de implementação nem substitui `ARCHITECTURE.md`, `ROADMAP.md`, `AI_ENGINE.md`, `HEROES_SCHEMA.md` ou `DECISION_AND_KNOWLEDGE_PROTOCOL.md`.
 
 A regra central é simples:
 
 > Cada melhoria importante deve ser acompanhada pela evidência adequada ao tipo de afirmação que está a ser feita.
 
 Uma correção de regras exige equivalência e regressões. Uma melhoria de pesquisa exige benchmarks e força. Uma alteração de balanceamento exige dados estatísticos. Uma alteração de produto exige validação de experiência do jogador.
+
+### Regra adicional de continuidade
+
+O projeto deve ser continuável por outra pessoa ou IA apenas a partir dos seus artefactos versionados. Uma decisão que só exista numa conversa é uma dependência oculta.
+
+Para decisões relevantes, aplicar:
+
+```text
+observação / problema
+        ↓
+facto + evidência documentados
+        ↓
+hipótese / alternativas
+        ↓
+decisão documentada
+        ↓
+implementação
+        ↓
+teste / experimento
+        ↓
+resultado documentado
+        ↓
+roadmap / estado atualizado
+```
+
+O protocolo completo está em `DECISION_AND_KNOWLEDGE_PROTOCOL.md`. Esta regra complementa, e não substitui, a metodologia de investigação abaixo.
 
 ---
 
@@ -431,6 +457,10 @@ Timeout, processo morto, output inválido ou jogo inconsistente devem ser marcad
 
 Roadmap e metodologia orientam o trabalho; não justificam alterações funcionais que não tenham testes/medição.
 
+### Não deixar decisões relevantes apenas na conversa
+
+Se uma escolha, descoberta, hipótese ou resultado passar a orientar o projeto, deve ser preservado no repositório segundo `DECISION_AND_KNOWLEDGE_PROTOCOL.md`.
+
 ---
 
 ## 14. Critério de maturidade
@@ -445,5 +475,6 @@ O RedWar pode considerar esta metodologia madura quando for possível responder,
 6. Qual a incerteza estatística do resultado?
 7. O efeito aparece apenas na Ares ou também no comportamento do jogo?
 8. Qual é a decisão: aceitar, rejeitar ou continuar a medir?
+9. Outra pessoa ou IA consegue reconstruir a razão da alteração sem ler a conversa original?
 
 A resposta não precisa de ser longa para cada commit, mas deve existir de forma reproduzível nos blocos de desenvolvimento importantes.
