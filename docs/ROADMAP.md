@@ -25,6 +25,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #53** integrou as melhorias de CI e a separação entre gates de CI/tooling e gates de promoção da AI.
 - **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
 - **PR #61** integrou a equivalência Python/C++ da geração de ações e as regressões de compatibilidade associadas.
+- **PR #63** integrou sequências diferenciais determinísticas por múltiplos plies e aumentou o guardrail da Arena para 10.000 plies.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -40,6 +41,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Auto-Balancer usa timeout explícito e suite Python completa.
 - [x] Equivalência Python/C++ da geração de ações legais.
 - [x] Sequências diferenciais determinísticas Python/C++ por múltiplos plies.
+- [x] Guardrail de duração da Arena aumentado para 10.000 plies.
 - [x] Documentação metodológica e de inspirações consolidada.
 
 ## Ares — sequência atual
@@ -82,16 +84,16 @@ Cada sequência:
 - compara o estado Python e C++ após **cada** ação;
 - verifica que o C++ `make/unmake` restaura a raiz de cada transição.
 
-A próxima expansão deve ser:
+A expansão atual adiciona:
 
-- [ ] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
+- [x] sequências pseudo-aleatórias com seeds fixas e maior profundidade em `tests/test_cross_backend_random_sequences.py`;
 - [ ] cobertura explícita de transições que atravessem MOVE → ATTACK → SPELL → STUN → SPAWN;
 - [ ] sequências com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
 - [ ] testes metamórficos de propriedades invariantes;
 - [ ] shrink/reprodução automática da primeira divergência;
 - [ ] integração com perft/node-count differential.
 
-O objetivo é localizar a **primeira transição divergente**, e não apenas detetar que a posição final ficou diferente.
+As seeds devem permanecer fixas no CI para que uma falha seja reproduzível. O próximo ganho de qualidade é fazer a infraestrutura guardar uma semente + opening + ply da primeira divergência, permitindo reproduzir exatamente a sequência sem repetir toda a campanha.
 
 ### 3. Search / move ordering RPG — **próximo bloco de IA**
 
