@@ -7,7 +7,7 @@
 3. **Web / multiplayer.** Avança incrementalmente, mas só fecha o projeto quando esta camada estiver utilizável.
 4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis.
 
-A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), e as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md).
+A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md), e o protocolo para evitar overfitting dos benchmarks está em [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md).
 
 ## Metodologia da Ares
 
@@ -26,8 +26,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
 - **PR #61** integrou a equivalência Python/C++ da geração de ações e as regressões de compatibilidade associadas.
 - **PR #65** integrou a execução manual reproduzível da Arena mesmo sem alterações de AI/NNUE.
-- **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
 - **PR #67** integrou a primeira propriedade metamórfica de simetria entre cores/lado a jogar.
+- **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -43,11 +43,12 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Auto-Balancer usa timeout explícito e suite Python completa.
 - [x] Equivalência Python/C++ da geração de ações legais.
 - [x] Sequências diferenciais determinísticas Python/C++ por múltiplos plies.
-- [x] Documentação metodológica e de inspirações consolidada.
-- [x] Arena headless com guardrail de 10.000 plies.
-- [x] Execução manual da Arena separada da promoção automática.
 - [x] Sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
 - [x] Propriedade metamórfica de simetria entre cores/lado a jogar.
+- [x] Documentação metodológica e de inspirações consolidada.
+- [x] Protocolo de validação contra overfitting dos benchmarks definido.
+- [x] Arena headless com guardrail de 10.000 plies.
+- [x] Execução manual da Arena separada da promoção automática.
 
 ## Ares — sequência atual
 
@@ -62,6 +63,8 @@ Para cada nova posição:
 - registar o **failure threshold**;
 - guardar um trace resumido quando necessário para explicar a pesquisa;
 - comparar cada alteração de IA contra exatamente as mesmas posições.
+
+**Importante:** os benchmarks dirigidos são regressões/capability probes. Não são, isoladamente, evidência de melhoria geral de força. Para promoção, deve ser respeitado [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md): regressões conhecidas + validação independente/hold-out + Arena.
 
 Novas posições a validar e adicionar:
 
