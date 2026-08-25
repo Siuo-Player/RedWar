@@ -1,16 +1,7 @@
 # Protected Ares hold-out CI
 
-The protected hold-out is a validation experiment, not a promotion gate.
+Run the GitHub Actions **RedWar AI Arena** workflow manually with `holdout=true` on `main` to execute protected Ares validation.
 
-Use `workflow_dispatch` with `holdout=true` on `main` to compare the requested Ares revision against the selected baseline on `data/validation/ARES_HOLDOUT_V1.json`.
+This mode is deliberately separate from the promotion Arena. It validates the frozen `ARES_HOLDOUT_V1` manifest, checks each opening-derived seed, alternates challenger colour, and publishes the hold-out identity and result summary as an artifact.
 
-The run must publish:
-
-- hold-out set id;
-- canonical SHA-256 of the manifest;
-- seed/opening identity for every case;
-- challenger colour;
-- result and plies;
-- raw JSON summary as an artifact.
-
-The normal A/B Arena promotion path is unchanged. Hold-out results must not be copied into development or regression sets as a consequence of the result.
+The normal promotion path remains unchanged. Hold-out cases and results must not be used to tune the current Ares revision or to redefine the protected manifest after observing a result.
