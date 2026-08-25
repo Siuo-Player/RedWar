@@ -39,6 +39,7 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] CI distingue mudanças reais da AI de alterações apenas de tooling/workflows.
 - [x] Auto-Balancer usa timeout explícito e suite Python completa.
 - [x] Equivalência Python/C++ da geração de ações legais.
+- [x] Sequências diferenciais determinísticas Python/C++ por múltiplos plies.
 - [x] Documentação metodológica e de inspirações consolidada.
 
 ## Ares — sequência atual
@@ -70,7 +71,29 @@ Novas posições a validar e adicionar:
 - [ ] lifespan/cooldown;
 - [ ] capturas de alto valor.
 
-### 2. Search / move ordering RPG — **próximo bloco de IA**
+### 2. Property / differential sequences — **base determinística concluída; aprofundamento continua**
+
+O primeiro nível de sequências está implementado em `tests/test_cross_backend_sequences.py`.
+
+Cada sequência:
+
+- começa numa abertura determinística;
+- escolhe ações legais de forma determinística durante vários plies;
+- compara o estado Python e C++ após **cada** ação;
+- verifica que o C++ `make/unmake` restaura a raiz de cada transição.
+
+A próxima expansão deve ser:
+
+- [ ] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
+- [ ] cobertura explícita de transições que atravessem MOVE → ATTACK → SPELL → STUN → SPAWN;
+- [ ] sequências com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
+- [ ] testes metamórficos de propriedades invariantes;
+- [ ] shrink/reprodução automática da primeira divergência;
+- [ ] integração com perft/node-count differential.
+
+O objetivo é localizar a **primeira transição divergente**, e não apenas detetar que a posição final ficou diferente.
+
+### 3. Search / move ordering RPG — **próximo bloco de IA**
 
 O primeiro eixo de otimização não deve ser simplesmente aumentar os valores materiais.
 
@@ -84,7 +107,7 @@ Situação atual:
 - [ ] Melhor utilização de TT move/history para ações não-MOVE quando houver evidência.
 - [ ] Só depois investigar LMR/aspiration/PVS mais agressivos, mantendo regressão de força.
 
-### 3. Baseline incremental NNUE
+### 4. Baseline incremental NNUE
 
 Depois de estabilizar a pesquisa-base e ter benchmarks independentes suficientes:
 
@@ -94,7 +117,7 @@ Depois de estabilizar a pesquisa-base e ter benchmarks independentes suficientes
 4. comparar NPS e custo por avaliação com o baseline;
 5. confirmar força na Arena.
 
-### 4. Arena
+### 5. Arena
 
 Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o mesmo orçamento de nodes/regras.
 
