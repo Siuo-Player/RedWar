@@ -52,6 +52,8 @@ A força absoluta é arbitrária; o que interessa operacionalmente é a diferen�
 
 A escala pode começar compatível com Elo, mas a implementação deve ser modelada como **paired-comparison strength**, permitindo evoluir para Bradley–Terry ou uma formulação bayesiana.
 
+A primeira implementação no repositório está em `tools/analytics/strength_rating.py`. Ela fornece um baseline Elo-compatible, com resultados de partidas explícitos e uma estimativa conservadora de incerteza. Esta implementação é deliberadamente provisória: **não é ainda o SPRT nem um modelo Bradley–Terry/Bayesiano completo**.
+
 Um resultado futuro deve poder ser expresso como:
 
 ```text
@@ -85,6 +87,8 @@ P(B > A) = strength_B / (strength_A + strength_B)
 com tratamento explícito de empate.
 
 Não é necessário escolher já a implementação definitiva. O requisito é guardar dados suficientemente ricos para permitir esta evolução sem repetir todas as partidas.
+
+A implementação inicial usa `MatchResult(left, right, outcome)` e suporta `win`, `draw` e `loss`; o módulo é independente da search/evaluation para que o modelo estatístico possa evoluir sem tocar na Ares.
 
 ## 4. Dados mínimos por partida
 
@@ -218,7 +222,7 @@ O efeito generaliza para casos não utilizados durante a alteração?
 
 ### A/B
 
-A alteração melhora efetivamente o comportamento competitivo?
+A alteração melhora efectivamente o comportamento competitivo?
 
 ### Strength estimate
 
@@ -374,10 +378,12 @@ A força geral deve ser demonstrada num conjunto experimental suficientemente va
 ## 14. Roadmap de implementação
 
 ```text
-[ ] guardar resultados com version/commit metadata
-[ ] criar StrengthRating data model
-[ ] calcular Elo-compatible rating
-[ ] calcular incerteza/confidence interval
+[x] definir data model de partida e resultado emparelhado
+[x] criar StrengthRating data model / baseline Elo-compatible
+[x] calcular rating incremental a partir de resultados
+[x] expor rating + incerteza e intervalo relativo
+[ ] ligar o modelo diretamente ao JSONL da Arena
+[ ] guardar version/commit metadata em cada jogo
 [ ] equilibrar cores/openings/seeds
 [ ] separar development/regression/hold-out
 [ ] criar hold-out congelado
