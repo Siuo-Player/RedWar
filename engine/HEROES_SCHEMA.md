@@ -29,10 +29,11 @@ Cada nome de herói corresponde a um objeto:
 - `spawn_cooldown` — cooldown de sistemas de invocação, quando aplicável.
 - `jump_max` — alcance máximo de habilidades de salto que o implementem.
 - `aura_radius` — raio de uma aura que use esse parâmetro.
+- `spells` — nomes das habilidades ativas do herói. Uma habilidade escolhida pelo jogador não deve ser descrita apenas por `passiva`.
 
 ## `behavior`
 
-`behavior` contém a descrição declarativa de movimento, ataque e passivas.
+`behavior` contém a descrição declarativa de movimento, ataque básico, spells geométricas e passivas.
 
 A ausência de uma secção não deve inventar um comportamento.
 
@@ -59,15 +60,13 @@ Campos frequentes:
 - `forward_dir_by_team`
 - `ghost_move`
 
-`forward_dir_by_team` permite representar movimentos direcionais de forma independente da cor.
+## Ataque básico
 
-`ghost_move` permite que uma regra de movimento atravesse peças onde a mecânica explicitamente o permite.
+`behavior.attack` representa a geometria de um ataque normal quando a ação continua a ser um `ATTACK`.
 
-## Ataques
+Ataques básicos devem ser simples e intrínsecos. Normalmente atingem uma casa e não introduzem uma resolução especial.
 
-`behavior.attack` utiliza essencialmente os mesmos conceitos de geometria.
-
-Tipos suportados pelo compilador atual incluem:
+Tipos suportados incluem:
 
 - `orthogonal`
 - `diagonal`
@@ -79,16 +78,33 @@ Tipos suportados pelo compilador atual incluem:
 - `none`
 - padrões com `deltas`
 
-Campos:
+Quando uma geometria de ataque é especial e deve ser executada como spell, `behavior.attack` pode manter a geometria mas declarar:
 
-- `type`
-- `max_steps`
-- `min_steps`
-- `deltas`
-- `dirs`
-- `forward_dir_by_team`
+```json
+"attack_action": "spell",
+"spell_name": "aimed_shot"
+```
 
-A geometria define **onde** um ataque pode alcançar. A regra de resultado — stun ou morte, e as interações de passivas — pertence à lógica do jogo.
+Nesse caso a ação produzida pelo backend é `SPELL aimed_shot`, não `ATTACK`.
+
+Isto evita duplicar toda a DSL apenas para mudar a natureza da ação.
+
+## Spells
+
+`spells` enumera as ações ativas escolhidas pelo jogador.
+
+Exemplos:
+
+- `ignite`;
+- `purify`;
+- `swap`;
+- `barricade`;
+- `jump`;
+- `spawn_ghoul`;
+- `nevada`;
+- ataques especiais classificados como spell, como tiros de longo alcance ou padrões especiais.
+
+Uma spell pode causar stun ou morte. O efeito final não muda a classificação: se o jogador escolhe a habilidade e ela possui resolução especial, é uma spell.
 
 ## Passivas
 
@@ -111,27 +127,13 @@ Exemplos de efeitos:
 - `redirect_damage`
 - `disable_spells`
 
-A lista não é fechada: novos mecanismos podem exigir novos triggers/effects.
+Uma passiva não deve ser usada para esconder uma spell ativa. “Lança stun”, “mata”, “purifica”, “troca”, “salta” e “ergue barricada” são descrições de ações quando dependem de uma escolha do jogador.
 
-## Spells
+## FrostMage
 
-Alguns heróis possuem spells ativadas pelo jogador.
+O FrostMage usa a spell `nevada`. A implementação atual da habilidade deve manter o centro selecionável, a área de stun existente e acrescentar gelo no centro da resolução.
 
-A implementação atual ainda mantém parte da execução destas habilidades no estado do jogo.
-
-Exemplos de conceitos existentes:
-
-- `ignite`
-- `purify`
-- `swap`
-- `barricade`
-- `jump`
-
-## Unidades invocadas
-
-Unidades como `Bone`, `Ghoul` ou outras peças não draftáveis podem ser criadas por heróis.
-
-É possível configurar `lifespan` para limitar a existência.
+O stun produzido pela Nevada é consequência da spell e não uma ação `STUN` independente.
 
 ## Dados versus lógica
 
@@ -155,42 +157,14 @@ Durante a migração, qualquer campo que altere movimentos, ações ou resultado
 Os testes devem verificar:
 
 - movimentos legais;
-- ataques;
+- ataques básicos;
+- spells;
+- classificação da ação (`ATTACK` vs `SPELL`);
 - passivas suportadas;
 - estado após ação;
 - timers;
 - efeitos;
 - hash.
-
-## Exemplo
-
-```json
-"Inquisitor": {
-  "cost": 127,
-  "acronym": "In",
-  "aura_radius": 2,
-  "behavior": {
-    "movement": {
-      "type": "adjacent",
-      "max_steps": 1
-    },
-    "attack": {
-      "type": "adjacent",
-      "max_steps": 1
-    },
-    "passives": [
-      {
-        "trigger": "aura_passive",
-        "effect": "disable_spells",
-        "params": {
-          "radius": 2,
-          "target_team": "enemy"
-        }
-      }
-    ]
-  }
-}
-```
 
 ## Validação
 

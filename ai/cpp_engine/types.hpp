@@ -30,7 +30,7 @@ extern int history_table[2][LINHAS][COLUNAS][LINHAS][COLUNAS];
 
 struct Piece { bool is_empty=true; char team='.'; std::string name; int stun_timer=0; int lifespan=999; int spawn_cooldown=0; int cost=0; int id=0; };
 struct MoveVector { int dr=0; int dc=0; int max_steps=1; int min_steps=1; bool ghost=false; };
-struct HeroBehavior { std::vector<MoveVector> move_white, move_black, attack_white, attack_black; bool has_on_kill_spawn=false; std::string on_kill_spawn_unit; bool has_on_attack_aoe=false,has_silence_aura=false; int silence_radius=0,jump_max=0; };
+struct HeroBehavior { std::vector<MoveVector> move_white, move_black, attack_white, attack_black; bool attack_is_spell=false; std::string attack_spell_name; bool has_on_kill_spawn=false; std::string on_kill_spawn_unit; bool has_on_attack_aoe=false,has_silence_aura=false; int silence_radius=0,jump_max=0; };
 
 struct Move {
     uint8_t sr=0,sc=0,er=0,ec=0;

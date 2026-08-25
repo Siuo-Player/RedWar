@@ -319,6 +319,9 @@ class DataPiece(Piece):
     def get_valid_attacks(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act():
             return []
+        attack_behavior = HERO_DEFS.get(self.name, {}).get("behavior", {}).get("attack", {}) or {}
+        if attack_behavior.get("attack_action") == "spell":
+            return []
         attacks = []
         for dr, dc, max_steps, min_steps, _ghost in self._attack_vectors:
             for step in range(1, max_steps + 1):
@@ -335,6 +338,31 @@ class DataPiece(Piece):
                     attacks.append((nr, nc))
                 break
         return attacks
+
+    def get_valid_spells(self, r, c, board, tile_effects=None) -> list:
+        if not self.can_act():
+            return []
+        attack_behavior = HERO_DEFS.get(self.name, {}).get("behavior", {}).get("attack", {}) or {}
+        if attack_behavior.get("attack_action") != "spell":
+            return []
+        spell_name = attack_behavior.get("spell_name")
+        if not spell_name:
+            return []
+        spells = []
+        for dr, dc, max_steps, min_steps, _ghost in self._attack_vectors:
+            for step in range(1, max_steps + 1):
+                nr, nc = r + dr * step, c + dc * step
+                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                    break
+                if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
+                    break
+                target = board[nr][nc]
+                if target is None:
+                    continue
+                if target.team != self.team and step >= min_steps:
+                    spells.append({"target": (nr, nc), "spell_type": spell_name})
+                break
+        return spells
 
     def get_threat_area(self, r, c, board, tile_effects=None) -> list:
         if not self.can_act():
@@ -417,9 +445,6 @@ class Inquisitor(DataPiece):
                     if p and p.team != self.team:
                         aoe.append((nr, nc))
         return aoe
-
-    def get_valid_spells(self, r, c, board, tile_effects=None):
-        return self.get_aura_positions(r, c, board, tile_effects)
 
     def get_threat_area(self, r, c, board, tile_effects=None) -> list:
         threats = super().get_threat_area(r, c, board, tile_effects)
@@ -554,8 +579,35 @@ class FrostMage(DataPiece):
         super().__init__(team, "FrostMage")
 
     def get_valid_stuns(self, r, c, board, tile_effects=None) -> dict:
+        return {}
+
+    def get_valid_spells(self, r, c, board, tile_effects=None):
         if not self.can_act():
-            return {}
+            return []
+        spells = []
+        for dr in range(-3, 4):
+            for dc in range(-3, 4):
+                if abs(dr) + abs(dc) > 3:
+                    continue
+                focus_r, focus_c = r + dr, c + dc
+                if not (0 <= focus_r < LINHAS and 0 <= focus_c < COLUNAS):
+                    continue
+                if tile_effects and tile_effects[focus_r][focus_c] and tile_effects[focus_r][focus_c].get("type") == "ice":
+                    continue
+                has_enemy = False
+                for adr, adc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    ar, ac = focus_r + adr, focus_c + adc
+                    if not (0 <= ar < LINHAS and 0 <= ac < COLUNAS):
+                        continue
+                    if tile_effects and tile_effects[ar][ac] and tile_effects[ar][ac].get("type") == "ice":
+                        continue
+                    target = board[ar][ac]
+                    if target and target.team != self.team:
+                        has_enemy = True
+                        break
+                if has_enemy:
+                    spells.append({"target": (focus_r, focus_c), "spell_type": "nevada"})
+        return spells
         stuns = {}
         for dr in range(-3, 4):
             for dc in range(-3, 4):

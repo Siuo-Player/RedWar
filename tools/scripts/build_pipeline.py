@@ -52,6 +52,11 @@ def main() -> int:
         env,
     )
     run(
+        [sys.executable, "tools/scripts/build_cpp_engine.py", "--movegen-test"],
+        "Build C++ movegen differential bridge test",
+        env,
+    )
+    run(
         [sys.executable, "-m", "pytest", "tests/"],
         "Python test suite",
         env,
@@ -69,6 +74,7 @@ def main() -> int:
             "C++ engine: PASS\n"
             "C++ smoke test build: PASS\n"
             "C++ make/unmake bridge: PASS\n"
+            "C++ movegen differential bridge: PASS\n"
             "Python tests: PASS\n"
             "Structure audit: PASS\n"
             "Trainer/Auto-Balancer: not run by this pipeline\n",

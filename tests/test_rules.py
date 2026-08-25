@@ -33,7 +33,7 @@ def test_lich_spawn_mechanic():
     assert lich.spawn_cooldown == 4
 
 
-def test_stun_hit_kill():
+def test_frostmage_nevada_hit_kill_and_ice():
     gs = GameState()
     mage = FrostMage("brancas")
     bone = Bone("pretas")
@@ -43,15 +43,14 @@ def test_stun_hit_kill():
     bone.stun_timer = 1
     gs.white_to_move = True
 
-    stuns = mage.get_valid_stuns(4, 4, gs.board)
-    gs.make_action(
-        (4, 4),
-        (2, 4),
-        action_type="stun",
-        affected_area=stuns[(2, 4)]["aoe"],
-    )
+    spells = mage.get_valid_spells(4, 4, gs.board, gs.tile_effects)
+    centers = {spell["target"] for spell in spells}
+    assert (2, 4) in centers
+
+    gs.make_action((4, 4), (2, 4), action_type="spell", spell_name="nevada")
 
     assert gs.board[2][4] is None
+    assert gs.tile_effects[2][4]["type"] == "ice"
 
 
 def test_game_over_annihilation():

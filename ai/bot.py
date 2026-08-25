@@ -80,6 +80,11 @@ class CppEngineBot:
                     raise RuntimeError(
                         f"C++ engine returned unparseable move {move_text!r} at {rwen} (nodes={self.nodes})"
                     )
+                origin = ActionParser.alg_to_coords(parsed['origin'], LINHAS)
+                source_piece = game_state.board[origin[0]][origin[1]]
+                if parsed['action'].upper() == 'STUN' and source_piece is not None and source_piece.name == 'FrostMage':
+                    parsed['action'] = 'SPELL'
+                    parsed['spell'] = 'nevada'
                 final_action = {
                     "type": parsed["action"].lower(),
                     "start": ActionParser.alg_to_coords(parsed["origin"], LINHAS),
