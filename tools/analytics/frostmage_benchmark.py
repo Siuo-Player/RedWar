@@ -1,4 +1,4 @@
-"""Adversarial Ares benchmark for FrostMage tactical recognition."""
+﻿"""Adversarial Ares benchmark for FrostMage tactical recognition."""
 from __future__ import annotations
 
 import argparse
@@ -78,7 +78,7 @@ def query(engine: str, nodes: int, trace_path: Path | None = None) -> tuple[str,
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Diagnóstico táctico do FrostMage para Ares")
+    parser = argparse.ArgumentParser(description="DiagnÃ³stico tÃ¡ctico do FrostMage para Ares")
     parser.add_argument("--engine", default=DEFAULT_ENGINE)
     parser.add_argument("--nodes", type=int, action="append", default=None)
     parser.add_argument("--trace", action="store_true")
@@ -88,12 +88,12 @@ def main() -> int:
     if any(nodes <= 0 for nodes in node_budgets):
         parser.error("--nodes deve conter apenas inteiros positivos")
     if not os.path.isfile(args.engine):
-        raise FileNotFoundError(f"Engine não encontrada: {args.engine}")
+        raise FileNotFoundError(f"Engine nÃ£o encontrada: {args.engine}")
 
     trace_dir = Path(ROOT) / "logs" / "benchmarks" / "frostmage" if args.trace else None
     print("FrostMage tactical benchmark")
     print("position: 5 clustered enemies within one 3-range stun area")
-    print("expected tactical class: STUN")
+    print("expected tactical class: SPELL nevada")
     print("scan: exponential node budgets; use --nodes for fine-grained follow-up")
     if args.trace:
         print(f"trace directory: {trace_dir}")
@@ -103,7 +103,7 @@ def main() -> int:
     for nodes in node_budgets:
         trace_path = trace_dir / f"trace_{nodes}.log" if trace_dir else None
         bestmove, saved_trace = query(args.engine, nodes, trace_path)
-        ok = bestmove.startswith("STUN ")
+        ok = bestmove.startswith("SPELL nevada ")
         if not ok:
             failures += 1
         print(f"nodes={nodes:>10} bestmove={bestmove:<24} {'PASS' if ok else 'FAIL'}")
@@ -118,7 +118,7 @@ def main() -> int:
             f"stun at {failures}/{len(node_budgets)} tested budgets."
         )
         return 1
-    print("DIAGNOSTIC: Ares recognised the 5-target FrostMage stun at all budgets.")
+    print("DIAGNOSTIC: Ares recognised the 5-target FrostMage Nevada spell at all budgets.")
     return 0
 
 
