@@ -7,6 +7,8 @@
 3. **Web / multiplayer.** Avança incrementalmente, mas só fecha o projeto quando esta camada estiver utilizável.
 4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis.
 
+A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md). Ela define a evidência esperada para correctness, differential testing, benchmarks, força A/B, balanceamento e futura validação com jogadores.
+
 ## Metodologia da Ares
 
 Ares segue uma metodologia **Stockfish-like adaptada a RedWar**: separar estado/regras, pesquisa, avaliação e move ordering; manter o hot path pequeno; fazer alterações isoladas; exigir evidência estatística ou benchmark antes de aceitar uma melhoria funcional.
@@ -96,6 +98,8 @@ Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o 
 
 A Arena de promoção não é usada como gate de uma alteração apenas de CI/tooling; para esse caso usamos benchmarks determinísticos e testes de consistência.
 
+A evolução da Arena deve privilegiar evidência estatística progressivamente mais forte, incluindo controlo de seeds/openings/cores, tratamento explícito de inválidos e, quando a infraestrutura estiver madura, teste sequencial e intervalos de incerteza. Ver [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
+
 ## Heróis e balanceamento
 
 - [ ] Reduzir lógica de herói espalhada.
@@ -105,6 +109,8 @@ A Arena de promoção não é usada como gate de uma alteração apenas de CI/to
 - [ ] Formalizar gelo e empilhamento de efeitos.
 
 O Auto-Balancer deve continuar a servir para equilíbrio estatístico; não deve ser usado como substituto de benchmarks táticos de força.
+
+Para evoluções futuras, avaliar também composição, matchup, cor, pick rate, mastery, duração e diversidade de estratégias; custo equilibrado não significa necessariamente 50% de win-rate isoladamente. A metodologia detalhada está em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
 
 ## Aplicação / UI
 
@@ -135,6 +141,8 @@ A UI deve ser validada jogando o jogo, não apenas por inspeção de código.
 - [ ] Desafios/amigos/chat/rematch.
 - [ ] Espectadores.
 - [ ] Histórico.
+
+Quando esta camada começar, preservar a regra de servidor autoritativo e separar matchmaking/rating do balanceamento dos heróis. A metodologia futura de produto está documentada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
 
 ## Regra de manutenção
 
