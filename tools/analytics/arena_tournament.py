@@ -1,8 +1,10 @@
 """Headless A/B Arena for two explicit RedWar C++ engines.
 
-The Arena is both a promotion test and a source of reproducible training/debugging
-material. Every game can optionally be saved as JSONL with its opening state,
-exact action sequence, result and aggregate tactical counters.
+The Arena is both the primary strength-measurement path for Ares and a source of
+reproducible training/debugging material. Every game can optionally be saved as
+JSONL with its opening state, exact action sequence, result and aggregate tactical
+counters. Statistical summaries are derived from that raw JSONL-compatible game
+records.
 """
 
 import argparse
@@ -18,6 +20,7 @@ if str(ROOT) not in sys.path:
 from ai.bot import CppEngineBot
 from engine.game_state import GameState
 from tools.analytics.opening_book import carregar_abertura_do_book
+from tools.analytics.strength_rating import MatchResult, Rating, compare, estimate
 
 
 ARENA_MAX_PLIES = 10_000
@@ -97,6 +100,32 @@ def _winner_side(winner: object) -> str | None:
     return None
 
 
+def _strength_from_games(games: list[dict]) -> tuple[float, float, float, float]:
+    """Return challenger rating, baseline rating, delta and 95% delta half-width.
+
+    The initial 1500/1500 ratings are an arbitrary reference. The raw game records
+    remain the source of truth; this is only the first Elo-compatible summary layer.
+    """
+
+    results: list[MatchResult] = []
+    for game in games:
+        outcome = game["outcome"]
+        relative = {"challenger": "win", "baseline": "loss", "draw": "draw"}[outcome]
+        results.append(MatchResult("challenger", "baseline", relative))
+
+    ratings = estimate(
+        {"challenger": Rating(), "baseline": Rating()},
+        results,
+    )
+    relative = compare(ratings["challenger"], ratings["baseline"])
+    return (
+        ratings["challenger"].value,
+        ratings["baseline"].value,
+        relative.delta,
+        1.96 * relative.delta_uncertainty,
+    )
+
+
 def start_tournament(
     challenger_engine: str,
     baseline_engine: str,
@@ -159,6 +188,7 @@ def start_tournament(
         diferenca = wins_challenger - wins_baseline
         win_rate = wins_challenger / max(1, num_games) * 100.0
         promoted = verificar_promocao(wins_challenger, wins_baseline, win_threshold)
+        rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width = _strength_from_games(games)
 
         summary = {
             "games": num_games,
@@ -172,6 +202,11 @@ def start_tournament(
             "margin": diferenca,
             "win_rate_challenger": win_rate,
             "promoted": promoted,
+            "strength_model": "elo_compatible_baseline_v1",
+            "rating_challenger": rating_challenger,
+            "rating_baseline": rating_baseline,
+            "rating_delta": rating_delta,
+            "rating_delta_ci95_half_width": rating_ci95_half_width,
             "action_counts": dict(aggregate_actions),
         }
 
@@ -181,6 +216,11 @@ def start_tournament(
         )
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
+        print(
+            f"Strength Rating: Challenger {rating_challenger:.1f} | "
+            f"Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} "
+            f"(IC95 ±{rating_ci95_half_width:.1f})"
+        )
         if promoted:
             print("👑 SUCESSO: Challenger superou a baseline por margem suficiente.")
         else:

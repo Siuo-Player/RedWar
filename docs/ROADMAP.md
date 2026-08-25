@@ -7,7 +7,7 @@
 3. **Web / multiplayer.** Avança incrementalmente, mas só fecha o projeto quando esta camada estiver utilizável.
 4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis.
 
-A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), e as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md).
+A metodologia transversal para estes blocos está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md), o protocolo para evitar overfitting dos benchmarks está em [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md), e o futuro modelo de medição de força está em [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md).
 
 ## Metodologia da Ares
 
@@ -26,6 +26,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
 - **PR #61** integrou a equivalência Python/C++ da geração de ações e as regressões de compatibilidade associadas.
 - **PR #65** integrou a execução manual reproduzível da Arena mesmo sem alterações de AI/NNUE.
+- **PR #67** integrou a primeira propriedade metamórfica de simetria entre cores/lado a jogar.
+- **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -41,7 +43,11 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Auto-Balancer usa timeout explícito e suite Python completa.
 - [x] Equivalência Python/C++ da geração de ações legais.
 - [x] Sequências diferenciais determinísticas Python/C++ por múltiplos plies.
+- [x] Sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
+- [x] Propriedade metamórfica de simetria entre cores/lado a jogar.
 - [x] Documentação metodológica e de inspirações consolidada.
+- [x] Protocolo de validação contra overfitting dos benchmarks definido.
+- [x] Modelo/documentação inicial para medição geral de força definido.
 - [x] Arena headless com guardrail de 10.000 plies.
 - [x] Execução manual da Arena separada da promoção automática.
 
@@ -59,7 +65,7 @@ Para cada nova posição:
 - guardar um trace resumido quando necessário para explicar a pesquisa;
 - comparar cada alteração de IA contra exatamente as mesmas posições.
 
-O FrostMage de cinco alvos é o primeiro caso de referência. O ponto de `10 nodes` é um marcador de progresso: se uma otimização resolver corretamente a posição nesse orçamento, o benchmark deve passar e isso constitui uma melhoria.
+**Importante:** os benchmarks dirigidos são regressões/capability probes. Não são, isoladamente, evidência de melhoria geral de força. Para promoção, deve ser respeitado [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md): regressões conhecidas + validação independente/hold-out + Arena + Strength Rating.
 
 Novas posições a validar e adicionar:
 
@@ -76,29 +82,60 @@ Novas posições a validar e adicionar:
 
 ### 2. Property / differential sequences — **aprofundamento em curso**
 
-O primeiro nível de sequências está implementado em `tests/test_cross_backend_sequences.py`.
+A suite atual combina sequências determinísticas e pseudo-aleatórias com seeds fixas. Todas as transições importantes devem comparar Python/C++ após cada ply e verificar `make/unmake` contra a raiz.
 
-Cada sequência:
-
-- começa numa abertura determinística;
-- escolhe ações legais de forma determinística durante vários plies;
-- compara o estado Python e C++ após **cada** ação;
-- verifica que o C++ `make/unmake` restaura a raiz de cada transição.
-
-A expansão atual acrescenta propriedades metamórficas em `tests/test_metamorphic_properties.py`, começando pela simetria de cores/lado a jogar: uma troca pura de equipas deve preservar o conjunto estrutural de ações legais e a execução de uma ação deve ser equivalente após desfazer a troca.
+A expansão atual acrescenta cobertura dirigida de estados persistentes e categorias de ação, em `tests/test_cross_backend_persistent_state.py`, para evitar depender apenas da probabilidade de uma sequência aleatória atingir casos raros.
 
 Próximos níveis:
 
 - [x] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
 - [x] propriedades metamórficas de simetria de cores/lado a jogar;
-- [ ] cobertura explícita de transições que atravessem MOVE → ATTACK → SPELL → STUN → SPAWN;
-- [ ] sequências com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
+- [x] cobertura dirigida de categorias de ação e estado persistente;
+- [ ] sequências longas com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
 - [ ] shrink/reprodução automática da primeira divergência;
 - [ ] integração com perft/node-count differential.
 
 O objetivo é localizar a **primeira transição divergente**, e não apenas detetar que a posição final ficou diferente.
 
-### 3. Search / move ordering RPG — **próximo bloco de IA**
+### 3. Strength Evaluation Framework — **novo bloco prioritário antes de otimizações importantes da Ares**
+
+O objetivo é definir operacionalmente o que significa **"Ares ficou mais forte"** sem depender de um pequeno conjunto de puzzles escolhidos para desenvolvimento.
+
+O desenho recomendado está em [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md) e deve separar:
+
+```text
+known regressions
+      ↓
+differential/property correctness
+      ↓
+development benchmarks
+      ↓
+independent hold-out
+      ↓
+A/B games
+      ↓
+Strength Rating + uncertainty
+      ↓
+sequential statistical test
+      ↓
+promotion / reject / continue
+```
+
+Próximos níveis:
+
+- [ ] implementar armazenamento de jogos e resultados com identificação de commit/version;
+- [ ] definir o primeiro Strength Rating baseado em comparação par-a-par (Bradley–Terry/Elo-compatible);
+- [ ] estimar rating + incerteza, não apenas um número pontual;
+- [ ] equilibrar explicitamente cor, seed, opening e node budget;
+- [ ] separar conjuntos development/regression/hold-out;
+- [ ] impedir que posições usadas para orientar uma alteração sejam a única evidência da promoção;
+- [ ] adicionar comparação de força por contexto para detetar intransitividade/matchup;
+- [ ] posteriormente integrar SPRT/teste sequencial inspirado no Fishtest;
+- [ ] estudar um segundo eixo de **intrinsic/move quality strength** baseado na perda de avaliação por decisão.
+
+Até este bloco estar implementado, benchmarks tácticos podem provar correção/capacidade, mas **não devem ser descritos como medida global de força da Ares**.
+
+### 4. Search / move ordering RPG — **próximo bloco de IA após o Strength Evaluation Framework**
 
 O primeiro eixo de otimização não deve ser simplesmente aumentar os valores materiais.
 
@@ -106,29 +143,29 @@ Situação atual:
 
 - [x] Continuação limitada de segundo STUN, apenas no mesmo centro e quando o primeiro STUN atingiu pelo menos um adversário.
 - [ ] Move ordering por número/valor de alvos afetados, sem conhecer posições concretas.
-- [ ] Selective extensions adicionais para ameaças táticas fortes, apenas depois da suite comprovar necessidade.
+- [ ] Selective extensions adicionais para ameaças táticas fortes, apenas depois da suite comprovar necessidade e a validação hold-out/strength não mostrar regressão geral.
 - [ ] Heurísticas de spells baseadas no impacto imediato e não apenas no nome do spell.
 - [ ] Sinais de passivas/aura como **heurísticas de pesquisa**, sem inflacionar automaticamente o material estático.
 - [ ] Melhor utilização de TT move/history para ações não-MOVE quando houver evidência.
 - [ ] Só depois investigar LMR/aspiration/PVS mais agressivos, mantendo regressão de força.
 
-### 4. Baseline incremental NNUE
+### 5. Baseline incremental NNUE
 
-Depois de estabilizar a pesquisa-base e ter benchmarks independentes suficientes:
+Depois de estabilizar a pesquisa-base e ter benchmarks independentes e medição geral de força suficientes:
 
 1. manter `sync_board()` como referência de correção;
 2. ligar mudanças de peça, stun, lifespan, cooldown, efeitos, TWC e lado a jogar ao accumulator;
 3. testar make/unmake do accumulator contra rescan completo;
 4. comparar NPS e custo por avaliação com o baseline;
-5. confirmar força na Arena.
+5. confirmar força com Strength Rating + Arena.
 
-### 5. Arena
+### 6. Arena
 
 Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o mesmo orçamento de nodes/regras.
 
 A Arena de promoção não é usada como gate de uma alteração apenas de CI/tooling; para esse caso usamos benchmarks determinísticos e testes de consistência. Execuções manuais podem produzir dados experimentais sem exigir a margem de promoção.
 
-A evolução da Arena deve privilegiar evidência estatística progressivamente mais forte, incluindo controlo de seeds/openings/cores, tratamento explícito de inválidos e, quando a infraestrutura estiver madura, teste sequencial e intervalos de incerteza. Ver [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
+A evolução da Arena deve privilegiar evidência estatística progressivamente mais forte, incluindo controlo de seeds/openings/cores, tratamento explícito de inválidos, estimativa de rating/incerteza e, quando a infraestrutura estiver madura, teste sequencial/intervalos de incerteza. Ver [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md) e [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md).
 
 #### Limite de duração das partidas
 
@@ -185,4 +222,4 @@ Quando esta camada começar, preservar a regra de servidor autoritativo e separa
 
 ## Regra de manutenção
 
-Cada bloco deve terminar com testes, documentação e uma conclusão experimental clara. PRs de infraestrutura, CI e documentação não devem ser usados como proxies para promoção da Ares.
+Cada bloco deve terminar com testes, documentação e uma conclusão experimental clara. PRs de infraestrutura, CI e documentação não devem ser usados como proxies para promoção da Ares. Uma melhoria não pode ser considerada geral apenas porque aumenta o desempenho de benchmarks conhecidos; o Strength Evaluation Framework é a referência para decisões de força.
