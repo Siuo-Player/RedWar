@@ -289,7 +289,7 @@ def start_tournament(
         diferenca = wins_challenger - wins_baseline
         win_rate = wins_challenger / max(1, wins_challenger + wins_baseline + draws) * 100.0
         promoted = invalid_games == 0 and verificar_promocao(wins_challenger, wins_baseline, win_threshold)
-        rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width = _strength_from_games(games)
+        rating_challenger, rating_baseline, rating_delta, rating_uncertainty_proxy_half_width = _strength_from_games(games)
         balance = summarize_experiment_balance(games)
         pentanomial = summarize_pentanomial(games)
         summary: dict[str, object] = {
@@ -312,7 +312,8 @@ def start_tournament(
             "rating_challenger": rating_challenger,
             "rating_baseline": rating_baseline,
             "rating_delta": rating_delta,
-            "rating_delta_ci95_half_width": rating_ci95_half_width,
+            "rating_delta_uncertainty_proxy_half_width": rating_uncertainty_proxy_half_width,
+            "rating_delta_uncertainty_type": "engineering_uncertainty_proxy_v1",
             "balance_audit": balance,
             "pentanomial": pentanomial,
             "action_counts": dict(aggregate_actions),
@@ -320,7 +321,7 @@ def start_tournament(
         print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws} | Inválidos {invalid_games}")
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
-        print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (IC95 ±{rating_ci95_half_width:.1f})")
+        print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (uncertainty proxy ±{rating_uncertainty_proxy_half_width:.1f})")
         print(f"Pentanomial: {pentanomial['bins']} | Pares completos: {pentanomial['complete_pairs']}")
         if invalid_games:
             print(f"⚠️ {invalid_games} jogos inválidos; a experiência não pode promover uma revisão com observações inválidas.")
