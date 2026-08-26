@@ -18,6 +18,26 @@ on:
         required: false
         default: 'origin/main'
         type: string
+      population_id:
+        description: 'Strength population identifier'
+        required: false
+        default: 'ares-dev-population-v1'
+        type: string
+      selection_policy:
+        description: 'How controllers/games are selected'
+        required: false
+        default: 'paired-fixed-openings'
+        type: string
+      controller_population:
+        description: 'Controller population represented by the experiment'
+        required: false
+        default: 'Ares-v1-vs-baseline-v1'
+        type: string
+      skill_context:
+        description: 'Skill/controller-strength context'
+        required: false
+        default: 'fixed-node-budget'
+        type: string
 
 permissions:
   contents: read
@@ -179,10 +199,16 @@ jobs:
       - name: Attach Strength context diagnostics
         if: always()
         shell: bash
+        env:
+          POPULATION_ID: ${{ inputs.population_id }}
+          SELECTION_POLICY: ${{ inputs.selection_policy }}
+          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
+          SKILL_CONTEXT: ${{ inputs.skill_context }}
         run: |
           set -euo pipefail
           PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
           RESULTS="${PREFIX}-games.jsonl"
+          CONTEXT_RESULTS="${PREFIX}-games.context.jsonl"
           SUMMARY="${PREFIX}-games.jsonl.summary.json"
           if [[ ! -f "$RESULTS" || ! -f "$SUMMARY" ]]; then
             echo "Arena artifacts unavailable; context diagnostics cannot be generated."
@@ -190,7 +216,63 @@ jobs:
           fi
           python "$GITHUB_WORKSPACE/tools/analytics/strength_context_artifacts.py" \
             "$RESULTS" \
-            --summary "$SUMMARY"
+            --summary "$SUMMARY" \
+            --context-output "$CONTEXT_RESULTS" \
+            --population-id "$POPULATION_ID" \
+            --selection-policy "$SELECTION_POLICY" \
+            --controller-population "$CONTROLLER_POPULATION" \
+            --skill-context "$SKILL_CONTEXT"
+
+      - name: Validate Strength population context
+        if: always()
+        shell: bash
+        env:
+          GAMES: ${{ inputs.games }}
+          POPULATION_ID: ${{ inputs.population_id }}
+          SELECTION_POLICY: ${{ inputs.selection_policy }}
+          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
+          SKILL_CONTEXT: ${{ inputs.skill_context }}
+        run: |
+          set -euo pipefail
+          PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
+          RESULTS="${PREFIX}-games.context.jsonl"
+          if [[ ! -f "$RESULTS" ]]; then
+            echo "Missing contextualized Arena JSONL result: $RESULTS"
+            exit 1
+          fi
+          python - "$RESULTS" "$GAMES" "$GITHUB_SHA" "$BASE_SHA" "$BASE_SHA" "$POPULATION_ID" "$SELECTION_POLICY" "$CONTROLLER_POPULATION" "$SKILL_CONTEXT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from tools.analytics.arena_experiment_validation import validate_experiment_records
+
+          records = [
+              json.loads(line)
+              for line in Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          ]
+          experiment = records[0]["experiment"]
+          metadata = {
+              "challenger_version": sys.argv[3],
+              "baseline_version": sys.argv[4],
+              "rules_version": sys.argv[5],
+              "node_budget": int(experiment["node_budget"]),
+              "games": int(sys.argv[2]),
+              "opening_count": int(experiment["opening_count"]),
+              "strength_population": {
+                  "population_id": sys.argv[6],
+                  "selection_policy": sys.argv[7],
+                  "controller_population": sys.argv[8],
+                  "skill_context": sys.argv[9],
+              },
+          }
+          audit = validate_experiment_records(
+              records,
+              metadata,
+              require_strength_population=True,
+          )
+          print(json.dumps(audit, ensure_ascii=False, indent=2))
+          PY
 
       - name: Upload experiment artifacts
         if: always()
