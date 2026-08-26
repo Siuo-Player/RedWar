@@ -111,7 +111,70 @@ jobs:
           git worktree remove --force "$WORKTREE"
           git worktree remove --force /tmp/redwar-baseline
 
+          echo "$rc" > "${PREFIX}-arena.exitcode"
           exit 0
+
+      - name: Validate experiment dataset
+        if: always()
+        shell: bash
+        env:
+          GAMES: ${{ inputs.games }}
+        run: |
+          set -euo pipefail
+          PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
+          RESULTS="${PREFIX}-games.jsonl"
+          VALIDATION="${PREFIX}-validation.json"
+          if [[ ! -f "$RESULTS" ]]; then
+            echo "Missing Arena JSONL result: $RESULTS"
+            exit 1
+          fi
+          python - "$RESULTS" "$VALIDATION" "$GAMES" "$GITHUB_SHA" "$BASE_SHA" "$BASE_SHA" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from tools.analytics.arena_experiment_validation import validate_experiment_records
+
+          results_path = Path(sys.argv[1])
+          validation_path = Path(sys.argv[2])
+          games_expected = int(sys.argv[3])
+          challenger_version = sys.argv[4]
+          baseline_version = sys.argv[5]
+          rules_version = sys.argv[6]
+
+          records = [
+              json.loads(line)
+              for line in results_path.read_text(encoding="utf-8").splitlines()
+              if line.strip()
+          ]
+          if not records:
+              raise SystemExit("Arena JSONL is empty")
+
+          experiment = records[0].get("experiment")
+          metadata = {
+              "challenger_version": challenger_version,
+              "baseline_version": baseline_version,
+              "rules_version": rules_version,
+              "node_budget": int(experiment["node_budget"]),
+              "games": games_expected,
+              "opening_count": int(experiment["opening_count"]),
+          }
+          audit = validate_experiment_records(records, metadata)
+          validation_path.write_text(
+              json.dumps(audit, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(audit, ensure_ascii=False, indent=2))
+          if audit["invalid_games"]:
+              raise SystemExit(
+                  f"Experiment contains {audit['invalid_games']} invalid game(s); "
+                  "strength inference is blocked."
+              )
+          if audit["incomplete_valid_pair_ids"]:
+              raise SystemExit(
+                  "Experiment contains incomplete valid pairs: "
+                  + ", ".join(audit["incomplete_valid_pair_ids"])
+              )
+          PY
 
       - name: Upload experiment artifacts
         if: always()
@@ -120,3 +183,4 @@ jobs:
           name: ares-strength-experiment-${{ github.sha }}
           path: /tmp/redwar-strength-results/
           if-no-files-found: warn
+          retention-days: 30
