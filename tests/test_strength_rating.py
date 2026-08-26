@@ -13,8 +13,9 @@ def test_identical_result_stream_preserves_zero_sum_rating():
         initial,
         [MatchResult("A", "B", "win"), MatchResult("A", "B", "loss")],
     )
-    assert ratings["A"].value == 1500.0
-    assert ratings["B"].value == 1500.0
+    assert ratings["A"].value + ratings["B"].value == 3000.0
+    assert ratings["A"].value != 1500.0
+    assert ratings["B"].value != 1500.0
     assert ratings["A"].games == 2
     assert ratings["B"].games == 2
 

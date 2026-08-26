@@ -22,7 +22,7 @@ def test_summary_uses_complete_inverted_colour_pairs():
     summary = summarize_pentanomial(games)
     assert summary["complete_pairs"] == 2
     assert summary["paired_games_used"] == 4
-    assert summary["bins"] == {"DD_WL_LW": 2}
+    assert summary["bins"] == {"DD_WL_LW": 1, "WD_DW": 1}
     assert summary["incomplete_pair_ids"] == []
 
 

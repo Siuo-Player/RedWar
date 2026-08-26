@@ -37,7 +37,9 @@ def test_python_cpp_targeted_action_taxonomy_roundtrip():
 
     required = {"move", "attack", "spawn", "spell"}
     assert required.issubset(found), found
-    assert "stun" in found or "nevada" in {r[1] for r in requests}
+    assert "stun" in found or any(
+        request[3].startswith("SPELL nevada ") for request in requests
+    )
 
     payload = "".join(f"{rwen}\n{move}\n" for _label, _type, rwen, move, _expected in requests)
     result = subprocess.run([str(BRIDGE)], input=payload, text=True, capture_output=True, cwd=ROOT, check=False)

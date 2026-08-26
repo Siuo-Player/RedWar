@@ -19,7 +19,7 @@ if str(ROOT) not in sys.path:
 from ai.bot import CppEngineBot
 from engine.game_state import GameState
 from tools.analytics.arena_pairs import GameOutcome, aggregate_pentanomial, incomplete_pairs, make_pair_id, validate_pair_structure
-from tools.analytics.opening_book import carregar_abertura_do_book
+from tools.analytics.opening_book import carregar_abertura_do_book, gerar_abertura
 from tools.analytics.strength_rating import MatchResult, Rating, compare, estimate
 
 ARENA_MAX_PLIES = 10_000
@@ -127,9 +127,13 @@ def _normalizar_acao(acao: dict) -> dict:
     return result
 
 
-def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0):
+def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_seed: int | None = None):
     gs = GameState(time_limit_seconds=99999)
-    seed = carregar_abertura_do_book(gs, opening_index)
+    if opening_seed is None:
+        seed = carregar_abertura_do_book(gs, opening_index)
+    else:
+        seed = int(opening_seed)
+        gs.board = gerar_abertura(seed)
     initial_rwen = gs.to_rwen()
     actions = []
     action_types = Counter()

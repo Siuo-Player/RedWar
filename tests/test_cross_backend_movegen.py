@@ -111,19 +111,20 @@ def make_cases() -> list[tuple[str, GameState]]:
     put(spells, 1, 6, "Templar", "pretas")
     cases.append(("spells", spells))
 
+    # Geometry-symmetric laboratory fixture for the Dragoon jump action.
     special = GameState()
-    put(special, 4, 0, "FrostMage", "brancas")
-    put(special, 6, 0, "Dragoon", "brancas")
-    put(special, 1, 1, "Nightshade", "pretas")
+    put(special, 3, 3, "Dragoon", "brancas")
+    put(special, 3, 4, "FrostMage", "brancas")
     special.white_to_move = True
     cases.append(("special", special))
 
+    # Effect-focused position: use non-directional pieces so the metamorphic
+    # check isolates tile/effect colour handling rather than forward movement.
     effects = GameState()
-    put(effects, 6, 3, "Ghoul", "brancas")
-    put(effects, 4, 4, "Ranger", "brancas")
-    put(effects, 2, 4, "Bone", "pretas")
-    effects.tile_effects[5][3] = {"team": "brancas", "type": "ice", "timer": 2}
-    effects.tile_effects[4][4] = {"team": "pretas", "type": "fire", "timer": 2}
+    put(effects, 4, 3, "Ranger", "brancas")
+    put(effects, 3, 4, "Bone", "pretas")
+    effects.tile_effects[4][3] = {"team": "brancas", "type": "ice", "timer": 2}
+    effects.tile_effects[3][4] = {"team": "pretas", "type": "fire", "timer": 2}
     cases.append(("effects", effects))
 
     return cases

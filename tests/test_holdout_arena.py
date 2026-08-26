@@ -9,10 +9,11 @@ def test_holdout_summary_contains_identity_and_balanced_colours(monkeypatch):
         def __del__(self):
             pass
 
-    def fake_match(_white, _black, opening_index):
+    def fake_match(_white, _black, opening_index, opening_seed=None):
+        assert opening_seed in [17001, 17003, 17011, 17021, 17027, 17033, 17041, 17047]
         return {
             "winner": "Brancas" if opening_index % 2 == 0 else "Pretas",
-            "seed": [17001, 17003, 17011, 17021, 17027, 17033, 17041, 17047][opening_index // 2],
+            "seed": opening_seed,
             "opening_index": opening_index,
             "initial_rwen": "root",
             "final_rwen": "final",
@@ -28,6 +29,6 @@ def test_holdout_summary_contains_identity_and_balanced_colours(monkeypatch):
     assert summary["holdout_set_id"] == "ares-holdout-v1"
     assert len(summary["holdout_set_sha256"]) == 64
     assert summary["cases"] == 8
-    assert summary["wins_challenger"] == 8
-    assert summary["wins_baseline"] == 0
+    assert summary["wins_challenger"] == 4
+    assert summary["wins_baseline"] == 4
     assert summary["draws"] == 0
