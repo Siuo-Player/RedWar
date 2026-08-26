@@ -1,0 +1,15 @@
+name: RedWar Actions Startup Probe
+
+on:
+  push:
+    branches-ignore:
+      - main
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe runner startup
+        run: echo "RedWar Actions startup probe reached a hosted runner"
