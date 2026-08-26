@@ -1,0 +1,48 @@
+name: one-time-strength-semantics-patch
+
+on:
+  push:
+    branches:
+      - fix/strength-uncertainty-semantics-2026-08-26
+    paths:
+      - '.github/workflows/one_time_strength_patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply mechanical rename
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('tools/analytics/arena_tournament.py')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              'rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width': 'rating_challenger, rating_baseline, rating_delta, rating_uncertainty_proxy_half_width',
+              '"rating_delta_ci95_half_width": rating_ci95_half_width,': '"rating_delta_uncertainty_proxy_half_width": rating_uncertainty_proxy_half_width,\n            "rating_delta_uncertainty_type": "engineering_uncertainty_proxy_v1",',
+              '(IC95 ±{rating_ci95_half_width:.1f})': '(uncertainty proxy ±{rating_uncertainty_proxy_half_width:.1f})',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'missing expected source fragment: {old}')
+              text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit implementation fix and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/analytics/arena_tournament.py
+          git rm .github/workflows/one_time_strength_patch.yml
+          git commit -m 'fix(strength): rename Arena uncertainty implementation fields'
+          git push origin HEAD:${GITHUB_REF_NAME}
