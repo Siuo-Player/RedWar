@@ -176,6 +176,22 @@ jobs:
               )
           PY
 
+      - name: Attach Strength context diagnostics
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
+          RESULTS="${PREFIX}-games.jsonl"
+          SUMMARY="${PREFIX}-games.jsonl.summary.json"
+          if [[ ! -f "$RESULTS" || ! -f "$SUMMARY" ]]; then
+            echo "Arena artifacts unavailable; context diagnostics cannot be generated."
+            exit 1
+          fi
+          python "$GITHUB_WORKSPACE/tools/analytics/strength_context_artifacts.py" \
+            "$RESULTS" \
+            --summary "$SUMMARY"
+
       - name: Upload experiment artifacts
         if: always()
         uses: actions/upload-artifact@v4
