@@ -53,6 +53,13 @@ MOVEGEN_SOURCES = [
     "search.cpp",
     "nnue.cpp",
 ]
+PERFT_SOURCES = [
+    "board.cpp",
+    "evaluate.cpp",
+    "movegen.cpp",
+    "search.cpp",
+    "nnue.cpp",
+]
 
 
 def get_vcvars_path() -> Path | None:
@@ -149,11 +156,19 @@ def compile_cpp_project(mode: str = "engine") -> Path:
         sources = [*sources, str(test_path)]
         suffix = ".exe" if platform.system() == "Windows" else ""
         output = ROOT / f"cpp_movegen_bridge_test{suffix}"
+    elif mode == "perft":
+        sources = PERFT_SOURCES
+        test_path = TESTS_DIR / "cpp_perft_bridge_test.cpp"
+        if not test_path.is_file():
+            raise FileNotFoundError(f"Teste C++ em falta: {test_path}")
+        sources = [*sources, str(test_path)]
+        suffix = ".exe" if platform.system() == "Windows" else ""
+        output = ROOT / f"cpp_perft_bridge_test{suffix}"
     else:
         raise ValueError(f"Modo desconhecido: {mode}")
 
     missing = [name for name in sources if not (CPP_DIR / name).is_file()]
-    if mode in {"numeric", "bridge", "movegen"}:
+    if mode in {"numeric", "bridge", "movegen", "perft"}:
         missing = [name for name in missing if not Path(name).is_file()]
     if missing:
         raise FileNotFoundError(f"Fontes C++ em falta: {', '.join(missing)}")
@@ -183,6 +198,7 @@ def main() -> int:
     group.add_argument("--numeric-test", action="store_true", help="Compila a regressão de limites numéricos")
     group.add_argument("--bridge-test", action="store_true", help="Compila o helper de equivalência make/unmake")
     group.add_argument("--movegen-test", action="store_true", help="Compila o helper de equivalência da geração de ações")
+    group.add_argument("--perft-test", action="store_true", help="Compila o helper de perft/node-count differential")
     args = parser.parse_args()
 
     if args.numeric_test:
@@ -191,6 +207,8 @@ def main() -> int:
         compile_cpp_project("bridge")
     elif args.movegen_test:
         compile_cpp_project("movegen")
+    elif args.perft_test:
+        compile_cpp_project("perft")
     elif args.smoke:
         compile_cpp_project("smoke")
     else:
