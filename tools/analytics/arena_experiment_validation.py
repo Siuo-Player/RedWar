@@ -28,11 +28,33 @@ REQUIRED_GAME_FIELDS = {
 
 VALID_OUTCOMES = {"challenger", "baseline", "draw", "invalid"}
 VALID_COLOURS = {"white", "black"}
+REQUIRED_METADATA = {
+    "challenger_version",
+    "baseline_version",
+    "rules_version",
+    "node_budget",
+    "games",
+    "opening_count",
+}
 
 
 def _require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def _require_non_empty_string(value: object, name: str) -> str:
+    _require(isinstance(value, str) and bool(value.strip()), f"{name} must be a non-empty string")
+    return value
+
+
+def _require_int(value: object, name: str, *, positive: bool = False, non_negative: bool = False) -> int:
+    _require(isinstance(value, int) and not isinstance(value, bool), f"{name} must be an integer")
+    if positive:
+        _require(value > 0, f"{name} must be positive")
+    if non_negative:
+        _require(value >= 0, f"{name} must be non-negative")
+    return value
 
 
 def validate_experiment_records(
@@ -49,17 +71,16 @@ def validate_experiment_records(
     """
     records = list(games)
     _require(records, "experiment must contain at least one game record")
+    _require(isinstance(metadata, dict), "experiment metadata must be an object")
 
-    required_metadata = {
-        "challenger_version",
-        "baseline_version",
-        "rules_version",
-        "node_budget",
-        "games",
-        "opening_count",
-    }
-    missing_metadata = required_metadata - metadata.keys()
+    missing_metadata = REQUIRED_METADATA - metadata.keys()
     _require(not missing_metadata, f"experiment metadata missing fields: {sorted(missing_metadata)}")
+
+    for key in ("challenger_version", "baseline_version", "rules_version"):
+        _require_non_empty_string(metadata[key], f"metadata.{key}")
+    expected_games = _require_int(metadata["games"], "metadata.games", positive=True)
+    opening_count = _require_int(metadata["opening_count"], "metadata.opening_count", positive=True)
+    node_budget = _require_int(metadata["node_budget"], "metadata.node_budget", positive=True)
 
     if require_strength_population:
         population_context = metadata.get("strength_population")
@@ -69,7 +90,6 @@ def validate_experiment_records(
         )
         validate_population_context(population_context)
 
-    expected_games = int(metadata["games"])
     _require(
         len(records) == expected_games,
         f"expected {expected_games} game records, got {len(records)}",
@@ -85,7 +105,7 @@ def validate_experiment_records(
         missing = REQUIRED_GAME_FIELDS - game.keys()
         _require(not missing, f"game {expected_index}: missing fields {sorted(missing)}")
 
-        index = int(game["game_index"])
+        index = _require_int(game["game_index"], f"game {expected_index}.game_index", non_negative=True)
         _require(index == expected_index, f"game index sequence broken: expected {expected_index}, got {index}")
         _require(index not in seen_indices, f"duplicate game_index: {index}")
         seen_indices.add(index)
@@ -99,18 +119,19 @@ def validate_experiment_records(
         _require(game["outcome"] in VALID_OUTCOMES, f"game {index}: invalid outcome")
         _require(isinstance(game["valid"], bool), f"game {index}: valid must be boolean")
         _require(
-            str(game["pair_id"]) == f"pair-{index // 2:06d}",
+            isinstance(game["pair_id"], str) and game["pair_id"] == f"pair-{index // 2:06d}",
             f"game {index}: unexpected pair_id",
         )
-        _require(int(game["pair_member"]) == index % 2, f"game {index}: unexpected pair_member")
-        _require(
-            int(game["opening_index"]) < int(metadata["opening_count"]),
-            f"game {index}: opening_index out of range",
-        )
+        pair_member = _require_int(game["pair_member"], f"game {index}.pair_member", non_negative=True)
+        _require(pair_member == index % 2, f"game {index}: unexpected pair_member")
+        opening_index = _require_int(game["opening_index"], f"game {index}.opening_index", non_negative=True)
+        _require(opening_index < opening_count, f"game {index}: opening_index out of range")
+        _require_int(game["seed"], f"game {index}.seed")
+        _require_non_empty_string(game["termination_reason"], f"game {index}.termination_reason")
 
         experiment = game.get("experiment")
         _require(isinstance(experiment, dict), f"game {index}: missing experiment metadata")
-        for key in required_metadata:
+        for key in REQUIRED_METADATA:
             _require(experiment.get(key) == metadata[key], f"game {index}: metadata mismatch for {key}")
 
         if require_strength_population:
@@ -137,11 +158,11 @@ def validate_experiment_records(
 
     valid_outcomes = [
         GameOutcome(
-            game_index=int(game["game_index"]),
-            pair_id=str(game["pair_id"]),
-            opening_index=int(game["opening_index"]),
-            challenger_color=str(game["challenger_color"]),
-            outcome=str(game["outcome"]),
+            game_index=game["game_index"],
+            pair_id=game["pair_id"],
+            opening_index=game["opening_index"],
+            challenger_color=game["challenger_color"],
+            outcome=game["outcome"],
         )
         for game in valid_records
     ]
@@ -158,8 +179,8 @@ def validate_experiment_records(
         "outcomes": dict(Counter(outcomes)),
         "incomplete_valid_pair_ids": incomplete_pair_ids,
         "complete_valid_pairs": len(complete_pair_ids),
-        "node_budget": int(metadata["node_budget"]),
-        "challenger_version": str(metadata["challenger_version"]),
-        "baseline_version": str(metadata["baseline_version"]),
-        "rules_version": str(metadata["rules_version"]),
+        "node_budget": node_budget,
+        "challenger_version": metadata["challenger_version"],
+        "baseline_version": metadata["baseline_version"],
+        "rules_version": metadata["rules_version"],
     }
