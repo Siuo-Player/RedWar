@@ -53,7 +53,6 @@ def python_actions(gs: GameState) -> set[str]:
                     actions.add(action_text({"type": "stun", "start": (r, c), "end": end}))
 
             for spawn_r, spawn_c, spawn_name in piece.get_valid_spawns(r, c, gs.board, gs.tile_effects):
-                actions.append if False else None
                 actions.add(
                     action_text(
                         {
@@ -119,12 +118,13 @@ def make_cases() -> list[tuple[str, GameState]]:
     special.white_to_move = True
     cases.append(("special", special))
 
+    # Effect-focused position: use non-directional pieces so the metamorphic
+    # check isolates tile/effect colour handling rather than forward movement.
     effects = GameState()
-    put(effects, 6, 3, "Ghoul", "brancas")
-    put(effects, 4, 4, "Ranger", "brancas")
-    put(effects, 2, 4, "Bone", "pretas")
-    effects.tile_effects[5][3] = {"team": "brancas", "type": "ice", "timer": 2}
-    effects.tile_effects[4][4] = {"team": "pretas", "type": "fire", "timer": 2}
+    put(effects, 4, 3, "Ranger", "brancas")
+    put(effects, 3, 4, "Bone", "pretas")
+    effects.tile_effects[4][3] = {"team": "brancas", "type": "ice", "timer": 2}
+    effects.tile_effects[3][4] = {"team": "pretas", "type": "fire", "timer": 2}
     cases.append(("effects", effects))
 
     return cases
