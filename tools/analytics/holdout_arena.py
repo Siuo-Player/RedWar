@@ -22,14 +22,25 @@ def run_holdout(challenger_engine: str, baseline_engine: str, nodes: int, result
         for index, case in enumerate(manifest["cases"]):
             challenger_color = "white" if index % 2 == 0 else "black"
             opening_index = int(case["opening_index"])
+            opening_seed = int(case["seed"])
             if challenger_color == "white":
-                game = run_headless_match(challenger, baseline, opening_index)
+                game = run_headless_match(
+                    challenger,
+                    baseline,
+                    opening_index,
+                    opening_seed=opening_seed,
+                )
             else:
-                game = run_headless_match(baseline, challenger, opening_index)
-            if int(game["seed"]) != int(case["seed"]):
+                game = run_headless_match(
+                    baseline,
+                    challenger,
+                    opening_index,
+                    opening_seed=opening_seed,
+                )
+            if int(game["seed"]) != opening_seed:
                 raise RuntimeError(
                     f"hold-out {case['id']}: opening book seed mismatch "
-                    f"(expected {case['seed']}, got {game['seed']})"
+                    f"(expected {opening_seed}, got {game['seed']})"
                 )
             winner_side = _winner_side(game["winner"])
             if winner_side == challenger_color:
