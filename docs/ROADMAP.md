@@ -80,6 +80,10 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Observability Contract do modo local: segredo no `DRAFT`, informação pública em `BATALHA`.
 - [x] Diagnóstico da primeira divergência e reprodução por prefixo mínimo.
 - [x] Differential perft/node-count Python/C++.
+- [x] Infraestrutura inicial de Strength Evaluation: resultados, provenance, população, rating Elo-compatible e incerteza proxy.
+- [x] Paired-game/pentanomial support e auditoria de cor/opening/seed.
+- [x] Separação de conjuntos regression/development/hold-out e hold-out protegido.
+- [x] SPRT implementado como biblioteca isolada; calibração e promoção automática continuam pendentes.
 
 ## Ares — sequência atual
 
@@ -129,7 +133,7 @@ Expansão adicional de mecânicas raras pode continuar como trabalho dirigido; e
 
 O objetivo continua a ser localizar a **primeira transição divergente**, e não apenas detetar que a posição final ficou diferente.
 
-### 3. Strength Evaluation Framework — **próximo bloco prioritário antes de otimizações importantes da Ares**
+### 3. Strength Evaluation Framework — **infraestrutura concluída; validação empírica em curso**
 
 O objetivo é definir operacionalmente o que significa **"Ares ficou mais forte"** sem depender de um pequeno conjunto de puzzles escolhidos para desenvolvimento.
 
@@ -153,21 +157,27 @@ sequential statistical test
 promotion / reject / continue
 ```
 
-Próximos níveis:
+Infraestrutura já concluída:
 
-- [ ] implementar armazenamento de jogos e resultados com identificação de commit/version;
-- [ ] definir o primeiro Strength Rating baseado em comparação par-a-par (Bradley–Terry/Elo-compatible);
-- [ ] estimar rating + incerteza, não apenas um número pontual;
-- [ ] equilibrar explicitamente cor, seed, opening e node budget;
-- [ ] separar conjuntos development/regression/hold-out;
-- [ ] impedir que posições usadas para orientar uma alteração sejam a única evidência da promoção;
+- [x] implementar armazenamento de jogos e resultados com identificação de commit/version;
+- [x] definir o primeiro Strength Rating baseado em comparação par-a-par (Bradley–Terry/Elo-compatible baseline);
+- [x] estimar rating + incerteza, com semântica explícita de `engineering_uncertainty_proxy_v1`;
+- [x] equilibrar explicitamente cor, seed, opening e node budget;
+- [x] separar conjuntos development/regression/hold-out;
+- [x] impedir que posições usadas para orientar uma alteração sejam a única evidência da promoção;
+- [x] implementar SPRT/teste sequencial como biblioteca isolada e testável.
+
+Validação empírica que permanece:
+
 - [ ] adicionar comparação de força por contexto para detetar intransitividade/matchup;
-- [ ] posteriormente integrar SPRT/teste sequencial inspirado no Fishtest;
+- [ ] calibrar o Strength Rating/uncertainty com resultados reais da Arena;
+- [ ] validar o SPRT contra resultados reais da Arena;
+- [ ] substituir a margem heurística pelo teste sequencial, depois de validado;
 - [ ] estudar um segundo eixo de **intrinsic/move quality strength** baseado na perda de avaliação por decisão.
 
-Até este bloco estar implementado, benchmarks tácticos podem provar correção/capacidade, mas **não devem ser descritos como medida global de força da Ares**.
+Até esta validação empírica estar feita, o rating baseline é uma medida comparativa auxiliar e **não prova sozinho melhoria global de força**.
 
-### 4. Search / move ordering RPG — **próximo bloco de IA após o Strength Evaluation Framework**
+### 4. Search / move ordering RPG — **próximo bloco de IA após a validação empírica mínima de Strength**
 
 A auditoria de observabilidade está resolvida para o modo local atual; full-state search é legal em `BATALHA`.
 
