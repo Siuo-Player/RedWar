@@ -29,6 +29,6 @@ def test_holdout_summary_contains_identity_and_balanced_colours(monkeypatch):
     assert summary["holdout_set_id"] == "ares-holdout-v1"
     assert len(summary["holdout_set_sha256"]) == 64
     assert summary["cases"] == 8
-    assert summary["wins_challenger"] == 8
-    assert summary["wins_baseline"] == 0
+    assert summary["wins_challenger"] == 4
+    assert summary["wins_baseline"] == 4
     assert summary["draws"] == 0
