@@ -21,6 +21,29 @@ configuration
 → tactical/semantic benchmark when applicable
 ```
 
+## Executable schema gate
+
+`tests/test_hero_schema_traceability.py` enforces the first part of this chain for the declarative hero contract:
+
+```text
+heroes_config.json
+    ↓
+HEROES_SCHEMA.md vocabulary
+    ↓
+Python backend implementation tokens
+    ↓
+regression test
+```
+
+The gate currently verifies that:
+
+1. every declared spell has an implementation token in `engine/game_state.py`;
+2. every `attack_action: spell` points to a spell declared by that same hero;
+3. every top-level configuration field belongs to the documented schema vocabulary;
+4. every top-level `behavior` section belongs to the documented vocabulary.
+
+This is deliberately a **completeness alarm**, not proof of semantic equivalence. Cross-backend action/state tests remain mandatory.
+
 ## Initial matrix
 
 | Mechanic / state | Configuration | Python rules | C++ rules | Actions | Transition | Make | Unmake | Hash | Differential | Benchmark |
