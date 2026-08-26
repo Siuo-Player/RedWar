@@ -2,7 +2,7 @@
 
 The raw Arena records remain the source of truth. This adapter only validates the
 experiment structure, groups adjacent colour-inverted games into independent
-paired units, and feeds those units to the existing descriptive uncertainty audit.
+paired units, and feeds those units to the paired descriptive uncertainty audit.
 It does not perform promotion or claim a calibrated confidence interval.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from tools.analytics.arena_experiment_validation import validate_experiment_records
-from tools.analytics.strength_empirical_audit import empirical_uncertainty_audit
+from tools.analytics.strength_empirical_audit import empirical_paired_uncertainty_audit
 
 
 def load_arena_records(results_path: str | Path) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -71,8 +71,7 @@ def build_independent_pair_units(records: list[dict[str, Any]]) -> tuple[list[di
 
         outcomes: list[str] = []
         for game in games:
-            raw = str(game["outcome"])
-            outcomes.append(outcome_map[raw])
+            outcomes.append(outcome_map[str(game["outcome"])])
         units.append(
             {
                 "unit_id": pair_id,
@@ -91,7 +90,7 @@ def audit_arena_results(
     bootstrap_samples: int = 2000,
     seed: int = 0,
 ) -> dict[str, Any]:
-    """Validate one raw Arena experiment and run the descriptive pair bootstrap."""
+    """Validate one raw Arena experiment and run the descriptive paired bootstrap."""
     records, experiment = load_arena_records(results_path)
     units, incomplete_pairs = build_independent_pair_units(records)
 
@@ -103,7 +102,7 @@ def audit_arena_results(
     if len(units) < 2:
         raise ValueError("at least two complete valid A/B pairs are required")
 
-    audit = empirical_uncertainty_audit(
+    audit = empirical_paired_uncertainty_audit(
         units,
         bootstrap_samples=bootstrap_samples,
         seed=seed,
