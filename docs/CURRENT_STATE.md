@@ -1,7 +1,7 @@
 # RedWar — Current State
 
 **Snapshot:** 2026-08-26  
-**Verified baseline:** `main` after differential-diagnostics and experiment-provenance work.
+**Verified baseline:** `main` after provenance, Strength context, long persistent differential coverage, first-divergence diagnostics and perft/node-count differential work.
 
 This document is a dated navigation snapshot. It is not a replacement for the canonical domain documents listed in [`docs/00_INDEX.md`](00_INDEX.md).
 
@@ -11,6 +11,7 @@ This document is a dated navigation snapshot. It is not a replacement for the ca
 - The regression suite now covers 100+ tests, including Python/C++ differential, make/unmake, move-generation, persistent-state, metamorphic and per-mechanic coverage.
 - Long persistent-state differential coverage exercises lifespan, spawn cooldown, stun, tile effects and TWC across multiple plies.
 - Differential diagnostics now identify the first divergent transition instead of only reporting a final aggregate mismatch.
+- Python/C++ perft/node-count differential is now part of the regression layer for deterministic positions.
 - Arena result provenance is explicit: game validity and termination reason are retained, and invalid observations are excluded from strength inference and promotion.
 - Protected hold-out validation is frozen through `data/validation/ARES_HOLDOUT_V1.json` and its canonical hash contract.
 
@@ -68,13 +69,13 @@ The project has completed the main correctness/provenance foundation and is movi
 Current priority order is:
 
 ```text
-long differential diagnostics
-→ perft / node-count differential
-→ real Strength/Arena calibration
+real Strength/Arena calibration
 → contextual matchup/intransitivity analysis
 → stronger sequential promotion gate
 → intrinsic/move-quality strength
-→ only then broader Ares search/NNUE optimisation
+→ broader Ares search/NNUE optimisation
 ```
+
+The previously planned long persistent differential, first-divergence diagnostics and perft/node-count differential layers are now implemented in `main`.
 
 No individual tactical benchmark should be interpreted as global strength evidence.
