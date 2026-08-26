@@ -26,9 +26,15 @@ class StrengthPopulationContext:
             "controller_population": self.controller_population,
             "skill_context": self.skill_context,
         }
-        missing = [name for name, value in fields.items() if not value]
-        if missing:
-            raise ValueError(f"Strength population context must be explicit: {missing}")
+        invalid = [
+            name
+            for name, value in fields.items()
+            if not isinstance(value, str) or not value.strip()
+        ]
+        if invalid:
+            raise ValueError(
+                f"Strength population context must contain explicit string fields: {invalid}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -46,8 +52,8 @@ def validate_population_context(payload: dict[str, Any]) -> StrengthPopulationCo
     if missing:
         raise ValueError(f"Strength population context is missing required fields: {missing}")
     return StrengthPopulationContext(
-        population_id=str(payload["population_id"]),
-        selection_policy=str(payload["selection_policy"]),
-        controller_population=str(payload["controller_population"]),
-        skill_context=str(payload["skill_context"]),
+        population_id=payload["population_id"],
+        selection_policy=payload["selection_policy"],
+        controller_population=payload["controller_population"],
+        skill_context=payload["skill_context"],
     )
