@@ -44,6 +44,16 @@ The gate currently verifies that:
 
 This is deliberately a **completeness alarm**, not proof of semantic equivalence. Cross-backend action/state tests remain mandatory.
 
+## Directed special-mechanic fixtures
+
+The generic action taxonomy is not sufficient to prove rare mechanics. `tests/test_per_mechanic_differential_coverage.py` therefore contains explicit Python/C++ round-trip fixtures for:
+
+- Dragoon `jump` spell;
+- BoneLord `on_kill → spawn_unit` passive;
+- Berserker `on_attack → aoe_damage` passive.
+
+These fixtures exercise the real state transition through the C++ bridge and require make/unmake to restore the exact root state. They complement, rather than replace, the broader differential/property suite.
+
 ## Initial matrix
 
 | Mechanic / state | Configuration | Python rules | C++ rules | Actions | Transition | Make | Unmake | Hash | Differential | Benchmark |
