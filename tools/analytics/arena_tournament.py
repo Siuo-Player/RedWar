@@ -11,6 +11,7 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Literal, cast
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -24,6 +25,9 @@ from tools.analytics.strength_rating import MatchResult, Rating, compare, estima
 
 ARENA_MAX_PLIES = 10_000
 
+Color = Literal["white", "black"]
+Outcome = Literal["challenger", "baseline", "draw"]
+
 
 def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
     return vitorias_desafiante - vitorias_atual >= margem
@@ -36,7 +40,7 @@ def build_experiment_metadata(
     nodes: int,
     num_games: int,
     openings: int = 16,
-) -> dict:
+) -> dict[str, object]:
     if not challenger_version or not baseline_version or not rules_version:
         raise ValueError("Arena experiment versions must be explicit")
     if nodes <= 0 or num_games <= 0 or openings <= 0:
@@ -56,22 +60,23 @@ def build_experiment_metadata(
     }
 
 
-def summarize_experiment_balance(games: list[dict]) -> dict:
+def summarize_experiment_balance(games: list[dict[str, object]]) -> dict[str, object]:
     """Return auditable colour/opening balance diagnostics from valid raw game records."""
-    challenger_colour = Counter()
-    challenger_outcomes_by_colour = {
+    challenger_colour: Counter[str] = Counter()
+    challenger_outcomes_by_colour: dict[Color, Counter[str]] = {
         "white": Counter(),
         "black": Counter(),
     }
-    openings = Counter()
-    seeds_by_opening = {}
+    openings: Counter[int] = Counter()
+    seeds_by_opening: dict[str, list[object]] = {}
 
     for game in games:
         if not game.get("valid", True):
             continue
-        colour = game["challenger_color"]
+        colour = cast(Color, game["challenger_color"])
+        outcome = str(game["outcome"])
         challenger_colour[colour] += 1
-        challenger_outcomes_by_colour[colour][game["outcome"]] += 1
+        challenger_outcomes_by_colour[colour][outcome] += 1
         opening = int(game["opening_index"])
         openings[opening] += 1
         seeds_by_opening.setdefault(str(opening), []).append(game["seed"])
@@ -92,7 +97,7 @@ def summarize_experiment_balance(games: list[dict]) -> dict:
     }
 
 
-def summarize_pentanomial(games: list[dict]) -> dict:
+def summarize_pentanomial(games: list[dict[str, object]]) -> dict[str, object]:
     """Aggregate complete adjacent A/B game pairs using valid game records only."""
     valid_games = [game for game in games if game.get("valid", True)]
     outcomes = [
@@ -100,8 +105,8 @@ def summarize_pentanomial(games: list[dict]) -> dict:
             game_index=int(game["game_index"]),
             pair_id=str(game["pair_id"]),
             opening_index=int(game["opening_index"]),
-            challenger_color=str(game["challenger_color"]),
-            outcome=str(game["outcome"]),
+            challenger_color=cast(Color, game["challenger_color"]),
+            outcome=cast(Outcome, game["outcome"]),
         )
         for game in valid_games
     ]
@@ -208,12 +213,12 @@ def _winner_side(winner: object) -> str | None:
     return None
 
 
-def _strength_from_games(games: list[dict]) -> tuple[float, float, float, float]:
-    results = []
+def _strength_from_games(games: list[dict[str, object]]) -> tuple[float, float, float, float]:
+    results: list[MatchResult] = []
     for game in games:
         if not game.get("valid", True):
             continue
-        relative = {"challenger": "win", "baseline": "loss", "draw": "draw"}[game["outcome"]]
+        relative = {"challenger": "win", "baseline": "loss", "draw": "draw"}[str(game["outcome"])]
         results.append(MatchResult("challenger", "baseline", relative))
     if not results:
         return 1500.0, 1500.0, 0.0, 0.0
@@ -238,7 +243,7 @@ def start_tournament(
     print(f"Baseline:   {baseline_engine}")
     wins_challenger = wins_baseline = draws = invalid_games = 0
     aggregate_actions = Counter()
-    games = []
+    games: list[dict[str, object]] = []
     experiment_metadata = build_experiment_metadata(challenger_version, baseline_version, rules_version, nodes, num_games)
     challenger = CppEngineBot(nodes=nodes, executable_path=challenger_engine)
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
@@ -248,7 +253,7 @@ def start_tournament(
             pair_id = make_pair_id(i)
             pair_member = i % 2
             if i % 2 == 0:
-                challenger_color = "white"
+                challenger_color: Color = "white"
                 game = run_headless_match(challenger, baseline, opening_index)
             else:
                 challenger_color = "black"
@@ -256,7 +261,7 @@ def start_tournament(
             winner_side = _winner_side(game["winner"])
             if game["valid"] and winner_side == challenger_color:
                 wins_challenger += 1
-                outcome = "challenger"
+                outcome: Outcome = "challenger"
             elif game["valid"] and winner_side is not None:
                 wins_baseline += 1
                 outcome = "baseline"
@@ -265,7 +270,8 @@ def start_tournament(
                 outcome = "draw"
             else:
                 invalid_games += 1
-                outcome = "invalid"
+                outcome = "draw"  # placeholder; overwritten in record below
+                outcome = cast(Literal["challenger", "baseline", "draw"], "invalid")
             aggregate_actions.update(game["action_counts"])
             games.append({
                 "game_index": i,
@@ -274,7 +280,7 @@ def start_tournament(
                 "challenger_color": challenger_color,
                 "baseline_color": "black" if challenger_color == "white" else "white",
                 "experiment": experiment_metadata,
-                "outcome": outcome,
+                "outcome": "invalid" if not game["valid"] else outcome,
                 **game,
             })
             sys.stdout.write(f"\rJogos completados: {i + 1}/{num_games} (seed {game['seed']}, resultado {outcome})")
@@ -286,7 +292,7 @@ def start_tournament(
         rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width = _strength_from_games(games)
         balance = summarize_experiment_balance(games)
         pentanomial = summarize_pentanomial(games)
-        summary = {
+        summary: dict[str, object] = {
             "games": num_games,
             "valid_games": num_games - invalid_games,
             "invalid_games": invalid_games,
