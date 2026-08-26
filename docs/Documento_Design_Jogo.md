@@ -1,5 +1,8 @@
 # RedWar — Documento de Design do Jogo
 
+> **Document status: TRANSITIONAL / LEGACY.**
+> This document is retained for compatibility and historical context. It is **not** the authoritative source when `GAME_DESIGN.md`, `GAME_RULES.md` or `HERO_SYSTEM.md` applies. New rule/design changes should update the appropriate canonical document instead. This file may be superseded or archived after link/reference reconciliation.
+
 ## 1. Identidade
 
 RedWar é um **RPG de tabuleiro tático** em grelha, com forte inspiração no xadrez e em motores de estratégia como Stockfish, mas com identidade própria baseada em heróis.
