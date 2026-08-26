@@ -28,12 +28,11 @@ def _run_bridge(requests: list[tuple[str, str, str, str]]) -> list[str]:
 def test_dragoon_jump_round_trips_through_both_backends():
     state = GameState()
     put(state, 4, 4, "Dragoon", "brancas")
-    put(state, 4, 5, "Bone", "brancas")
     put(state, 2, 4, "Bone", "pretas")
 
-    actions = [a for a in actions_for(state) if a["type"] == "spell" and a.get("spell_name") == "jump"]
-    assert actions, "Dragoon fixture must expose a jump spell"
-    action = actions[0]
+    action = {"type": "spell", "start": (4, 4), "end": (2, 4), "spell_name": "jump"}
+    legal_lands = {tuple(spell) for spell in state.board[4][4].get_valid_spells(4, 4, state.board, state.tile_effects)}
+    assert (2, 4) in legal_lands, "Dragoon fixture must expose the selected jump landing"
 
     after = state.fast_clone()
     after.execute_action(action)
@@ -48,15 +47,15 @@ def test_dragoon_jump_round_trips_through_both_backends():
 def test_bonelord_on_kill_passive_round_trips_through_both_backends():
     state = GameState()
     put(state, 4, 4, "BoneLord", "brancas")
-    put(state, 4, 5, "Bone", "pretas")
+    put(state, 3, 3, "Bone", "pretas")
 
-    actions = [a for a in actions_for(state) if a["type"] == "attack"]
-    assert actions, "BoneLord fixture must expose an attack"
+    actions = [a for a in actions_for(state) if a["type"] == "attack" and a["end"] == (3, 3)]
+    assert actions, "BoneLord fixture must expose the configured V-pattern attack"
     action = actions[0]
 
     after = state.fast_clone()
     after.execute_action(action)
-    spawned = after.board[4][5]
+    spawned = after.board[3][3]
     assert spawned is not None and spawned.name == "Bone"
     requests = [("bonelord-on-kill", state.to_rwen(), move_text(action), after.to_rwen())]
     lines = _run_bridge(requests)
@@ -72,13 +71,14 @@ def test_berserker_aoe_passive_round_trips_through_both_backends():
     put(state, 4, 5, "Bone", "pretas")
     put(state, 3, 5, "Bone", "pretas")
 
-    actions = [a for a in actions_for(state) if a["type"] == "attack"]
-    assert actions, "Berserker fixture must expose an attack"
+    actions = [a for a in actions_for(state) if a["type"] == "attack" and a["end"] == (4, 5)]
+    assert actions, "Berserker fixture must expose the selected adjacent attack"
     action = actions[0]
 
     after = state.fast_clone()
     after.execute_action(action)
     assert after.board[3][5] is None, "Berserker AOE must hit the adjacent enemy"
+    assert after.board[4][5] is not None and after.board[4][5].name == "Berserker"
     requests = [("berserker-aoe", state.to_rwen(), move_text(action), after.to_rwen())]
     lines = _run_bridge(requests)
 
