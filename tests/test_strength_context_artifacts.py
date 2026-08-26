@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from tools.analytics.strength_context_artifacts import enrich_arena_summary
 
@@ -44,7 +45,10 @@ def test_enrich_arena_summary_attaches_context_without_changing_strength_fields(
     assert payload["strength_population"] == population()
     assert payload["strength_context_results"].endswith(".context.jsonl")
     assert results.read_text(encoding="utf-8") == raw
-    context_records = [json.loads(line) for line in Path(payload["strength_context_results"]).read_text(encoding="utf-8").splitlines()]
+    context_records = [
+        json.loads(line)
+        for line in Path(payload["strength_context_results"]).read_text(encoding="utf-8").splitlines()
+    ]
     assert all(item["experiment"]["strength_population"] == population() for item in context_records)
     assert payload["strength_context_diagnostics"]["valid_games"] == 4
 
