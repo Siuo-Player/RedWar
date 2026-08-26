@@ -122,3 +122,29 @@ def test_strength_dataset_rejects_per_game_population_mismatch():
     records[2]["experiment"]["strength_population"]["selection_policy"] = "adaptive"
     with pytest.raises(ValueError, match="strength population context mismatch"):
         validate_experiment_records(records, strength_metadata(), require_strength_population=True)
+
+
+def test_metadata_numeric_fields_are_not_coerced_from_strings():
+    metadata = dict(METADATA)
+    metadata["node_budget"] = "10000"
+    with pytest.raises(ValueError, match="metadata.node_budget must be an integer"):
+        validate_experiment_records([game(i, "draw") for i in range(4)], metadata)
+
+
+def test_game_index_and_seed_are_not_coerced_from_strings():
+    records = [game(i, "draw") for i in range(4)]
+    records[0]["game_index"] = "0"
+    with pytest.raises(ValueError, match="game 0.game_index must be an integer"):
+        validate_experiment_records(records, METADATA)
+
+    records = [game(i, "draw") for i in range(4)]
+    records[0]["seed"] = "17000"
+    with pytest.raises(ValueError, match="game 0.seed must be an integer"):
+        validate_experiment_records(records, METADATA)
+
+
+def test_metadata_boolean_numeric_fields_are_rejected():
+    metadata = dict(METADATA)
+    metadata["games"] = True
+    with pytest.raises(ValueError, match="metadata.games must be an integer"):
+        validate_experiment_records([game(i, "draw") for i in range(4)], metadata)
