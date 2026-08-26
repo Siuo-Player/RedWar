@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from tests.test_cross_backend_make_unmake import actions_for
-from tests.test_cross_backend_movegen import action_text, make_cases, python_actions
+from tests.test_cross_backend_movegen import action_text, make_cases
 
 BOARD_LAST = 7
 
@@ -33,34 +33,42 @@ def swap_colors_and_mirror(state):
     return swapped
 
 
-def transform_action(action: dict) -> dict:
-    transformed = dict(action)
-    transformed["start"] = (BOARD_LAST - action["start"][0], action["start"][1])
-    transformed["end"] = (BOARD_LAST - action["end"][0], action["end"][1])
-    if "area" in action and action["area"] is not None:
+def normalize_action(action: dict, state) -> dict:
+    normalized = dict(action)
+    if normalized.get("type") == "spell" and "spell_name" not in normalized:
+        piece = state.board[normalized["start"][0]][normalized["start"][1]]
+        if piece is not None and piece.name == "Dragoon":
+            normalized["spell_name"] = "jump"
+    return normalized
+
+
+def transform_action(action: dict, state) -> dict:
+    normalized = normalize_action(action, state)
+    transformed = dict(normalized)
+    transformed["start"] = (BOARD_LAST - normalized["start"][0], normalized["start"][1])
+    transformed["end"] = (BOARD_LAST - normalized["end"][0], normalized["end"][1])
+    if "area" in normalized and normalized["area"] is not None:
         transformed["area"] = [
             (BOARD_LAST - pos[0], pos[1])
-            for pos in action["area"]
+            for pos in normalized["area"]
         ]
     return transformed
 
 
+def canonical_actions(state):
+    return {action_text(normalize_action(action, state)) for action in actions_for(state)}
+
+
 def transformed_action_set(state):
-    transformed_actions = []
-    for action in actions_for(state):
-        normalized = dict(action)
-        if normalized.get("type") == "spell" and "spell_name" not in normalized:
-            piece = state.board[normalized["start"][0]][normalized["start"][1]]
-            if piece is not None and piece.name == "Dragoon":
-                normalized["spell_name"] = "jump"
-        transformed_actions.append(action_text(transform_action(normalized)))
-    return set(transformed_actions)
+    return {action_text(transform_action(action, state)) for action in actions_for(state)}
 
 
 def test_legal_action_set_is_color_symmetric():
     for label, state in make_cases():
         swapped = swap_colors_and_mirror(state)
-        assert python_actions(state) == transformed_action_set(swapped), (
+        expected = transformed_action_set(state)
+        actual = canonical_actions(swapped)
+        assert expected == actual, (
             f"{label}: legal action set changed under color swap + board reflection"
         )
 
@@ -71,7 +79,7 @@ def test_action_execution_is_color_equivariant():
         swapped = swap_colors_and_mirror(state)
 
         for action in actions_for(original)[:8]:
-            transformed = transform_action(action)
+            transformed = transform_action(action, original)
             left = original.fast_clone()
             right = swapped.fast_clone()
             left.execute_action(action)
