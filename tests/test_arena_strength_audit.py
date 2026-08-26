@@ -48,7 +48,7 @@ def test_build_independent_pair_units_keeps_pair_games_together():
     records = [
         game(0, "challenger"),
         game(1, "baseline"),
-        game(2, "draw"),
+        game(2, "challenger"),
         game(3, "baseline"),
     ]
 
@@ -57,7 +57,7 @@ def test_build_independent_pair_units_keeps_pair_games_together():
     assert incomplete == []
     assert [unit["unit_id"] for unit in units] == ["pair-000000", "pair-000001"]
     assert units[0]["outcomes"] == ["win", "loss"]
-    assert units[1]["outcomes"] == ["draw", "loss"]
+    assert units[1]["outcomes"] == ["win", "loss"]
 
 
 def test_incomplete_valid_pair_is_reported():
@@ -78,7 +78,7 @@ def test_load_arena_records_validates_the_experiment(tmp_path):
     path = tmp_path / "arena.jsonl"
     write_jsonl(
         path,
-        [game(0, "challenger"), game(1, "baseline"), game(2, "draw"), game(3, "challenger")],
+        [game(0, "challenger"), game(1, "baseline"), game(2, "challenger"), game(3, "baseline")],
     )
 
     records, metadata = load_arena_records(path)
@@ -91,7 +91,7 @@ def test_audit_arena_results_is_descriptive_only(tmp_path):
     path = tmp_path / "arena.jsonl"
     write_jsonl(
         path,
-        [game(0, "challenger"), game(1, "baseline"), game(2, "draw"), game(3, "challenger")],
+        [game(0, "challenger"), game(1, "baseline"), game(2, "challenger"), game(3, "baseline")],
     )
 
     result = audit_arena_results(path, bootstrap_samples=100, seed=7)
