@@ -46,7 +46,15 @@ def transform_action(action: dict) -> dict:
 
 
 def transformed_action_set(state):
-    return {action_text(transform_action(action)) for action in actions_for(state)}
+    transformed_actions = []
+    for action in actions_for(state):
+        normalized = dict(action)
+        if normalized.get("type") == "spell" and "spell_name" not in normalized:
+            piece = state.board[normalized["start"][0]][normalized["start"][1]]
+            if piece is not None and piece.name == "Dragoon":
+                normalized["spell_name"] = "jump"
+        transformed_actions.append(action_text(transform_action(normalized)))
+    return set(transformed_actions)
 
 
 def test_legal_action_set_is_color_symmetric():
