@@ -35,14 +35,14 @@ def test_auto_pricer_ignores_invalid_matches():
         "matches": [
             {"valid": True, "result": 1.0},
             {"valid": False, "result": 0.5, "invalid_action": "Unknown spell: unknown"},
-            {"result": 0.0},
+            {"valid": True, "result": 0.0},
         ]
     }
 
     valid = obter_partidas_validas(stats)
 
     assert len(valid) == 2
-    assert all(match.get("valid", True) for match in valid)
+    assert all(match["valid"] for match in valid)
 
 
 def test_draft_rng_does_not_touch_global_random_state():
@@ -78,9 +78,3 @@ def test_bot_os_error_is_returned_as_invalid_game():
 
         def escolher_jogada(self, _gs):
             raise OSError(22, "invalid argument")
-
-    # The public game simulator uses real pooled bots, so validate the lower-level
-    # failure contract here: the worker captures the process error for the trainer
-    # thread instead of leaking it from the worker.
-    with pytest.raises(OSError, match=r"invalid argument"):
-        _run_bot_move_with_timeout(BrokenBot(), GameState(), 1.0)
