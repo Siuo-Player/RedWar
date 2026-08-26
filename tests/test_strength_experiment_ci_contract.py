@@ -7,8 +7,8 @@ WORKFLOW = Path(__file__).parents[1] / ".github" / "workflows" / "ai_strength_ex
 def test_strength_workflow_validates_arena_dataset():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "Validate experiment dataset" in text
-    assert "tools/analytics/arena_experiment_validation.py" in text
-    assert "validate_experiment_records" in text
+    assert "from tools.analytics.arena_experiment_validation import validate_experiment_records" in text
+    assert "validate_experiment_records(records, metadata)" in text
     assert "invalid_games" in text
     assert "incomplete_valid_pair_ids" in text
 
