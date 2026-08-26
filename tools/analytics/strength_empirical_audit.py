@@ -8,15 +8,30 @@ estimator or promotion policy.
 """
 from __future__ import annotations
 
+from math import log
 from random import Random
 from typing import Iterable, Mapping, Sequence
 
 from tools.analytics.sprt_calibration import calibrate_sprt_baseline
 
+ELO_SCALE = 400.0
+
 
 def _unit_delta(outcomes: Iterable[str]) -> float:
     summary = calibrate_sprt_baseline(outcomes)
     return float(summary["implied_elo_delta"])
+
+
+def _stabilized_implied_elo(outcomes: Iterable[str]) -> float:
+    """Return a finite descriptive Elo-equivalent with 0.5 boundary smoothing."""
+    records = list(outcomes)
+    wins = sum(outcome == "win" for outcome in records)
+    losses = sum(outcome == "loss" for outcome in records)
+    decisive = wins + losses
+    if decisive == 0:
+        return 0.0
+    p = (wins + 0.5) / (decisive + 1.0)
+    return ELO_SCALE / log(10.0) * log(p / (1.0 - p))
 
 
 def _validate_units(experiment_units: Sequence[Mapping[str, object]], bootstrap_samples: int) -> None:
@@ -37,6 +52,34 @@ def _percentile_bounds(values: Sequence[float]) -> tuple[float, float]:
     low = ordered[int(0.025 * (len(ordered) - 1))]
     high = ordered[int(0.975 * (len(ordered) - 1))]
     return low, high
+
+
+def _audit_result(
+    *,
+    units: int,
+    bootstrap_samples: int,
+    seed: int,
+    estimate: float,
+    low: float,
+    high: float,
+    proxy_half_width: float | None,
+    audit_status: str,
+) -> dict[str, float | int | str | None]:
+    half_width = (high - low) / 2.0
+    return {
+        "units": units,
+        "bootstrap_samples": bootstrap_samples,
+        "seed": seed,
+        "mean_implied_elo_delta": estimate,
+        "empirical_p02_5": low,
+        "empirical_p97_5": high,
+        "empirical_half_width": half_width,
+        "audit_status": audit_status,
+        "proxy_half_width": proxy_half_width,
+        "proxy_to_empirical_half_width": (
+            proxy_half_width / half_width if proxy_half_width is not None and half_width > 0.0 else None
+        ),
+    }
 
 
 def empirical_uncertainty_audit(
@@ -71,22 +114,16 @@ def empirical_uncertainty_audit(
 
     low, high = _percentile_bounds(sample_means)
     estimate = sum(deltas) / len(deltas)
-    half_width = (high - low) / 2.0
-
-    return {
-        "units": len(deltas),
-        "bootstrap_samples": bootstrap_samples,
-        "seed": seed,
-        "mean_implied_elo_delta": estimate,
-        "empirical_p02_5": low,
-        "empirical_p97_5": high,
-        "empirical_half_width": half_width,
-        "audit_status": "descriptive_resampling_only",
-        "proxy_half_width": proxy_half_width,
-        "proxy_to_empirical_half_width": (
-            proxy_half_width / half_width if proxy_half_width is not None and half_width > 0.0 else None
-        ),
-    }
+    return _audit_result(
+        units=len(deltas),
+        bootstrap_samples=bootstrap_samples,
+        seed=seed,
+        estimate=estimate,
+        low=low,
+        high=high,
+        proxy_half_width=proxy_half_width,
+        audit_status="descriptive_resampling_only",
+    )
 
 
 def empirical_paired_uncertainty_audit(
@@ -99,10 +136,14 @@ def empirical_paired_uncertainty_audit(
     """Bootstrap paired A/B units while computing the effect on each full sample.
 
     The pair is the resampling unit, but all games in a sampled pair remain
-    together. Each bootstrap replicate concatenates the sampled pair outcomes and
-    computes one aggregate Elo-equivalent effect. This avoids the degenerate
-    behaviour of estimating an Elo value separately from a two-game pair such as
-    ``win/loss`` (which is always exactly zero).
+    together. Each bootstrap replicate concatenates sampled pair outcomes and
+    computes one aggregate Elo-equivalent effect. This avoids assigning a separate
+    unstable Elo estimate to a two-game pair.
+
+    Boundary samples with all decisive wins or all decisive losses are possible
+    with small datasets. The paired descriptive audit therefore uses a 0.5-count
+    boundary smoothing only inside bootstrap replicates; the production estimator
+    and the generic audit remain unchanged.
 
     This remains descriptive resampling, not a calibrated confidence interval and
     not a promotion test.
@@ -112,9 +153,7 @@ def empirical_paired_uncertainty_audit(
     observed_outcomes: list[str] = []
     for unit in experiment_units:
         observed_outcomes.extend(unit["outcomes"])
-    observed_delta = _unit_delta(observed_outcomes)
-    if observed_delta != observed_delta or observed_delta in (float("inf"), float("-inf")):
-        raise ValueError("paired Strength dataset has an undefined aggregate implied Elo delta")
+    observed_delta = _stabilized_implied_elo(observed_outcomes)
 
     rng = Random(seed)
     sample_deltas: list[float] = []
@@ -123,24 +162,18 @@ def empirical_paired_uncertainty_audit(
         sampled_outcomes: list[str] = []
         for _ in range(unit_count):
             sampled_outcomes.extend(experiment_units[rng.randrange(unit_count)]["outcomes"])
-        delta = _unit_delta(sampled_outcomes)
-        if delta != delta or delta in (float("inf"), float("-inf")):
-            raise ValueError("paired bootstrap produced an undefined implied Elo delta")
-        sample_deltas.append(delta)
+        sample_deltas.append(_stabilized_implied_elo(sampled_outcomes))
 
     low, high = _percentile_bounds(sample_deltas)
-    half_width = (high - low) / 2.0
-    return {
-        "units": unit_count,
-        "bootstrap_samples": bootstrap_samples,
-        "seed": seed,
-        "aggregate_implied_elo_delta": observed_delta,
-        "empirical_p02_5": low,
-        "empirical_p97_5": high,
-        "empirical_half_width": half_width,
-        "audit_status": "descriptive_paired_resampling_only",
-        "proxy_half_width": proxy_half_width,
-        "proxy_to_empirical_half_width": (
-            proxy_half_width / half_width if proxy_half_width is not None and half_width > 0.0 else None
-        ),
-    }
+    result = _audit_result(
+        units=unit_count,
+        bootstrap_samples=bootstrap_samples,
+        seed=seed,
+        estimate=observed_delta,
+        low=low,
+        high=high,
+        proxy_half_width=proxy_half_width,
+        audit_status="descriptive_paired_resampling_only_with_boundary_smoothing",
+    )
+    result["boundary_smoothing"] = "0.5_decisive_count_each_side_for_paired_bootstrap_only"
+    return result
