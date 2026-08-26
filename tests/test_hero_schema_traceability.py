@@ -7,6 +7,12 @@ ROOT = Path(__file__).parents[1]
 CONFIG = ROOT / "engine" / "heroes_config.json"
 GAME_STATE = ROOT / "engine" / "game_state.py"
 
+# Some declared spells are semantic commands implemented through a generic
+# backend action rather than a dedicated spell dispatcher branch.
+SPELL_BACKEND_ALIASES = {
+    "spawn_ghoul": "spawn",
+}
+
 
 def _string_literals_in_source(path: Path) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
@@ -25,10 +31,34 @@ def test_every_declared_spell_has_a_backend_implementation_token():
         for spell in hero.get("spells", [])
     }
     source_literals = _string_literals_in_source(GAME_STATE)
-    missing = sorted(declared - source_literals)
+    missing = {
+        spell
+        for spell in declared
+        if SPELL_BACKEND_ALIASES.get(spell, spell) not in source_literals
+    }
     assert not missing, (
-        "heroes_config.json declares spells that have no corresponding backend "
-        f"implementation token in engine/game_state.py: {missing}"
+        "heroes_config.json declares spells with no mapped backend implementation "
+        f"token in engine/game_state.py: {sorted(missing)}"
+    )
+
+
+def test_backend_spell_aliases_are_explicit():
+    heroes = json.loads(CONFIG.read_text(encoding="utf-8"))
+    declared = {
+        spell
+        for hero in heroes.values()
+        for spell in hero.get("spells", [])
+    }
+    assert set(SPELL_BACKEND_ALIASES) <= declared
+    source_literals = _string_literals_in_source(GAME_STATE)
+    missing_alias_targets = {
+        spell: target
+        for spell, target in SPELL_BACKEND_ALIASES.items()
+        if target not in source_literals
+    }
+    assert missing_alias_targets == {}, (
+        "Traceability aliases point to backend tokens that do not exist: "
+        f"{missing_alias_targets}"
     )
 
 
