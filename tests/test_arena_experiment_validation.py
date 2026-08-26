@@ -12,6 +12,13 @@ METADATA = {
     "opening_count": 2,
 }
 
+STRENGTH_POPULATION = {
+    "population_id": "ares-dev-population-v1",
+    "selection_policy": "paired-fixed-openings",
+    "controller_population": "Ares-v1-vs-baseline-v1",
+    "skill_context": "fixed-node-budget-10000",
+}
+
 
 def game(index, outcome, valid=True, opening=None):
     opening = index // 2 if opening is None else opening
@@ -28,6 +35,24 @@ def game(index, outcome, valid=True, opening=None):
         "termination_reason": "game_over" if valid else "max_plies",
         "experiment": dict(METADATA),
     }
+
+
+def strength_metadata():
+    metadata = dict(METADATA)
+    metadata["strength_population"] = dict(STRENGTH_POPULATION)
+    return metadata
+
+
+def strength_records():
+    records = [
+        game(0, "challenger"),
+        game(1, "baseline"),
+        game(2, "draw"),
+        game(3, "challenger"),
+    ]
+    for record in records:
+        record["experiment"]["strength_population"] = dict(STRENGTH_POPULATION)
+    return records
 
 
 def test_valid_experiment_records_are_accepted():
@@ -75,3 +100,25 @@ def test_metadata_mismatch_is_rejected():
     records[2]["experiment"]["rules_version"] = "other"
     with pytest.raises(ValueError, match="metadata mismatch"):
         validate_experiment_records(records, METADATA)
+
+
+def test_strength_dataset_requires_population_context():
+    records = strength_records()
+    metadata = strength_metadata()
+
+    audit = validate_experiment_records(records, metadata, require_strength_population=True)
+
+    assert audit["complete_valid_pairs"] == 2
+
+
+def test_strength_dataset_rejects_missing_population_context():
+    records = [game(i, "draw") for i in range(4)]
+    with pytest.raises(ValueError, match="missing strength_population context"):
+        validate_experiment_records(records, METADATA, require_strength_population=True)
+
+
+def test_strength_dataset_rejects_per_game_population_mismatch():
+    records = strength_records()
+    records[2]["experiment"]["strength_population"]["selection_policy"] = "adaptive"
+    with pytest.raises(ValueError, match="strength population context mismatch"):
+        validate_experiment_records(records, strength_metadata(), require_strength_population=True)

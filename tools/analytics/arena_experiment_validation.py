@@ -10,6 +10,7 @@ from collections import Counter
 from typing import Iterable
 
 from tools.analytics.arena_pairs import GameOutcome, incomplete_pairs, validate_pair_structure
+from tools.analytics.strength_population import validate_population_context
 
 
 REQUIRED_GAME_FIELDS = {
@@ -34,8 +35,18 @@ def _require(condition: bool, message: str) -> None:
         raise ValueError(message)
 
 
-def validate_experiment_records(games: Iterable[dict], metadata: dict) -> dict:
-    """Validate raw Arena games against one experiment metadata contract."""
+def validate_experiment_records(
+    games: Iterable[dict],
+    metadata: dict,
+    *,
+    require_strength_population: bool = False,
+) -> dict:
+    """Validate raw Arena games against one experiment metadata contract.
+
+    ``require_strength_population`` opts a caller into the stronger scientific
+    contract used for Strength evidence. Generic Arena validation remains
+    backward compatible and does not require Strength-specific metadata.
+    """
     records = list(games)
     _require(records, "experiment must contain at least one game record")
 
@@ -49,6 +60,14 @@ def validate_experiment_records(games: Iterable[dict], metadata: dict) -> dict:
     }
     missing_metadata = required_metadata - metadata.keys()
     _require(not missing_metadata, f"experiment metadata missing fields: {sorted(missing_metadata)}")
+
+    if require_strength_population:
+        population_context = metadata.get("strength_population")
+        _require(
+            isinstance(population_context, dict),
+            "Strength dataset missing strength_population context",
+        )
+        validate_population_context(population_context)
 
     expected_games = int(metadata["games"])
     _require(
@@ -93,6 +112,13 @@ def validate_experiment_records(games: Iterable[dict], metadata: dict) -> dict:
         _require(isinstance(experiment, dict), f"game {index}: missing experiment metadata")
         for key in required_metadata:
             _require(experiment.get(key) == metadata[key], f"game {index}: metadata mismatch for {key}")
+
+        if require_strength_population:
+            game_population = experiment.get("strength_population")
+            _require(
+                game_population == metadata["strength_population"],
+                f"game {index}: strength population context mismatch",
+            )
 
         if game["valid"]:
             _require(
