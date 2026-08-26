@@ -52,6 +52,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #65** integrou a execução manual reproduzível da Arena mesmo sem alterações de AI/NNUE.
 - **PR #67** integrou a primeira propriedade metamórfica de simetria entre cores/lado a jogar.
 - **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
+- **PR #119** integrou diagnóstico da primeira divergência e reprodução por prefixo mínimo sem apagar ações arbitrariamente.
+- **PR #121** integrou o perft/node-count differential Python/C++ com bridge nativa e execução automática no CI.
 - A auditoria de observabilidade (#83) confirmou que, no modo local atual, a informação é secreta apenas durante `DRAFT`; em `BATALHA` o estado completo é público e legal para Ares.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
@@ -76,6 +78,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Arena headless com guardrail de 10.000 plies.
 - [x] Execução manual da Arena separada da promoção automática.
 - [x] Observability Contract do modo local: segredo no `DRAFT`, informação pública em `BATALHA`.
+- [x] Diagnóstico da primeira divergência e reprodução por prefixo mínimo.
+- [x] Differential perft/node-count Python/C++.
 
 ## Ares — sequência atual
 
@@ -106,24 +110,26 @@ Novas posições a validar e adicionar:
 - [ ] lifespan/cooldown;
 - [ ] capturas de alto valor.
 
-### 2. Property / differential sequences — **aprofundamento em curso**
+### 2. Property / differential sequences — **base concluída; expansão semântica continua**
 
-A suite atual combina sequências determinísticas e pseudo-aleatórias com seeds fixas. Todas as transições importantes devem comparar Python/C++ após cada ply e verificar `make/unmake` contra a raiz.
+A suite combina sequências determinísticas e pseudo-aleatórias com seeds fixas. Todas as transições importantes devem comparar Python/C++ após cada ply e verificar `make/unmake` contra a raiz.
 
-A expansão atual acrescenta cobertura dirigida de estados persistentes e categorias de ação, em `tests/test_cross_backend_persistent_state.py`, para evitar depender apenas da probabilidade de uma sequência aleatória atingir casos raros.
+A cobertura dirigida de estados persistentes e categorias de ação evita depender apenas da probabilidade de uma sequência aleatória atingir casos raros.
 
-Próximos níveis:
+Concluído no bloco de infraestrutura/correctness:
 
 - [x] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
 - [x] propriedades metamórficas de simetria de cores/lado a jogar;
 - [x] cobertura dirigida de categorias de ação e estado persistente;
-- [ ] sequências longas com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
-- [ ] shrink/reprodução automática da primeira divergência;
-- [ ] integração com perft/node-count differential.
+- [x] sequências longas com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
+- [x] shrink/reprodução automática da primeira divergência;
+- [x] integração com perft/node-count differential.
 
-O objetivo é localizar a **primeira transição divergente**, e não apenas detetar que a posição final ficou diferente.
+Expansão adicional de mecânicas raras pode continuar como trabalho dirigido; ela não reabre os blocos de infrastructure/correctness já concluídos.
 
-### 3. Strength Evaluation Framework — **novo bloco prioritário antes de otimizações importantes da Ares**
+O objetivo continua a ser localizar a **primeira transição divergente**, e não apenas detetar que a posição final ficou diferente.
+
+### 3. Strength Evaluation Framework — **próximo bloco prioritário antes de otimizações importantes da Ares**
 
 O objetivo é definir operacionalmente o que significa **"Ares ficou mais forte"** sem depender de um pequeno conjunto de puzzles escolhidos para desenvolvimento.
 
