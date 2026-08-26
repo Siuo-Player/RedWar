@@ -78,7 +78,7 @@ def test_load_arena_records_validates_the_experiment(tmp_path):
     path = tmp_path / "arena.jsonl"
     write_jsonl(
         path,
-        [game(0, "challenger"), game(1, "baseline"), game(2, "draw"), game(3, "baseline")],
+        [game(0, "challenger"), game(1, "baseline"), game(2, "draw"), game(3, "challenger")],
     )
 
     records, metadata = load_arena_records(path)
@@ -91,7 +91,7 @@ def test_audit_arena_results_is_descriptive_only(tmp_path):
     path = tmp_path / "arena.jsonl"
     write_jsonl(
         path,
-        [game(0, "challenger"), game(1, "baseline"), game(2, "draw"), game(3, "baseline")],
+        [game(0, "challenger"), game(1, "baseline"), game(2, "draw"), game(3, "challenger")],
     )
 
     result = audit_arena_results(path, bootstrap_samples=100, seed=7)
