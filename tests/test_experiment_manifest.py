@@ -69,7 +69,7 @@ def test_manifest_accepts_strength_population_context_object():
 def test_manifest_rejects_invalid_strength_population_context():
     bad = strength_population()
     bad["selection_policy"] = None
-    with pytest.raises(ValueError, match="must be a string"):
+    with pytest.raises(ValueError, match="explicit string fields"):
         build_experiment_manifest(
             experiment={"games": 20},
             provenance=provenance(),
