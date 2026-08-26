@@ -52,11 +52,12 @@ def build_experiment_metadata(
         "opening_policy": "same_opening_per_pair",
         "pairing_policy": "adjacent_games_same_opening_with_inverted_challenger_colour",
         "termination_policy": f"game_over_or_{ARENA_MAX_PLIES}_plies",
+        "validity_policy": "only_game_over_with_declared_winner_counts_as_valid_strength_result",
     }
 
 
 def summarize_experiment_balance(games: list[dict]) -> dict:
-    """Return auditable colour/opening balance diagnostics from raw game records."""
+    """Return auditable colour/opening balance diagnostics from valid raw game records."""
     challenger_colour = Counter()
     challenger_outcomes_by_colour = {
         "white": Counter(),
@@ -66,6 +67,8 @@ def summarize_experiment_balance(games: list[dict]) -> dict:
     seeds_by_opening = {}
 
     for game in games:
+        if not game.get("valid", True):
+            continue
         colour = game["challenger_color"]
         challenger_colour[colour] += 1
         challenger_outcomes_by_colour[colour][game["outcome"]] += 1
@@ -76,6 +79,7 @@ def summarize_experiment_balance(games: list[dict]) -> dict:
     white = challenger_outcomes_by_colour["white"]
     black = challenger_outcomes_by_colour["black"]
     return {
+        "valid_games": sum(challenger_colour.values()),
         "challenger_games_by_colour": dict(challenger_colour),
         "challenger_outcomes_by_colour": {
             "white": dict(white),
@@ -89,7 +93,8 @@ def summarize_experiment_balance(games: list[dict]) -> dict:
 
 
 def summarize_pentanomial(games: list[dict]) -> dict:
-    """Aggregate complete adjacent A/B game pairs without changing the promotion gate."""
+    """Aggregate complete adjacent A/B game pairs using valid game records only."""
+    valid_games = [game for game in games if game.get("valid", True)]
     outcomes = [
         GameOutcome(
             game_index=int(game["game_index"]),
@@ -98,8 +103,15 @@ def summarize_pentanomial(games: list[dict]) -> dict:
             challenger_color=str(game["challenger_color"]),
             outcome=str(game["outcome"]),
         )
-        for game in games
+        for game in valid_games
     ]
+    if not outcomes:
+        return {
+            "complete_pairs": 0,
+            "incomplete_pair_ids": [],
+            "bins": {},
+            "paired_games_used": 0,
+        }
     validate_pair_structure(outcomes)
     counts = aggregate_pentanomial(outcomes)
     incomplete = sorted(incomplete_pairs(outcomes))
@@ -138,6 +150,7 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_
     actions = []
     action_types = Counter()
     turnos = 0
+    termination_reason = None
     while not gs.game_over and turnos < ARENA_MAX_PLIES:
         turnos += 1
         white_to_move = gs.white_to_move
@@ -154,9 +167,23 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_
             gs.execute_action(best_move)
         else:
             gs.check_game_over()
-            if not gs.game_over:
+            if gs.game_over:
+                termination_reason = "game_over"
+            else:
                 gs.game_over, gs.winner = True, "Bloqueio"
+                termination_reason = "blocked_without_game_over"
             break
+    if termination_reason is None:
+        if gs.game_over:
+            termination_reason = "game_over"
+        elif turnos >= ARENA_MAX_PLIES:
+            termination_reason = "max_plies_reached"
+        else:
+            termination_reason = "unknown"
+
+    winner_side = _winner_side(gs.winner)
+    valid = termination_reason == "game_over" and winner_side is not None
+    failure_reason = None if valid else termination_reason
     return {
         "winner": gs.winner,
         "seed": seed,
@@ -166,6 +193,9 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_
         "plies": turnos,
         "actions": actions,
         "action_counts": dict(action_types),
+        "termination_reason": termination_reason,
+        "valid": valid,
+        "failure_reason": failure_reason,
     }
 
 
@@ -181,8 +211,12 @@ def _winner_side(winner: object) -> str | None:
 def _strength_from_games(games: list[dict]) -> tuple[float, float, float, float]:
     results = []
     for game in games:
+        if not game.get("valid", True):
+            continue
         relative = {"challenger": "win", "baseline": "loss", "draw": "draw"}[game["outcome"]]
         results.append(MatchResult("challenger", "baseline", relative))
+    if not results:
+        return 1500.0, 1500.0, 0.0, 0.0
     ratings = estimate({"challenger": Rating(), "baseline": Rating()}, results)
     relative = compare(ratings["challenger"], ratings["baseline"])
     return ratings["challenger"].value, ratings["baseline"].value, relative.delta, 1.96 * relative.delta_uncertainty
@@ -202,7 +236,7 @@ def start_tournament(
     print(f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS (margem exigida: {win_threshold}, nodes: {nodes})")
     print(f"Challenger: {challenger_engine}")
     print(f"Baseline:   {baseline_engine}")
-    wins_challenger = wins_baseline = draws = 0
+    wins_challenger = wins_baseline = draws = invalid_games = 0
     aggregate_actions = Counter()
     games = []
     experiment_metadata = build_experiment_metadata(challenger_version, baseline_version, rules_version, nodes, num_games)
@@ -220,15 +254,18 @@ def start_tournament(
                 challenger_color = "black"
                 game = run_headless_match(baseline, challenger, opening_index)
             winner_side = _winner_side(game["winner"])
-            if winner_side == challenger_color:
+            if game["valid"] and winner_side == challenger_color:
                 wins_challenger += 1
                 outcome = "challenger"
-            elif winner_side is not None:
+            elif game["valid"] and winner_side is not None:
                 wins_baseline += 1
                 outcome = "baseline"
-            else:
+            elif game["valid"]:
                 draws += 1
                 outcome = "draw"
+            else:
+                invalid_games += 1
+                outcome = "invalid"
             aggregate_actions.update(game["action_counts"])
             games.append({
                 "game_index": i,
@@ -244,13 +281,16 @@ def start_tournament(
             sys.stdout.flush()
 
         diferenca = wins_challenger - wins_baseline
-        win_rate = wins_challenger / max(1, num_games) * 100.0
-        promoted = verificar_promocao(wins_challenger, wins_baseline, win_threshold)
+        win_rate = wins_challenger / max(1, wins_challenger + wins_baseline + draws) * 100.0
+        promoted = invalid_games == 0 and verificar_promocao(wins_challenger, wins_baseline, win_threshold)
         rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width = _strength_from_games(games)
         balance = summarize_experiment_balance(games)
         pentanomial = summarize_pentanomial(games)
         summary = {
             "games": num_games,
+            "valid_games": num_games - invalid_games,
+            "invalid_games": invalid_games,
+            "invalid_game_reasons": dict(Counter(game["failure_reason"] for game in games if not game["valid"])),
             "nodes": nodes,
             "win_threshold": win_threshold,
             "challenger_engine": str(Path(challenger_engine).resolve()),
@@ -271,11 +311,13 @@ def start_tournament(
             "pentanomial": pentanomial,
             "action_counts": dict(aggregate_actions),
         }
-        print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws}")
+        print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws} | Inválidos {invalid_games}")
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
         print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (IC95 ±{rating_ci95_half_width:.1f})")
         print(f"Pentanomial: {pentanomial['bins']} | Pares completos: {pentanomial['complete_pairs']}")
+        if invalid_games:
+            print(f"⚠️ {invalid_games} jogos inválidos; a experiência não pode promover uma revisão com observações inválidas.")
         if pentanomial["incomplete_pair_ids"]:
             print(f"Pares incompletos: {pentanomial['incomplete_pair_ids']}")
         if promoted:

@@ -14,6 +14,7 @@ def test_experiment_metadata_records_revisions_and_controls():
     assert metadata["opening_count"] == 16
     assert metadata["colour_policy"] == "alternating_per_game"
     assert metadata["termination_policy"] == "game_over_or_10000_plies"
+    assert metadata["validity_policy"] == "only_game_over_with_declared_winner_counts_as_valid_strength_result"
 
 
 def test_experiment_metadata_rejects_missing_versions():
