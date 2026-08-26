@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from engine.game_state import GameState
+from tools.analytics.differential_shrink import first_divergence
 from tools.analytics.opening_book import carregar_abertura_do_book
 from tests.test_cross_backend_make_unmake import actions_for, move_text
 
@@ -77,18 +78,25 @@ def test_python_cpp_seeded_random_sequences():
     lines = [line for line in result.stdout.splitlines() if line]
     assert len(lines) == len(transitions) * 2
 
-    for index, (seed, opening_seed, ply, rwen, move, expected_after) in enumerate(transitions):
-        actual_after = lines[index * 2]
-        restored = lines[index * 2 + 1]
-        label = f"seed={seed} opening={opening_seed} ply={ply} move={move}"
+    actual_values = []
+    restored_values = []
+    for index, (_seed, _opening, _ply, rwen, _move, _expected) in enumerate(transitions):
+        actual_line = lines[index * 2]
+        restored_line = lines[index * 2 + 1]
+        assert actual_line.startswith("AFTER ")
+        assert restored_line.startswith("RESTORED ")
+        actual_values.append(actual_line.removeprefix("AFTER "))
+        restored_values.append(restored_line.removeprefix("RESTORED "))
 
-        assert actual_after.startswith("AFTER "), f"{label}: malformed C++ output: {actual_after}"
-        assert restored.startswith("RESTORED "), f"{label}: malformed C++ output: {restored}"
-        assert actual_after.removeprefix("AFTER ") == expected_after, (
-            f"{label}: Python/C++ random sequence state mismatch\n"
-            f"Python: {expected_after}\n"
-            f"C++:    {actual_after.removeprefix('AFTER ')}"
-        )
-        assert restored.removeprefix("RESTORED ") == rwen, (
-            f"{label}: C++ did not restore the sequence root"
-        )
+    expected_values = [expected for _seed, _opening, _ply, _rwen, _move, expected in transitions]
+    roots = [rwen for _seed, _opening, _ply, rwen, _move, _expected in transitions]
+    divergence = first_divergence(expected_values, actual_values)
+    assert divergence is None, (
+        "Python/C++ random sequence state mismatch at transition "
+        f"{divergence}: expected={expected_values[divergence]} actual={actual_values[divergence]}"
+    )
+    restored_divergence = first_divergence(roots, restored_values)
+    assert restored_divergence is None, (
+        "C++ did not restore the random sequence root at transition "
+        f"{restored_divergence}: expected={roots[restored_divergence]} actual={restored_values[restored_divergence]}"
+    )
