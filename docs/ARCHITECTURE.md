@@ -1,13 +1,13 @@
-# RedWar — Arquitetura Técnica
+# RedWar — Technical Architecture
 
-## 1. Princípio central
+## 1. Central principle
 
-RedWar deve ter **uma semântica única do jogo**. A UI, a IA, a Arena e o servidor não devem inventar regras próprias.
+RedWar should have **one game semantics**. UI, AI, Arena and server-facing components must not invent their own rules.
 
-A divisão atual é:
+The current boundary is:
 
 ```text
-                      Produto / interfaces
+                      Product / interfaces
                 ┌────────────┬────────────┐
                 ▼            ▼            ▼
                UI         Online        CLI/tools
@@ -22,99 +22,100 @@ A divisão atual é:
           search/eval                telemetry/data
 ```
 
-`engine/` é a referência das regras durante a migração. `ai/` deve consumir o estado e as regras, não reimplementá-los sem uma razão explícita de performance/portabilidade.
+`engine/` is the reference for game rules. `ai/` consumes the state and rules; duplicated rule semantics require an explicit performance/portability reason and differential coverage.
 
-## 2. Estado atual — 2026-08-23
+## 2. Current architecture state — 2026-08-26
 
-O projeto continua numa migração Python/Cython → C++ para o hot path da Ares.
+The project is no longer represented accurately by a dated 2026-08-23 snapshot. The current architecture is a Python game/rules layer with a C++ Ares hot path, differential bridges/tests, Arena/analysis tooling and a separate online surface under active development.
 
 ```text
 engine/
-  estado, regras, heróis e parser de ações
+  state, rules, heroes and action semantics
 
 ai/
-  integração de bots + C++ Ares
+  bot integration + C++ Ares
 
 ui/
-  apresentação local
+  presentation/local product surface
 
 online/
-  cliente/rede/servidor em desenvolvimento
+  client/network/server components under development
 
 tools/
-  Arena, análise, balanceamento, NNUE, build e auditoria
+  Arena, analysis, balance, NNUE, build and audit tooling
 
 tests/
-  regressões Python/C++ e testes de invariantes
+  regression, cross-backend, property/metamorphic and experimental validation
 
 data/
-  telemetria/datasets/modelos gerados
+  validation datasets and generated experiment material
 
 docs/
-  decisões, arquitetura, metodologia e roadmap
+  canonical contracts, methodology, decisions, audits and roadmap
 ```
 
-O **PR #49** é a branch ativa de NNUE RPG. A avaliação NNUE continua opcional; sem modelo carregado, a Ares mantém a avaliação clássica.
+The historical NNUE PR #49 is **not** part of the current architecture contract; it was closed without merge. The current truth is the code and tests present on `main`, with NNUE infrastructure present but incremental BoardState hot-path integration still an open engineering block.
 
-## 3. Fronteiras
+## 3. Boundaries
 
 ### `engine/`
 
-Responsável por:
+Responsible for:
 
-- representação da posição;
-- legalidade de ações;
-- transições de estado;
-- timers e efeitos;
-- condições de fim;
-- configuração/data dos heróis.
+- position representation;
+- legal actions;
+- state transitions;
+- timers and effects;
+- terminal conditions;
+- hero configuration/data semantics.
 
-Não deve depender de UI.
+It must not depend on UI.
 
 ### `ai/`
 
-Responsável por:
+Responsible for:
 
-- geração e ordenação de ações quando fazem parte do motor;
-- pesquisa alpha-beta/PVS;
-- TT, heurísticas e quiescence;
-- avaliação clássica e NNUE;
-- limites de nodes/tempo;
-- protocolo de comunicação com bots.
+- search-side action generation/ordering;
+- alpha-beta/PVS search;
+- TT and search heuristics;
+- classical and NNUE evaluation;
+- node/time limits;
+- bot/engine protocol integration.
 
-A pesquisa deve continuar separada da apresentação.
+Search remains independent from presentation.
 
 ### `tools/`
 
-Responsável por processos **fora do caminho de uma partida normal**:
+Responsible for processes outside a normal game:
 
 ```text
 tools/
-├── analytics/     # Arena, abertura determinística, análise de jogos, trainer
-├── balance/       # auto-pricer e balanceamento
-├── nnue/          # features, teacher data, treino/exportação
-└── scripts/       # build e auditorias de desenvolvimento
+├── analytics/     # Arena, deterministic openings, game analysis, trainer
+├── balance/       # auto-pricer and balance analysis
+├── nnue/          # features, teacher data, training/export
+└── scripts/       # build and development audits
 ```
 
-Uma ferramenta não deve duplicar a definição de regras do `engine/` apenas para facilitar um script.
+Tools must not duplicate `engine/` rules merely for convenience.
 
 ### `tests/`
 
-Os testes verificam invariantes. Não são uma segunda implementação do jogo.
+Tests verify invariants rather than becoming a second game implementation.
 
-Prioridades:
+Current priorities include:
 
 - make/unmake;
-- hash incremental vs estado restaurado;
-- ações legais/ilegais;
+- hash consistency;
+- legal/illegal actions;
 - timers/effects/stun;
-- diferenças Python/C++;
-- overflow/valores extremos em fronteiras de dados;
-- paridade Python/C++ das features NNUE.
+- Python/C++ differential behaviour;
+- boundary/overflow cases;
+- NNUE feature parity;
+- Arena result/evidence contracts.
 
-## 4. Direção de longo prazo
+## 4. Long-term direction
 
-O objetivo é chegar a uma fronteira estável:
+The stable boundary remains:
 
 ```text
                     Game Core
@@ -126,11 +127,11 @@ O objetivo é chegar a uma fronteira estável:
               Tools / telemetry
 ```
 
-O detalhe de implementação pode mudar. A interface entre estas áreas deve mudar muito menos.
+Implementation details can change; interfaces between these areas should change much less.
 
-## 5. Python e C++
+## 5. Python and C++
 
-Durante a migração, uma posição deve poder ser comparada entre as duas implementações:
+During the migration, equivalent positions must remain comparable:
 
 ```text
 RWEN / BoardState
@@ -139,40 +140,46 @@ RWEN / BoardState
       └── C++
             │
             ▼
-      estado equivalente
+      equivalent state
 ```
 
-Invariantes importantes:
+Core invariants:
 
-1. mesma posição → mesmas ações legais;
-2. `make → unmake` → posição original;
-3. hash incremental consistente;
-4. mesmos estados terminais;
-5. mesma interpretação dos timers/efeitos;
-6. features NNUE idênticas quando alimentadas com a mesma posição.
+1. same position → same legal actions;
+2. `make → unmake` → original position;
+3. incremental hash remains consistent;
+4. same terminal states;
+5. same interpretation of timers/effects;
+6. identical NNUE features for the same position.
 
-## 6. Observabilidade
+## 6. Observability
 
-Cada experimento importante deve poder responder:
+The current local game-mode contract is defined by [`OBSERVABILITY_CONTRACT.md`](OBSERVABILITY_CONTRACT.md): hidden information applies to draft/setup, while the battle state is public and Ares may receive the complete battle state. This is resolved for the current local mode and must not be treated as an open Ares dependency.
 
-- qual versão foi testada;
-- que posição/dataset foi usado;
-- orçamento de nodes/tempo;
-- resultado e seed;
-- custo de CPU;
-- se a partida foi válida;
-- se a alteração foi aceite ou rejeitada e porquê.
+Future online/variant modes require a separate client observation contract; the local full-state RWEN representation must not be assumed safe for network exposure.
 
-Isto aproxima o projeto do modelo de engines maiores: o código é apenas uma parte do sistema; a medição reprodutível é outra.
+## 7. Reproducible evidence boundary
 
-## 7. Regra de modularidade
+Important experiments must preserve enough information to answer:
 
-Ficheiros de produção acima de aproximadamente 1000 linhas são candidatos a divisão. A configuração extensa de heróis é uma exceção possível quando a concentração simplifica manutenção.
+- which engine/rules versions were tested;
+- which dataset/opening/seed was used;
+- node/time budget;
+- result and termination reason;
+- whether each game/observation was valid;
+- what evidence class it belongs to (regression, development or protected hold-out);
+- why a change was accepted or rejected.
 
-Não criar módulos apenas para reduzir o número de linhas. Um módulo deve ter uma responsabilidade identificável.
+The evidence-set policy is documented through `docs/00_INDEX.md` and the current validation/hold-out contracts.
 
-## 8. Reestruturação segura
+## 8. Modularity
 
-A estrutura deve evoluir por blocos pequenos. Scripts de reorganização destrutivos foram removidos: o tooling de estrutura deve **auditar por defeito** e nunca apagar/substituir um ficheiro automaticamente.
+Production files above approximately 1000 lines are candidates for division. Large hero configuration may be an exception when concentration simplifies maintenance.
 
-Mudanças de diretórios que exijam alterar imports/workflows devem ser feitas como um bloco dedicado, com testes de referências antes e depois.
+Do not create modules merely to reduce line count. Each module needs an identifiable responsibility.
+
+## 9. Documentation and safe restructuring
+
+Architecture is canonicalized by this document. Historical snapshots and audits must not present themselves as current architecture.
+
+Documentation and directory restructuring should happen in small, reviewable blocks. Structure tooling must audit by default and never delete/replace files automatically. Directory moves that require imports/workflow changes are separate engineering blocks with reference checks before and after migration.
