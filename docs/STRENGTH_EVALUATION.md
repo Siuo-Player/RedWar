@@ -25,7 +25,7 @@ paired game results
       ↓
 strength estimate (Elo-like)
       ↓
-uncertainty / confidence
+uncertainty estimate
       ↓
 sequential test (SPRT)
       ↓
@@ -62,9 +62,12 @@ A Arena integra esse baseline no resumo experimental. O `.summary.json` passa a 
 - `rating_challenger`;
 - `rating_baseline`;
 - `rating_delta`;
-- `rating_delta_ci95_half_width`.
+- `rating_delta_uncertainty_proxy_half_width`;
+- `rating_delta_uncertainty_type`.
 
-Esses valores são uma **medição estatística adicional**; não substituem ainda o gate de promoção nem devem ser interpretados como um SPRT.
+O último campo identifica a semântica da estimativa. Atualmente o tipo é `engineering_uncertainty_proxy_v1`.
+
+Esses valores são uma **medição estatística adicional**; o intervalo derivado do proxy não é um intervalo de confiança estatístico calibrado. Eles não substituem ainda o gate de promoção nem devem ser interpretados como um SPRT.
 
 Um resultado futuro deve poder ser expresso como:
 
@@ -394,7 +397,7 @@ regression suite = obrigatória
 hold-out = obrigatório para alterações de força
 Ares Arena = obrigatória para alegar aumento de força
 rating = guardar quando disponível
-uncertainty = não omitir
+uncertainty proxy = não omitir quando calculado
 manual investigation = necessária em resultados anómalos
 ```
 
@@ -408,7 +411,7 @@ REJECT
     evidência suficiente de regressão
 
 CONTINUE
-    dados insuficientes / intervalo demasiado largo
+    dados insuficientes / incerteza demasiado larga
 ```
 
 O terceiro resultado é importante: **não forçar uma decisão quando não existe evidência suficiente**.
@@ -434,7 +437,7 @@ A força geral deve ser demonstrada num conjunto experimental suficientemente va
 [x] definir data model de partida e resultado emparelhado
 [x] criar StrengthRating data model / baseline Elo-compatible
 [x] calcular rating incremental a partir de resultados
-[x] expor rating + incerteza e intervalo relativo
+[x] expor rating + engineering uncertainty proxy
 [x] ligar o baseline ao resumo JSONL da Arena
 [x] guardar metadata suficiente para reconstruir cada experiência
 [x] auditar cores/openings/seeds antes da inferência
