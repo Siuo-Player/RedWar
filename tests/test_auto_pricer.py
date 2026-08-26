@@ -53,6 +53,8 @@ def test_balance_calculation_does_not_mutate_hero_config():
     assert heroes == {"Knight": {"cost": 50}}
     assert report["valid_matches"] == 1
     assert report["changes"][0]["old_cost"] == 50
+    assert report["method"] == "elo_adjusted_occurrence_heuristic"
+    assert report["interpretation"] == "diagnostic_pricing_heuristic_not_causal_power_estimate"
 
 
 def test_balance_rejects_unbounded_draft_quantity():
@@ -111,3 +113,46 @@ def test_balance_does_not_adjust_below_minimum_sample_size():
     assert change["eligible_for_adjustment"] is False
     assert change["new_cost"] == 50
     assert change["changed"] is False
+
+
+def test_balance_rejects_missing_validity_provenance():
+    stats = {
+        "matches": [
+            {
+                "white_elo": 1000,
+                "black_elo": 1000,
+                "white_draft": {"Knight": 1},
+                "black_draft": {},
+                "result": 1.0,
+            }
+        ]
+    }
+    with pytest.raises(ValueError, match="proveniência explícita"):
+        calcular_balanceamento(stats, {"Knight": {"cost": 50}})
+
+
+def test_balance_reports_invalid_match_provenance():
+    stats = {
+        "matches": [
+            {
+                "valid": True,
+                "white_elo": 1000,
+                "black_elo": 1000,
+                "white_draft": {"Knight": 1},
+                "black_draft": {},
+                "result": 1.0,
+            },
+            {
+                "valid": False,
+                "failure_reason": "engine_crash",
+                "white_elo": 1000,
+                "black_elo": 1000,
+                "white_draft": {},
+                "black_draft": {"Knight": 1},
+                "result": 0.0,
+            },
+        ]
+    }
+    report = calcular_balanceamento(stats, {"Knight": {"cost": 50}})
+    assert report["invalid_matches"] == 1
+    assert report["invalid_provenance"] == {"engine_crash": 1}
