@@ -27,6 +27,7 @@ ARENA_MAX_PLIES = 10_000
 
 Color = Literal["white", "black"]
 Outcome = Literal["challenger", "baseline", "draw"]
+RawOutcome = Literal["challenger", "baseline", "draw", "invalid"]
 
 
 def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
@@ -261,7 +262,7 @@ def start_tournament(
             winner_side = _winner_side(game["winner"])
             if game["valid"] and winner_side == challenger_color:
                 wins_challenger += 1
-                outcome: Outcome = "challenger"
+                outcome: RawOutcome = "challenger"
             elif game["valid"] and winner_side is not None:
                 wins_baseline += 1
                 outcome = "baseline"
@@ -270,8 +271,7 @@ def start_tournament(
                 outcome = "draw"
             else:
                 invalid_games += 1
-                outcome = "draw"  # placeholder; overwritten in record below
-                outcome = cast(Literal["challenger", "baseline", "draw"], "invalid")
+                outcome = "invalid"
             aggregate_actions.update(game["action_counts"])
             games.append({
                 "game_index": i,
@@ -280,7 +280,7 @@ def start_tournament(
                 "challenger_color": challenger_color,
                 "baseline_color": "black" if challenger_color == "white" else "white",
                 "experiment": experiment_metadata,
-                "outcome": "invalid" if not game["valid"] else outcome,
+                "outcome": outcome,
                 **game,
             })
             sys.stdout.write(f"\rJogos completados: {i + 1}/{num_games} (seed {game['seed']}, resultado {outcome})")
