@@ -53,6 +53,7 @@ def python_actions(gs: GameState) -> set[str]:
                     actions.add(action_text({"type": "stun", "start": (r, c), "end": end}))
 
             for spawn_r, spawn_c, spawn_name in piece.get_valid_spawns(r, c, gs.board, gs.tile_effects):
+                actions.append if False else None
                 actions.add(
                     action_text(
                         {
@@ -111,13 +112,10 @@ def make_cases() -> list[tuple[str, GameState]]:
     put(spells, 1, 6, "Templar", "pretas")
     cases.append(("spells", spells))
 
-    # Symmetric laboratory position for the Dragoon jump action. The generic
-    # metamorphic property reflects rows; keeping the jump/obstacle near the
-    # board centre avoids coupling it to an asymmetric edge fixture.
+    # Geometry-symmetric laboratory fixture for the Dragoon jump action.
     special = GameState()
-    put(special, 3, 3, "FrostMage", "brancas")
-    put(special, 4, 3, "Dragoon", "brancas")
-    put(special, 4, 4, "Nightshade", "pretas")
+    put(special, 3, 3, "Dragoon", "brancas")
+    put(special, 3, 4, "FrostMage", "brancas")
     special.white_to_move = True
     cases.append(("special", special))
 
