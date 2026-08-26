@@ -45,4 +45,4 @@ def test_invalid_games_break_pair_completeness_instead_of_becoming_draws():
 
     assert summary["paired_games_used"] == 0
     assert summary["complete_pairs"] == 0
-    assert summary["incomplete_pair_ids"] == []
+    assert summary["incomplete_pair_ids"] == ["pair-000000"]
