@@ -214,7 +214,7 @@ def _winner_side(winner: object) -> str | None:
     return None
 
 
-def _strength_from_games(games: list[dict[str, object]]) -> tuple[float, float, float, float]:
+def _strength_from_games(games: list[dict[str, object]]) -> tuple[float, float, float, float, str]:
     results: list[MatchResult] = []
     for game in games:
         if not game.get("valid", True):
@@ -222,10 +222,16 @@ def _strength_from_games(games: list[dict[str, object]]) -> tuple[float, float, 
         relative = {"challenger": "win", "baseline": "loss", "draw": "draw"}[str(game["outcome"])]
         results.append(MatchResult("challenger", "baseline", relative))
     if not results:
-        return 1500.0, 1500.0, 0.0, 0.0
+        return 1500.0, 1500.0, 0.0, 0.0, "engineering_uncertainty_proxy_v1"
     ratings = estimate({"challenger": Rating(), "baseline": Rating()}, results)
     relative = compare(ratings["challenger"], ratings["baseline"])
-    return ratings["challenger"].value, ratings["baseline"].value, relative.delta, 1.96 * relative.delta_uncertainty
+    return (
+        ratings["challenger"].value,
+        ratings["baseline"].value,
+        relative.delta,
+        1.96 * relative.delta_uncertainty,
+        relative.interval_type,
+    )
 
 
 def start_tournament(
@@ -289,7 +295,7 @@ def start_tournament(
         diferenca = wins_challenger - wins_baseline
         win_rate = wins_challenger / max(1, wins_challenger + wins_baseline + draws) * 100.0
         promoted = invalid_games == 0 and verificar_promocao(wins_challenger, wins_baseline, win_threshold)
-        rating_challenger, rating_baseline, rating_delta, rating_ci95_half_width = _strength_from_games(games)
+        rating_challenger, rating_baseline, rating_delta, rating_uncertainty_proxy_half_width, uncertainty_type = _strength_from_games(games)
         balance = summarize_experiment_balance(games)
         pentanomial = summarize_pentanomial(games)
         summary: dict[str, object] = {
@@ -312,7 +318,8 @@ def start_tournament(
             "rating_challenger": rating_challenger,
             "rating_baseline": rating_baseline,
             "rating_delta": rating_delta,
-            "rating_delta_ci95_half_width": rating_ci95_half_width,
+            "rating_delta_uncertainty_proxy_half_width": rating_uncertainty_proxy_half_width,
+            "rating_delta_uncertainty_type": uncertainty_type,
             "balance_audit": balance,
             "pentanomial": pentanomial,
             "action_counts": dict(aggregate_actions),
@@ -320,7 +327,10 @@ def start_tournament(
         print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws} | Inválidos {invalid_games}")
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
-        print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (IC95 ±{rating_ci95_half_width:.1f})")
+        print(
+            f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | "
+            f"Δ {rating_delta:+.1f} (uncertainty proxy ±{rating_uncertainty_proxy_half_width:.1f}, {uncertainty_type})"
+        )
         print(f"Pentanomial: {pentanomial['bins']} | Pares completos: {pentanomial['complete_pairs']}")
         if invalid_games:
             print(f"⚠️ {invalid_games} jogos inválidos; a experiência não pode promover uma revisão com observações inválidas.")
