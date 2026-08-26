@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 
 from engine.game_state import GameState
-from engine.pieces import criar_peca_por_nome
+from tools.analytics.opening_book import carregar_abertura_do_book
 from tests.test_cross_backend_make_unmake import actions_for, move_text
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,40 +13,50 @@ BRIDGE_NAME = "cpp_make_unmake_bridge_test.exe" if os.name == "nt" else "cpp_mak
 BRIDGE = ROOT / BRIDGE_NAME
 
 
-def _put(state: GameState, row: int, col: int, name: str, team: str, *, stun: int = 0, lifespan: int | None = None, cooldown: int = 0) -> None:
-    piece = criar_peca_por_nome(name, team)
-    piece.stun_timer = stun
-    if hasattr(piece, "lifespan") and lifespan is not None:
-        piece.lifespan = lifespan
-    if hasattr(piece, "spawn_cooldown"):
-        piece.spawn_cooldown = cooldown
-    state.board[row][col] = piece
-
-
-def _build_persistent_sequence(seed: int, max_plies: int) -> list[tuple[int, int, str, str, str]]:
+def _seed_persistent_state(opening_index: int) -> GameState:
     state = GameState()
-    _put(state, 6, 0, "Ghoul", "brancas", lifespan=12, cooldown=4)
-    _put(state, 6, 3, "Ranger", "brancas", lifespan=10, cooldown=2)
-    _put(state, 1, 7, "Bone", "pretas", stun=1, lifespan=7)
-    _put(state, 2, 5, "BoneLord", "pretas", lifespan=9)
-    state.tile_effects[5][2] = {"type": "ice", "timer": 3, "team": "brancas"}
-    state.tile_effects[4][6] = {"type": "fire", "timer": 4, "team": "pretas"}
-    state.turns_without_capture = 6
-    state.compute_initial_hash()
+    carregar_abertura_do_book(state, opening_index)
 
+    persistent_pieces = [piece for row in state.board for piece in row if piece is not None]
+    assert len(persistent_pieces) >= 4, "opening fixture must contain enough pieces"
+
+    for index, piece in enumerate(persistent_pieces[:4]):
+        if hasattr(piece, "lifespan"):
+            piece.lifespan = 40 + index
+        if hasattr(piece, "spawn_cooldown"):
+            piece.spawn_cooldown = 3 + index
+        piece.stun_timer = 1 if index == 0 else 0
+
+    empty = [
+        (r, c)
+        for r, row in enumerate(state.board)
+        for c, piece in enumerate(row)
+        if piece is None
+    ]
+    assert len(empty) >= 2, "opening fixture must expose empty squares for effects"
+    ice_r, ice_c = empty[0]
+    fire_r, fire_c = empty[1]
+    state.tile_effects[ice_r][ice_c] = {"type": "ice", "timer": 6, "team": "brancas"}
+    state.tile_effects[fire_r][fire_c] = {"type": "fire", "timer": 7, "team": "pretas"}
+    state.turns_without_capture = 0
+    state.compute_initial_hash()
+    return state
+
+
+def _build_persistent_sequence(seed: int, opening_index: int, max_plies: int) -> list[tuple[int, int, str, str, str]]:
+    state = _seed_persistent_state(opening_index)
     transitions: list[tuple[int, int, str, str, str]] = []
+
     for ply in range(max_plies):
         if state.game_over:
             break
         legal = actions_for(state)
-        if not legal:
-            break
+        assert legal, f"seed={seed} opening={opening_index} ply={ply}: expected legal actions"
 
-        # Prefer stateful actions when available; otherwise use a deterministic choice.
-        action = next((a for a in legal if a.get("type") == "spawn"), None)
-        if action is None:
-            action = next((a for a in legal if a.get("type") == "spell" and a.get("spell_name") in {"nevada", "ignite"}), None)
-        if action is None:
+        moves = [action for action in legal if action.get("type") == "move"]
+        if moves:
+            action = moves[(seed + ply * 17) % len(moves)]
+        else:
             action = legal[(seed + ply * 17) % len(legal)]
 
         root = state.to_rwen()
@@ -63,8 +73,8 @@ def test_long_persistent_state_sequences_match_python_and_cpp():
 
     transitions = [
         transition
-        for seed, plies in ((11, 48), (23, 48), (47, 48), (89, 48))
-        for transition in _build_persistent_sequence(seed, plies)
+        for seed, opening_index in ((11, 0), (23, 1), (47, 2), (89, 3))
+        for transition in _build_persistent_sequence(seed, opening_index, 48)
     ]
     assert len(transitions) >= 96, f"expected at least 96 persistent transitions, got {len(transitions)}"
 
