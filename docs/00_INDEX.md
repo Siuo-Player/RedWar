@@ -20,6 +20,7 @@ This is the navigation entry point for `docs/`. It identifies the current source
 | Strength evaluation | [STRENGTH_EVALUATION.md](STRENGTH_EVALUATION.md) | Competitive-strength measurement and promotion evidence |
 | Arena statistics | [ARENA_STATISTICAL_METHODOLOGY.md](ARENA_STATISTICAL_METHODOLOGY.md) | Statistical treatment of Arena results |
 | Hold-out CI | [ARENA_HOLDOUT_CI.md](ARENA_HOLDOUT_CI.md) | Protected validation execution contract |
+| Balance | [BALANCE_METHODOLOGY.md](BALANCE_METHODOLOGY.md) | Interpretation of pricing, contextual balance and roster evidence |
 | Observability | [OBSERVABILITY_CONTRACT.md](OBSERVABILITY_CONTRACT.md) | Legal information visible to the agent in each game phase |
 | Mechanics traceability | [MECHANICS_TRACEABILITY_MATRIX.md](MECHANICS_TRACEABILITY_MATRIX.md) | Cross-backend mechanic/data coverage |
 | CI methodology | [CI_WORKFLOW_METHODOLOGY.md](CI_WORKFLOW_METHODOLOGY.md) | CI evidence and gate semantics |
