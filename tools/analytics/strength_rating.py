@@ -2,7 +2,7 @@
 
 This module is intentionally independent from Ares search/evaluation. It provides
 an interpretable Elo-compatible baseline that can later be replaced/extended by a
-Bradley-Terry or Bayesian estimator without changing Arena game storage.
+Bradley–Terry or Bayesian estimator without changing Arena game storage.
 """
 from __future__ import annotations
 
@@ -37,7 +37,11 @@ class Rating:
 
 @dataclass(frozen=True)
 class StrengthEstimate:
-    """Relative strength estimate between two systems."""
+    """Relative strength estimate between two systems.
+
+    The current estimator exposes an engineering uncertainty proxy. Its derived
+    interval is not a calibrated statistical confidence interval.
+    """
 
     left: Rating
     right: Rating
@@ -51,11 +55,18 @@ class StrengthEstimate:
         return sqrt(self.left.variance + self.right.variance)
 
     @property
+    def interval_type(self) -> str:
+        """Stable machine-readable label for the current interval semantics."""
+        return "engineering_uncertainty_proxy_v1"
+
+    @property
     def lower_95(self) -> float:
+        """Legacy-compatible lower bound of the current 95% uncertainty proxy."""
         return self.delta - 1.96 * self.delta_uncertainty
 
     @property
     def upper_95(self) -> float:
+        """Legacy-compatible upper bound of the current 95% uncertainty proxy."""
         return self.delta + 1.96 * self.delta_uncertainty
 
 
@@ -70,7 +81,7 @@ def update_pair(left: Rating, right: Rating, outcome: Outcome, k: float = 20.0) 
 
     The variance update is deliberately conservative: each observed game reduces
     uncertainty, but never below a small floor. This is an engineering baseline,
-    not yet the final Bayesian/Bradley-Terry estimator.
+    not yet the final Bayesian/Bradley–Terry estimator.
     """
 
     if k <= 0:
@@ -106,6 +117,6 @@ def estimate(initial: dict[str, Rating], results: Iterable[MatchResult], k: floa
 
 
 def compare(left: Rating, right: Rating) -> StrengthEstimate:
-    """Build a relative-strength estimate and confidence interval."""
+    """Build a relative-strength estimate with the current uncertainty proxy."""
 
     return StrengthEstimate(left=left, right=right)
