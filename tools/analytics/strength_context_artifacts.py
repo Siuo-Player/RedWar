@@ -13,14 +13,9 @@ def enrich_arena_summary(
     results_path: str | Path,
     summary_path: str | Path | None = None,
     strength_population: dict[str, Any] | StrengthPopulationContext | None = None,
+    enriched_results_path: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Attach Strength population context and observational diagnostics.
-
-    The Arena JSONL remains the source of game observations. When structured
-    ``strength_population`` context is supplied, it is copied into each game's
-    experiment metadata and into the summary, so the published artifact carries
-    the same population boundary consumed by Strength validation.
-    """
+    """Attach population context and observational diagnostics without rewriting raw results."""
     results = Path(results_path)
     if not results.is_file():
         raise FileNotFoundError(results)
@@ -82,9 +77,15 @@ def enrich_arena_summary(
     summary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     if normalized_population is not None:
-        with results.open("w", encoding="utf-8") as handle:
+        if enriched_results_path is None:
+            enriched_results_path = results.with_name(results.stem + ".context" + results.suffix)
+        enriched = Path(enriched_results_path)
+        enriched.parent.mkdir(parents=True, exist_ok=True)
+        with enriched.open("w", encoding="utf-8") as handle:
             for game in games:
                 handle.write(json.dumps(game, ensure_ascii=False, separators=(",", ":")) + "\n")
+        payload["strength_context_results"] = str(enriched)
+        summary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     return payload
 
@@ -95,6 +96,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Attach Strength context diagnostics to an Arena summary")
     parser.add_argument("results", help="Arena JSONL game records")
     parser.add_argument("--summary", help="Arena summary JSON; defaults to <results>.summary.json")
+    parser.add_argument("--context-output", help="Enriched JSONL output; raw Arena JSONL remains untouched")
     parser.add_argument("--population-id")
     parser.add_argument("--selection-policy")
     parser.add_argument("--controller-population")
@@ -119,7 +121,7 @@ def main() -> int:
     else:
         context = None
 
-    enrich_arena_summary(args.results, args.summary, context)
+    enrich_arena_summary(args.results, args.summary, context, args.context_output)
     return 0
 
 
