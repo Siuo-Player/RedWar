@@ -56,6 +56,7 @@ jobs:
       run: git fetch origin main --no-tags
 
     - name: Select Arena mode
+      id: select-arena
       shell: bash
       env:
         FORCE_ARENA: ${{ github.event_name == 'workflow_dispatch' && inputs.force_arena || false }}
@@ -64,11 +65,12 @@ jobs:
         set -euo pipefail
         BASE=$(git merge-base HEAD origin/main)
         echo "BASE_SHA=$BASE" >> "$GITHUB_ENV"
-        echo "HOLDOUT=$HOLDOUT" >> "$GITHUB_ENV"
+
         if [[ "$HOLDOUT" == "true" ]]; then
-          echo "RUN_ARENA=true" >> "$GITHUB_ENV"
-          echo "FORCE_ARENA=true" >> "$GITHUB_ENV"
-          echo "ARENA_MODE=protected_holdout" >> "$GITHUB_ENV"
+          echo "run_arena=true" >> "$GITHUB_OUTPUT"
+          echo "holdout=true" >> "$GITHUB_OUTPUT"
+          echo "force_arena=true" >> "$GITHUB_OUTPUT"
+          echo "arena_mode=protected_holdout" >> "$GITHUB_OUTPUT"
           echo "$GITHUB_SHA" > /tmp/ai-commits.txt
           echo "Protected hold-out validation requested."
           exit 0
@@ -84,9 +86,10 @@ jobs:
         done < /tmp/all-commits.txt
 
         if [[ "$FORCE_ARENA" == "true" ]]; then
-          echo "RUN_ARENA=true" >> "$GITHUB_ENV"
-          echo "FORCE_ARENA=true" >> "$GITHUB_ENV"
-          echo "ARENA_MODE=promotion_experiment" >> "$GITHUB_ENV"
+          echo "run_arena=true" >> "$GITHUB_OUTPUT"
+          echo "holdout=false" >> "$GITHUB_OUTPUT"
+          echo "force_arena=true" >> "$GITHUB_OUTPUT"
+          echo "arena_mode=promotion_experiment" >> "$GITHUB_OUTPUT"
           if [[ ! -s /tmp/ai-commits.txt ]]; then
             echo "$GITHUB_SHA" > /tmp/ai-commits.txt
             echo "Manual Arena run requested without AI changes; testing current ref against main baseline."
@@ -94,18 +97,20 @@ jobs:
             echo "Manual Arena run requested; testing AI revisions on this ref."
           fi
         elif [[ ! -s /tmp/ai-commits.txt ]]; then
-          echo "RUN_ARENA=false" >> "$GITHUB_ENV"
-          echo "FORCE_ARENA=false" >> "$GITHUB_ENV"
-          echo "ARENA_MODE=skip" >> "$GITHUB_ENV"
+          echo "run_arena=false" >> "$GITHUB_OUTPUT"
+          echo "holdout=false" >> "$GITHUB_OUTPUT"
+          echo "force_arena=false" >> "$GITHUB_OUTPUT"
+          echo "arena_mode=skip" >> "$GITHUB_OUTPUT"
           echo "No AI/NNUE changes detected; skipping promotion Arena."
         else
-          echo "RUN_ARENA=true" >> "$GITHUB_ENV"
-          echo "FORCE_ARENA=false" >> "$GITHUB_ENV"
-          echo "ARENA_MODE=promotion_gate" >> "$GITHUB_ENV"
+          echo "run_arena=true" >> "$GITHUB_OUTPUT"
+          echo "holdout=false" >> "$GITHUB_OUTPUT"
+          echo "force_arena=false" >> "$GITHUB_OUTPUT"
+          echo "arena_mode=promotion_gate" >> "$GITHUB_OUTPUT"
         fi
 
     - name: Build current main baseline once
-      if: env.RUN_ARENA == 'true'
+      if: steps.select-arena.outputs.run_arena == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -117,7 +122,7 @@ jobs:
         chmod +x ai/cpp_engine/engine
 
     - name: Run protected hold-out validation
-      if: env.RUN_ARENA == 'true' && env.HOLDOUT == 'true'
+      if: steps.select-arena.outputs.run_arena == 'true' && steps.select-arena.outputs.holdout == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -128,7 +133,7 @@ jobs:
         git worktree add --detach "$WORKTREE" "$BASE_SHA"
         git -C "$WORKTREE" restore --source="$COMMIT" -- ai tools/nnue tools/analytics/holdout_arena.py tools/analytics/holdout_validation.py data/validation
         pushd "$WORKTREE/ai/cpp_engine" >/dev/null
-        cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+        cpp_sources=(board.cpp evaluate.cpp movegen.cpp search.cpp)
         if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
         chmod +x engine
@@ -143,8 +148,10 @@ jobs:
         git worktree remove --force /tmp/redwar-baseline
 
     - name: Arena every AI revision with current rules
-      if: env.RUN_ARENA == 'true' && env.HOLDOUT != 'true'
+      if: steps.select-arena.outputs.run_arena == 'true' && steps.select-arena.outputs.holdout == 'false'
       shell: bash
+      env:
+        FORCE_ARENA: ${{ steps.select-arena.outputs.force_arena }}
       run: |
         set -u
         mkdir -p /tmp/redwar-arena-results

@@ -8,10 +8,12 @@ def test_manual_workflow_exposes_protected_holdout_mode():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "holdout:" in text
     assert "inputs.holdout" in text
-    assert "ARENA_MODE=protected_holdout" in text
+    assert "steps.select-arena.outputs.arena_mode == 'protected_holdout'" in text or "arena_mode=protected_holdout" in text
+    assert "steps.select-arena.outputs.holdout == 'true'" in text
     assert "tools/analytics/holdout_arena.py" in text
 
 
 def test_holdout_mode_does_not_run_promotion_arena():
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert "env.HOLDOUT != 'true'" in text
+    assert "steps.select-arena.outputs.holdout == 'false'" in text
+    assert "steps.select-arena.outputs.holdout != 'true'" not in text
