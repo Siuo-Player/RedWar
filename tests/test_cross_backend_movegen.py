@@ -111,10 +111,13 @@ def make_cases() -> list[tuple[str, GameState]]:
     put(spells, 1, 6, "Templar", "pretas")
     cases.append(("spells", spells))
 
+    # Symmetric laboratory position for the Dragoon jump action. The generic
+    # metamorphic property reflects rows; keeping the jump/obstacle near the
+    # board centre avoids coupling it to an asymmetric edge fixture.
     special = GameState()
-    put(special, 4, 0, "FrostMage", "brancas")
-    put(special, 6, 0, "Dragoon", "brancas")
-    put(special, 1, 1, "Nightshade", "pretas")
+    put(special, 3, 3, "FrostMage", "brancas")
+    put(special, 4, 3, "Dragoon", "brancas")
+    put(special, 4, 4, "Nightshade", "pretas")
     special.white_to_move = True
     cases.append(("special", special))
 
