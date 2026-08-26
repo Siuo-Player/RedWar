@@ -6,18 +6,21 @@
 
 ## Stable roles
 
-The documentation is classified by role rather than by filename prefix alone.
+Documentation is classified by role, not by filename prefix alone.
 
 ```text
 docs/
-├── 00_INDEX.md                         navigation
-├── canonical current-state documents   architecture, AI, testing, Arena, balance, roadmap
+├── 00_INDEX.md                         navigation and source-of-truth map
+├── CURRENT_STATE.md                    dated project snapshot
+├── canonical domain documents          current contracts/methodology
 ├── DECISIONS/                          dated historical decisions
-├── audit / research documents           investigations and evidence
-└── legacy documents                    retained until audited and reconciled
+├── audit / research documents          investigations and evidence
+└── legacy / transitional documents    retained while being reconciled
 ```
 
-The first restructuring phase deliberately does not move existing files. Existing paths may be referenced by scripts, PRs, external notes or contributors.
+`CURRENT_STATE.md` is intentionally time-stamped. It tells a reader where the project is now, but it must not become a competing architecture/specification document.
+
+The first restructuring phase does not move existing files. Existing paths may be referenced by scripts, PRs, external notes or contributors.
 
 ## Source-of-truth hierarchy
 
@@ -28,8 +31,9 @@ When documents disagree, resolve them in this order:
 3. A dated decision record for historical rationale.
 4. Audit/research documents for evidence and recommendations.
 5. Backlog/notes for proposals that are not yet accepted.
+6. Dated snapshots for temporal context only.
 
-A research or audit document must not silently override a canonical project contract.
+A research, audit or snapshot document must not silently override a canonical project contract.
 
 ## Required relationships
 
@@ -48,26 +52,30 @@ implementation
       ↓
 tests / CI evidence
       ↓
-roadmap state
+roadmap / current-state snapshot
 ```
 
 Not every change needs every stage, but changes to a project contract should not leave the documents in contradictory states.
 
 ## Current canonical domains
 
-The main domains currently exposed by `00_INDEX.md` are:
+The main domains exposed by `00_INDEX.md` are:
 
 - architecture;
-- AI/Ares;
+- game design and rules;
+- hero system;
+- AI/Ares and NNUE;
 - benchmark and testing;
 - competitive strength / Arena;
+- observability;
 - CI;
-- game/hero design;
-- engineering workflow;
+- engineering workflow/methodology;
 - decisions and knowledge;
-- roadmap.
+- roadmap;
+- tooling;
+- online/multiplayer.
 
-Balance and future research areas should be added to the index when they acquire a stable canonical document rather than creating multiple competing entry points.
+Balance is currently a documented gap: do not create multiple competing balance entry points until a canonical balance methodology is established.
 
 ## Duplication policy
 
@@ -82,11 +90,17 @@ Create a new document only when at least one is true:
 
 Otherwise update the existing canonical document.
 
-## Historical documents
+## Historical and legacy documents
 
 Files in `DECISIONS/` are append-only historical records in spirit: do not rewrite old rationale to match later reality. Mark supersession explicitly and link the newer decision.
 
-Similarly, dated audits should retain their original findings. Current truth belongs in the canonical documents they informed.
+Dated audits retain their original findings. Current truth belongs in the canonical documents they informed.
+
+Legacy/transitional documents may remain for compatibility while their content is reconciled. They must be clearly identified as non-authoritative from the navigation layer and should eventually either be superseded or absorbed into the correct canonical document.
+
+## Synchronisation rule
+
+When implementation changes a documented contract, update the relevant canonical document in the same development block. When a decision changes the contract, update the decision record, canonical document and roadmap references together. Update `CURRENT_STATE.md` only when the resulting project state materially changes; do not use it as a substitute for canonical documentation.
 
 ## Migration policy
 
