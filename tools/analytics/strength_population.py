@@ -1,0 +1,53 @@
+"""Explicit population/selection context for Strength experiments.
+
+An observed strength result is conditional on who played, how they were
+selected, and which controller population produced the games. This module
+keeps that context machine-checkable without changing the strength estimator.
+"""
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class StrengthPopulationContext:
+    """Population and selection context that qualifies a strength estimate."""
+
+    population_id: str
+    selection_policy: str
+    controller_population: str
+    skill_context: str
+
+    def __post_init__(self) -> None:
+        fields = {
+            "population_id": self.population_id,
+            "selection_policy": self.selection_policy,
+            "controller_population": self.controller_population,
+            "skill_context": self.skill_context,
+        }
+        missing = [name for name, value in fields.items() if not value]
+        if missing:
+            raise ValueError(f"Strength population context must be explicit: {missing}")
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+def validate_population_context(payload: dict[str, Any]) -> StrengthPopulationContext:
+    """Validate and normalize serialized population/selection context."""
+    required = {
+        "population_id",
+        "selection_policy",
+        "controller_population",
+        "skill_context",
+    }
+    missing = sorted(required - payload.keys())
+    if missing:
+        raise ValueError(f"Strength population context is missing required fields: {missing}")
+    return StrengthPopulationContext(
+        population_id=str(payload["population_id"]),
+        selection_policy=str(payload["selection_policy"]),
+        controller_population=str(payload["controller_population"]),
+        skill_context=str(payload["skill_context"]),
+    )
