@@ -98,7 +98,7 @@ def test_audit_arena_results_is_descriptive_only(tmp_path):
 
     assert result["pairs"] == 2
     assert result["status"] == "descriptive_empirical_audit_only"
-    assert result["audit"]["audit_status"] == "descriptive_resampling_only"
+    assert result["audit"]["audit_status"] == "descriptive_paired_resampling_only_with_boundary_smoothing"
     assert result["audit"]["units"] == 2
 
 
