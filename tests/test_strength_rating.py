@@ -42,3 +42,8 @@ def test_relative_estimate_exposes_delta_and_interval():
     assert estimate_result.delta == 20
     assert estimate_result.lower_95 < 20 < estimate_result.upper_95
     assert estimate_result.delta_uncertainty > 0
+
+
+def test_relative_estimate_labels_interval_as_engineering_proxy():
+    estimate_result = compare(Rating(1520, 100, 30**2), Rating(1500, 100, 30**2))
+    assert estimate_result.interval_type == "engineering_uncertainty_proxy_v1"
