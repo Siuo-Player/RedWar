@@ -5,9 +5,9 @@ from tools.analytics.strength_empirical_audit import empirical_paired_uncertaint
 
 def test_paired_bootstrap_keeps_each_pair_as_the_resampling_unit():
     units = [
-        {"outcomes": ["win", "loss"]},
-        {"outcomes": ["win", "win"]},
-        {"outcomes": ["loss", "loss"]},
+        {"outcomes": ["win", "loss", "win", "loss"]},
+        {"outcomes": ["win", "loss", "win", "win"]},
+        {"outcomes": ["loss", "win", "loss", "loss"]},
     ]
 
     result = empirical_paired_uncertainty_audit(units, bootstrap_samples=500, seed=7)
@@ -21,9 +21,9 @@ def test_paired_bootstrap_keeps_each_pair_as_the_resampling_unit():
 
 def test_paired_bootstrap_is_deterministic_for_a_fixed_seed():
     units = [
-        {"outcomes": ["win", "loss"]},
-        {"outcomes": ["win", "win"]},
-        {"outcomes": ["loss", "loss"]},
+        {"outcomes": ["win", "loss", "win", "loss"]},
+        {"outcomes": ["win", "loss", "win", "win"]},
+        {"outcomes": ["loss", "win", "loss", "loss"]},
     ]
 
     first = empirical_paired_uncertainty_audit(units, bootstrap_samples=300, seed=19)
