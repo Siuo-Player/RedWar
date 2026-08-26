@@ -1,5 +1,9 @@
 # Contribuir para RedWar
 
+## Papel deste documento
+
+Este documento descreve **como executar um bloco de desenvolvimento** e preparar uma contribuição. As regras de aceitação, revisão e autoridade de merge pertencem a [`CONTRIBUTION_POLICY.md`](CONTRIBUTION_POLICY.md).
+
 ## Modelo de desenvolvimento
 
 O projeto usa branches curtas e blocos de trabalho coerentes. `main` deve permanecer num estado utilizável e documentado.
@@ -60,9 +64,9 @@ Preferir ferramentas pequenas e composicionais:
 
 ```text
 tools/analytics  -> experiências, Arena, análise e treino
- tools/balance   -> balanceamento
- tools/nnue      -> dataset/features/train/export
- tools/scripts   -> build e auditoria
+tools/balance    -> balanceamento
+tools/nnue       -> dataset/features/train/export
+tools/scripts   -> build e auditoria
 ```
 
 Scripts obsoletos devem ser removidos, não escondidos atrás de caminhos alternativos indefinidos.
@@ -116,7 +120,9 @@ docs: update AI workflow
 
 ## Documentação
 
-Sempre que o código mudar uma arquitetura, fluxo, regra ou interface importante, atualizar o documento correspondente na mesma branch.
+Sempre que o código mudar uma arquitetura, fluxo, regra ou interface importante, atualizar o documento canónico correspondente na mesma branch.
+
+Antes de criar um novo documento, consultar [`docs/00_INDEX.md`](00_INDEX.md) e verificar se já existe uma fonte de verdade para o assunto. Não criar documentos paralelos só para contornar um documento longo.
 
 Nunca documentar uma funcionalidade futura como se já existisse.
 
