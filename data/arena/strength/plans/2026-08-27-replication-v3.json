@@ -1,6 +1,6 @@
 {
   "schema_version": "redwar-strength-calibration-protocol-v3",
-  "status": "partially_frozen_blocked_before_execution",
+  "status": "frozen_controls_ready_before_execution",
   "experiment_id": "strength-calibration-2026-08-27-v3",
   "frozen_engine_baseline": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
   "frozen_rules_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
@@ -9,8 +9,7 @@
     "replication-seed-set-b": [10091, 10211, 10307, 10401, 10503, 10601, 10709, 10809, 10907, 11009, 11103, 11201, 11301, 11409, 11501, 11601]
   },
   "seed_sets_pending": {
-    "population-seed-set-c": "requires an explicit population/sampling artifact before execution",
-    "predeclared-holdout-seed-set": "cannot be represented by the current fixed-16-opening Arena interface; use data/validation/ARES_HOLDOUT_V1.json after dedicated holdout execution support exists"
+    "population-seed-set-c": "requires an explicit population/sampling artifact before execution"
   },
   "runs": [
     {
@@ -35,7 +34,9 @@
       "planned_diagnostics": ["colour", "opening", "scenario", "seed", "run", "population", "draws", "invalids", "dependence"],
       "holdout_policy": "later-run-predeclared-before-analysis",
       "holdout": false,
-      "execution_ready": true
+      "execution_ready": true,
+      "control_mode": "same-engine-self-play",
+      "note": "Execute by explicitly resolving challenger_ref and baseline_ref to the frozen engine baseline. This is a control run, not a strength-improvement test."
     },
     {
       "run_id": "strength-calibration-2026-08-27-seed-replication",
@@ -59,7 +60,9 @@
       "planned_diagnostics": ["colour", "opening", "scenario", "seed", "run", "population", "draws", "invalids", "dependence"],
       "holdout_policy": "later-run-predeclared-before-analysis",
       "holdout": false,
-      "execution_ready": true
+      "execution_ready": true,
+      "control_mode": "same-engine-self-play",
+      "note": "This is a second same-engine run with a new frozen seed set; compare run-to-run variation before interpreting any model uncertainty."
     },
     {
       "run_id": "strength-calibration-2026-08-27-population-context",
@@ -97,7 +100,7 @@
       "node_budget": 10000,
       "opening_policy": "protected-holdout-v1",
       "seed_generation_rule": "predeclared-holdout-manifest",
-      "seed_policy": "predeclared-holdout-seed-set",
+      "seed_policy": "predeclared-holdout-case-manifest",
       "colour_policy": "paired-inversion",
       "validity_policy": "game-over-winner-only",
       "termination_policy": "game-over-or-10000-plies",
@@ -106,8 +109,8 @@
       "planned_diagnostics": ["colour", "opening", "scenario", "seed", "run", "population", "draws", "invalids", "dependence"],
       "holdout_policy": "later-run-predeclared-before-analysis",
       "holdout": true,
-      "execution_ready": false,
-      "blocker": "current Arena requires exactly 16 ordered opening seeds, while ARES_HOLDOUT_V1 defines 8 explicit seed/opening cases"
+      "execution_ready": true,
+      "note": "The protected manifest is executed by explicit case (opening_index, seed) and produces one colour-inverted pair per case; it is not padded into the 16-opening development seed interface."
     }
   ]
 }

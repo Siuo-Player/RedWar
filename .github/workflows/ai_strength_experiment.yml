@@ -18,6 +18,11 @@ on:
         required: false
         default: 'origin/main'
         type: string
+      challenger_ref:
+        description: 'Exact challenger engine ref/commit. Defaults to this workflow commit.'
+        required: false
+        default: 'HEAD'
+        type: string
       population_id:
         description: 'Strength population identifier'
         required: false
@@ -84,16 +89,16 @@ jobs:
         shell: bash
         env:
           BASELINE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.baseline_ref || 'origin/main' }}
+          CHALLENGER_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.challenger_ref || github.sha }}
         run: |
           set -euo pipefail
           git fetch origin main --no-tags
           BASE_SHA=$(git rev-parse "${BASELINE_REF}^{commit}")
-          if [[ "$BASE_SHA" == "$GITHUB_SHA" ]]; then
-            echo "Invalid experiment: challenger and baseline resolve to the same commit: $BASE_SHA"
-            exit 2
-          fi
+          CHALLENGER_SHA=$(git rev-parse "${CHALLENGER_REF}^{commit}")
           echo "BASE_SHA=$BASE_SHA" >> "$GITHUB_ENV"
           echo "BASELINE_REF=$BASELINE_REF" >> "$GITHUB_ENV"
+          echo "CHALLENGER_SHA=$CHALLENGER_SHA" >> "$GITHUB_ENV"
+          echo "CHALLENGER_REF=$CHALLENGER_REF" >> "$GITHUB_ENV"
           git worktree add --detach /tmp/redwar-baseline "$BASE_SHA"
           pushd /tmp/redwar-baseline/ai/cpp_engine >/dev/null
           cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
@@ -117,9 +122,9 @@ jobs:
             exit 2
           fi
           mkdir -p /tmp/redwar-strength-results
-          WORKTREE="/tmp/redwar-$GITHUB_SHA"
+          WORKTREE="/tmp/redwar-$CHALLENGER_SHA"
           PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
-          git worktree add --detach "$WORKTREE" "$GITHUB_SHA"
+          git worktree add --detach "$WORKTREE" "$CHALLENGER_SHA"
           pushd "$WORKTREE/ai/cpp_engine" >/dev/null
           cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
           if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
@@ -137,7 +142,7 @@ jobs:
           python "$GITHUB_WORKSPACE/tools/analytics/arena_tournament.py" \
             --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
             --baseline-engine "/tmp/redwar-baseline/ai/cpp_engine/engine" \
-            --challenger-version "$GITHUB_SHA" \
+            --challenger-version "$CHALLENGER_SHA" \
             --baseline-version "$BASE_SHA" \
             --rules-version "$BASE_SHA" \
             --jogos "$GAMES" \
@@ -172,7 +177,7 @@ jobs:
             echo "Missing Arena JSONL result: $RESULTS"
             exit 1
           fi
-          python - "$RESULTS" "$VALIDATION" "$GAMES" "$GITHUB_SHA" "$BASE_SHA" "$BASE_SHA" <<'PY'
+          python - "$RESULTS" "$VALIDATION" "$GAMES" "$CHALLENGER_SHA" "$BASE_SHA" "$BASE_SHA" <<'PY'
           import json
           import sys
           from pathlib import Path
@@ -264,7 +269,7 @@ jobs:
             echo "Missing contextualized Arena JSONL result: $RESULTS"
             exit 1
           fi
-          python - "$RESULTS" "$GAMES" "$GITHUB_SHA" "$BASE_SHA" "$BASE_SHA" "$POPULATION_ID" "$SELECTION_POLICY" "$CONTROLLER_POPULATION" "$SKILL_CONTEXT" <<'PY'
+          python - "$RESULTS" "$GAMES" "$CHALLENGER_SHA" "$BASE_SHA" "$BASE_SHA" "$POPULATION_ID" "$SELECTION_POLICY" "$CONTROLLER_POPULATION" "$SKILL_CONTEXT" <<'PY'
           import json
           import sys
           from pathlib import Path
