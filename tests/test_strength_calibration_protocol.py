@@ -8,6 +8,7 @@ from tools.analytics.strength_calibration_protocol import (
 
 
 BASE = {
+    "experiment_id": "strength-calibration-2026-08-27",
     "challenger_version": "challenger-sha",
     "baseline_version": "baseline-sha",
     "rules_version": "rules-sha",
@@ -20,6 +21,8 @@ BASE = {
     "termination_policy": "game-over-or-10000-plies",
     "primary_outcome": "challenger-minus-baseline-pair-result",
     "primary_statistic": "paired-elo-equivalent",
+    "planned_diagnostics": ["colour", "opening", "seed", "run", "population", "draws", "invalids"],
+    "holdout_policy": "later-run-predeclared-before-analysis",
 }
 
 
@@ -45,10 +48,13 @@ def test_valid_protocol_requires_variation_and_holdout():
     )
 
     assert audit["schema_version"] == PROTOCOL_SCHEMA_VERSION
+    assert audit["experiment_id"] == BASE["experiment_id"]
     assert audit["run_count"] == 3
     assert audit["calibration_run_count"] == 2
     assert audit["holdout_run_count"] == 1
     assert audit["context_variation"]["distinct_calibration_contexts"] == 2
+    assert audit["planned_diagnostics"] == sorted(BASE["planned_diagnostics"])
+    assert audit["holdout_policy"] == BASE["holdout_policy"]
     assert audit["status"] == "design_validated_no_statistical_promotion_decision"
 
 
@@ -58,6 +64,19 @@ def test_rejects_duplicate_run_ids():
             [
                 run("same", 0, "population-a", "seed-set-a"),
                 run("same", 1, "population-a", "seed-set-b"),
+                run("holdout", 2, "population-b", "seed-set-h", role="holdout"),
+            ]
+        )
+
+
+def test_rejects_mixed_experiment_ids():
+    changed = run("run-b", 1, "population-a", "seed-set-b")
+    changed["experiment_id"] = "other-experiment"
+    with pytest.raises(ValueError, match="experiment_id"):
+        validate_calibration_runs(
+            [
+                run("run-a", 0, "population-a", "seed-set-a"),
+                changed,
                 run("holdout", 2, "population-b", "seed-set-h", role="holdout"),
             ]
         )
@@ -79,6 +98,19 @@ def test_rejects_frozen_control_changes():
 def test_rejects_frozen_seed_generation_rule_changes():
     changed = run("run-b", 1, "population-a", "seed-set-b")
     changed["seed_generation_rule"] = "different-rule"
+    with pytest.raises(ValueError, match="frozen analysis controls"):
+        validate_calibration_runs(
+            [
+                run("run-a", 0, "population-a", "seed-set-a"),
+                changed,
+                run("holdout", 2, "population-b", "seed-set-h", role="holdout"),
+            ]
+        )
+
+
+def test_rejects_frozen_diagnostics_changes():
+    changed = run("run-b", 1, "population-a", "seed-set-b")
+    changed["planned_diagnostics"] = ["colour"]
     with pytest.raises(ValueError, match="frozen analysis controls"):
         validate_calibration_runs(
             [
@@ -124,3 +156,4 @@ def test_serialized_plan_is_validated_from_runs():
     result = validate_calibration_plan(plan)
     assert result["run_count"] == 3
     assert result["holdout_run_count"] == 1
+    assert result["experiment_id"] == BASE["experiment_id"]
