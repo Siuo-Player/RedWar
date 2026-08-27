@@ -67,6 +67,14 @@ def _canonical_digest(bundle: dict[str, Any]) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _optional_identifier(value: str | None, name: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} must be a non-empty string when provided")
+    return value.strip()
+
+
 def build_dataset(
     results_path: str | Path,
     *,
@@ -74,11 +82,15 @@ def build_dataset(
     selection_policy: str,
     controller_population: str,
     skill_context: str,
+    experiment_id: str | None = None,
+    run_id: str | None = None,
     workflow_run_id: int | None = None,
     artifact_id: int | None = None,
     head_sha: str | None = None,
 ) -> dict[str, Any]:
     records, raw_sha256 = _load_raw(results_path)
+    experiment_id = _optional_identifier(experiment_id, "experiment_id")
+    run_id = _optional_identifier(run_id, "run_id")
     context = StrengthPopulationContext(
         population_id=population_id,
         selection_policy=selection_policy,
@@ -102,6 +114,10 @@ def build_dataset(
         )
 
     source: dict[str, Any] = {"raw_sha256": raw_sha256}
+    if experiment_id is not None:
+        source["experiment_id"] = experiment_id
+    if run_id is not None:
+        source["run_id"] = run_id
     if workflow_run_id is not None:
         source["workflow_run_id"] = int(workflow_run_id)
     if artifact_id is not None:
@@ -156,6 +172,12 @@ def load_dataset_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(manifest.get("experiment"), dict):
         raise ValueError("Strength dataset manifest experiment must be an object")
     validate_population_context(manifest["experiment"].get("strength_population"))
+    source_artifact = manifest.get("source_artifact")
+    if not isinstance(source_artifact, dict):
+        raise ValueError("Strength dataset manifest source_artifact must be an object")
+    for field in ("experiment_id", "run_id"):
+        if field in source_artifact:
+            _optional_identifier(source_artifact[field], field)
     stored_digest = manifest.get("canonical_sha256")
     if not isinstance(stored_digest, str) or not stored_digest:
         raise ValueError("Strength dataset manifest is missing canonical_sha256")
@@ -202,6 +224,8 @@ def main() -> int:
     build.add_argument("--selection-policy", required=True)
     build.add_argument("--controller-population", required=True)
     build.add_argument("--skill-context", required=True)
+    build.add_argument("--experiment-id")
+    build.add_argument("--run-id")
     build.add_argument("--workflow-run-id", type=int)
     build.add_argument("--artifact-id", type=int)
     build.add_argument("--head-sha")
@@ -220,6 +244,8 @@ def main() -> int:
             selection_policy=args.selection_policy,
             controller_population=args.controller_population,
             skill_context=args.skill_context,
+            experiment_id=args.experiment_id,
+            run_id=args.run_id,
             workflow_run_id=args.workflow_run_id,
             artifact_id=args.artifact_id,
             head_sha=args.head_sha,
