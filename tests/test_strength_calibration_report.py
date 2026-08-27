@@ -1,3 +1,6 @@
+import json
+
+import tools.analytics.strength_calibration_report as report_module
 from tools.analytics.strength_calibration_report import build_calibration_report
 
 
@@ -121,3 +124,30 @@ def test_report_requires_dataset_for_every_run(monkeypatch):
         assert "dataset_path" in str(exc)
     else:
         raise AssertionError("missing dataset_path must be rejected")
+
+
+def test_manifest_loader_forwards_analysis_options(tmp_path, monkeypatch):
+    manifest = tmp_path / "runs.json"
+    manifest.write_text(json.dumps({"runs": []}), encoding="utf-8")
+    captured = {}
+
+    def fake_build(runs, *, bootstrap_samples, seed):
+        captured["runs"] = runs
+        captured["bootstrap_samples"] = bootstrap_samples
+        captured["seed"] = seed
+        return {"status": "captured"}
+
+    monkeypatch.setattr(report_module, "build_calibration_report", fake_build)
+
+    result = report_module.load_run_manifest(
+        manifest,
+        bootstrap_samples=321,
+        seed=17,
+    )
+
+    assert result == {"status": "captured"}
+    assert captured == {
+        "runs": [],
+        "bootstrap_samples": 321,
+        "seed": 17,
+    }
