@@ -41,13 +41,16 @@ def make_case(opening_index: int | None) -> GameState:
     return state
 
 
-def test_python_cpp_perft_node_counts_match():
-    assert BRIDGE.exists(), f"C++ perft bridge binary missing: {BRIDGE}. Run build_cpp_engine.py --perft-test."
+def move_label(action: dict) -> str:
+    sr, sc = action["start"]
+    er, ec = action["end"]
+    return f"{action['type']} ({sr},{sc})->({er},{ec})"
 
-    requests = [(label, make_case(opening_index), depth) for label, opening_index, depth in CASES]
-    expected = [(label, depth, python_perft(state, depth)) for label, state, depth in requests]
 
-    payload = "".join(f"{depth}\n{state.to_rwen()}\n" for _label, state, depth in requests)
+def cpp_perft(states_and_depths: list[tuple[GameState, int]]) -> list[int]:
+    payload = "".join(
+        f"{depth}\n{state.to_rwen()}\n" for state, depth in states_and_depths
+    )
     result = subprocess.run(
         [str(BRIDGE)],
         input=payload,
@@ -57,13 +60,44 @@ def test_python_cpp_perft_node_counts_match():
         check=False,
     )
     assert result.returncode == 0, result.stderr or result.stdout
-
     lines = [line for line in result.stdout.splitlines() if line]
-    assert len(lines) == len(expected)
+    assert len(lines) == len(states_and_depths)
+    assert all(line.startswith("NODES ") for line in lines), lines
+    return [int(line.removeprefix("NODES ")) for line in lines]
 
-    for (label, depth, expected_nodes), line in zip(expected, lines):
-        assert line.startswith("NODES "), f"{label}: malformed C++ perft output: {line}"
-        actual_nodes = int(line.removeprefix("NODES "))
+
+def test_python_cpp_perft_node_counts_match():
+    assert BRIDGE.exists(), f"C++ perft bridge binary missing: {BRIDGE}. Run build_cpp_engine.py --perft-test."
+
+    requests = [(label, make_case(opening_index), depth) for label, opening_index, depth in CASES]
+    expected = [(label, depth, python_perft(state, depth)) for label, state, depth in requests]
+
+    actual = cpp_perft([(state, depth) for _label, state, depth in requests])
+
+    for (label, depth, expected_nodes), actual_nodes in zip(expected, actual):
+        if actual_nodes != expected_nodes and label == "opening-1":
+            state = make_case(1)
+            root_actions = actions_for(state)
+            children = []
+            child_expected = []
+            for action in root_actions:
+                child = state.fast_clone()
+                child.execute_action(action)
+                children.append(child)
+                child_expected.append(len(actions_for(child)))
+
+            child_actual = cpp_perft([(child, 1) for child in children])
+            mismatches = [
+                (move_label(action), py, cpp)
+                for action, py, cpp in zip(root_actions, child_expected, child_actual)
+                if py != cpp
+            ]
+            raise AssertionError(
+                f"{label}: Python/C++ node-count mismatch at depth {depth}: "
+                f"Python={expected_nodes}, C++={actual_nodes}. "
+                f"Root-child mismatches={mismatches}"
+            )
+
         assert actual_nodes == expected_nodes, (
             f"{label}: Python/C++ node-count mismatch at depth {depth}: "
             f"Python={expected_nodes}, C++={actual_nodes}"
