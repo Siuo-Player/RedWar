@@ -70,7 +70,7 @@ def python_actions(gs: GameState) -> set[str]:
                     spell_name = spell.get("spell_type")
                 else:
                     target = spell[0:2]
-                    spell_name = spell[2] if len(spell) >= 3 else ("jump" if piece.name == "Dragoon" and len(spell) == 2 else None)
+                    spell_name = spell[2] if len(spell) >= 3 else None
                 if spell_name:
                     actions.add(
                         action_text(
@@ -174,3 +174,21 @@ def test_python_cpp_move_generation_equivalence():
             f"Missing in C++ ({len(missing)}): {missing}\n"
             f"Extra in C++ ({len(extra)}): {extra}"
         )
+
+
+def test_dragoon_jump_uses_standard_spell_action_contract():
+    state = GameState()
+    dragoon = criar_peca_por_nome("Dragoon", "brancas")
+    state.board[3][3] = dragoon
+
+    spells = dragoon.get_valid_spells(3, 3, state.board, state.tile_effects)
+    assert spells == [
+        {"target": (1, 3), "spell_type": "jump"},
+        {"target": (5, 3), "spell_type": "jump"},
+        {"target": (3, 1), "spell_type": "jump"},
+        {"target": (3, 5), "spell_type": "jump"},
+        {"target": (1, 1), "spell_type": "jump"},
+        {"target": (1, 5), "spell_type": "jump"},
+        {"target": (5, 1), "spell_type": "jump"},
+        {"target": (5, 5), "spell_type": "jump"},
+    ]
