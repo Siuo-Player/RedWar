@@ -1,0 +1,26 @@
+name: Debug Strength Dataset Digest
+
+on:
+  push:
+    branches:
+      - feat/real-arena-scientific-dataset-2026-08-27
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Print canonical digest
+        run: |
+          python - <<'PY'
+          import json
+          from tools.analytics.strength_dataset import _canonical_digest
+          path = "data/arena/strength/2026-08-27-control-100.json"
+          payload = json.loads(open(path, encoding="utf-8").read())
+          print(f"EXPECTED_CANONICAL_SHA256={_canonical_digest(payload)}")
+          PY
