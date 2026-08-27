@@ -70,6 +70,13 @@ def test_valid_experiment_records_are_accepted():
     assert audit["invalid_games"] == 0
     assert audit["complete_valid_pairs"] == 2
     assert audit["incomplete_valid_pair_ids"] == []
+    assert audit["outcomes"] == {"baseline": 1, "challenger": 2, "draw": 1, "invalid": 0}
+
+
+def test_zero_count_outcomes_are_preserved():
+    records = [game(0, "challenger"), game(1, "baseline"), game(2, "baseline"), game(3, "challenger")]
+    audit = validate_experiment_records(records, METADATA)
+    assert audit["outcomes"] == {"baseline": 2, "challenger": 2, "draw": 0, "invalid": 0}
 
 
 def test_invalid_observation_is_explicit_and_excluded_from_pairs():
