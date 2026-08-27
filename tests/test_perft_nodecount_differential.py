@@ -4,6 +4,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from engine.game_state import GameState
 from tools.analytics.opening_book import carregar_abertura_do_book
 from tests.test_cross_backend_make_unmake import actions_for
