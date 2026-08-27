@@ -8,7 +8,7 @@
 
 A fundação de correctness, provenance e observabilidade da Ares está concluída. O trabalho atual está concentrado na validação empírica do Strength antes de alterar a política de promoção ou iniciar um novo bloco agressivo de search/NNUE.
 
-A documentação de pesquisa foi entretanto atualizada com um protocolo executável de **replicação e calibração**. A principal consequência é que uma segunda tranche não deve ser apenas “mais jogos”: deve introduzir runs e variação experimental suficientes para avaliar estabilidade, dependência e generalização.
+A documentação de pesquisa recebeu uma atualização posterior do protocolo de **replicação e calibração**. O contrato agora exige não só runs e variação experimental, mas também um `experiment_id` comum, regra de geração de seeds congelada, diagnósticos planeados congelados e uma política de hold-out declarada antes da análise.
 
 ### Blocos concluídos mais recentemente
 
@@ -60,16 +60,16 @@ Run C — openings/scenarios estratificados
 Run D — população mais ampla
 ```
 
-Cada run deve congelar antes da execução:
+Cada batch deve pertencer a um `experiment_id` comum e congelar antes da execução:
 
 - challenger/baseline/rules versions;
 - compute/node budget;
-- opening/scenario sampling;
+- opening/scenario sampling rule;
 - seed-generation rule;
 - colour pairing;
 - validity/termination policy;
 - primary outcome/statistic;
-- diagnostics;
+- planned diagnostics;
 - hold-out policy.
 
 A análise deve preservar a hierarquia:
@@ -120,6 +120,8 @@ Nenhuma alteração do proxy é autorizada apenas porque uma única experiência
 
 Para qualquer refinamento do modelo, deve existir pelo menos um run, estrato ou subconjunto previamente declarado como hold-out.
 
+A política de hold-out deve fazer parte do contrato congelado do batch e não pode ser alterada depois de os resultados serem observados.
+
 A sequência exigida é:
 
 ```text
@@ -131,7 +133,28 @@ calibration data
 
 O mesmo dado não pode servir simultaneamente para descobrir o efeito, escolher o modelo e declarar a validação final.
 
-### 6. SPRT
+### 6. Protocolo executável
+
+`tools/analytics/strength_calibration_protocol.py` agora valida `redwar-strength-calibration-protocol-v3`.
+
+O protocolo exige:
+
+```text
+experiment_id comum
+run_id único
+sequência única e ordenada
+seed-generation rule congelada
+planned diagnostics congelados
+hold-out policy congelada
+variação de população/seed entre runs de calibração
+hold-out posterior à calibração
+```
+
+O validador continua deliberadamente sem autoridade estatística de promoção. Ele valida desenho experimental, não inferência.
+
+`tools/analytics/strength_calibration_report.py` permanece a camada descritiva para comparar datasets persistidos run-a-run. A análise entre runs continua a ser observacional até existir evidência suficiente para um modelo inferencial.
+
+### 7. SPRT
 
 `tools/analytics/sprt.py` continua isolado e sem autoridade de promoção.
 
