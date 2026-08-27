@@ -33,6 +33,10 @@ EXPLICIT_SEED_POLICY = "explicit-fixed-seed-set-v1"
 SEED_GENERATION_RULE = "explicit-fixed-seed-set-v1"
 
 
+def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
+    return vitorias_desafiante - vitorias_atual >= margem
+
+
 def parse_opening_seeds(raw: str, openings: int = 16) -> tuple[int, ...]:
     """Parse and validate an explicit ordered opening-seed set."""
     if not isinstance(raw, str) or not raw.strip():
@@ -54,6 +58,16 @@ def parse_opening_seeds(raw: str, openings: int = 16) -> tuple[int, ...]:
     if any(seed < 0 for seed in seeds):
         raise ValueError("opening seeds must be non-negative")
     return seeds
+
+
+def select_opening_seed(game_index: int, opening_seeds: Sequence[int]) -> int:
+    """Select the opening seed by pair index so both colours share one seed."""
+    if game_index < 0:
+        raise ValueError("game index must be non-negative")
+    if not opening_seeds:
+        raise ValueError("opening seed set must not be empty")
+    opening_index = (game_index // 2) % len(opening_seeds)
+    return int(opening_seeds[opening_index])
 
 
 def build_experiment_metadata(
@@ -159,12 +173,7 @@ def summarize_pentanomial(games: list[dict[str, object]]) -> dict[str, object]:
         for game in valid_games
     ]
     if not outcomes:
-        return {
-            "complete_pairs": 0,
-            "incomplete_pair_ids": [],
-            "bins": {},
-            "paired_games_used": 0,
-        }
+        return {"complete_pairs": 0, "incomplete_pair_ids": [], "bins": {}, "paired_games_used": 0}
     validate_pair_structure(outcomes)
     counts = aggregate_pentanomial(outcomes)
     incomplete = sorted(incomplete_pairs(outcomes))
@@ -211,11 +220,7 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_
         best_move = bot.play(gs)
         if best_move:
             action = _normalizar_acao(best_move)
-            actions.append({
-                "ply": turnos,
-                "side": "white" if white_to_move else "black",
-                "action": action,
-            })
+            actions.append({"ply": turnos, "side": "white" if white_to_move else "black", "action": action})
             action_types[action["type"]] += 1
             gs.execute_action(best_move)
         else:
@@ -304,7 +309,7 @@ def start_tournament(
         nodes,
         num_games,
         opening_count,
-        resolved_seeds,
+        opening_seeds,
         seed_policy,
         seed_generation_rule,
     )
@@ -315,7 +320,7 @@ def start_tournament(
             opening_index = (i // 2) % opening_count
             pair_id = make_pair_id(i)
             pair_member = i % 2
-            opening_seed = resolved_seeds[opening_index]
+            opening_seed = select_opening_seed(i, resolved_seeds)
             if i % 2 == 0:
                 challenger_color: Color = "white"
                 game = run_headless_match(challenger, baseline, opening_index, opening_seed)
@@ -410,10 +415,6 @@ def start_tournament(
             bot.__del__()
 
 
-def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
-    return vitorias_desafiante - vitorias_atual >= margem
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description="A/B Arena entre duas engines RedWar")
     parser.add_argument("--challenger-engine", required=True)
@@ -425,10 +426,7 @@ def main() -> int:
     parser.add_argument("--challenger-version", default="unknown")
     parser.add_argument("--baseline-version", default="unknown")
     parser.add_argument("--rules-version", default="unknown")
-    parser.add_argument(
-        "--opening-seeds",
-        help="Explicit ordered comma-separated opening seed set (exactly 16 unique non-negative integers).",
-    )
+    parser.add_argument("--opening-seeds", help="Explicit ordered comma-separated opening seed set (exactly 16 unique non-negative integers).")
     parser.add_argument("--seed-policy", help="Declared seed policy stored in experiment provenance")
     parser.add_argument("--seed-generation-rule", help="Declared seed-generation rule stored in experiment provenance")
     args = parser.parse_args()
