@@ -1,0 +1,20 @@
+{
+  "dataset": "data/arena/strength/2026-08-27-control-100.json",
+  "dataset_schema_version": "redwar-strength-dataset-v1",
+  "evidence_class": "real_arena",
+  "source_dataset_canonical_sha256": "e99e58b2d6e34747276da92ce93ec53a106e4447b0992e3b91080c9f7b27c7de",
+  "audit": {
+    "units": 50,
+    "bootstrap_samples": 20000,
+    "seed": 0,
+    "aggregate_implied_elo_delta": 0.0,
+    "empirical_p02_5": -41.4753747354028,
+    "empirical_p97_5": 41.4753747354028,
+    "empirical_half_width": 41.4753747354028,
+    "audit_status": "descriptive_paired_resampling_only_with_boundary_smoothing",
+    "current_engineering_proxy_half_width": 755.0803193446252,
+    "proxy_to_empirical_half_width": 18.205509272954178,
+    "boundary_smoothing": "0.5_decisive_count_each_side_for_paired_bootstrap_only"
+  },
+  "interpretation": "This is a descriptive empirical audit of one real Arena control experiment. It is not a calibrated confidence interval, not a promotion decision, and not sufficient evidence to replace the production uncertainty proxy."
+}
