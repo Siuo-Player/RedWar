@@ -137,8 +137,8 @@ def load_dataset_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict) or not isinstance(payload.get("manifest"), dict):
         raise ValueError("Strength dataset must contain a manifest")
     manifest = payload["manifest"]
-    required = {"schema_version", "evidence_class", "experiment", "validation", "games", "independent_units", "canonical_sha256"}
-    missing = sorted(required - payload.keys() - {"canonical_sha256"})
+    required = {"schema_version", "evidence_class", "experiment", "validation", "games", "independent_units"}
+    missing = sorted(required - payload.keys())
     if missing:
         raise ValueError(f"Strength dataset is missing required fields: {missing}")
     if manifest.get("schema_version") != DATASET_SCHEMA_VERSION:
@@ -146,7 +146,10 @@ def load_dataset_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if manifest.get("evidence_class") != EVIDENCE_CLASS:
         raise ValueError("Strength dataset evidence class must be real_arena")
     validate_population_context(manifest["experiment"].get("strength_population"))
-    if _canonical_digest(payload) != manifest["canonical_sha256"]:
+    stored_digest = manifest.get("canonical_sha256")
+    if not isinstance(stored_digest, str) or not stored_digest:
+        raise ValueError("Strength dataset manifest is missing canonical_sha256")
+    if _canonical_digest(payload) != stored_digest:
         raise ValueError("Strength dataset canonical hash does not match its contents")
 
     games = payload["games"]
