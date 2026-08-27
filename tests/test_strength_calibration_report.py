@@ -2,6 +2,7 @@ from tools.analytics.strength_calibration_report import build_calibration_report
 
 
 BASE = {
+    "experiment_id": "strength-calibration-2026-08-27",
     "challenger_version": "challenger-sha",
     "baseline_version": "baseline-sha",
     "rules_version": "rules-sha",
@@ -14,6 +15,8 @@ BASE = {
     "termination_policy": "game-over-or-10000-plies",
     "primary_outcome": "challenger-minus-baseline-pair-result",
     "primary_statistic": "paired-elo-equivalent",
+    "planned_diagnostics": ["colour", "opening", "seed", "run", "population", "draws", "invalids"],
+    "holdout_policy": "later-run-predeclared-before-analysis",
 }
 
 
@@ -87,12 +90,15 @@ def test_report_keeps_runs_separate_and_is_descriptive(monkeypatch):
         seed=7,
     )
 
-    assert report["schema_version"] == "redwar-strength-calibration-report-v1"
+    assert report["schema_version"] == "redwar-strength-calibration-report-v2"
+    assert report["experiment_id"] == BASE["experiment_id"]
     assert report["aggregate"]["calibration_runs"] == 2
     assert report["aggregate"]["holdout_runs"] == 1
     assert report["aggregate"]["between_run_mean_implied_elo_delta"] == 2.5
     assert report["aggregate"]["between_run_sample_std_implied_elo_delta"] is not None
     assert report["aggregate"]["interpretation"].startswith("descriptive_multi_run_evidence_only")
+    assert report["runs"][0]["seed_generation_rule"] == BASE["seed_generation_rule"]
+    assert report["runs"][0]["planned_diagnostics"] == BASE["planned_diagnostics"]
 
 
 def test_report_requires_dataset_for_every_run(monkeypatch):
