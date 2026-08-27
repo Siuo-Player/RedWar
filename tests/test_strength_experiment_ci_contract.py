@@ -43,6 +43,17 @@ def test_strength_workflow_push_defaults_are_reproducible():
     assert "paired-fixed-openings" in text
 
 
+def test_strength_workflow_carries_explicit_seed_controls():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert "opening_seeds:" in text
+    assert "seed_policy:" in text
+    assert "seed_generation_rule:" in text
+    assert "--opening-seeds \"$OPENING_SEEDS\"" in text
+    assert "--seed-policy \"$SEED_POLICY\"" in text
+    assert "--seed-generation-rule \"$SEED_GENERATION_RULE\"" in text
+    assert "10091,10211,10307,10401,10503,10601,10709,10809,10907,11009,11103,11201,11301,11409,11501,11601" not in text
+
+
 def test_strength_workflow_retains_raw_experiment_artifacts():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "path: /tmp/redwar-strength-results/" in text
