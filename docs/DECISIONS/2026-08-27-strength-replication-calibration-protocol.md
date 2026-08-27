@@ -73,6 +73,23 @@ At least one later run, stratum or predeclared subset should remain available as
 
 `data/arena/strength/plans/2026-08-27-replication-v3.json` is a predeclared, not-yet-executed plan. It contains placeholder engine/rules SHAs intentionally; real execution must freeze actual commits before data collection.
 
+## SPRT validation block — newly opened
+
+The existing `tools/analytics/sprt.py` is deliberately isolated from promotion, but its unit tests alone do not establish operating characteristics. The next implementation step is therefore a **synthetic diagnostic harness**, not a production-gate change.
+
+The harness must measure at least:
+
+```text
+known-null experiments → empirical false-positive rate
+known-positive-effect experiments → empirical false-negative rate
+known draw-rate experiments → explicit draw handling
+maximum-game budget → stopping/continuation behaviour
+```
+
+The diagnostic must be deterministic through an explicit RNG seed and must report the number of simulations, the simulated truth, observed decisions and rates. It is evidence about this implementation under its stated Bernoulli/Elo assumptions; it is **not** validation of repeated-condition independence or real-Arena calibration.
+
+Invalid/incomplete inputs remain caller/data-contract concerns: the current SPRT API rejects unknown outcomes rather than silently coercing them, and promotion must remain disabled until those real-data semantics are validated against Arena provenance. A synthetic Monte Carlo result must never be presented as proof that repeated Arena conditions are independent.
+
 ## Promotion implications
 
 The current engineering uncertainty proxy remains unchanged until repeated-run evidence establishes whether it tracks observed variation across relevant contexts.
