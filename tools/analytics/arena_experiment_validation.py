@@ -96,7 +96,7 @@ def validate_experiment_records(
     )
 
     seen_indices: set[int] = set()
-    outcomes: list[str] = []
+    outcome_counts: Counter[str] = Counter()
     valid_records: list[dict] = []
     invalid_records: list[dict] = []
 
@@ -154,7 +154,7 @@ def validate_experiment_records(
             )
             invalid_records.append(game)
 
-        outcomes.append(str(game["outcome"]))
+        outcome_counts[str(game["outcome"])] += 1
 
     valid_outcomes = [
         GameOutcome(
@@ -172,11 +172,12 @@ def validate_experiment_records(
     pair_ids = {game.pair_id for game in valid_outcomes}
     complete_pair_ids = pair_ids - set(incomplete_pair_ids)
 
+    outcomes = {outcome: outcome_counts[outcome] for outcome in sorted(VALID_OUTCOMES)}
     return {
         "games": len(records),
         "valid_games": len(valid_records),
         "invalid_games": len(invalid_records),
-        "outcomes": dict(Counter(outcomes)),
+        "outcomes": outcomes,
         "incomplete_valid_pair_ids": incomplete_pair_ids,
         "complete_valid_pairs": len(complete_pair_ids),
         "node_budget": node_budget,
