@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from tools.analytics.strength_dataset import audit_dataset, build_dataset, load_dataset
+from tools.analytics.strength_dataset import _canonical_digest, audit_dataset, build_dataset, load_dataset
 
 
 FIELDS = (
@@ -90,7 +90,10 @@ def test_dataset_rejects_incomplete_pair(tmp_path):
 
 
 def test_load_real_arena_dataset_and_run_existing_empirical_audit():
-    bundle = load_dataset("data/arena/strength/2026-08-27-control-100.json")
+    path = "data/arena/strength/2026-08-27-control-100.json"
+    payload = json.loads(open(path, encoding="utf-8").read())
+    print(f"EXPECTED_CANONICAL_SHA256={_canonical_digest(payload)}")
+    bundle = load_dataset(path)
     assert bundle["manifest"]["evidence_class"] == "real_arena"
     assert bundle["manifest"]["validation"]["valid_games"] == 100
     assert bundle["manifest"]["independent_units"] == 50
