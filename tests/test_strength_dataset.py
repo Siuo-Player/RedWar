@@ -60,10 +60,16 @@ def test_build_dataset_preserves_scientific_fields_and_pair_units(tmp_path):
         workflow_run_id=123,
         artifact_id=456,
         head_sha="abc",
+        experiment_id="exp-2026-08-27",
+        run_id="run-0001",
     )
 
     assert bundle["manifest"]["evidence_class"] == "real_arena"
     assert bundle["manifest"]["source_artifact"]["workflow_run_id"] == 123
+    assert bundle["manifest"]["source_artifact"]["artifact_id"] == 456
+    assert bundle["manifest"]["source_artifact"]["head_sha"] == "abc"
+    assert bundle["manifest"]["source_artifact"]["experiment_id"] == "exp-2026-08-27"
+    assert bundle["manifest"]["source_artifact"]["run_id"] == "run-0001"
     assert bundle["manifest"]["experiment"]["strength_population"]["population_id"] == "pop-v1"
     assert len(bundle["games"]) == 4
     assert len(bundle["independent_units"]) == 2
