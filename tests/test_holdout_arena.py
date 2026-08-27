@@ -45,15 +45,18 @@ def test_holdout_summary_preserves_cases_and_colour_pairs(monkeypatch):
     assert summary["invalid_games"] == 0
 
     for index in range(8):
+        first, second = summary["games_detail"][index * 2:index * 2 + 2]
+        assert first["pair_id"] == second["pair_id"]
+        assert first["holdout_case"] == second["holdout_case"]
+        assert first["opening_index"] == second["opening_index"]
+        assert first["seed"] == second["seed"]
+        assert first["challenger_color"] != second["challenger_color"]
+        assert first["pair_member"] == 0
+        assert second["pair_member"] == 1
         assert calls[index * 2] == calls[index * 2 + 1]
 
-    for index, game in enumerate(summary["games_detail"]):
-        pair_start = index - (index % 2)
-        assert game["pair_id"] == f"holdout-{summary['games_detail'][pair_start]['holdout_case']}"
-        assert game["pair_member"] == index % 2
 
-
-def test_holdout_keeps_explicit_case_identity(monkeypatch):
+def test_holdout_keeps_explicit_case_identity_and_provenance(monkeypatch):
     class FakeBot:
         def __init__(self, *args, **kwargs):
             pass
@@ -74,6 +77,17 @@ def test_holdout_keeps_explicit_case_identity(monkeypatch):
     monkeypatch.setattr(holdout_arena, "CppEngineBot", FakeBot)
     monkeypatch.setattr(holdout_arena, "run_headless_match", fake_match)
 
-    summary = holdout_arena.run_holdout("challenger", "baseline", 100)
+    summary = holdout_arena.run_holdout(
+        "challenger",
+        "baseline",
+        10000,
+        challenger_version="challenger-sha",
+        baseline_version="baseline-sha",
+        rules_version="rules-sha",
+    )
     case_ids = [game["holdout_case"] for game in summary["games_detail"]]
     assert case_ids == [f"holdout-00{i}" for i in range(1, 9) for _ in (0, 1)]
+    assert summary["experiment"]["challenger_version"] == "challenger-sha"
+    assert summary["experiment"]["baseline_version"] == "baseline-sha"
+    assert summary["experiment"]["rules_version"] == "rules-sha"
+    assert summary["experiment"]["node_budget"] == 10000
