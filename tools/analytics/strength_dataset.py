@@ -47,9 +47,17 @@ def _load_raw(path: str | Path) -> tuple[list[dict[str, Any]], str]:
     return records, hashlib.sha256(raw).hexdigest()
 
 
+def _operational_experiment(experiment: dict[str, Any]) -> dict[str, Any]:
+    """Return Arena validation controls without Strength-only population metadata."""
+    operational = dict(experiment)
+    operational.pop("strength_population", None)
+    return operational
+
+
 def _validate_dataset_games(games: list[dict[str, Any]], experiment: dict[str, Any]) -> dict[str, Any]:
-    records = [dict(game, experiment=experiment) for game in games]
-    return validate_experiment_records(records, experiment, require_strength_population=True)
+    operational = _operational_experiment(experiment)
+    records = [dict(game, experiment=operational) for game in games]
+    return validate_experiment_records(records, operational, require_strength_population=False)
 
 
 def _canonical_digest(bundle: dict[str, Any]) -> str:
