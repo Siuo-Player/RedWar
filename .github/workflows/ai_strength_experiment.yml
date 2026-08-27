@@ -38,6 +38,21 @@ on:
         required: false
         default: 'fixed-node-budget'
         type: string
+      opening_seeds:
+        description: 'Ordered 16-seed opening set, comma-separated'
+        required: false
+        default: '101,211,307,401,503,601,709,809,907,1009,1103,1201,1301,1409,1501,1601'
+        type: string
+      seed_policy:
+        description: 'Declared seed policy stored in experiment provenance'
+        required: false
+        default: 'canonical-opening-book-v1'
+        type: string
+      seed_generation_rule:
+        description: 'Declared seed-generation rule stored in experiment provenance'
+        required: false
+        default: 'canonical-opening-book-v1'
+        type: string
   push:
     branches:
       - 'experiment/strength/**'
@@ -92,6 +107,9 @@ jobs:
         env:
           GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}
           NODES: ${{ github.event_name == 'workflow_dispatch' && inputs.nodes || '10000' }}
+          OPENING_SEEDS: ${{ github.event_name == 'workflow_dispatch' && inputs.opening_seeds || '101,211,307,401,503,601,709,809,907,1009,1103,1201,1301,1409,1501,1601' }}
+          SEED_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_policy || 'canonical-opening-book-v1' }}
+          SEED_GENERATION_RULE: ${{ github.event_name == 'workflow_dispatch' && inputs.seed_generation_rule || 'canonical-opening-book-v1' }}
         run: |
           set -u
           if (( GAMES % 2 != 0 )); then
@@ -125,6 +143,9 @@ jobs:
             --jogos "$GAMES" \
             --margem-vitorias 0 \
             --nodes "$NODES" \
+            --opening-seeds "$OPENING_SEEDS" \
+            --seed-policy "$SEED_POLICY" \
+            --seed-generation-rule "$SEED_GENERATION_RULE" \
             --results "${PREFIX}-games.jsonl" \
             2>&1 | tee "${PREFIX}-arena.txt"
           rc=${PIPESTATUS[0]}
