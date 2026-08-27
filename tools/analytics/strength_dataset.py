@@ -137,14 +137,16 @@ def load_dataset_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(payload, dict) or not isinstance(payload.get("manifest"), dict):
         raise ValueError("Strength dataset must contain a manifest")
     manifest = payload["manifest"]
-    required = {"schema_version", "evidence_class", "experiment", "validation", "games", "independent_units"}
-    missing = sorted(required - payload.keys())
+    required = {"schema_version", "evidence_class", "experiment", "validation", "independent_units", "game_records"}
+    missing = sorted(required - manifest.keys())
     if missing:
-        raise ValueError(f"Strength dataset is missing required fields: {missing}")
+        raise ValueError(f"Strength dataset manifest is missing required fields: {missing}")
     if manifest.get("schema_version") != DATASET_SCHEMA_VERSION:
         raise ValueError("unsupported Strength dataset schema version")
     if manifest.get("evidence_class") != EVIDENCE_CLASS:
         raise ValueError("Strength dataset evidence class must be real_arena")
+    if not isinstance(manifest.get("experiment"), dict):
+        raise ValueError("Strength dataset manifest experiment must be an object")
     validate_population_context(manifest["experiment"].get("strength_population"))
     stored_digest = manifest.get("canonical_sha256")
     if not isinstance(stored_digest, str) or not stored_digest:
@@ -152,10 +154,15 @@ def load_dataset_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if _canonical_digest(payload) != stored_digest:
         raise ValueError("Strength dataset canonical hash does not match its contents")
 
-    games = payload["games"]
-    units = payload["independent_units"]
+    games = payload.get("games")
+    units = payload.get("independent_units")
     if not isinstance(games, list) or not isinstance(units, list):
         raise ValueError("Strength dataset games and independent_units must be lists")
+    if manifest["game_records"] != len(games):
+        raise ValueError("Strength dataset manifest game_records does not match games")
+    if manifest["independent_units"] != len(units):
+        raise ValueError("Strength dataset manifest independent_units does not match units")
+
     validation = _validate_dataset_games(games, manifest["experiment"])
     if validation != manifest["validation"]:
         raise ValueError("dataset validation summary does not match its game records")
