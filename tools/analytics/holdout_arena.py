@@ -12,7 +12,15 @@ from tools.analytics.arena_tournament import _winner_side, run_headless_match
 from tools.analytics.holdout_validation import canonical_sha256, load_holdout
 
 
-def run_holdout(challenger_engine: str, baseline_engine: str, nodes: int, results_path: str | None = None) -> dict:
+def run_holdout(
+    challenger_engine: str,
+    baseline_engine: str,
+    nodes: int,
+    results_path: str | None = None,
+    challenger_version: str = "unknown",
+    baseline_version: str = "unknown",
+    rules_version: str = "unknown",
+) -> dict:
     manifest = load_holdout()
     challenger = CppEngineBot(nodes=nodes, executable_path=challenger_engine)
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
@@ -84,10 +92,24 @@ def run_holdout(challenger_engine: str, baseline_engine: str, nodes: int, result
         for game in games
     ])
 
+    manifest_sha = canonical_sha256()
     summary = {
         "mode": "protected_holdout",
         "holdout_set_id": manifest["set_id"],
-        "holdout_set_sha256": canonical_sha256(),
+        "holdout_set_sha256": manifest_sha,
+        "experiment": {
+            "mode": "protected_holdout",
+            "challenger_version": str(challenger_version),
+            "baseline_version": str(baseline_version),
+            "rules_version": str(rules_version),
+            "node_budget": int(nodes),
+            "opening_policy": "protected-holdout-manifest-v1",
+            "seed_policy": "predeclared-holdout-manifest",
+            "termination_policy": "game_over_or_10000_plies",
+            "validity_policy": "game-over-winner-only",
+            "holdout_set_id": manifest["set_id"],
+            "holdout_set_sha256": manifest_sha,
+        },
         "cases": len(manifest["cases"]),
         "games": len(games),
         "complete_pairs": len(manifest["cases"]),
@@ -112,8 +134,19 @@ def main() -> int:
     parser.add_argument("--baseline-engine", required=True)
     parser.add_argument("--nodes", type=int, default=10_000)
     parser.add_argument("--results")
+    parser.add_argument("--challenger-version", default="unknown")
+    parser.add_argument("--baseline-version", default="unknown")
+    parser.add_argument("--rules-version", default="unknown")
     args = parser.parse_args()
-    summary = run_holdout(args.challenger_engine, args.baseline_engine, args.nodes, args.results)
+    summary = run_holdout(
+        args.challenger_engine,
+        args.baseline_engine,
+        args.nodes,
+        args.results,
+        args.challenger_version,
+        args.baseline_version,
+        args.rules_version,
+    )
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
 
