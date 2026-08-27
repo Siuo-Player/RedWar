@@ -2,8 +2,17 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+# This module is also invoked directly by CI as ``python tools/analytics/...py``.
+# In that mode Python puts ``tools/analytics`` on sys.path rather than the
+# repository root, so the top-level ``tools`` package would otherwise be
+# unimportable. Add the repository root explicitly before package imports.
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPOSITORY_ROOT))
 
 from tools.analytics.strength_context_effects import summarize_strength_context_effects
 from tools.analytics.strength_population import StrengthPopulationContext, validate_population_context
