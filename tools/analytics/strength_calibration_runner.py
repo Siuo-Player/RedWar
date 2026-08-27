@@ -21,9 +21,6 @@ if str(ROOT) not in sys.path:
 from tools.analytics.strength_calibration_protocol import validate_calibration_plan
 
 
-DEFAULT_GAMES = 100
-
-
 def load_plan(path: str | Path) -> dict[str, Any]:
     source = Path(path)
     if not source.is_file():
@@ -39,11 +36,10 @@ def get_run(plan: dict[str, Any], run_id: str) -> dict[str, Any]:
     raise ValueError(f"unknown run_id: {run_id}")
 
 
-def _resolve_games(run: dict[str, Any], games: int | None) -> int:
-    resolved = games if games is not None else run.get("games", DEFAULT_GAMES)
-    if not isinstance(resolved, int) or isinstance(resolved, bool) or resolved <= 0 or resolved % 2:
+def resolve_games(games: int) -> int:
+    if not isinstance(games, int) or isinstance(games, bool) or games <= 0 or games % 2:
         raise ValueError("games must be a positive even integer")
-    return resolved
+    return games
 
 
 def build_arena_command(
@@ -53,7 +49,9 @@ def build_arena_command(
     baseline_engine: str,
     games: int,
     nodes: int,
-    opening_seeds: list[int],
+    selection_policy: str,
+    controller_population: str,
+    skill_context: str,
     results_path: str,
 ) -> list[str]:
     challenger_version = str(run["challenger_version"])
@@ -63,8 +61,11 @@ def build_arena_command(
         raise ValueError("same-engine calibration runs require identical challenger/baseline revisions")
     if nodes != int(run["node_budget"]):
         raise ValueError("nodes must match the frozen calibration-plan node_budget")
-    if not opening_seeds:
-        raise ValueError("opening_seeds must not be empty")
+    if not all(isinstance(value, str) and value.strip() for value in (selection_policy, controller_population, skill_context)):
+        raise ValueError("population context fields must be non-empty strings")
+    opening_seeds = [int(seed) for seed in run.get("opening_seeds", [])]
+    if len(opening_seeds) != 16:
+        raise ValueError("calibration runner requires exactly 16 predeclared opening seeds")
 
     # games + 1 is strictly above the maximum possible win-margin for this run.
     # This keeps the Arena's legacy promotion calculation from ever evaluating
@@ -95,19 +96,22 @@ def run_calibration(
     *,
     challenger_engine: str,
     baseline_engine: str,
+    selection_policy: str,
+    controller_population: str,
+    skill_context: str,
+    games: int,
     results_path: str | Path,
     dataset_path: str | Path,
-    games: int | None = None,
 ) -> dict[str, Any]:
     payload = json.loads(Path(plan_path).read_text(encoding="utf-8"))
-    validate_calibration_plan(payload)
+    plan_audit = validate_calibration_plan(payload)
     run = get_run(payload, run_id)
     if not run.get("execution_ready", False):
         raise ValueError(f"run {run_id} is not execution-ready: {run.get('blocker', 'no blocker recorded')}")
     if run["role"] != "calibration":
         raise ValueError("this runner executes calibration runs only")
 
-    resolved_games = _resolve_games(run, games)
+    resolved_games = resolve_games(games)
     nodes = int(run["node_budget"])
     opening_seeds = [int(seed) for seed in run.get("opening_seeds", [])]
     if len(opening_seeds) != 16:
@@ -121,7 +125,9 @@ def run_calibration(
         baseline_engine=baseline_engine,
         games=resolved_games,
         nodes=nodes,
-        opening_seeds=opening_seeds,
+        selection_policy=selection_policy,
+        controller_population=controller_population,
+        skill_context=skill_context,
         results_path=str(results),
     )
     completed = subprocess.run(command, cwd=ROOT, check=False)
@@ -143,9 +149,9 @@ def run_calibration(
         "build",
         str(results),
         "--population-id", str(run["population_id"]),
-        "--selection-policy", str(run["opening_policy"]),
-        "--controller-population", "Ares-v1-vs-baseline-v1",
-        "--skill-context", "fixed-node-budget",
+        "--selection-policy", selection_policy,
+        "--controller-population", controller_population,
+        "--skill-context", skill_context,
         "--experiment-id", str(run["experiment_id"]),
         "--run-id", str(run["run_id"]),
         "--head-sha", str(run["challenger_version"]),
@@ -155,23 +161,26 @@ def run_calibration(
     if dataset_completed.returncode != 0:
         raise RuntimeError(f"Strength dataset build failed with exit code {dataset_completed.returncode}")
 
-    manifest = {
+    return {
         "schema_version": "redwar-strength-calibration-runner-v1",
         "experiment_id": run["experiment_id"],
         "run_id": run["run_id"],
-        "plan_path": str(Path(plan_path)),
+        "plan_status": "validated",
+        "plan_runs": plan_audit["run_count"],
         "challenger_engine": str(Path(challenger_engine).resolve()),
         "baseline_engine": str(Path(baseline_engine).resolve()),
         "games": resolved_games,
         "node_budget": nodes,
         "opening_seeds": opening_seeds,
+        "selection_policy": selection_policy,
+        "controller_population": controller_population,
+        "skill_context": skill_context,
         "promotion_authority": False,
         "arena_exit_code": completed.returncode,
         "raw_results": str(results),
         "arena_summary": str(summary_path),
         "dataset": str(dataset),
     }
-    return manifest
 
 
 def main() -> int:
@@ -180,9 +189,12 @@ def main() -> int:
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--challenger-engine", required=True)
     parser.add_argument("--baseline-engine", required=True)
+    parser.add_argument("--games", required=True, type=int)
+    parser.add_argument("--selection-policy", required=True)
+    parser.add_argument("--controller-population", required=True)
+    parser.add_argument("--skill-context", required=True)
     parser.add_argument("--results", required=True)
     parser.add_argument("--dataset", required=True)
-    parser.add_argument("--games", type=int)
     args = parser.parse_args()
 
     result = run_calibration(
@@ -190,9 +202,12 @@ def main() -> int:
         args.run_id,
         challenger_engine=args.challenger_engine,
         baseline_engine=args.baseline_engine,
+        games=args.games,
+        selection_policy=args.selection_policy,
+        controller_population=args.controller_population,
+        skill_context=args.skill_context,
         results_path=args.results,
         dataset_path=args.dataset,
-        games=args.games,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
