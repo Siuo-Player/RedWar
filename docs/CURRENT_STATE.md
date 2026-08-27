@@ -1,7 +1,7 @@
 # RedWar — Current State
 
-**Snapshot:** 2026-08-26  
-**Verified baseline:** `main` after provenance, Strength context, long persistent differential coverage, first-divergence diagnostics and perft/node-count differential work.
+**Snapshot:** 2026-08-27  
+**Verified baseline:** `main` after provenance, Strength context, matchup/intransitivity diagnostics, real Arena report support and dedicated Strength experiment triggering.
 
 This document is a dated navigation snapshot. It is not a replacement for the canonical domain documents listed in [`docs/00_INDEX.md`](00_INDEX.md).
 
@@ -10,7 +10,7 @@ This document is a dated navigation snapshot. It is not a replacement for the ca
 - `main` contains the foundation gates established from the project-study audit.
 - The regression suite now covers 100+ tests, including Python/C++ differential, make/unmake, move-generation, persistent-state, metamorphic and per-mechanic coverage.
 - Long persistent-state differential coverage exercises lifespan, spawn cooldown, stun, tile effects and TWC across multiple plies.
-- Differential diagnostics now identify the first divergent transition instead of only reporting a final aggregate mismatch.
+- Differential diagnostics identify the first divergent transition instead of only reporting a final aggregate mismatch.
 - Python/C++ perft/node-count differential is now part of the regression layer for deterministic positions.
 - Arena result provenance is explicit: game validity and termination reason are retained, and invalid observations are excluded from strength inference and promotion.
 - Protected hold-out validation is frozen through `data/validation/ARES_HOLDOUT_V1.json` and its canonical hash contract.
@@ -30,12 +30,18 @@ Canonical sources:
 - [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md)
 - [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md)
 - [`ARENA_HOLDOUT_CI.md`](ARENA_HOLDOUT_CI.md)
+- [`ARENA_STRENGTH_DATASET.md`](ARENA_STRENGTH_DATASET.md)
+- [`DECISIONS/2026-08-27-strength-replication-calibration-protocol.md`](DECISIONS/2026-08-27-strength-replication-calibration-protocol.md)
 
-The current strength estimator remains an Elo-compatible engineering baseline. Paired-game/pentanomial methodology, empirical uncertainty auditing and sequential testing are part of the validation direction, but SPRT is not yet the automatic promotion authority.
+The current strength estimator remains an Elo-compatible engineering baseline. Paired-game/pentanomial methodology, empirical uncertainty auditing and sequential testing are validation layers; SPRT is not yet the automatic promotion authority.
 
 The Arena records enough provenance to distinguish valid games from invalid/blocked/max-ply observations. A strength claim must be based on valid, controlled experimental evidence rather than raw game counts alone.
 
-Population context for Strength experiments is structured and machine-validated so results can retain the population, selection policy, controller population and skill context that produced them.
+Population context for Strength experiments is structured and machine-validated so results can retain the population, selection policy, controller population and skill context that produced the games.
+
+The first persistent real-Arena control dataset is now stored under `data/arena/strength/`. It contains 100 valid games grouped into 50 complete colour-inverted pairs and is consumed by the existing paired empirical uncertainty audit. This is the first empirical calibration observation in the repository, not a completed calibration programme: the 50 pairs are resampling units for the paired audit, but they are not 50 independent experimental conditions because opening/seed combinations are reused.
+
+The next evidence block is therefore replication across intentional experiment runs and population/context variation. The engineering uncertainty proxy remains unchanged until repeated-run evidence supports recalibration. Legitimate draws, invalid/incomplete games, dependence from repeated conditions and a predeclared hold-out must be represented in the calibration programme.
 
 ## Game / heroes
 
@@ -64,18 +70,21 @@ The Auto-Pricer remains a diagnostic pricing heuristic, not a causal estimator o
 
 ## Roadmap position
 
-The project has completed the main correctness/provenance foundation and is moving through the remaining validation layers before the next major Ares performance block.
+The project has completed the main correctness/provenance foundation and is moving through the remaining Strength validation layers before the next major Ares performance block.
 
 Current priority order is:
 
 ```text
-real Strength/Arena calibration
-→ contextual matchup/intransitivity analysis
-→ stronger sequential promotion gate
+real Strength dataset persistence
+→ multi-run replication + population variation
+→ contextual / matchup stability
+→ uncertainty calibration + hold-out
+→ SPRT operating-characteristic validation
+→ sequential promotion gate
 → intrinsic/move-quality strength
 → broader Ares search/NNUE optimisation
 ```
 
-The previously planned long persistent differential, first-divergence diagnostics and perft/node-count differential layers are now implemented in `main`.
+The previously planned long persistent differential, first-divergence diagnostics and perft/node-count differential layers are implemented in `main`.
 
-No individual tactical benchmark should be interpreted as global strength evidence.
+No individual tactical benchmark or single control experiment should be interpreted as global strength evidence.

@@ -1,0 +1,1719 @@
+{
+  "manifest": {
+    "schema_version": "redwar-strength-dataset-v1",
+    "evidence_class": "real_arena",
+    "source_artifact": {
+      "workflow_run_id": 33027350530,
+      "artifact_id": 9628952365,
+      "head_sha": "f6a1ee4beb160ee4e23e7e044fba0f78aa5961ac",
+      "raw_sha256": "19738166542806738c72468e2b10ba87f1dd8762603caa28638f4aa5ea0d98bf"
+    },
+    "experiment": {
+      "challenger_version": "f6a1ee4beb160ee4e23e7e044fba0f78aa5961ac",
+      "baseline_version": "37b94d51b810b7ef698139f896afd30eee50fa5a",
+      "rules_version": "37b94d51b810b7ef698139f896afd30eee50fa5a",
+      "node_budget": 10000,
+      "games": 100,
+      "opening_count": 16,
+      "colour_policy": "alternating_per_game",
+      "opening_policy": "same_opening_per_pair",
+      "pairing_policy": "adjacent_games_same_opening_with_inverted_challenger_colour",
+      "termination_policy": "game_over_or_10000_plies",
+      "validity_policy": "only_game_over_with_declared_winner_counts_as_valid_strength_result",
+      "strength_population": {
+        "population_id": "ares-dev-population-v1",
+        "selection_policy": "paired-fixed-openings",
+        "controller_population": "Ares-v1-vs-baseline-v1",
+        "skill_context": "fixed-node-budget"
+      }
+    },
+    "validation": {
+      "games": 100,
+      "valid_games": 100,
+      "invalid_games": 0,
+      "outcomes": {
+        "challenger": 50,
+        "baseline": 50,
+        "draw": 0,
+        "invalid": 0
+      },
+      "incomplete_valid_pair_ids": [],
+      "complete_valid_pairs": 50,
+      "node_budget": 10000,
+      "challenger_version": "f6a1ee4beb160ee4e23e7e044fba0f78aa5961ac",
+      "baseline_version": "37b94d51b810b7ef698139f896afd30eee50fa5a",
+      "rules_version": "37b94d51b810b7ef698139f896afd30eee50fa5a"
+    },
+    "independent_unit_policy": "one complete colour-inverted A/B pair is one independent resampling unit",
+    "independent_units": 50,
+    "game_records": 100,
+    "scientific_game_fields": [
+      "game_index",
+      "pair_id",
+      "pair_member",
+      "challenger_color",
+      "baseline_color",
+      "opening_index",
+      "seed",
+      "outcome",
+      "valid",
+      "termination_reason"
+    ],
+    "analysis_status": "raw_real_arena_data_preserved; no_promotion_decision",
+    "canonical_sha256": "bc396752a0791437d487f4aaa5dde57721a6db99930789228f951447a2cbd165"
+  },
+  "games": [
+    {
+      "game_index": 0,
+      "pair_id": "pair-000000",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 1,
+      "pair_id": "pair-000000",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 2,
+      "pair_id": "pair-000001",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 3,
+      "pair_id": "pair-000001",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 4,
+      "pair_id": "pair-000002",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 2,
+      "seed": 307,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 5,
+      "pair_id": "pair-000002",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 2,
+      "seed": 307,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 6,
+      "pair_id": "pair-000003",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 3,
+      "seed": 401,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 7,
+      "pair_id": "pair-000003",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 3,
+      "seed": 401,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 8,
+      "pair_id": "pair-000004",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 4,
+      "seed": 503,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 9,
+      "pair_id": "pair-000004",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 4,
+      "seed": 503,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 10,
+      "pair_id": "pair-000005",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 5,
+      "seed": 601,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 11,
+      "pair_id": "pair-000005",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 5,
+      "seed": 601,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 12,
+      "pair_id": "pair-000006",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 6,
+      "seed": 709,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 13,
+      "pair_id": "pair-000006",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 6,
+      "seed": 709,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 14,
+      "pair_id": "pair-000007",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 7,
+      "seed": 809,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 15,
+      "pair_id": "pair-000007",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 7,
+      "seed": 809,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 16,
+      "pair_id": "pair-000008",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 8,
+      "seed": 907,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 17,
+      "pair_id": "pair-000008",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 8,
+      "seed": 907,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 18,
+      "pair_id": "pair-000009",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 9,
+      "seed": 1009,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 19,
+      "pair_id": "pair-000009",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 9,
+      "seed": 1009,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 20,
+      "pair_id": "pair-000010",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 10,
+      "seed": 1103,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 21,
+      "pair_id": "pair-000010",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 10,
+      "seed": 1103,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 22,
+      "pair_id": "pair-000011",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 11,
+      "seed": 1201,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 23,
+      "pair_id": "pair-000011",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 11,
+      "seed": 1201,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 24,
+      "pair_id": "pair-000012",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 12,
+      "seed": 1301,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 25,
+      "pair_id": "pair-000012",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 12,
+      "seed": 1301,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 26,
+      "pair_id": "pair-000013",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 13,
+      "seed": 1409,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 27,
+      "pair_id": "pair-000013",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 13,
+      "seed": 1409,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 28,
+      "pair_id": "pair-000014",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 14,
+      "seed": 1501,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 29,
+      "pair_id": "pair-000014",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 14,
+      "seed": 1501,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 30,
+      "pair_id": "pair-000015",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 15,
+      "seed": 1601,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 31,
+      "pair_id": "pair-000015",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 15,
+      "seed": 1601,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 32,
+      "pair_id": "pair-000016",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 33,
+      "pair_id": "pair-000016",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 34,
+      "pair_id": "pair-000017",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 35,
+      "pair_id": "pair-000017",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 36,
+      "pair_id": "pair-000018",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 2,
+      "seed": 307,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 37,
+      "pair_id": "pair-000018",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 2,
+      "seed": 307,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 38,
+      "pair_id": "pair-000019",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 3,
+      "seed": 401,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 39,
+      "pair_id": "pair-000019",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 3,
+      "seed": 401,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 40,
+      "pair_id": "pair-000020",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 4,
+      "seed": 503,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 41,
+      "pair_id": "pair-000020",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 4,
+      "seed": 503,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 42,
+      "pair_id": "pair-000021",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 5,
+      "seed": 601,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 43,
+      "pair_id": "pair-000021",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 5,
+      "seed": 601,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 44,
+      "pair_id": "pair-000022",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 6,
+      "seed": 709,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 45,
+      "pair_id": "pair-000022",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 6,
+      "seed": 709,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 46,
+      "pair_id": "pair-000023",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 7,
+      "seed": 809,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 47,
+      "pair_id": "pair-000023",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 7,
+      "seed": 809,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 48,
+      "pair_id": "pair-000024",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 8,
+      "seed": 907,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 49,
+      "pair_id": "pair-000024",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 8,
+      "seed": 907,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 50,
+      "pair_id": "pair-000025",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 9,
+      "seed": 1009,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 51,
+      "pair_id": "pair-000025",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 9,
+      "seed": 1009,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 52,
+      "pair_id": "pair-000026",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 10,
+      "seed": 1103,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 53,
+      "pair_id": "pair-000026",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 10,
+      "seed": 1103,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 54,
+      "pair_id": "pair-000027",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 11,
+      "seed": 1201,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 55,
+      "pair_id": "pair-000027",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 11,
+      "seed": 1201,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 56,
+      "pair_id": "pair-000028",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 12,
+      "seed": 1301,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 57,
+      "pair_id": "pair-000028",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 12,
+      "seed": 1301,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 58,
+      "pair_id": "pair-000029",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 13,
+      "seed": 1409,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 59,
+      "pair_id": "pair-000029",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 13,
+      "seed": 1409,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 60,
+      "pair_id": "pair-000030",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 14,
+      "seed": 1501,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 61,
+      "pair_id": "pair-000030",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 14,
+      "seed": 1501,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 62,
+      "pair_id": "pair-000031",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 15,
+      "seed": 1601,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 63,
+      "pair_id": "pair-000031",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 15,
+      "seed": 1601,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 64,
+      "pair_id": "pair-000032",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 65,
+      "pair_id": "pair-000032",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 66,
+      "pair_id": "pair-000033",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 67,
+      "pair_id": "pair-000033",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 68,
+      "pair_id": "pair-000034",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 2,
+      "seed": 307,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 69,
+      "pair_id": "pair-000034",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 2,
+      "seed": 307,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 70,
+      "pair_id": "pair-000035",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 3,
+      "seed": 401,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 71,
+      "pair_id": "pair-000035",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 3,
+      "seed": 401,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 72,
+      "pair_id": "pair-000036",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 4,
+      "seed": 503,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 73,
+      "pair_id": "pair-000036",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 4,
+      "seed": 503,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 74,
+      "pair_id": "pair-000037",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 5,
+      "seed": 601,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 75,
+      "pair_id": "pair-000037",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 5,
+      "seed": 601,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 76,
+      "pair_id": "pair-000038",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 6,
+      "seed": 709,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 77,
+      "pair_id": "pair-000038",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 6,
+      "seed": 709,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 78,
+      "pair_id": "pair-000039",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 7,
+      "seed": 809,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 79,
+      "pair_id": "pair-000039",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 7,
+      "seed": 809,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 80,
+      "pair_id": "pair-000040",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 8,
+      "seed": 907,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 81,
+      "pair_id": "pair-000040",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 8,
+      "seed": 907,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 82,
+      "pair_id": "pair-000041",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 9,
+      "seed": 1009,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 83,
+      "pair_id": "pair-000041",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 9,
+      "seed": 1009,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 84,
+      "pair_id": "pair-000042",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 10,
+      "seed": 1103,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 85,
+      "pair_id": "pair-000042",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 10,
+      "seed": 1103,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 86,
+      "pair_id": "pair-000043",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 11,
+      "seed": 1201,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 87,
+      "pair_id": "pair-000043",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 11,
+      "seed": 1201,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 88,
+      "pair_id": "pair-000044",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 12,
+      "seed": 1301,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 89,
+      "pair_id": "pair-000044",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 12,
+      "seed": 1301,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 90,
+      "pair_id": "pair-000045",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 13,
+      "seed": 1409,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 91,
+      "pair_id": "pair-000045",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 13,
+      "seed": 1409,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 92,
+      "pair_id": "pair-000046",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 14,
+      "seed": 1501,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 93,
+      "pair_id": "pair-000046",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 14,
+      "seed": 1501,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 94,
+      "pair_id": "pair-000047",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 15,
+      "seed": 1601,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 95,
+      "pair_id": "pair-000047",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 15,
+      "seed": 1601,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 96,
+      "pair_id": "pair-000048",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 97,
+      "pair_id": "pair-000048",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 0,
+      "seed": 101,
+      "outcome": "baseline",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 98,
+      "pair_id": "pair-000049",
+      "pair_member": 0,
+      "challenger_color": "white",
+      "baseline_color": "black",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    },
+    {
+      "game_index": 99,
+      "pair_id": "pair-000049",
+      "pair_member": 1,
+      "challenger_color": "black",
+      "baseline_color": "white",
+      "opening_index": 1,
+      "seed": 211,
+      "outcome": "challenger",
+      "valid": true,
+      "termination_reason": "game_over"
+    }
+  ],
+  "independent_units": [
+    {
+      "unit_id": "pair-000000",
+      "pair_id": "pair-000000",
+      "opening_index": 0,
+      "outcomes": [
+        "win",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000001",
+      "pair_id": "pair-000001",
+      "opening_index": 1,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000002",
+      "pair_id": "pair-000002",
+      "opening_index": 2,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000003",
+      "pair_id": "pair-000003",
+      "opening_index": 3,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000004",
+      "pair_id": "pair-000004",
+      "opening_index": 4,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000005",
+      "pair_id": "pair-000005",
+      "opening_index": 5,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000006",
+      "pair_id": "pair-000006",
+      "opening_index": 6,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000007",
+      "pair_id": "pair-000007",
+      "opening_index": 7,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000008",
+      "pair_id": "pair-000008",
+      "opening_index": 8,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000009",
+      "pair_id": "pair-000009",
+      "opening_index": 9,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000010",
+      "pair_id": "pair-000010",
+      "opening_index": 10,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000011",
+      "pair_id": "pair-000011",
+      "opening_index": 11,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000012",
+      "pair_id": "pair-000012",
+      "opening_index": 12,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000013",
+      "pair_id": "pair-000013",
+      "opening_index": 13,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000014",
+      "pair_id": "pair-000014",
+      "opening_index": 14,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000015",
+      "pair_id": "pair-000015",
+      "opening_index": 15,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000016",
+      "pair_id": "pair-000016",
+      "opening_index": 0,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000017",
+      "pair_id": "pair-000017",
+      "opening_index": 1,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000018",
+      "pair_id": "pair-000018",
+      "opening_index": 2,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000019",
+      "pair_id": "pair-000019",
+      "opening_index": 3,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000020",
+      "pair_id": "pair-000020",
+      "opening_index": 4,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000021",
+      "pair_id": "pair-000021",
+      "opening_index": 5,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000022",
+      "pair_id": "pair-000022",
+      "opening_index": 6,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000023",
+      "pair_id": "pair-000023",
+      "opening_index": 7,
+      "outcomes": [
+        "win",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000024",
+      "pair_id": "pair-000024",
+      "opening_index": 8,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000025",
+      "pair_id": "pair-000025",
+      "opening_index": 9,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000026",
+      "pair_id": "pair-000026",
+      "opening_index": 10,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000027",
+      "pair_id": "pair-000027",
+      "opening_index": 11,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000028",
+      "pair_id": "pair-000028",
+      "opening_index": 12,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000029",
+      "pair_id": "pair-000029",
+      "opening_index": 13,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000030",
+      "pair_id": "pair-000030",
+      "opening_index": 14,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000031",
+      "pair_id": "pair-000031",
+      "opening_index": 15,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000032",
+      "pair_id": "pair-000032",
+      "opening_index": 0,
+      "outcomes": [
+        "loss",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000033",
+      "pair_id": "pair-000033",
+      "opening_index": 1,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000034",
+      "pair_id": "pair-000034",
+      "opening_index": 2,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000035",
+      "pair_id": "pair-000035",
+      "opening_index": 3,
+      "outcomes": [
+        "loss",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000036",
+      "pair_id": "pair-000036",
+      "opening_index": 4,
+      "outcomes": [
+        "loss",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000037",
+      "pair_id": "pair-000037",
+      "opening_index": 5,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000038",
+      "pair_id": "pair-000038",
+      "opening_index": 6,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000039",
+      "pair_id": "pair-000039",
+      "opening_index": 7,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000040",
+      "pair_id": "pair-000040",
+      "opening_index": 8,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000041",
+      "pair_id": "pair-000041",
+      "opening_index": 9,
+      "outcomes": [
+        "win",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000042",
+      "pair_id": "pair-000042",
+      "opening_index": 10,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000043",
+      "pair_id": "pair-000043",
+      "opening_index": 11,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000044",
+      "pair_id": "pair-000044",
+      "opening_index": 12,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000045",
+      "pair_id": "pair-000045",
+      "opening_index": 13,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000046",
+      "pair_id": "pair-000046",
+      "opening_index": 14,
+      "outcomes": [
+        "loss",
+        "win"
+      ]
+    },
+    {
+      "unit_id": "pair-000047",
+      "pair_id": "pair-000047",
+      "opening_index": 15,
+      "outcomes": [
+        "win",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000048",
+      "pair_id": "pair-000048",
+      "opening_index": 0,
+      "outcomes": [
+        "loss",
+        "loss"
+      ]
+    },
+    {
+      "unit_id": "pair-000049",
+      "pair_id": "pair-000049",
+      "opening_index": 1,
+      "outcomes": [
+        "win",
+        "win"
+      ]
+    }
+  ]
+}
