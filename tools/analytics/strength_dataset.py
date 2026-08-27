@@ -1,4 +1,9 @@
-"""Build a canonical scientific dataset from one raw Arena JSONL experiment."""
+"""Build a canonical scientific dataset from one raw Arena JSONL experiment.
+
+The raw Arena JSONL remains the source of truth. The derived dataset keeps one
+experiment manifest, scientific per-game fields, and one independent unit per
+complete colour-inverted pair. It is evidence storage, not a promotion gate.
+"""
 from __future__ import annotations
 
 import argparse
@@ -9,7 +14,8 @@ from typing import Any
 
 from tools.analytics.arena_experiment_validation import validate_experiment_records
 from tools.analytics.arena_strength_audit import build_independent_pair_units
-from tools.analytics.strength_population import StrengthPopulationContext
+from tools.analytics.strength_empirical_audit import empirical_paired_uncertainty_audit
+from tools.analytics.strength_population import StrengthPopulationContext, validate_population_context
 
 DATASET_SCHEMA_VERSION = "redwar-strength-dataset-v1"
 EVIDENCE_CLASS = "real_arena"
@@ -20,7 +26,7 @@ GAME_FIELDS = (
 )
 
 
-def _load(path: str | Path) -> tuple[list[dict[str, Any]], str]:
+def _load_raw(path: str | Path) -> tuple[list[dict[str, Any]], str]:
     source = Path(path)
     if not source.is_file():
         raise FileNotFoundError(source)
@@ -41,6 +47,17 @@ def _load(path: str | Path) -> tuple[list[dict[str, Any]], str]:
     return records, hashlib.sha256(raw).hexdigest()
 
 
+def _validate_dataset_games(
+    games: list[dict[str, Any]], experiment: dict[str, Any]
+) -> dict[str, Any]:
+    records = [dict(game, experiment=experiment) for game in games]
+    return validate_experiment_records(
+        records,
+        experiment,
+        require_strength_population=True,
+    )
+
+
 def build_dataset(
     results_path: str | Path,
     *,
@@ -52,7 +69,7 @@ def build_dataset(
     artifact_id: int | None = None,
     head_sha: str | None = None,
 ) -> dict[str, Any]:
-    records, raw_sha256 = _load(results_path)
+    records, raw_sha256 = _load_raw(results_path)
     context = StrengthPopulationContext(
         population_id=population_id,
         selection_policy=selection_policy,
@@ -62,30 +79,31 @@ def build_dataset(
     first = records[0].get("experiment")
     if not isinstance(first, dict):
         raise ValueError("first Arena record is missing experiment metadata")
+
     experiment = dict(first)
     experiment["strength_population"] = context.to_dict()
-
-    games = []
-    for record in records:
-        games.append({field: record[field] for field in GAME_FIELDS} | {"experiment": experiment})
-
-    validation = validate_experiment_records(
-        games, experiment, require_strength_population=True
-    )
-    units, incomplete = build_independent_pair_units(games)
+    games = [{field: record[field] for field in GAME_FIELDS} for record in records]
+    validation = _validate_dataset_games(games, experiment)
+    complete_records = [dict(game, experiment=experiment) for game in games]
+    units, incomplete = build_independent_pair_units(complete_records)
     if incomplete:
         raise ValueError(
             "cannot build a scientific Strength dataset with incomplete pairs: "
             + ", ".join(incomplete)
         )
 
-    source: dict[str, Any] = {"raw_sha256": raw_sha256, "raw_path": str(results_path)}
-    if workflow_run_id is not None:
-        source["workflow_run_id"] = int(workflow_run_id)
-    if artifact_id is not None:
-        source["artifact_id"] = int(artifact_id)
-    if head_sha is not None:
-        source["head_sha"] = head_sha
+    source: dict[str, Any] = {
+        "raw_sha256": raw_sha256,
+        "raw_path": str(results_path),
+        "evidence_class": EVIDENCE_CLASS,
+    }
+    for key, value in (
+        ("workflow_run_id", workflow_run_id),
+        ("artifact_id", artifact_id),
+        ("head_sha", head_sha),
+    ):
+        if value is not None:
+            source[key] = int(value) if isinstance(value, int) else value
 
     manifest = {
         "schema_version": DATASET_SCHEMA_VERSION,
@@ -97,39 +115,113 @@ def build_dataset(
         "independent_units": len(units),
         "game_records": len(games),
         "scientific_game_fields": list(GAME_FIELDS),
+        "analysis_status": "raw_real_arena_data_preserved; no_promotion_decision",
     }
-    bundle = {"manifest": manifest, "games": games, "independent_units": units}
+    bundle = {
+        "manifest": manifest,
+        "games": games,
+        "independent_units": units,
+    }
     canonical = json.dumps(bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     manifest["canonical_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     return bundle
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a reproducible RedWar Strength dataset")
-    parser.add_argument("results")
-    parser.add_argument("--population-id", required=True)
-    parser.add_argument("--selection-policy", required=True)
-    parser.add_argument("--controller-population", required=True)
-    parser.add_argument("--skill-context", required=True)
-    parser.add_argument("--workflow-run-id", type=int)
-    parser.add_argument("--artifact-id", type=int)
-    parser.add_argument("--head-sha")
-    parser.add_argument("--output", required=True)
-    args = parser.parse_args()
-    bundle = build_dataset(
-        args.results,
-        population_id=args.population_id,
-        selection_policy=args.selection_policy,
-        controller_population=args.controller_population,
-        skill_context=args.skill_context,
-        workflow_run_id=args.workflow_run_id,
-        artifact_id=args.artifact_id,
-        head_sha=args.head_sha,
+def audit_dataset(bundle: dict[str, Any], *, bootstrap_samples: int = 2000, seed: int = 0) -> dict[str, Any]:
+    """Consume stored independent units with the existing descriptive audit."""
+    if not isinstance(bundle, dict) or not isinstance(bundle.get("manifest"), dict):
+        raise ValueError("Strength dataset must contain a manifest")
+    if bundle["manifest"].get("evidence_class") != EVIDENCE_CLASS:
+        raise ValueError("Strength dataset is not marked as real Arena evidence")
+    units = bundle.get("independent_units")
+    if not isinstance(units, list) or len(units) < 2:
+        raise ValueError("at least two independent units are required")
+    context = bundle["manifest"].get("experiment", {}).get("strength_population")
+    validate_population_context(context)
+    audit = empirical_paired_uncertainty_audit(
+        units, bootstrap_samples=bootstrap_samples, seed=seed
     )
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps(bundle["manifest"], ensure_ascii=False, indent=2))
+    return {
+        "evidence_class": EVIDENCE_CLASS,
+        "dataset_schema_version": bundle["manifest"].get("schema_version"),
+        "units": len(units),
+        "audit": audit,
+        "status": "descriptive_empirical_audit_only",
+    }
+
+
+def load_dataset(path: str | Path) -> dict[str, Any]:
+    dataset = Path(path)
+    if not dataset.is_file():
+        raise FileNotFoundError(dataset)
+    payload = json.loads(dataset.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Strength dataset must be a JSON object")
+    manifest = payload.get("manifest")
+    if not isinstance(manifest, dict):
+        raise ValueError("Strength dataset is missing manifest")
+    required = {"schema_version", "evidence_class", "experiment", "validation", "games", "independent_units"}
+    missing = sorted(required - payload.keys())
+    if missing:
+        raise ValueError(f"Strength dataset is missing required fields: {missing}")
+    if manifest.get("schema_version") != DATASET_SCHEMA_VERSION:
+        raise ValueError("unsupported Strength dataset schema version")
+    if manifest.get("evidence_class") != EVIDENCE_CLASS:
+        raise ValueError("Strength dataset evidence class must be real_arena")
+    context = manifest["experiment"].get("strength_population")
+    validate_population_context(context)
+    games = payload["games"]
+    if not isinstance(games, list):
+        raise ValueError("Strength dataset games must be a list")
+    validation = _validate_dataset_games(games, manifest["experiment"])
+    if validation != manifest["validation"]:
+        raise ValueError("dataset validation summary does not match its game records")
+    if payload["independent_units"] != build_independent_pair_units(
+        [dict(game, experiment=manifest["experiment"]) for game in games]
+    )[0]:
+        raise ValueError("dataset independent units do not match game records")
+    return payload
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Build or audit a RedWar Strength dataset")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    build = sub.add_parser("build")
+    build.add_argument("results")
+    build.add_argument("--population-id", required=True)
+    build.add_argument("--selection-policy", required=True)
+    build.add_argument("--controller-population", required=True)
+    build.add_argument("--skill-context", required=True)
+    build.add_argument("--workflow-run-id", type=int)
+    build.add_argument("--artifact-id", type=int)
+    build.add_argument("--head-sha")
+    build.add_argument("--output", required=True)
+
+    audit = sub.add_parser("audit")
+    audit.add_argument("dataset")
+    audit.add_argument("--bootstrap-samples", type=int, default=2000)
+    audit.add_argument("--seed", type=int, default=0)
+
+    args = parser.parse_args()
+    if args.command == "build":
+        bundle = build_dataset(
+            args.results,
+            population_id=args.population_id,
+            selection_policy=args.selection_policy,
+            controller_population=args.controller_population,
+            skill_context=args.skill_context,
+            workflow_run_id=args.workflow_run_id,
+            artifact_id=args.artifact_id,
+            head_sha=args.head_sha,
+        )
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(bundle["manifest"], ensure_ascii=False, indent=2))
+    else:
+        result = audit_dataset(load_dataset(args.dataset), bootstrap_samples=args.bootstrap_samples, seed=args.seed)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
 
