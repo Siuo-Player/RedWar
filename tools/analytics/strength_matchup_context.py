@@ -89,40 +89,43 @@ def detect_intransitive_cycles(
     min_games: int = 4,
     strict_score_rate: float = 0.5,
 ) -> list[dict[str, Any]]:
-    """Find descriptive A>B, B>C, C>A cycles from aggregated matchups."""
+    """Find descriptive A>B, B>C, C>A cycles within one context."""
     if min_games < 1:
         raise ValueError("min_games must be positive")
     if not 0.5 <= strict_score_rate <= 1.0:
         raise ValueError("strict_score_rate must be between 0.5 and 1.0")
 
-    qualifying: dict[tuple[str, str], dict[str, Any]] = {}
+    by_context: dict[tuple[tuple[str, Any], ...], dict[tuple[str, str], dict[str, Any]]] = defaultdict(dict)
     for summary in matchup_summaries:
         if int(summary["games"]) < min_games:
             continue
         if float(summary["challenger_score_rate"]) <= strict_score_rate:
             continue
+        context = tuple(sorted(dict(summary.get("context", {})).items()))
         key = (str(summary["challenger"]), str(summary["baseline"]))
-        existing = qualifying.get(key)
+        existing = by_context[context].get(key)
         if existing is None or int(summary["games"]) > int(existing["games"]):
-            qualifying[key] = summary
+            by_context[context][key] = summary
 
-    players = sorted({name for edge in qualifying for name in edge})
     cycles: list[dict[str, Any]] = []
-    for a, b, c in combinations(players, 3):
-        for first, second, third in ((a, b, c), (a, c, b)):
-            edges = (
-                qualifying.get((first, second)),
-                qualifying.get((second, third)),
-                qualifying.get((third, first)),
-            )
-            if all(edges):
-                cycles.append(
-                    {
-                        "players": [first, second, third],
-                        "edges": [dict(edge) for edge in edges if edge is not None],
-                        "interpretation": "descriptive_intransitive_cycle",
-                    }
+    for context, qualifying in sorted(by_context.items(), key=str):
+        players = sorted({name for edge in qualifying for name in edge})
+        for a, b, c in combinations(players, 3):
+            for first, second, third in ((a, b, c), (a, c, b)):
+                edges = (
+                    qualifying.get((first, second)),
+                    qualifying.get((second, third)),
+                    qualifying.get((third, first)),
                 )
+                if all(edges):
+                    cycles.append(
+                        {
+                            "context": {field: value for field, value in context},
+                            "players": [first, second, third],
+                            "edges": [dict(edge) for edge in edges if edge is not None],
+                            "interpretation": "descriptive_intransitive_cycle",
+                        }
+                    )
     return cycles
 
 
