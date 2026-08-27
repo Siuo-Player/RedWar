@@ -1,0 +1,163 @@
+name: RedWar Strength Calibration Controls
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Predeclared calibration run_id from replication-v3'
+        required: false
+        default: 'strength-calibration-2026-08-27-control-replication'
+        type: string
+      games:
+        description: 'Even number of paired games; explicit because the plan does not encode a default'
+        required: true
+        default: '100'
+        type: string
+      selection_policy:
+        description: 'Declared controller-selection policy'
+        required: true
+        default: 'stratified-opening-scenarios-v1'
+        type: string
+      controller_population:
+        description: 'Declared controller population'
+        required: true
+        default: 'Ares-v1-vs-baseline-v1'
+        type: string
+      skill_context:
+        description: 'Declared strength context'
+        required: true
+        default: 'fixed-node-budget'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  calibration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Resolve frozen calibration engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          FROZEN_SHA=$(python - <<'PY'
+          import json
+          from pathlib import Path
+          plan = json.loads(Path('data/arena/strength/plans/2026-08-27-replication-v3.json').read_text(encoding='utf-8'))
+          run_id = '${{ inputs.run_id }}'
+          run = next(item for item in plan['runs'] if item['run_id'] == run_id)
+          if not run.get('execution_ready', False) or run['role'] != 'calibration':
+              raise SystemExit(f'run {run_id} is not an execution-ready calibration run')
+          if run['challenger_version'] != run['baseline_version']:
+              raise SystemExit('calibration controls require identical challenger/baseline revisions')
+          print(run['challenger_version'])
+          PY
+          )
+          echo "FROZEN_SHA=$FROZEN_SHA" >> "$GITHUB_ENV"
+          git fetch origin "$FROZEN_SHA" --no-tags
+          git worktree add --detach /tmp/redwar-frozen "$FROZEN_SHA"
+          pushd /tmp/redwar-frozen/ai/cpp_engine >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+          chmod +x engine
+          popd >/dev/null
+
+      - name: Execute predeclared calibration run
+        shell: bash
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+          GAMES: ${{ inputs.games }}
+          SELECTION_POLICY: ${{ inputs.selection_policy }}
+          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
+          SKILL_CONTEXT: ${{ inputs.skill_context }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/redwar-calibration
+          python tools/analytics/strength_calibration_runner.py \
+            data/arena/strength/plans/2026-08-27-replication-v3.json \
+            --run-id "$RUN_ID" \
+            --challenger-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
+            --baseline-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
+            --games "$GAMES" \
+            --selection-policy "$SELECTION_POLICY" \
+            --controller-population "$CONTROLLER_POPULATION" \
+            --skill-context "$SKILL_CONTEXT" \
+            --results "/tmp/redwar-calibration/$RUN_ID-games.jsonl" \
+            --dataset "/tmp/redwar-calibration/$RUN_ID-dataset.json"
+
+      - name: Validate generated artifacts
+        shell: bash
+        env:
+          RUN_ID: ${{ inputs.run_id }}
+          GAMES: ${{ inputs.games }}
+          SELECTION_POLICY: ${{ inputs.selection_policy }}
+          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
+          SKILL_CONTEXT: ${{ inputs.skill_context }}
+        run: |
+          set -euo pipefail
+          RESULTS="/tmp/redwar-calibration/$RUN_ID-games.jsonl"
+          DATASET="/tmp/redwar-calibration/$RUN_ID-dataset.json"
+          python - "$RESULTS" "$GAMES" "$FROZEN_SHA" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from tools.analytics.arena_experiment_validation import validate_experiment_records
+
+          results = Path(sys.argv[1])
+          games_expected = int(sys.argv[2])
+          frozen_sha = sys.argv[3]
+          records = [json.loads(line) for line in results.read_text(encoding='utf-8').splitlines() if line.strip()]
+          if not records:
+              raise SystemExit('calibration JSONL is empty')
+          experiment = records[0].get('experiment')
+          if not isinstance(experiment, dict):
+              raise SystemExit('calibration JSONL is missing experiment metadata')
+          if experiment.get('challenger_version') != frozen_sha or experiment.get('baseline_version') != frozen_sha:
+              raise SystemExit('Arena provenance does not match frozen calibration engine')
+          audit = validate_experiment_records(
+              records,
+              {
+                  'challenger_version': frozen_sha,
+                  'baseline_version': frozen_sha,
+                  'rules_version': frozen_sha,
+                  'node_budget': int(experiment['node_budget']),
+                  'games': games_expected,
+                  'opening_count': int(experiment['opening_count']),
+              },
+          )
+          print(json.dumps(audit, ensure_ascii=False, indent=2))
+          if audit['invalid_games'] or audit['incomplete_valid_pair_ids']:
+              raise SystemExit('calibration artifacts failed dataset validation')
+          PY
+          python tools/analytics/strength_dataset.py audit "$DATASET" --bootstrap-samples 2000 --seed 0
+
+      - name: Upload calibration artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redwar-strength-calibration-${{ inputs.run_id }}-${{ github.run_id }}
+          path: /tmp/redwar-calibration/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Cleanup frozen worktree
+        if: always()
+        shell: bash
+        run: git worktree remove --force /tmp/redwar-frozen || true
