@@ -4,7 +4,9 @@ import random
 from engine.config import COLUNAS, LINHAS
 from engine.pieces import obter_catalogo_pecas
 
-OPENING_SEEDS = (101, 211, 307, 401, 503, 601, 709, 809, 907, 1009, 1103, 1201, 1301, 1409, 1501, 1601)
+# Experiment-only seed set for replication run B. This branch changes this list
+# deliberately; production/main keeps the canonical opening-book seeds.
+OPENING_SEEDS = (10091, 10211, 10307, 10401, 10503, 10601, 10709, 10809, 10907, 11009, 11103, 11201, 11301, 11409, 11501, 11601)
 
 
 def gerar_abertura(seed: int) -> list[list[object | None]]:
