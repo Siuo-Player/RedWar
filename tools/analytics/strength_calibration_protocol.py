@@ -1,8 +1,9 @@
 """Validation primitives for the RedWar Strength replication/calibration protocol.
 
-This module deliberately validates experiment design metadata, not statistical
-promotion decisions. A calibration plan must make runs, population variation,
-frozen controls and hold-out intent explicit before Arena data are collected.
+This module validates experiment design metadata, not statistical promotion
+decisions. A calibration plan must make runs, population variation, frozen
+controls, provenance, planned diagnostics and hold-out intent explicit before
+Arena data are collected.
 """
 from __future__ import annotations
 
@@ -12,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-PROTOCOL_SCHEMA_VERSION = "redwar-strength-calibration-protocol-v2"
+PROTOCOL_SCHEMA_VERSION = "redwar-strength-calibration-protocol-v3"
 _REQUIRED_FROZEN_FIELDS = (
     "challenger_version",
     "baseline_version",
@@ -25,6 +26,8 @@ _REQUIRED_FROZEN_FIELDS = (
     "termination_policy",
     "primary_outcome",
     "primary_statistic",
+    "planned_diagnostics",
+    "holdout_policy",
 )
 
 
@@ -33,6 +36,7 @@ class CalibrationRunSpec:
     """One intentional Arena run in a calibration batch."""
 
     run_id: str
+    experiment_id: str
     sequence: int
     role: str
     population_id: str
@@ -48,6 +52,8 @@ class CalibrationRunSpec:
     termination_policy: str
     primary_outcome: str
     primary_statistic: str
+    planned_diagnostics: tuple[str, ...]
+    holdout_policy: str
     holdout: bool = False
 
     @classmethod
@@ -55,28 +61,36 @@ class CalibrationRunSpec:
         if not isinstance(raw, Mapping):
             raise TypeError("calibration run must be a mapping")
         values = dict(raw)
-        required_fields = _REQUIRED_FROZEN_FIELDS + ("run_id", "sequence", "role", "population_id", "seed_policy")
+        required_fields = _REQUIRED_FROZEN_FIELDS + (
+            "run_id", "experiment_id", "sequence", "role", "population_id", "seed_policy"
+        )
         missing = [field for field in required_fields if field not in values]
         if missing:
             raise ValueError(f"calibration run is missing required fields: {sorted(missing)}")
-        if not isinstance(values["run_id"], str) or not values["run_id"].strip():
-            raise ValueError("run_id must be a non-empty string")
-        if not isinstance(values["role"], str) or values["role"] not in {"calibration", "holdout"}:
+
+        for field in ("run_id", "experiment_id", "role", "population_id", "holdout_policy"):
+            if not isinstance(values[field], str) or not values[field].strip():
+                raise ValueError(f"{field} must be a non-empty string")
+        if values["role"] not in {"calibration", "holdout"}:
             raise ValueError("role must be 'calibration' or 'holdout'")
-        if not isinstance(values["population_id"], str) or not values["population_id"].strip():
-            raise ValueError("population_id must be a non-empty string")
         if not isinstance(values["sequence"], int) or isinstance(values["sequence"], bool) or values["sequence"] < 0:
             raise ValueError("sequence must be a non-negative integer")
         if not isinstance(values["node_budget"], int) or isinstance(values["node_budget"], bool) or values["node_budget"] <= 0:
             raise ValueError("node_budget must be a positive integer")
+        if not isinstance(values["seed_policy"], str) or not values["seed_policy"].strip():
+            raise ValueError("seed_policy must be a non-empty string")
+
+        diagnostics = values["planned_diagnostics"]
+        if not isinstance(diagnostics, (list, tuple)) or not diagnostics:
+            raise ValueError("planned_diagnostics must be a non-empty list")
+        if any(not isinstance(item, str) or not item.strip() for item in diagnostics):
+            raise ValueError("planned_diagnostics entries must be non-empty strings")
 
         for field in _REQUIRED_FROZEN_FIELDS:
-            if field == "node_budget":
+            if field in {"node_budget", "planned_diagnostics"}:
                 continue
             if not isinstance(values[field], str) or not values[field].strip():
                 raise ValueError(f"{field} must be a non-empty string")
-        if not isinstance(values["seed_policy"], str) or not values["seed_policy"].strip():
-            raise ValueError("seed_policy must be a non-empty string")
 
         holdout = values.get("holdout", values["role"] == "holdout")
         if not isinstance(holdout, bool):
@@ -86,6 +100,7 @@ class CalibrationRunSpec:
 
         return cls(
             run_id=values["run_id"].strip(),
+            experiment_id=values["experiment_id"].strip(),
             sequence=values["sequence"],
             role=values["role"],
             population_id=values["population_id"].strip(),
@@ -101,6 +116,8 @@ class CalibrationRunSpec:
             termination_policy=values["termination_policy"].strip(),
             primary_outcome=values["primary_outcome"].strip(),
             primary_statistic=values["primary_statistic"].strip(),
+            planned_diagnostics=tuple(sorted(item.strip() for item in diagnostics)),
+            holdout_policy=values["holdout_policy"].strip(),
             holdout=holdout,
         )
 
@@ -118,6 +135,8 @@ class CalibrationRunSpec:
             self.termination_policy,
             self.primary_outcome,
             self.primary_statistic,
+            self.planned_diagnostics,
+            self.holdout_policy,
         )
 
     def context_signature(self) -> tuple[str, str]:
@@ -127,6 +146,7 @@ class CalibrationRunSpec:
     def to_dict(self) -> dict[str, Any]:
         return {
             "run_id": self.run_id,
+            "experiment_id": self.experiment_id,
             "sequence": self.sequence,
             "role": self.role,
             "population_id": self.population_id,
@@ -142,6 +162,8 @@ class CalibrationRunSpec:
             "termination_policy": self.termination_policy,
             "primary_outcome": self.primary_outcome,
             "primary_statistic": self.primary_statistic,
+            "planned_diagnostics": list(self.planned_diagnostics),
+            "holdout_policy": self.holdout_policy,
             "holdout": self.holdout,
         }
 
@@ -164,6 +186,9 @@ def validate_calibration_runs(runs: Sequence[Mapping[str, Any] | CalibrationRunS
     run_ids = [item.run_id for item in normalized]
     if len(run_ids) != len(set(run_ids)):
         raise ValueError("calibration run_id values must be unique")
+    experiment_ids = {item.experiment_id for item in normalized}
+    if len(experiment_ids) != 1:
+        raise ValueError("all runs in one calibration batch must share experiment_id")
     sequences = [item.sequence for item in normalized]
     if len(sequences) != len(set(sequences)):
         raise ValueError("calibration run sequence values must be unique")
@@ -192,8 +217,10 @@ def validate_calibration_runs(runs: Sequence[Mapping[str, Any] | CalibrationRunS
 
     population_ids = sorted({item.population_id for item in calibration_runs})
     seed_policies = sorted({item.seed_policy for item in calibration_runs})
+    frozen = next(iter(frozen_signatures))
     return {
         "schema_version": PROTOCOL_SCHEMA_VERSION,
+        "experiment_id": next(iter(experiment_ids)),
         "runs": [item.to_dict() for item in normalized],
         "run_count": len(normalized),
         "calibration_run_count": len(calibration_runs),
@@ -206,21 +233,11 @@ def validate_calibration_runs(runs: Sequence[Mapping[str, Any] | CalibrationRunS
             "distinct_calibration_contexts": len(context_signatures),
         },
         "frozen_analysis": {
-            "signature": list(next(iter(frozen_signatures))),
-            "fields": [
-                "challenger_version",
-                "baseline_version",
-                "rules_version",
-                "node_budget",
-                "opening_policy",
-                "seed_generation_rule",
-                "colour_policy",
-                "validity_policy",
-                "termination_policy",
-                "primary_outcome",
-                "primary_statistic",
-            ],
+            "signature": list(frozen),
+            "fields": list(_REQUIRED_FROZEN_FIELDS),
         },
+        "planned_diagnostics": list(frozen[-2]),
+        "holdout_policy": frozen[-1],
         "status": "design_validated_no_statistical_promotion_decision",
     }
 
