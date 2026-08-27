@@ -12,14 +12,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping, Sequence
 
-PROTOCOL_SCHEMA_VERSION = "redwar-strength-calibration-protocol-v1"
+PROTOCOL_SCHEMA_VERSION = "redwar-strength-calibration-protocol-v2"
 _REQUIRED_FROZEN_FIELDS = (
     "challenger_version",
     "baseline_version",
     "rules_version",
     "node_budget",
     "opening_policy",
-    "seed_policy",
+    "seed_generation_rule",
     "colour_policy",
     "validity_policy",
     "termination_policy",
@@ -41,6 +41,7 @@ class CalibrationRunSpec:
     rules_version: str
     node_budget: int
     opening_policy: str
+    seed_generation_rule: str
     seed_policy: str
     colour_policy: str
     validity_policy: str
@@ -54,7 +55,8 @@ class CalibrationRunSpec:
         if not isinstance(raw, Mapping):
             raise TypeError("calibration run must be a mapping")
         values = dict(raw)
-        missing = [field for field in _REQUIRED_FROZEN_FIELDS + ("run_id", "sequence", "role", "population_id") if field not in values]
+        required_fields = _REQUIRED_FROZEN_FIELDS + ("run_id", "sequence", "role", "population_id", "seed_policy")
+        missing = [field for field in required_fields if field not in values]
         if missing:
             raise ValueError(f"calibration run is missing required fields: {sorted(missing)}")
         if not isinstance(values["run_id"], str) or not values["run_id"].strip():
@@ -73,6 +75,8 @@ class CalibrationRunSpec:
                 continue
             if not isinstance(values[field], str) or not values[field].strip():
                 raise ValueError(f"{field} must be a non-empty string")
+        if not isinstance(values["seed_policy"], str) or not values["seed_policy"].strip():
+            raise ValueError("seed_policy must be a non-empty string")
 
         holdout = values.get("holdout", values["role"] == "holdout")
         if not isinstance(holdout, bool):
@@ -90,6 +94,7 @@ class CalibrationRunSpec:
             rules_version=values["rules_version"].strip(),
             node_budget=values["node_budget"],
             opening_policy=values["opening_policy"].strip(),
+            seed_generation_rule=values["seed_generation_rule"].strip(),
             seed_policy=values["seed_policy"].strip(),
             colour_policy=values["colour_policy"].strip(),
             validity_policy=values["validity_policy"].strip(),
@@ -107,7 +112,7 @@ class CalibrationRunSpec:
             self.rules_version,
             self.node_budget,
             self.opening_policy,
-            self.seed_policy,
+            self.seed_generation_rule,
             self.colour_policy,
             self.validity_policy,
             self.termination_policy,
@@ -130,6 +135,7 @@ class CalibrationRunSpec:
             "rules_version": self.rules_version,
             "node_budget": self.node_budget,
             "opening_policy": self.opening_policy,
+            "seed_generation_rule": self.seed_generation_rule,
             "seed_policy": self.seed_policy,
             "colour_policy": self.colour_policy,
             "validity_policy": self.validity_policy,
@@ -207,7 +213,7 @@ def validate_calibration_runs(runs: Sequence[Mapping[str, Any] | CalibrationRunS
                 "rules_version",
                 "node_budget",
                 "opening_policy",
-                "seed_policy",
+                "seed_generation_rule",
                 "colour_policy",
                 "validity_policy",
                 "termination_policy",
