@@ -142,6 +142,9 @@ jobs:
           --challenger-engine "$WORKTREE/ai/cpp_engine/engine" \
           --baseline-engine "/tmp/redwar-baseline/ai/cpp_engine/engine" \
           --nodes 10000 \
+          --challenger-version "$COMMIT" \
+          --baseline-version "$BASE_SHA" \
+          --rules-version "$BASE_SHA" \
           --results "${PREFIX}-summary.json" \
           2>&1 | tee "${PREFIX}-arena.txt"
         git worktree remove --force "$WORKTREE"
