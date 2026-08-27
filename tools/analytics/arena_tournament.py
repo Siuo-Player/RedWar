@@ -11,7 +11,7 @@ import json
 import sys
 from collections import Counter
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, Sequence, cast
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -20,7 +20,7 @@ if str(ROOT) not in sys.path:
 from ai.bot import CppEngineBot
 from engine.game_state import GameState
 from tools.analytics.arena_pairs import GameOutcome, aggregate_pentanomial, incomplete_pairs, make_pair_id, validate_pair_structure
-from tools.analytics.opening_book import carregar_abertura_do_book, gerar_abertura
+from tools.analytics.opening_book import OPENING_SEEDS, carregar_abertura_do_book, gerar_abertura
 from tools.analytics.strength_rating import MatchResult, Rating, compare, estimate
 
 ARENA_MAX_PLIES = 10_000
@@ -28,10 +28,32 @@ ARENA_MAX_PLIES = 10_000
 Color = Literal["white", "black"]
 Outcome = Literal["challenger", "baseline", "draw"]
 RawOutcome = Literal["challenger", "baseline", "draw", "invalid"]
+DEFAULT_SEED_POLICY = "canonical-opening-book-v1"
+EXPLICIT_SEED_POLICY = "explicit-fixed-seed-set-v1"
+SEED_GENERATION_RULE = "explicit-fixed-seed-set-v1"
 
 
-def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
-    return vitorias_desafiante - vitorias_atual >= margem
+def parse_opening_seeds(raw: str, openings: int = 16) -> tuple[int, ...]:
+    """Parse and validate an explicit ordered opening-seed set."""
+    if not isinstance(raw, str) or not raw.strip():
+        raise ValueError("opening seeds must be a non-empty comma-separated list")
+    if openings <= 0:
+        raise ValueError("opening count must be positive")
+
+    tokens = [item.strip() for item in raw.split(",") if item.strip()]
+    if len(tokens) != openings:
+        raise ValueError(f"expected exactly {openings} opening seeds, got {len(tokens)}")
+
+    try:
+        seeds = tuple(int(token) for token in tokens)
+    except ValueError as exc:
+        raise ValueError("opening seeds must contain only integers") from exc
+
+    if len(set(seeds)) != len(seeds):
+        raise ValueError("opening seeds must be unique")
+    if any(seed < 0 for seed in seeds):
+        raise ValueError("opening seeds must be non-negative")
+    return seeds
 
 
 def build_experiment_metadata(
@@ -41,11 +63,33 @@ def build_experiment_metadata(
     nodes: int,
     num_games: int,
     openings: int = 16,
+    opening_seeds: Sequence[int] | None = None,
+    seed_policy: str | None = None,
+    seed_generation_rule: str | None = None,
 ) -> dict[str, object]:
     if not challenger_version or not baseline_version or not rules_version:
         raise ValueError("Arena experiment versions must be explicit")
     if nodes <= 0 or num_games <= 0 or openings <= 0:
         raise ValueError("Arena experiment sizes must be positive")
+
+    if opening_seeds is None:
+        seeds = tuple(OPENING_SEEDS[:openings])
+        if len(seeds) != openings:
+            raise ValueError("canonical opening book does not contain enough seeds")
+        resolved_seed_policy = seed_policy or DEFAULT_SEED_POLICY
+        resolved_generation_rule = seed_generation_rule or "canonical-opening-book-v1"
+    else:
+        seeds = tuple(int(seed) for seed in opening_seeds)
+        if len(seeds) != openings:
+            raise ValueError(f"expected {openings} opening seeds, got {len(seeds)}")
+        if len(set(seeds)) != len(seeds) or any(seed < 0 for seed in seeds):
+            raise ValueError("opening seeds must be unique non-negative integers")
+        resolved_seed_policy = seed_policy or EXPLICIT_SEED_POLICY
+        resolved_generation_rule = seed_generation_rule or SEED_GENERATION_RULE
+
+    if not resolved_seed_policy or not resolved_generation_rule:
+        raise ValueError("seed policy and generation rule must be explicit")
+
     return {
         "challenger_version": str(challenger_version),
         "baseline_version": str(baseline_version),
@@ -58,6 +102,9 @@ def build_experiment_metadata(
         "pairing_policy": "adjacent_games_same_opening_with_inverted_challenger_colour",
         "termination_policy": f"game_over_or_{ARENA_MAX_PLIES}_plies",
         "validity_policy": "only_game_over_with_declared_winner_counts_as_valid_strength_result",
+        "seed_generation_rule": str(resolved_generation_rule),
+        "seed_policy": str(resolved_seed_policy),
+        "opening_seeds": list(seeds),
     }
 
 
@@ -238,6 +285,9 @@ def start_tournament(
     challenger_version: str = "unknown",
     baseline_version: str = "unknown",
     rules_version: str = "unknown",
+    opening_seeds: Sequence[int] | None = None,
+    seed_policy: str | None = None,
+    seed_generation_rule: str | None = None,
 ) -> int:
     print(f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS (margem exigida: {win_threshold}, nodes: {nodes})")
     print(f"Challenger: {challenger_engine}")
@@ -245,20 +295,33 @@ def start_tournament(
     wins_challenger = wins_baseline = draws = invalid_games = 0
     aggregate_actions = Counter()
     games: list[dict[str, object]] = []
-    experiment_metadata = build_experiment_metadata(challenger_version, baseline_version, rules_version, nodes, num_games)
+    opening_count = 16
+    resolved_seeds = tuple(OPENING_SEEDS[:opening_count]) if opening_seeds is None else tuple(opening_seeds)
+    experiment_metadata = build_experiment_metadata(
+        challenger_version,
+        baseline_version,
+        rules_version,
+        nodes,
+        num_games,
+        opening_count,
+        resolved_seeds,
+        seed_policy,
+        seed_generation_rule,
+    )
     challenger = CppEngineBot(nodes=nodes, executable_path=challenger_engine)
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
     try:
         for i in range(num_games):
-            opening_index = (i // 2) % 16
+            opening_index = (i // 2) % opening_count
             pair_id = make_pair_id(i)
             pair_member = i % 2
+            opening_seed = resolved_seeds[opening_index]
             if i % 2 == 0:
                 challenger_color: Color = "white"
-                game = run_headless_match(challenger, baseline, opening_index)
+                game = run_headless_match(challenger, baseline, opening_index, opening_seed)
             else:
                 challenger_color = "black"
-                game = run_headless_match(baseline, challenger, opening_index)
+                game = run_headless_match(baseline, challenger, opening_index, opening_seed)
             winner_side = _winner_side(game["winner"])
             if game["valid"] and winner_side == challenger_color:
                 wins_challenger += 1
@@ -347,6 +410,10 @@ def start_tournament(
             bot.__del__()
 
 
+def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: int = 10) -> bool:
+    return vitorias_desafiante - vitorias_atual >= margem
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="A/B Arena entre duas engines RedWar")
     parser.add_argument("--challenger-engine", required=True)
@@ -358,8 +425,31 @@ def main() -> int:
     parser.add_argument("--challenger-version", default="unknown")
     parser.add_argument("--baseline-version", default="unknown")
     parser.add_argument("--rules-version", default="unknown")
+    parser.add_argument(
+        "--opening-seeds",
+        help="Explicit ordered comma-separated opening seed set (exactly 16 unique non-negative integers).",
+    )
+    parser.add_argument("--seed-policy", help="Declared seed policy stored in experiment provenance")
+    parser.add_argument("--seed-generation-rule", help="Declared seed-generation rule stored in experiment provenance")
     args = parser.parse_args()
-    return start_tournament(args.challenger_engine, args.baseline_engine, args.jogos, args.margem_vitorias, args.nodes, args.results, args.challenger_version, args.baseline_version, args.rules_version)
+
+    opening_seeds = parse_opening_seeds(args.opening_seeds) if args.opening_seeds else None
+    seed_policy = args.seed_policy or (EXPLICIT_SEED_POLICY if opening_seeds is not None else DEFAULT_SEED_POLICY)
+    seed_generation_rule = args.seed_generation_rule or (SEED_GENERATION_RULE if opening_seeds is not None else "canonical-opening-book-v1")
+    return start_tournament(
+        args.challenger_engine,
+        args.baseline_engine,
+        args.jogos,
+        args.margem_vitorias,
+        args.nodes,
+        args.results,
+        args.challenger_version,
+        args.baseline_version,
+        args.rules_version,
+        opening_seeds,
+        seed_policy,
+        seed_generation_rule,
+    )
 
 
 if __name__ == "__main__":
