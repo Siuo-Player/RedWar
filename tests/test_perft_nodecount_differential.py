@@ -71,10 +71,21 @@ def test_python_cpp_perft_node_counts_match():
 
     requests = [(label, make_case(opening_index), depth) for label, opening_index, depth in CASES]
     expected = [(label, depth, python_perft(state, depth)) for label, state, depth in requests]
+    states_and_depths = [(state, depth) for _label, state, depth in requests]
 
-    actual = cpp_perft([(state, depth) for _label, state, depth in requests])
+    first_actual = cpp_perft(states_and_depths)
 
-    for (label, depth, expected_nodes), actual_nodes in zip(expected, actual):
+    # The perft bridge has no intended randomness. Repeat the exact same
+    # process/input to catch native undefined behaviour or other instability
+    # that can otherwise make the differential test appear intermittently green.
+    repeated = [cpp_perft(states_and_depths) for _ in range(8)]
+    for repeat_index, actual in enumerate(repeated, 1):
+        assert actual == first_actual, (
+            f"C++ perft is non-deterministic on identical input: "
+            f"first={first_actual}, repeat_{repeat_index}={actual}"
+        )
+
+    for (label, depth, expected_nodes), actual_nodes in zip(expected, first_actual):
         if actual_nodes != expected_nodes and label == "opening-1":
             state = make_case(1)
             root_actions = actions_for(state)
