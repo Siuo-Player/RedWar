@@ -18,6 +18,7 @@ A documentação de pesquisa recebeu uma atualização posterior do protocolo de
 - **PR #134** — persistência do primeiro dataset real da Arena, com provenance, schema científico, unidades pareadas independentes para resampling e auditoria empírica descritiva.
 - **PR #138** — correção do entrypoint direto de `strength_context_artifacts.py`; o CI passou a alcançar o contexto sem alterar dados ou semântica estatística.
 - **PR #141** — correção do differential harness que omitia os `Dragoon` jumps na referência Python de perft. O C++ e a semântica do jogo não foram alterados; a equivalência seed-B foi protegida por regressão.
+- **PR #142** — controlo explícito e reprodutível de seeds no caminho Arena, com provenance e reutilização da mesma seed nos dois jogos de cada par.
 
 As conclusões metodológicas estão registadas em [`DECISIONS/2026-08-27-strength-replication-calibration-protocol.md`](DECISIONS/2026-08-27-strength-replication-calibration-protocol.md).
 
@@ -62,7 +63,7 @@ Run C — openings/scenarios estratificados
 Run D — população mais ampla
 ```
 
-O contrato de seed explícito está a ser implementado em **PR #142**. O objetivo é que cada run forneça o seu conjunto ordenado de seeds através da execução Arena e que esse conjunto fique preservado na provenance bruta.
+O controlo de seeds explícito foi integrado em **PR #142**. Cada run pode agora fornecer o seu conjunto ordenado de seeds através da execução Arena, com esse conjunto preservado na provenance bruta.
 
 Cada batch deve pertencer a um `experiment_id` comum e congelar antes da execução:
 
@@ -186,9 +187,9 @@ Existe também uma Arena histórica documentada em `docs/DECISIONS/2026-08-25-ac
 
 A divergência Python/C++ original de `1000` vs `1099` para o seed-B `opening-1` foi confirmada como uma inconsistência do adaptador de referência diferencial: o helper Python usado pelo perft não reconhecia o formato de `Dragoon` jump que o teste de movegen já tratava como `jump`.
 
-PR #141 adicionou regressão no próprio perft para esse seed e passou o Test Suite e o AI Quality Gate. O `main` atual é portanto considerado limpo relativamente a esse bloqueio específico.
+PR #141 adicionou regressão no próprio perft para esse seed e passou o Test Suite e o AI Quality Gate. O `main` atual é considerado limpo relativamente a esse bloqueio específico.
 
-Isto não constitui ainda evidência de Strength. O próximo run real deve ser executado apenas depois de o contrato de seeds explícitos estar validado no caminho completo Arena/CI.
+PR #142 torna agora o seed-set um controlo experimental explícito. O próximo run real deve ser executado a partir de commits congelados e passar a validação de dataset/contexto antes de qualquer interpretação de Strength.
 
 ## Regra de desenvolvimento
 
