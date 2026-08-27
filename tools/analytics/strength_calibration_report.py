@@ -112,7 +112,12 @@ def build_calibration_report(
     }
 
 
-def load_run_manifest(path: str | Path) -> dict[str, Any]:
+def load_run_manifest(
+    path: str | Path,
+    *,
+    bootstrap_samples: int = 2000,
+    seed: int = 0,
+) -> dict[str, Any]:
     source = Path(path)
     if not source.is_file():
         raise FileNotFoundError(source)
@@ -122,7 +127,11 @@ def load_run_manifest(path: str | Path) -> dict[str, Any]:
     runs = payload.get("runs")
     if not isinstance(runs, list):
         raise ValueError("run manifest runs must be a list")
-    return build_calibration_report(runs)
+    return build_calibration_report(
+        runs,
+        bootstrap_samples=bootstrap_samples,
+        seed=seed,
+    )
 
 
 def main() -> int:
@@ -131,7 +140,11 @@ def main() -> int:
     parser.add_argument("--bootstrap-samples", type=int, default=2000)
     parser.add_argument("--seed", type=int, default=0)
     args = parser.parse_args()
-    result = load_run_manifest(args.manifest)
+    result = load_run_manifest(
+        args.manifest,
+        bootstrap_samples=args.bootstrap_samples,
+        seed=args.seed,
+    )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
