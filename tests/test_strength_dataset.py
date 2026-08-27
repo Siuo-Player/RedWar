@@ -3,6 +3,7 @@ import json
 import pytest
 
 from tools.analytics.strength_dataset import audit_dataset, build_dataset, load_dataset
+from tools.analytics.arena_experiment_validation import validate_experiment_records
 
 
 FIELDS = (
@@ -94,6 +95,14 @@ def test_load_real_arena_dataset_and_run_existing_empirical_audit():
     assert bundle["manifest"]["evidence_class"] == "real_arena"
     assert bundle["manifest"]["validation"]["valid_games"] == 100
     assert bundle["manifest"]["independent_units"] == 50
+
+    expected = bundle["manifest"]["validation"]
+    actual = validate_experiment_records(
+        [dict(game, experiment=bundle["manifest"]["experiment"]) for game in bundle["games"]],
+        bundle["manifest"]["experiment"],
+        require_strength_population=True,
+    )
+    assert actual == expected, f"persisted validation differs: actual={actual!r} expected={expected!r}"
 
     result = audit_dataset(bundle, bootstrap_samples=200, seed=0)
     assert result["status"] == "descriptive_empirical_audit_only"
