@@ -1,8 +1,8 @@
 # RedWar — Roadmap Status
 
 **Snapshot:** 2026-08-27  
-**Verified main baseline:** `bb5446efca4915c884cddff88ea9f00f1d5fedab`  
-**Current work package:** explicit Arena seed-set control (PR #142)
+**Verified main baseline:** `4f7c6c3f57e7b8a0561b62f3f744f72f6ca1ef43`  
+**Current work package:** execute the frozen Strength calibration controls
 
 ## Estado consolidado
 
@@ -19,6 +19,8 @@ A documentação de pesquisa recebeu uma atualização posterior do protocolo de
 - **PR #138** — correção do entrypoint direto de `strength_context_artifacts.py`; o CI passou a alcançar o contexto sem alterar dados ou semântica estatística.
 - **PR #141** — correção do differential harness que omitia os `Dragoon` jumps na referência Python de perft. O C++ e a semântica do jogo não foram alterados; a equivalência seed-B foi protegida por regressão.
 - **PR #142** — controlo explícito e reprodutível de seeds no caminho Arena, com provenance e reutilização da mesma seed nos dois jogos de cada par.
+- **PR #145** — execução do protected holdout como pares completos de cor invertida, preservando os oito casos do manifest sem os converter artificialmente no formato de 16 seeds.
+- **PR #146** — controlo experimental same-engine explícito: `challenger_ref` e `baseline_ref` podem resolver para a mesma revisão quando o objetivo é medir variação experimental, mantendo esse resultado fora de alegações de melhoria de força.
 
 As conclusões metodológicas estão registadas em [`DECISIONS/2026-08-27-strength-replication-calibration-protocol.md`](DECISIONS/2026-08-27-strength-replication-calibration-protocol.md).
 
@@ -63,7 +65,7 @@ Run C — openings/scenarios estratificados
 Run D — população mais ampla
 ```
 
-O controlo de seeds explícito foi integrado em **PR #142**. Cada run pode agora fornecer o seu conjunto ordenado de seeds através da execução Arena, com esse conjunto preservado na provenance bruta.
+O controlo de seeds explícito foi integrado em **PR #142** e o holdout protegido foi corrigido em **PR #145**. O controlo same-engine exigido por Run A foi tornado executável em **PR #146**.
 
 Cada batch deve pertencer a um `experiment_id` comum e congelar antes da execução:
 
@@ -122,6 +124,8 @@ Antes de o substituir, a evidência de múltiplos runs deve responder:
 Nenhuma alteração do proxy é autorizada apenas porque uma única experiência produziu uma largura diferente.
 
 ### 5. Hold-out
+
+O executor protegido agora respeita o manifest existente: cada caso explícito `(opening_index, seed)` gera um par com inversão de cor. Oito casos produzem oito pares completos, sem padding artificial para a interface de 16 seeds.
 
 Para qualquer refinamento do modelo, deve existir pelo menos um run, estrato ou subconjunto previamente declarado como hold-out.
 
@@ -189,7 +193,7 @@ A divergência Python/C++ original de `1000` vs `1099` para o seed-B `opening-1`
 
 PR #141 adicionou regressão no próprio perft para esse seed e passou o Test Suite e o AI Quality Gate. O `main` atual é considerado limpo relativamente a esse bloqueio específico.
 
-PR #142 torna agora o seed-set um controlo experimental explícito. O próximo run real deve ser executado a partir de commits congelados e passar a validação de dataset/contexto antes de qualquer interpretação de Strength.
+PR #142 torna agora o seed-set um controlo experimental explícito. PR #145 torna o protected holdout executável. PR #146 torna os Run A/B same-engine controls executáveis sem mudar a semântica da Ares.
 
 ## Regra de desenvolvimento
 
