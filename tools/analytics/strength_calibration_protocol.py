@@ -173,6 +173,9 @@ def validate_calibration_runs(runs: Sequence[Mapping[str, Any] | CalibrationRunS
 
     The function does not claim statistical independence. It verifies that the
     plan has enough explicit structure to let later analyses model dependence.
+    Frozen analysis controls are compared across calibration runs only; the
+    protected hold-out is a separate measurement population and may use a
+    distinct opening/seed protocol by design.
     """
     if not isinstance(runs, Sequence) or isinstance(runs, (str, bytes)):
         raise TypeError("runs must be a sequence")
@@ -204,7 +207,7 @@ def validate_calibration_runs(runs: Sequence[Mapping[str, Any] | CalibrationRunS
     if min(item.sequence for item in holdouts) <= max(item.sequence for item in calibration_runs):
         raise ValueError("hold-out run(s) must occur after calibration run(s)")
 
-    frozen_signatures = {item.frozen_signature() for item in normalized}
+    frozen_signatures = {item.frozen_signature() for item in calibration_runs}
     if len(frozen_signatures) != 1:
         raise ValueError("frozen analysis controls differ between calibration runs")
 
@@ -237,7 +240,7 @@ def validate_calibration_runs(runs: Sequence[Mapping[str, Any] | CalibrationRunS
             "fields": list(_REQUIRED_FROZEN_FIELDS),
         },
         "planned_diagnostics": list(frozen[-2]),
-        "holdout_policy": frozen[-1],
+        "holdout_policy": next(iter({item.holdout_policy for item in holdouts})),
         "status": "design_validated_no_statistical_promotion_decision",
     }
 
