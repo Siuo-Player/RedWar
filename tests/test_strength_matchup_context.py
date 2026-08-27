@@ -7,7 +7,7 @@ from tools.analytics.strength_matchup_context import (
 )
 
 
-def game(challenger, baseline, outcome, opening=0, valid=True):
+def game(challenger, baseline, outcome, opening=0, valid=True, node_budget=10_000, rules="r1"):
     return {
         "valid": valid,
         "outcome": outcome,
@@ -15,6 +15,8 @@ def game(challenger, baseline, outcome, opening=0, valid=True):
         "experiment": {
             "challenger_version": challenger,
             "baseline_version": baseline,
+            "node_budget": node_budget,
+            "rules_version": rules,
         },
     }
 
@@ -33,12 +35,34 @@ def test_summarize_matchups_preserves_direction_and_context():
     )
 
     assert len(summaries) == 3
-    first = next(item for item in summaries if item["challenger"] == "A" and item["baseline"] == "B" and item["context"]["opening_index"] == 1)
+    first = next(
+        item
+        for item in summaries
+        if item["challenger"] == "A"
+        and item["baseline"] == "B"
+        and item["context"]["opening_index"] == 1
+    )
     assert first["games"] == 3
     assert first["challenger_wins"] == 1
     assert first["baseline_wins"] == 1
     assert first["draws"] == 1
     assert first["challenger_score_rate"] == pytest.approx(0.5)
+    assert first["context"]["node_budget"] == 10_000
+    assert first["context"]["rules_version"] == "r1"
+
+
+def test_different_budgets_are_not_pooled():
+    summaries = summarize_matchups(
+        [
+            game("A", "B", "challenger", node_budget=10_000),
+            game("A", "B", "baseline", node_budget=10_000),
+            game("A", "B", "challenger", node_budget=20_000),
+            game("A", "B", "baseline", node_budget=20_000),
+        ]
+    )
+
+    assert len(summaries) == 2
+    assert {item["context"]["node_budget"] for item in summaries} == {10_000, 20_000}
 
 
 def test_detects_three_way_intransitivity():
@@ -78,4 +102,5 @@ def test_analysis_marks_result_as_descriptive_only():
 
     assert result["status"] == "descriptive_matchup_analysis_only"
     assert result["context_fields"] == ["opening_index"]
+    assert result["control_fields"] == ["rules_version", "node_budget"]
     assert result["intransitive_cycles"] == []
