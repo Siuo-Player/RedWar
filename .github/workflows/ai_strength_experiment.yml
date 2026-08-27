@@ -38,6 +38,9 @@ on:
         required: false
         default: 'fixed-node-budget'
         type: string
+  push:
+    branches:
+      - 'experiment/strength/**'
 
 permissions:
   contents: read
@@ -65,7 +68,7 @@ jobs:
       - name: Resolve and build baseline
         shell: bash
         env:
-          BASELINE_REF: ${{ inputs.baseline_ref }}
+          BASELINE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.baseline_ref || 'origin/main' }}
         run: |
           set -euo pipefail
           git fetch origin main --no-tags
@@ -87,8 +90,8 @@ jobs:
       - name: Run long strength experiment
         shell: bash
         env:
-          GAMES: ${{ inputs.games }}
-          NODES: ${{ inputs.nodes }}
+          GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}
+          NODES: ${{ github.event_name == 'workflow_dispatch' && inputs.nodes || '10000' }}
         run: |
           set -u
           if (( GAMES % 2 != 0 )); then
@@ -138,7 +141,7 @@ jobs:
         if: always()
         shell: bash
         env:
-          GAMES: ${{ inputs.games }}
+          GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}
         run: |
           set -euo pipefail
           PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
@@ -200,10 +203,10 @@ jobs:
         if: always()
         shell: bash
         env:
-          POPULATION_ID: ${{ inputs.population_id }}
-          SELECTION_POLICY: ${{ inputs.selection_policy }}
-          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
-          SKILL_CONTEXT: ${{ inputs.skill_context }}
+          POPULATION_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.population_id || 'ares-dev-population-v1' }}
+          SELECTION_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.selection_policy || 'paired-fixed-openings' }}
+          CONTROLLER_POPULATION: ${{ github.event_name == 'workflow_dispatch' && inputs.controller_population || 'Ares-v1-vs-baseline-v1' }}
+          SKILL_CONTEXT: ${{ github.event_name == 'workflow_dispatch' && inputs.skill_context || 'fixed-node-budget' }}
         run: |
           set -euo pipefail
           PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
@@ -227,11 +230,11 @@ jobs:
         if: always()
         shell: bash
         env:
-          GAMES: ${{ inputs.games }}
-          POPULATION_ID: ${{ inputs.population_id }}
-          SELECTION_POLICY: ${{ inputs.selection_policy }}
-          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
-          SKILL_CONTEXT: ${{ inputs.skill_context }}
+          GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}
+          POPULATION_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.population_id || 'ares-dev-population-v1' }}
+          SELECTION_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.selection_policy || 'paired-fixed-openings' }}
+          CONTROLLER_POPULATION: ${{ github.event_name == 'workflow_dispatch' && inputs.controller_population || 'Ares-v1-vs-baseline-v1' }}
+          SKILL_CONTEXT: ${{ github.event_name == 'workflow_dispatch' && inputs.skill_context || 'fixed-node-budget' }}
         run: |
           set -euo pipefail
           PREFIX="/tmp/redwar-strength-results/$GITHUB_SHA"
