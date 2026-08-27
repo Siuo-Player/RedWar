@@ -1,7 +1,7 @@
 # Discovery — replication seed set B exposes Python/C++ perft divergence
 
 **Date:** 2026-08-27  
-**Status:** confirmed / investigation required  
+**Status:** root cause confirmed; correctness fix required  
 **Origin:** CI on experiment branch
 
 ## Fact observed
@@ -15,46 +15,54 @@ Python: 1000
 C++:    1099
 ```
 
-The canonical `main` opening set did not expose this mismatch in the existing perft cases; the diagnostic PR #137 based directly on `main` completed the Test Suite successfully.
+The canonical `main` opening set did not expose this mismatch in the existing perft cases; diagnostic PR #137 based directly on `main` completed the Test Suite successfully.
 
-## Interpretation
+## Investigation result
 
-The new seed set does not by itself invalidate the experiment. It does, however, expose an unverified part of the Python/C++ semantic surface. Because the strength calibration protocol requires trustworthy state/action semantics, real replication using the new population must not be interpreted as strength evidence until the differential result is explained.
+The first divergence is at the **root legal-action set**, not after a root transition.
 
-This is a **correctness/semantic validation issue**, not a statistical result, not an Arena draw, and not a CI-only failure.
+For seed-B `opening-1`, the diagnostic found:
+
+```text
+Python-only: []
+C++-only:
+  SPELL jump D2 B4
+  SPELL jump D2 D4
+  SPELL jump D2 F4
+```
+
+The piece on `D2` is `Dragoon`. The shared hero configuration declares `jump_max: 2` and `spells: ["jump"]`. The Python `Dragoon.get_valid_spells()` implementation computes the jump destinations but returns plain two-element coordinate tuples. The common `actions_for()` adapter accepts tuple spells only when a third element contains the spell name; therefore those Dragoon jump results are silently omitted from the Python action list.
+
+The C++ move generator instead reads `jump_max` and emits the corresponding `SPELL jump` actions directly.
+
+Therefore the mismatch is a **Python reference/action-contract bug**, not an intentional C++ semantic difference and not experimental noise.
+
+## Why the old tests missed it
+
+The existing differential positions did not place a Dragoon in a state where the missing Python jump actions affected the tested node count. The seed-B population exposed the untested semantic surface.
+
+## Correctness decision
+
+Keep the C++ jump semantics unchanged. Normalize the Python `Dragoon.get_valid_spells()` return value to the same spell-action representation already used by the other spell-producing implementations:
+
+```python
+{"target": (row, col), "spell_type": "jump"}
+```
+
+Then add focused regression coverage for Dragoon jump actions and retain cross-backend move-generation/perft coverage.
+
+Do not:
+
+- remove the three C++ actions;
+- exclude the seed-B opening;
+- weaken the differential assertion;
+- change node-count semantics;
+- classify the discrepancy as statistical variation.
 
 ## Scope separation
 
-Do not solve this by:
-
-- weakening the perft assertion;
-- excluding `opening-1`;
-- changing Python node-count semantics;
-- changing C++ semantics without identifying the discrepancy;
-- treating the 99-node excess as experimental noise.
-
-The correct next action is to identify the first state/action transition at which the backends diverge.
-
-## Investigation target
-
-Compare, for the seed-B `opening-1` position:
-
-1. root legal actions in Python vs C++;
-2. each root child after the exact same action;
-3. child legal-action counts;
-4. first mismatching action/state;
-5. relevant action type and affected squares;
-6. `make/unmake` and derived state if the mismatch appears after transition.
-
-Use the Python implementation as the semantic reference while the exact source of divergence is still unknown.
+This correctness fix is separate from the previously merged direct-entrypoint CI fix in PR #138. The direct-entrypoint issue was a tooling failure after successful Arena validation. The Dragoon discrepancy is an actual reference/backend semantic mismatch.
 
 ## Promotion / experiment gate
 
-Until the divergence is resolved or explicitly proven to be an intentional representation difference that does not affect legal game semantics:
-
-```text
-seed-B calibration execution = blocked
-promotion authority = disabled
-```
-
-The direct-entrypoint CI fix is separate and must not be bundled with this investigation.
+Seed-B calibration remains blocked until the corrected Python/C++ action semantics pass focused and broader differential validation. Promotion authority remains disabled.
