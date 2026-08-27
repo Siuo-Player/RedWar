@@ -31,6 +31,7 @@ Canonical sources:
 - [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md)
 - [`ARENA_HOLDOUT_CI.md`](ARENA_HOLDOUT_CI.md)
 - [`ARENA_STRENGTH_DATASET.md`](ARENA_STRENGTH_DATASET.md)
+- [`DECISIONS/2026-08-27-strength-replication-calibration-protocol.md`](DECISIONS/2026-08-27-strength-replication-calibration-protocol.md)
 
 The current strength estimator remains an Elo-compatible engineering baseline. Paired-game/pentanomial methodology, empirical uncertainty auditing and sequential testing are validation layers; SPRT is not yet the automatic promotion authority.
 
@@ -38,7 +39,9 @@ The Arena records enough provenance to distinguish valid games from invalid/bloc
 
 Population context for Strength experiments is structured and machine-validated so results can retain the population, selection policy, controller population and skill context that produced the games.
 
-The first persistent real-Arena control dataset is now stored under `data/arena/strength/`. It contains 100 valid games grouped into 50 complete colour-inverted pairs and is consumed by the existing paired empirical uncertainty audit. This is the first empirical calibration observation in the repository, not a completed calibration programme: the control experiment is one independent real run and does not justify changing the production uncertainty proxy or promotion gate.
+The first persistent real-Arena control dataset is now stored under `data/arena/strength/`. It contains 100 valid games grouped into 50 complete colour-inverted pairs and is consumed by the existing paired empirical uncertainty audit. This is the first empirical calibration observation in the repository, not a completed calibration programme: the 50 pairs are resampling units for the paired audit, but they are not 50 independent experimental conditions because opening/seed combinations are reused.
+
+The next evidence block is therefore replication across intentional experiment runs and population/context variation. The engineering uncertainty proxy remains unchanged until repeated-run evidence supports recalibration. Legitimate draws, invalid/incomplete games, dependence from repeated conditions and a predeclared hold-out must be represented in the calibration programme.
 
 ## Game / heroes
 
@@ -67,14 +70,17 @@ The Auto-Pricer remains a diagnostic pricing heuristic, not a causal estimator o
 
 ## Roadmap position
 
-The project has completed the main correctness/provenance foundation and is moving through the remaining validation layers before the next major Ares performance block.
+The project has completed the main correctness/provenance foundation and is moving through the remaining Strength validation layers before the next major Ares performance block.
 
 Current priority order is:
 
 ```text
-real Strength/Arena calibration
-→ contextual matchup/intransitivity analysis
-→ stronger sequential promotion gate
+real Strength dataset persistence
+→ multi-run replication + population variation
+→ contextual / matchup stability
+→ uncertainty calibration + hold-out
+→ SPRT operating-characteristic validation
+→ sequential promotion gate
 → intrinsic/move-quality strength
 → broader Ares search/NNUE optimisation
 ```
