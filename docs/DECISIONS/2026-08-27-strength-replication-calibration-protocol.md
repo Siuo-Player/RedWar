@@ -17,9 +17,26 @@ The first persistent control contains:
 
 Because opening/seed combinations are reused, the evidence is conditional on the manifest-defined experimental population.
 
-## Required experimental structure
+## Frozen batch contract
 
-Future calibration must preserve a frozen analysis contract covering engine/rules versions, compute budget, opening/scenario sampling, seed generation, colour pairing, validity/termination rules, outcome definition, primary statistic, diagnostics and hold-out policy.
+Each calibration batch must have one shared `experiment_id` and freeze, before any results are inspected:
+
+```text
+engine/rules versions
+compute budget
+opening/scenario sampling rule
+seed-generation rule
+colour-pairing rule
+validity/termination rules
+primary outcome
+primary statistic
+planned diagnostics
+hold-out policy
+```
+
+Run-specific `seed_policy` and `population_id` may vary intentionally to test replication and context variation. Changing a frozen field requires a new protocol version rather than silent reinterpretation of the same observations.
+
+## Required experimental structure
 
 Prefer several intentional runs rather than one homogeneous large run. At minimum, future batches should distinguish:
 
@@ -40,13 +57,21 @@ Statistical resampling must respect the dependence structure at the level being 
 
 ## Required evidence
 
-A calibration batch must retain provenance sufficient to identify challenger, baseline and rules versions, run/experiment identifiers, pair, colour, opening/scenario, seed, compute budget, outcome, validity, termination reason and population identifier.
+A calibration batch must retain provenance sufficient to identify challenger, baseline and rules versions, run and experiment identifiers, pair, colour, opening/scenario, seed, compute budget, outcome, validity, termination reason and population identifier.
 
 The raw Arena record remains the source of truth; derived datasets are analytical views.
 
 Primary analyses should include paired effect, between-run stability, context effects and legitimate draw behaviour. A paired-bootstrap percentile interval remains descriptive until its inferential calibration is established; it must not automatically be labelled `IC95%`.
 
 At least one later run, stratum or predeclared subset should remain available as hold-out evidence for model refinements.
+
+## Current RedWar implementation
+
+`tools/analytics/strength_calibration_protocol.py` implements `redwar-strength-calibration-protocol-v3` and validates the frozen batch structure, run identity, population/seed variation, planned diagnostics and hold-out ordering.
+
+`tools/analytics/strength_calibration_report.py` consumes persisted run datasets and produces descriptive run-to-run summaries. It does not alter the production uncertainty proxy and has no promotion authority.
+
+`data/arena/strength/plans/2026-08-27-replication-v3.json` is a predeclared, not-yet-executed plan. It contains placeholder engine/rules SHAs intentionally; real execution must freeze actual commits before data collection.
 
 ## Promotion implications
 
@@ -69,6 +94,15 @@ dataset + provenance
 → hold-out result
 → SPRT validation
 → explicit decision
+```
+
+The accepted decisions are:
+
+```text
+RETAIN BASELINE
+REFINE MODEL
+COLLECT MORE DATA
+KEEP PROMOTION DISABLED
 ```
 
 No production Ares change follows from this decision alone. Downstream search/evaluation/NNUE optimisation remains after the minimum Strength evidence gate.
