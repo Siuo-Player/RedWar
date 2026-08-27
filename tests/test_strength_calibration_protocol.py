@@ -13,6 +13,7 @@ BASE = {
     "rules_version": "rules-sha",
     "node_budget": 10000,
     "opening_policy": "fixed-16-openings",
+    "seed_generation_rule": "deterministic-seed-v1",
     "seed_policy": "seed-set-a",
     "colour_policy": "paired-inversion",
     "validity_policy": "game-over-winner-only",
@@ -65,6 +66,19 @@ def test_rejects_duplicate_run_ids():
 def test_rejects_frozen_control_changes():
     changed = run("run-b", 1, "population-a", "seed-set-b")
     changed["node_budget"] = 20000
+    with pytest.raises(ValueError, match="frozen analysis controls"):
+        validate_calibration_runs(
+            [
+                run("run-a", 0, "population-a", "seed-set-a"),
+                changed,
+                run("holdout", 2, "population-b", "seed-set-h", role="holdout"),
+            ]
+        )
+
+
+def test_rejects_frozen_seed_generation_rule_changes():
+    changed = run("run-b", 1, "population-a", "seed-set-b")
+    changed["seed_generation_rule"] = "different-rule"
     with pytest.raises(ValueError, match="frozen analysis controls"):
         validate_calibration_runs(
             [
