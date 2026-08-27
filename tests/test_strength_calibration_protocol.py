@@ -26,7 +26,7 @@ BASE = {
 }
 
 
-def run(run_id, sequence, population_id, seed_policy, role="calibration"):
+def run(run_id, sequence, population_id, seed_policy, role="calibration", **overrides):
     return {
         **BASE,
         "run_id": run_id,
@@ -35,6 +35,7 @@ def run(run_id, sequence, population_id, seed_policy, role="calibration"):
         "population_id": population_id,
         "seed_policy": seed_policy,
         "holdout": role == "holdout",
+        **overrides,
     }
 
 
@@ -43,7 +44,15 @@ def test_valid_protocol_requires_variation_and_holdout():
         [
             run("run-a", 0, "population-a", "seed-set-a"),
             run("run-b", 1, "population-a", "seed-set-b"),
-            run("holdout-a", 2, "population-b", "seed-set-h", role="holdout"),
+            run(
+                "holdout-a",
+                2,
+                "population-b",
+                "seed-set-h",
+                role="holdout",
+                opening_policy="protected-holdout-v1",
+                seed_generation_rule="predeclared-holdout-manifest",
+            ),
         ]
     )
 
@@ -148,7 +157,15 @@ def test_serialized_plan_is_validated_from_runs():
         "runs": [
             run("run-a", 0, "population-a", "seed-set-a"),
             run("run-b", 1, "population-a", "seed-set-b"),
-            run("holdout", 2, "population-b", "seed-set-h", role="holdout"),
+            run(
+                "holdout",
+                2,
+                "population-b",
+                "seed-set-h",
+                role="holdout",
+                opening_policy="protected-holdout-v1",
+                seed_generation_rule="predeclared-holdout-manifest",
+            ),
         ],
         "run_count": 999,
     }
