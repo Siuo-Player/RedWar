@@ -47,15 +47,16 @@ def _load_raw(path: str | Path) -> tuple[list[dict[str, Any]], str]:
     return records, hashlib.sha256(raw).hexdigest()
 
 
-def _validate_dataset_games(
-    games: list[dict[str, Any]], experiment: dict[str, Any]
-) -> dict[str, Any]:
+def _validate_dataset_games(games: list[dict[str, Any]], experiment: dict[str, Any]) -> dict[str, Any]:
     records = [dict(game, experiment=experiment) for game in games]
-    return validate_experiment_records(
-        records,
-        experiment,
-        require_strength_population=True,
-    )
+    return validate_experiment_records(records, experiment, require_strength_population=True)
+
+
+def _canonical_digest(bundle: dict[str, Any]) -> str:
+    payload = json.loads(json.dumps(bundle, ensure_ascii=False))
+    payload["manifest"].pop("canonical_sha256", None)
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def build_dataset(
@@ -92,18 +93,13 @@ def build_dataset(
             + ", ".join(incomplete)
         )
 
-    source: dict[str, Any] = {
-        "raw_sha256": raw_sha256,
-        "raw_path": str(results_path),
-        "evidence_class": EVIDENCE_CLASS,
-    }
-    for key, value in (
-        ("workflow_run_id", workflow_run_id),
-        ("artifact_id", artifact_id),
-        ("head_sha", head_sha),
-    ):
-        if value is not None:
-            source[key] = int(value) if isinstance(value, int) else value
+    source: dict[str, Any] = {"raw_sha256": raw_sha256}
+    if workflow_run_id is not None:
+        source["workflow_run_id"] = int(workflow_run_id)
+    if artifact_id is not None:
+        source["artifact_id"] = int(artifact_id)
+    if head_sha is not None:
+        source["head_sha"] = head_sha
 
     manifest = {
         "schema_version": DATASET_SCHEMA_VERSION,
@@ -117,37 +113,57 @@ def build_dataset(
         "scientific_game_fields": list(GAME_FIELDS),
         "analysis_status": "raw_real_arena_data_preserved; no_promotion_decision",
     }
-    bundle = {
-        "manifest": manifest,
-        "games": games,
-        "independent_units": units,
-    }
-    canonical = json.dumps(bundle, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    manifest["canonical_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    bundle = {"manifest": manifest, "games": games, "independent_units": units}
+    manifest["canonical_sha256"] = _canonical_digest(bundle)
     return bundle
 
 
 def audit_dataset(bundle: dict[str, Any], *, bootstrap_samples: int = 2000, seed: int = 0) -> dict[str, Any]:
     """Consume stored independent units with the existing descriptive audit."""
-    if not isinstance(bundle, dict) or not isinstance(bundle.get("manifest"), dict):
-        raise ValueError("Strength dataset must contain a manifest")
-    if bundle["manifest"].get("evidence_class") != EVIDENCE_CLASS:
-        raise ValueError("Strength dataset is not marked as real Arena evidence")
-    units = bundle.get("independent_units")
-    if not isinstance(units, list) or len(units) < 2:
-        raise ValueError("at least two independent units are required")
-    context = bundle["manifest"].get("experiment", {}).get("strength_population")
-    validate_population_context(context)
+    loaded = load_dataset_payload(bundle)
     audit = empirical_paired_uncertainty_audit(
-        units, bootstrap_samples=bootstrap_samples, seed=seed
+        loaded["independent_units"], bootstrap_samples=bootstrap_samples, seed=seed
     )
     return {
         "evidence_class": EVIDENCE_CLASS,
-        "dataset_schema_version": bundle["manifest"].get("schema_version"),
-        "units": len(units),
+        "dataset_schema_version": loaded["manifest"]["schema_version"],
+        "units": len(loaded["independent_units"]),
         "audit": audit,
         "status": "descriptive_empirical_audit_only",
     }
+
+
+def load_dataset_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload, dict) or not isinstance(payload.get("manifest"), dict):
+        raise ValueError("Strength dataset must contain a manifest")
+    manifest = payload["manifest"]
+    required = {"schema_version", "evidence_class", "experiment", "validation", "games", "independent_units", "canonical_sha256"}
+    missing = sorted(required - payload.keys() - {"canonical_sha256"})
+    if missing:
+        raise ValueError(f"Strength dataset is missing required fields: {missing}")
+    if manifest.get("schema_version") != DATASET_SCHEMA_VERSION:
+        raise ValueError("unsupported Strength dataset schema version")
+    if manifest.get("evidence_class") != EVIDENCE_CLASS:
+        raise ValueError("Strength dataset evidence class must be real_arena")
+    validate_population_context(manifest["experiment"].get("strength_population"))
+    if _canonical_digest(payload) != manifest["canonical_sha256"]:
+        raise ValueError("Strength dataset canonical hash does not match its contents")
+
+    games = payload["games"]
+    units = payload["independent_units"]
+    if not isinstance(games, list) or not isinstance(units, list):
+        raise ValueError("Strength dataset games and independent_units must be lists")
+    validation = _validate_dataset_games(games, manifest["experiment"])
+    if validation != manifest["validation"]:
+        raise ValueError("dataset validation summary does not match its game records")
+    rebuilt, incomplete = build_independent_pair_units(
+        [dict(game, experiment=manifest["experiment"]) for game in games]
+    )
+    if incomplete:
+        raise ValueError("dataset contains incomplete independent pairs: " + ", ".join(incomplete))
+    if units != rebuilt:
+        raise ValueError("dataset independent units do not match its game records")
+    return payload
 
 
 def load_dataset(path: str | Path) -> dict[str, Any]:
@@ -155,32 +171,7 @@ def load_dataset(path: str | Path) -> dict[str, Any]:
     if not dataset.is_file():
         raise FileNotFoundError(dataset)
     payload = json.loads(dataset.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError("Strength dataset must be a JSON object")
-    manifest = payload.get("manifest")
-    if not isinstance(manifest, dict):
-        raise ValueError("Strength dataset is missing manifest")
-    required = {"schema_version", "evidence_class", "experiment", "validation", "games", "independent_units"}
-    missing = sorted(required - payload.keys())
-    if missing:
-        raise ValueError(f"Strength dataset is missing required fields: {missing}")
-    if manifest.get("schema_version") != DATASET_SCHEMA_VERSION:
-        raise ValueError("unsupported Strength dataset schema version")
-    if manifest.get("evidence_class") != EVIDENCE_CLASS:
-        raise ValueError("Strength dataset evidence class must be real_arena")
-    context = manifest["experiment"].get("strength_population")
-    validate_population_context(context)
-    games = payload["games"]
-    if not isinstance(games, list):
-        raise ValueError("Strength dataset games must be a list")
-    validation = _validate_dataset_games(games, manifest["experiment"])
-    if validation != manifest["validation"]:
-        raise ValueError("dataset validation summary does not match its game records")
-    if payload["independent_units"] != build_independent_pair_units(
-        [dict(game, experiment=manifest["experiment"]) for game in games]
-    )[0]:
-        raise ValueError("dataset independent units do not match game records")
-    return payload
+    return load_dataset_payload(payload)
 
 
 def main() -> int:
