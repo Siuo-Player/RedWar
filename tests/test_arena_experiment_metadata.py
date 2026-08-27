@@ -1,7 +1,6 @@
 import pytest
 
-from tools.analytics.arena_tournament import build_experiment_metadata, parse_opening_seeds
-
+from tools.analytics.arena_tournament import build_experiment_metadata, parse_opening_seeds, select_opening_seed
 
 CANONICAL_SEEDS = (101, 211, 307, 401, 503, 601, 709, 809, 907, 1009, 1103, 1201, 1301, 1409, 1501, 1601)
 SEED_B = (10091, 10211, 10307, 10401, 10503, 10601, 10709, 10809, 10907, 11009, 11103, 11201, 11301, 11409, 11501, 11601)
@@ -51,6 +50,18 @@ def test_parse_opening_seeds_requires_exact_unique_non_negative_set():
         parse_opening_seeds(",".join(["-1"] + [str(seed) for seed in SEED_B[1:]]))
     with pytest.raises(ValueError):
         parse_opening_seeds(",".join(["abc"] + [str(seed) for seed in SEED_B[1:]]))
+
+
+def test_seed_selection_reuses_same_seed_for_colour_inverted_pair():
+    assert select_opening_seed(0, SEED_B) == SEED_B[0]
+    assert select_opening_seed(1, SEED_B) == SEED_B[0]
+    assert select_opening_seed(2, SEED_B) == SEED_B[1]
+    assert select_opening_seed(3, SEED_B) == SEED_B[1]
+
+
+def test_seed_selection_cycles_after_declared_opening_set():
+    assert select_opening_seed(31, SEED_B) == SEED_B[15]
+    assert select_opening_seed(32, SEED_B) == SEED_B[0]
 
 
 def test_experiment_metadata_rejects_missing_versions():
