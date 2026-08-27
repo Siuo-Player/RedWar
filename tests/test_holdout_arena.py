@@ -39,8 +39,8 @@ def test_holdout_summary_preserves_cases_and_colour_pairs(monkeypatch):
     assert summary["cases"] == 8
     assert summary["games"] == 16
     assert summary["complete_pairs"] == 8
-    assert summary["wins_challenger"] == 4
-    assert summary["wins_baseline"] == 4
+    assert summary["wins_challenger"] == 8
+    assert summary["wins_baseline"] == 8
     assert summary["draws"] == 0
     assert summary["invalid_games"] == 0
 
