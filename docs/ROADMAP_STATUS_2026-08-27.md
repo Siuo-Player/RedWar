@@ -159,4 +159,4 @@ Existe também uma Arena histórica documentada em `docs/DECISIONS/2026-08-25-ac
 
 Cada descoberta relevante deve ser documentada antes de iniciar o próximo bloco. Qualquer alteração que mexa no estimador de força, Arena, SPRT ou política de promoção deve permanecer isolada, testada e validada antes de merge.
 
-O protocolo de replicação/calidação é agora o contrato operacional para o próximo bloco; o Roadmap só deve avançar para search/NNUE depois de este gate produzir evidência suficiente ou uma decisão explícita de `COLLECT MORE DATA` / `KEEP PROMOTION DISABLED`.
+O protocolo de replicação e calibração é agora o contrato operacional para o próximo bloco; o Roadmap só deve avançar para search/NNUE depois de este gate produzir evidência suficiente ou uma decisão explícita de `COLLECT MORE DATA` / `KEEP PROMOTION DISABLED`.
