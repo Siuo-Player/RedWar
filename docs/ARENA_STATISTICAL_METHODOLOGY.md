@@ -95,7 +95,111 @@ Não ligar o SPRT ao gate antes de existirem:
 
 A implementação atual de Elo batch permanece deliberadamente descritiva até estes componentes existirem.
 
-## Referências principais
+## 9. Interpretação do dataset real de 100 jogos
+
+A primeira experiência real persistida contém **100 partidas organizadas em 50 pares completos**. A unidade pareada é válida para a comparação controlada, mas não deve ser descrita como 50 condições experimentais independentes: o dataset reutiliza parte das combinações de opening/seed.
+
+A distinção necessária é:
+
+```text
+50 paired game units
+        ≠
+50 independent experimental conditions
+```
+
+Repetições de opening/seed podem ser úteis como replicação das mesmas condições. Ao mesmo tempo, reduzem a diversidade efetiva da população experimental e limitam generalização para outras posições, books ou seeds.
+
+Portanto, resultados deste dataset devem ser reportados como evidência **condicionada à população experimental definida pelo manifest**, não como uma estimativa automaticamente representativa da força global em toda a distribuição de jogo.
+
+O próximo desenho experimental deve preferir uma mistura explícita de:
+
+```text
+replicação controlada
++
+variação/estratificação da população
+```
+
+em vez de apenas aumentar N mantendo exatamente as mesmas condições.
+
+## 10. Paired bootstrap: semântica do intervalo
+
+O bootstrap emparelhado pode produzir quantis 2,5% e 97,5% para descrever a distribuição empírica do efeito reamostrado. **Esses percentis não devem ser apresentados automaticamente como um IC95% calibrado**.
+
+Até existir uma justificação estatística específica para esse uso no estimador escolhido, a nomenclatura recomendada é:
+
+```text
+paired bootstrap interval
+ou
+bootstrap percentile interval (descriptive)
+```
+
+Quando a metodologia de inferência mudar, a semântica do intervalo deve ser atualizada explicitamente em conjunto com testes e documentação.
+
+## 11. Intransitividade: deteção não é prova de estabilidade estratégica
+
+Um padrão observado como:
+
+```text
+A > B
+B > C
+C > A
+```
+
+é evidência de um ciclo observado na amostra, não prova suficiente de uma relação de intransitividade estratégica estável no jogo.
+
+Antes de tratar um ciclo como propriedade do metagame, o projeto deve verificar:
+
+- repetição do padrão em novas partidas;
+- sensibilidade a opening/seed/cor;
+- incerteza dos efeitos por matchup;
+- estabilidade da população/estratégias comparadas.
+
+A análise de ciclos deve portanto continuar como ferramenta diagnóstica e não como decisão automática de balanceamento.
+
+## 12. SPRT e dados reais
+
+A existência de um SPRT isolado e de um dataset real não autoriza ainda ligar o teste ao gate de promoção.
+
+No estado atual, permanecem gaps importantes:
+
+- ausência de draws no primeiro dataset real;
+- necessidade de testar comportamento com draws legítimos;
+- validação de jogos inválidos/incompletos;
+- calibração da escala de efeito;
+- validação da independência/estrutura de dependência assumida pelo modelo;
+- definição de população experimental e estratificação;
+- preservação do raw Arena record para investigações posteriores.
+
+O pipeline correto permanece:
+
+```text
+raw Arena JSONL
+→ durable derived dataset
+→ paired/pentanomial audit
+→ population/context audit
+→ uncertainty calibration
+→ realistic SPRT validation
+→ promotion decision
+```
+
+## 13. Preservação da proveniência
+
+O dataset derivado deve guardar referência ao raw Arena artifact e à execução que o produziu. O compact dataset é uma vista analítica conveniente; não deve substituir o raw game record para:
+
+- replay-level investigation;
+- debugging de invalidez;
+- verificação de termination reason;
+- reconstrução de uma discrepância estatística.
+
+O contrato de proveniência deve distinguir claramente:
+
+```text
+raw source
+→ derived dataset
+→ derived statistics/audit
+```
+
+## 14. Referências principais
 
 - Stockfish/Fishtest — Statistical Methods and Algorithms in Fishtest: https://official-stockfish.github.io/docs/fishtest-wiki/Fishtest-Mathematics.html
 - Stockfish/Fishtest — Creating a test: https://official-stockfish.github.io/docs/fishtest-wiki/Creating-my-first-test.html
