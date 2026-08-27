@@ -1,7 +1,17 @@
 {
   "schema_version": "redwar-strength-calibration-protocol-v3",
-  "status": "planned_not_executed",
+  "status": "partially_frozen_blocked_before_execution",
   "experiment_id": "strength-calibration-2026-08-27-v3",
+  "frozen_engine_baseline": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+  "frozen_rules_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+  "seed_sets_frozen": {
+    "control-seed-set-a": [101, 211, 307, 401, 503, 601, 709, 809, 907, 1009, 1103, 1201, 1301, 1409, 1501, 1601],
+    "replication-seed-set-b": [10091, 10211, 10307, 10401, 10503, 10601, 10709, 10809, 10907, 11009, 11103, 11201, 11301, 11409, 11501, 11601]
+  },
+  "seed_sets_pending": {
+    "population-seed-set-c": "requires an explicit population/sampling artifact before execution",
+    "predeclared-holdout-seed-set": "cannot be represented by the current fixed-16-opening Arena interface; use data/validation/ARES_HOLDOUT_V1.json after dedicated holdout execution support exists"
+  },
   "runs": [
     {
       "run_id": "strength-calibration-2026-08-27-control-replication",
@@ -9,13 +19,14 @@
       "sequence": 0,
       "role": "calibration",
       "population_id": "ares-dev-population-v1",
-      "challenger_version": "REPLACE_WITH_FROZEN_CHALLENGER_SHA",
-      "baseline_version": "REPLACE_WITH_FROZEN_BASELINE_SHA",
-      "rules_version": "REPLACE_WITH_FROZEN_RULES_SHA",
+      "challenger_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "baseline_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "rules_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
       "node_budget": 10000,
       "opening_policy": "stratified-opening-scenarios-v1",
       "seed_generation_rule": "deterministic-seed-v1",
       "seed_policy": "control-seed-set-a",
+      "opening_seeds": [101, 211, 307, 401, 503, 601, 709, 809, 907, 1009, 1103, 1201, 1301, 1409, 1501, 1601],
       "colour_policy": "paired-inversion",
       "validity_policy": "game-over-winner-only",
       "termination_policy": "game-over-or-10000-plies",
@@ -23,7 +34,8 @@
       "primary_statistic": "paired-elo-equivalent",
       "planned_diagnostics": ["colour", "opening", "scenario", "seed", "run", "population", "draws", "invalids", "dependence"],
       "holdout_policy": "later-run-predeclared-before-analysis",
-      "holdout": false
+      "holdout": false,
+      "execution_ready": true
     },
     {
       "run_id": "strength-calibration-2026-08-27-seed-replication",
@@ -31,13 +43,14 @@
       "sequence": 1,
       "role": "calibration",
       "population_id": "ares-dev-population-v1",
-      "challenger_version": "REPLACE_WITH_FROZEN_CHALLENGER_SHA",
-      "baseline_version": "REPLACE_WITH_FROZEN_BASELINE_SHA",
-      "rules_version": "REPLACE_WITH_FROZEN_RULES_SHA",
+      "challenger_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "baseline_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "rules_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
       "node_budget": 10000,
       "opening_policy": "stratified-opening-scenarios-v1",
       "seed_generation_rule": "deterministic-seed-v1",
       "seed_policy": "replication-seed-set-b",
+      "opening_seeds": [10091, 10211, 10307, 10401, 10503, 10601, 10709, 10809, 10907, 11009, 11103, 11201, 11301, 11409, 11501, 11601],
       "colour_policy": "paired-inversion",
       "validity_policy": "game-over-winner-only",
       "termination_policy": "game-over-or-10000-plies",
@@ -45,7 +58,8 @@
       "primary_statistic": "paired-elo-equivalent",
       "planned_diagnostics": ["colour", "opening", "scenario", "seed", "run", "population", "draws", "invalids", "dependence"],
       "holdout_policy": "later-run-predeclared-before-analysis",
-      "holdout": false
+      "holdout": false,
+      "execution_ready": true
     },
     {
       "run_id": "strength-calibration-2026-08-27-population-context",
@@ -53,9 +67,9 @@
       "sequence": 2,
       "role": "calibration",
       "population_id": "ares-broader-population-v1",
-      "challenger_version": "REPLACE_WITH_FROZEN_CHALLENGER_SHA",
-      "baseline_version": "REPLACE_WITH_FROZEN_BASELINE_SHA",
-      "rules_version": "REPLACE_WITH_FROZEN_RULES_SHA",
+      "challenger_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "baseline_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "rules_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
       "node_budget": 10000,
       "opening_policy": "stratified-opening-scenarios-v1",
       "seed_generation_rule": "deterministic-seed-v1",
@@ -67,7 +81,9 @@
       "primary_statistic": "paired-elo-equivalent",
       "planned_diagnostics": ["colour", "opening", "scenario", "seed", "run", "population", "draws", "invalids", "dependence"],
       "holdout_policy": "later-run-predeclared-before-analysis",
-      "holdout": false
+      "holdout": false,
+      "execution_ready": false,
+      "blocker": "ares-broader-population-v1 has no executable population/sampling artifact in the repository"
     },
     {
       "run_id": "strength-calibration-2026-08-27-holdout",
@@ -75,12 +91,12 @@
       "sequence": 3,
       "role": "holdout",
       "population_id": "ares-holdout-population-v1",
-      "challenger_version": "REPLACE_WITH_FROZEN_CHALLENGER_SHA",
-      "baseline_version": "REPLACE_WITH_FROZEN_BASELINE_SHA",
-      "rules_version": "REPLACE_WITH_FROZEN_RULES_SHA",
+      "challenger_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "baseline_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+      "rules_version": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
       "node_budget": 10000,
-      "opening_policy": "stratified-opening-scenarios-v1",
-      "seed_generation_rule": "deterministic-seed-v1",
+      "opening_policy": "protected-holdout-v1",
+      "seed_generation_rule": "predeclared-holdout-manifest",
       "seed_policy": "predeclared-holdout-seed-set",
       "colour_policy": "paired-inversion",
       "validity_policy": "game-over-winner-only",
@@ -89,7 +105,9 @@
       "primary_statistic": "paired-elo-equivalent",
       "planned_diagnostics": ["colour", "opening", "scenario", "seed", "run", "population", "draws", "invalids", "dependence"],
       "holdout_policy": "later-run-predeclared-before-analysis",
-      "holdout": true
+      "holdout": true,
+      "execution_ready": false,
+      "blocker": "current Arena requires exactly 16 ordered opening seeds, while ARES_HOLDOUT_V1 defines 8 explicit seed/opening cases"
     }
   ]
 }
