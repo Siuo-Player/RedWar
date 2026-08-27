@@ -2,7 +2,7 @@
   "dataset": "data/arena/strength/2026-08-27-control-100.json",
   "dataset_schema_version": "redwar-strength-dataset-v1",
   "evidence_class": "real_arena",
-  "source_dataset_canonical_sha256": "e99e58b2d6e34747276da92ce93ec53a106e4447b0992e3b91080c9f7b27c7de",
+  "source_dataset_canonical_sha256": "bc396752a0791437d487f4aaa5dde57721a6db99930789228f951447a2cbd165",
   "audit": {
     "units": 50,
     "bootstrap_samples": 20000,
