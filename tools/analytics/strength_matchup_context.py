@@ -2,6 +2,8 @@
 
 The module combines raw Arena A/B records from multiple experiments, preserving
 matchup direction and optional context fields such as opening or population.
+Experimental controls (rules version and node budget) are always part of the
+context key so incompatible runs cannot be silently pooled.
 It reports score distributions and detects descriptive three-way intransitive
 cycles. It does not estimate causal effects, calibrated confidence intervals,
 or promotion decisions.
@@ -13,6 +15,7 @@ from itertools import combinations
 from typing import Any, Iterable, Sequence
 
 VALID_OUTCOMES = {"challenger", "baseline", "draw"}
+CONTROL_FIELDS = ("rules_version", "node_budget")
 
 
 def _experiment_field(game: dict[str, Any], field: str) -> Any:
@@ -25,8 +28,9 @@ def _experiment_field(game: dict[str, Any], field: str) -> Any:
 
 
 def _context_key(game: dict[str, Any], context_fields: Sequence[str]) -> tuple[tuple[str, Any], ...]:
+    fields = tuple(dict.fromkeys((*CONTROL_FIELDS, *context_fields)))
     values: list[tuple[str, Any]] = []
-    for field in context_fields:
+    for field in fields:
         if field in game:
             value = game[field]
         else:
@@ -101,7 +105,7 @@ def detect_intransitive_cycles(
             continue
         if float(summary["challenger_score_rate"]) <= strict_score_rate:
             continue
-        context = tuple(sorted(dict(summary.get("context", {})).items()))
+        context = tuple(sorted(dict(summary.get("context", {})).items(), key=str))
         key = (str(summary["challenger"]), str(summary["baseline"]))
         existing = by_context[context].get(key)
         if existing is None or int(summary["games"]) > int(existing["games"]):
@@ -147,6 +151,7 @@ def analyze_matchup_context(
         "matchups": summaries,
         "intransitive_cycles": cycles,
         "context_fields": list(context_fields),
+        "control_fields": list(CONTROL_FIELDS),
         "min_games": min_games,
         "strict_score_rate": strict_score_rate,
         "status": "descriptive_matchup_analysis_only",
