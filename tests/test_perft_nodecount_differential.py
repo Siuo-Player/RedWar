@@ -21,6 +21,16 @@ CASES = (
 )
 
 
+CPP_SOURCES = [
+    ROOT / "ai" / "cpp_engine" / "board.cpp",
+    ROOT / "ai" / "cpp_engine" / "evaluate.cpp",
+    ROOT / "ai" / "cpp_engine" / "movegen.cpp",
+    ROOT / "ai" / "cpp_engine" / "search.cpp",
+    ROOT / "ai" / "cpp_engine" / "nnue.cpp",
+    ROOT / "tests" / "cpp_perft_bridge_test.cpp",
+]
+
+
 def python_perft(state: GameState, depth: int) -> int:
     if depth == 0:
         return 1
@@ -47,12 +57,12 @@ def move_label(action: dict) -> str:
     return f"{action['type']} ({sr},{sc})->({er},{ec})"
 
 
-def cpp_perft(states_and_depths: list[tuple[GameState, int]]) -> list[int]:
+def cpp_perft(states_and_depths: list[tuple[GameState, int]], bridge: Path = BRIDGE) -> list[int]:
     payload = "".join(
         f"{depth}\n{state.to_rwen()}\n" for state, depth in states_and_depths
     )
     result = subprocess.run(
-        [str(BRIDGE)],
+        [str(bridge)],
         input=payload,
         text=True,
         capture_output=True,
@@ -64,6 +74,28 @@ def cpp_perft(states_and_depths: list[tuple[GameState, int]]) -> list[int]:
     assert len(lines) == len(states_and_depths)
     assert all(line.startswith("NODES ") for line in lines), lines
     return [int(line.removeprefix("NODES ")) for line in lines]
+
+
+def build_sanitized_bridge() -> Path:
+    if os.name == "nt":
+        pytest.skip("native sanitizer diagnostic is Unix-only")
+
+    output = Path("/tmp/redwar-cpp-perft-sanitized")
+    command = [
+        "g++",
+        "-std=c++17",
+        "-O1",
+        "-g",
+        "-fno-omit-frame-pointer",
+        "-fsanitize=address,undefined",
+        f"-I{ROOT / 'ai' / 'cpp_engine' / 'nlohmann'}",
+        *(str(path.relative_to(ROOT / "ai" / "cpp_engine")) if path.is_relative_to(ROOT / "ai" / "cpp_engine") else str(path) for path in CPP_SOURCES),
+        "-o",
+        str(output),
+    ]
+    result = subprocess.run(command, cwd=ROOT / "ai" / "cpp_engine", text=True, capture_output=True, check=False)
+    assert result.returncode == 0, result.stderr or result.stdout
+    return output
 
 
 def test_python_cpp_perft_node_counts_match():
@@ -84,6 +116,13 @@ def test_python_cpp_perft_node_counts_match():
             f"C++ perft is non-deterministic on identical input: "
             f"first={first_actual}, repeat_{repeat_index}={actual}"
         )
+
+    # Run the same deterministic input through an ASan+UBSan build. This is
+    # deliberately a temporary diagnostic in this branch and does not replace
+    # the normal optimized bridge used by the repository test suite.
+    sanitized_bridge = build_sanitized_bridge()
+    sanitized_actual = cpp_perft(states_and_depths, sanitized_bridge)
+    assert sanitized_actual == first_actual
 
     for (label, depth, expected_nodes), actual_nodes in zip(expected, first_actual):
         if actual_nodes != expected_nodes and label == "opening-1":
