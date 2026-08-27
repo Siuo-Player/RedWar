@@ -1,12 +1,12 @@
 # RedWar — Roadmap Status
 
 **Snapshot:** 2026-08-27  
-**Verified main baseline:** `34d7904e54935cf1bc9cc6de48e1e16c184042f3`  
-**Current work branch:** `feat/real-arena-scientific-dataset-2026-08-27`
+**Verified main baseline:** `bb5446efca4915c884cddff88ea9f00f1d5fedab`  
+**Current work package:** explicit Arena seed-set control (PR #142)
 
 ## Estado consolidado
 
-A fundação de correctness, provenance e observabilidade da Ares está concluída. O trabalho atual está concentrado na validação empírica do Strength antes de alterar a política de promoção ou iniciar um novo bloco agressivo de search/NNUE.
+A fundação de correctness, provenance e observabilidade da Ares está concluída. O trabalho atual continua concentrado na validação empírica do Strength antes de alterar a política de promoção ou iniciar um novo bloco agressivo de search/NNUE.
 
 A documentação de pesquisa recebeu uma atualização posterior do protocolo de **replicação e calibração**. O contrato agora exige não só runs e variação experimental, mas também um `experiment_id` comum, regra de geração de seeds congelada, diagnósticos planeados congelados e uma política de hold-out declarada antes da análise.
 
@@ -16,8 +16,10 @@ A documentação de pesquisa recebeu uma atualização posterior do protocolo de
 - **PR #128** — correção do bootstrap empírico: o par continua a ser a unidade de reamostragem, mas o Elo-equivalente é calculado sobre os resultados agregados de cada amostra. A suavização de fronteira de 0,5 é usada apenas no caminho descritivo do paired bootstrap.
 - **PR #129** — análise descritiva de matchup/contexto e deteção de ciclos de intransitividade. `rules_version` e `node_budget` são sempre tratados como controlos experimentais e nunca são misturados entre condições incompatíveis.
 - **PR #134** — persistência do primeiro dataset real da Arena, com provenance, schema científico, unidades pareadas independentes para resampling e auditoria empírica descritiva.
+- **PR #138** — correção do entrypoint direto de `strength_context_artifacts.py`; o CI passou a alcançar o contexto sem alterar dados ou semântica estatística.
+- **PR #141** — correção do differential harness que omitia os `Dragoon` jumps na referência Python de perft. O C++ e a semântica do jogo não foram alterados; a equivalência seed-B foi protegida por regressão.
 
-As conclusões metodológicas posteriores estão registadas em [`DECISIONS/2026-08-27-strength-replication-calibration-protocol.md`](DECISIONS/2026-08-27-strength-replication-calibration-protocol.md).
+As conclusões metodológicas estão registadas em [`DECISIONS/2026-08-27-strength-replication-calibration-protocol.md`](DECISIONS/2026-08-27-strength-replication-calibration-protocol.md).
 
 ## Próxima sequência de trabalho
 
@@ -51,7 +53,7 @@ A primeira experiência persistida contém **100 jogos em 50 pares completos de 
 
 A experiência deve portanto ser tratada como evidência condicionada à população descrita pelo manifest.
 
-A próxima tranche deve preferir vários runs intencionais, por exemplo:
+A sequência de replicação agora está operacionalmente dividida em:
 
 ```text
 Run A — controlo replicado
@@ -59,6 +61,8 @@ Run B — novos seeds
 Run C — openings/scenarios estratificados
 Run D — população mais ampla
 ```
+
+O contrato de seed explícito está a ser implementado em **PR #142**. O objetivo é que cada run forneça o seu conjunto ordenado de seeds através da execução Arena e que esse conjunto fique preservado na provenance bruta.
 
 Cada batch deve pertencer a um `experiment_id` comum e congelar antes da execução:
 
@@ -135,7 +139,7 @@ O mesmo dado não pode servir simultaneamente para descobrir o efeito, escolher 
 
 ### 6. Protocolo executável
 
-`tools/analytics/strength_calibration_protocol.py` agora valida `redwar-strength-calibration-protocol-v3`.
+`tools/analytics/strength_calibration_protocol.py` valida `redwar-strength-calibration-protocol-v3`.
 
 O protocolo exige:
 
@@ -177,6 +181,14 @@ Existe uma experiência persistida em `data/arena/strength/2026-08-27-control-10
 O audit actualmente registado usa `bootstrap_samples=20000`, `seed=0` e reporta `empirical_half_width=41.475...`; este valor não é um IC95% calibrado e não autoriza substituir o uncertainty proxy nem alterar a promoção. O dataset e o audit preservam o hash canónico correspondente.
 
 Existe também uma Arena histórica documentada em `docs/DECISIONS/2026-08-25-action-aware-ordering-arena-result.md` com 20 jogos. Esse resultado permanece evidência histórica descritiva e não será reconstruído artificialmente como paired dataset.
+
+## Estado do bloqueio seed-B
+
+A divergência Python/C++ original de `1000` vs `1099` para o seed-B `opening-1` foi confirmada como uma inconsistência do adaptador de referência diferencial: o helper Python usado pelo perft não reconhecia o formato de `Dragoon` jump que o teste de movegen já tratava como `jump`.
+
+PR #141 adicionou regressão no próprio perft para esse seed e passou o Test Suite e o AI Quality Gate. O `main` atual é portanto considerado limpo relativamente a esse bloqueio específico.
+
+Isto não constitui ainda evidência de Strength. O próximo run real deve ser executado apenas depois de o contrato de seeds explícitos estar validado no caminho completo Arena/CI.
 
 ## Regra de desenvolvimento
 
