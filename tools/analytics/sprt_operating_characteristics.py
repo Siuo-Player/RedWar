@@ -35,6 +35,12 @@ class OperatingCharacteristics:
     mean_draws: float
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialize both direct rates and the grouped rates object.
+
+        The direct fields keep the diagnostic result convenient for programmatic
+        consumers while the grouped object provides a stable human-readable
+        summary.
+        """
         return {
             "true_elo_delta": self.true_elo_delta,
             "true_draw_rate": self.true_draw_rate,
@@ -46,6 +52,9 @@ class OperatingCharacteristics:
                 "reject_h1": self.reject_h1,
                 "continue_at_max_games": self.continue_at_max_games,
             },
+            "false_positive_rate": self.false_positive_rate,
+            "false_negative_rate": self.false_negative_rate,
+            "stopping_rate": self.stopping_rate,
             "rates": {
                 "false_positive_rate": self.false_positive_rate,
                 "false_negative_rate": self.false_negative_rate,
