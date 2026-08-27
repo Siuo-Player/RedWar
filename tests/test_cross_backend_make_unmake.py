@@ -55,7 +55,7 @@ def actions_for(gs: GameState) -> list[dict]:
                     spell_name = spell.get("spell_type")
                 else:
                     target = spell[0:2]
-                    spell_name = spell[2] if len(spell) >= 3 else None
+                    spell_name = spell[2] if len(spell) >= 3 else ("jump" if piece.name == "Dragoon" and len(spell) == 2 else None)
                 if spell_name:
                     actions.append(
                         {
@@ -172,3 +172,17 @@ def test_python_cpp_make_unmake_equivalence():
 
     assert {"move", "attack", "spawn", "spell"}.issubset(found_types), found_types
 
+
+def test_actions_for_includes_dragoon_jump_spell():
+    state = GameState()
+    put(state, 3, 3, "Dragoon", "brancas")
+
+    jumps = [
+        action for action in actions_for(state)
+        if action["type"] == "spell" and action["spell_name"] == "jump"
+    ]
+
+    assert {action["end"] for action in jumps} == {
+        (1, 3), (5, 3), (3, 1), (3, 5),
+        (1, 1), (1, 5), (5, 1), (5, 5),
+    }
