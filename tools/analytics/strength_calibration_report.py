@@ -37,11 +37,15 @@ def _run_summary(run: Mapping[str, Any], dataset: Mapping[str, Any], *, bootstra
         seed=seed,
     )
     return {
+        "experiment_id": run["experiment_id"],
         "run_id": run["run_id"],
         "sequence": run["sequence"],
         "role": run["role"],
         "population_id": run["population_id"],
+        "seed_generation_rule": run["seed_generation_rule"],
         "seed_policy": run["seed_policy"],
+        "planned_diagnostics": list(run["planned_diagnostics"]),
+        "holdout_policy": run["holdout_policy"],
         "dataset_schema_version": manifest["schema_version"],
         "game_records": manifest["game_records"],
         "independent_units": manifest["independent_units"],
@@ -90,7 +94,8 @@ def build_calibration_report(
     valid = sum(int(item["valid_games"]) for item in run_summaries)
 
     return {
-        "schema_version": "redwar-strength-calibration-report-v1",
+        "schema_version": "redwar-strength-calibration-report-v2",
+        "experiment_id": protocol["experiment_id"],
         "protocol": protocol,
         "runs": run_summaries,
         "aggregate": {
