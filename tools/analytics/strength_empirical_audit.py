@@ -175,5 +175,6 @@ def empirical_paired_uncertainty_audit(
         proxy_half_width=proxy_half_width,
         audit_status="descriptive_paired_resampling_only_with_boundary_smoothing",
     )
+    result["aggregate_implied_elo_delta"] = observed_delta
     result["boundary_smoothing"] = "0.5_decisive_count_each_side_for_paired_bootstrap_only"
     return result
