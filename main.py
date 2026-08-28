@@ -396,7 +396,7 @@ class JogoController:
             if self.thread_ia is None and self.bot_ativo is not None:
                 def pensar(bot, estado):
                     self.resultado_ia.append(bot.escolher_jogada(estado))
-                self.thread_ia = threading.Thread(target=penser_ia, args=(self.bot_ativo, self.gs.fast_clone()))
+                self.thread_ia = threading.Thread(target=pensar, args=(self.bot_ativo, self.gs.fast_clone()))
                 self.thread_ia.daemon = True
                 self.thread_ia.start()
                 pygame.display.set_caption(f"RedWar - {self.bot_ativo.nome} a pensar...")
