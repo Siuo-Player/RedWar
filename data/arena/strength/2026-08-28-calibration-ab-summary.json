@@ -1,0 +1,63 @@
+{
+  "schema_version": "redwar-strength-calibration-ab-summary-v1",
+  "experiment_id": "strength-calibration-2026-08-27-v3",
+  "run_a": {
+    "run_id": "strength-calibration-2026-08-27-control-replication",
+    "workflow_run_id": 33139108032,
+    "artifact_id": 9673256631,
+    "raw_sha256": "5d9667f0ea532e17fe2b777d17dc79dcd2d60519023d67ef87842a26bf7982da",
+    "engine_sha": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+    "games": 100,
+    "valid_games": 100,
+    "invalid_games": 0,
+    "draws": 0,
+    "challenger_wins": 50,
+    "baseline_wins": 50,
+    "complete_pairs": 50,
+    "pair_bins": {"WW": 4, "WL_LW": 42, "LL": 4},
+    "sweep_rate": 0.16,
+    "colour_wins": {"white": 26, "black": 24},
+    "aggregate_paired_elo": 0.0,
+    "paired_bootstrap_p02_5": -41.4753747354028,
+    "paired_bootstrap_p97_5": 41.4753747354028
+  },
+  "run_b": {
+    "run_id": "strength-calibration-2026-08-27-seed-replication",
+    "workflow_run_id": 33170798549,
+    "artifact_id": 9685583438,
+    "raw_sha256": "d38eb921c928624c9058ef1339caf8d96bb9842bd5826b798b48f809ec71e72d",
+    "engine_sha": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+    "games": 100,
+    "valid_games": 100,
+    "invalid_games": 0,
+    "draws": 0,
+    "challenger_wins": 50,
+    "baseline_wins": 50,
+    "complete_pairs": 50,
+    "pair_bins": {"WW": 9, "WL_LW": 32, "LL": 9},
+    "sweep_rate": 0.36,
+    "colour_wins": {"white": 21, "black": 29},
+    "aggregate_paired_elo": 0.0,
+    "paired_bootstrap_p02_5": -55.506774412747596,
+    "paired_bootstrap_p97_5": 55.50677441274754
+  },
+  "combined_descriptive": {
+    "games": 200,
+    "complete_pairs": 100,
+    "aggregate_paired_elo": 0.0,
+    "paired_bootstrap_p02_5": -34.68547952637048,
+    "paired_bootstrap_p97_5": 34.68547952637046,
+    "sweep_rate": 0.26,
+    "sweep_rate_difference_b_minus_a": 0.20,
+    "exploratory_fisher_p_for_sweep_rate_difference": 0.03900629995916128,
+    "exploratory_note": "This p-value is a descriptive exploratory diagnostic, not a preregistered inferential decision and not a confidence interval calibration result."
+  },
+  "interpretation": {
+    "status": "descriptive_multi_run_calibration_only",
+    "strength_effect": "Both same-engine control runs have zero aggregate paired Elo effect.",
+    "stability": "Run B has substantially more within-pair sweeps than Run A, indicating that outcome repeatability depends on the opening/seed context under the current protocol.",
+    "colour": "The colour split reverses between runs, but the paired first-member difference is not strong in the exploratory comparison (Fisher p approximately 0.423).",
+    "decision": "Do not recalibrate the production uncertainty proxy yet. Continue with protected holdout and draw/dependence diagnostics before any model change.",
+    "promotion_authority": false
+  }
+}
