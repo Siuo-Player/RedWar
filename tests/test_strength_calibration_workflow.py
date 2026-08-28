@@ -12,11 +12,11 @@ def test_calibration_workflow_is_plan_backed_and_non_promotional():
     assert "strength-calibration-2026-08-27-control-replication" in text
     assert "--challenger-engine /tmp/redwar-frozen/ai/cpp_engine/engine" in text
     assert "--baseline-engine /tmp/redwar-frozen/ai/cpp_engine/engine" in text
-    assert "--games \"$GAMES\"" in text
-    assert "--selection-policy \"$SELECTION_POLICY\"" in text
-    assert "--controller-population \"$CONTROLLER_POPULATION\"" in text
-    assert "--skill-context \"$SKILL_CONTEXT\"" in text
-    assert "--run-id \"$RUN_ID\"" in text
+    assert "--games \"$CALIBRATION_GAMES\"" in text
+    assert "--selection-policy \"$CALIBRATION_SELECTION_POLICY\"" in text
+    assert "--controller-population \"$CALIBRATION_CONTROLLER_POPULATION\"" in text
+    assert "--skill-context \"$CALIBRATION_SKILL_CONTEXT\"" in text
+    assert "--run-id \"$CALIBRATION_RUN_ID\"" in text
     assert "strength_dataset.py audit" in text
     assert "retention-days: 90" in text
 
@@ -37,3 +37,21 @@ def test_calibration_workflow_uses_python_312_for_current_dependencies():
 
     assert "python-version: '3.12'" in text
     assert "python-version: '3.10'" not in text
+
+
+def test_calibration_workflow_supports_only_dedicated_calibration_push_namespace():
+    text = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "  push:" in text
+    assert "      - 'calibration/strength/**'" in text
+    assert "      - 'experiment/strength/**'" not in text
+
+
+def test_calibration_push_defaults_match_run_a_contract():
+    text = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "CALIBRATION_RUN_ID" in text
+    assert "CALIBRATION_GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}" in text
+    assert "CALIBRATION_SELECTION_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.selection_policy || 'stratified-opening-scenarios-v1' }}" in text
+    assert "CALIBRATION_CONTROLLER_POPULATION: ${{ github.event_name == 'workflow_dispatch' && inputs.controller_population || 'Ares-v1-vs-baseline-v1' }}" in text
+    assert "CALIBRATION_SKILL_CONTEXT: ${{ github.event_name == 'workflow_dispatch' && inputs.skill_context || 'fixed-node-budget' }}" in text
