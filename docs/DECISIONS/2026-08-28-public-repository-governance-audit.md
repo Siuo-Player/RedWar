@@ -47,9 +47,9 @@ The repository now materializes the previously documented intended policy:
 
 Local PNG assets in `ui/assets/` are treated as third-party derivatives and must retain the upstream attribution requirements.
 
-The official upstream corpus is `game-icons/icons`, and its published license information states CC BY 3.0 with contributor attribution requirements.
+The official upstream corpus is `game-icons/icons`. Its `license.txt` states CC BY 3.0 as the default and explicitly marks some contributors, including Viscious Speed and Zeromancer, as CC0. Therefore the matcher must resolve the license from the contributor metadata rather than hardcode CC BY 3.0 for every match.
 
-An automated matcher has been added. It is conservative and cannot promote an icon to a positive attribution status from filename similarity alone.
+An automated matcher has been added. It is conservative and cannot promote a positive attribution status from filename similarity alone. The matcher also rasterizes each upstream SVG once per audit run and reuses the normalized variants across all local assets, avoiding repeated rasterization of the same source.
 
 Because the current agent environment cannot reproducibly obtain and rasterize the full local+upstream image corpus together, the initial manifest deliberately records all 19 local PNGs as `UNRESOLVED`. No author has been invented.
 
