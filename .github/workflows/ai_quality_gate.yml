@@ -46,7 +46,7 @@ jobs:
         BASE="${{ github.event.pull_request.base.sha }}"
         git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
 
-        if grep -Eq '^(ai/|tools/nnue/)' /tmp/changed-files.txt; then
+        if grep -Eq '^(ai/.*\.(py|pyx|pyi|cpp|hpp|h|c|cc|cxx)$|tools/nnue/)' /tmp/changed-files.txt; then
           echo "has_ai_changes=true" >> "$GITHUB_OUTPUT"
           echo "AI engine/NNUE changes detected."
         else
@@ -54,7 +54,7 @@ jobs:
           echo "No AI engine/NNUE changes detected."
         fi
 
-        if grep -Eq '^(ai/|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py)' /tmp/changed-files.txt; then
+        if grep -Eq '^(ai/.*\.(py|pyx|pyi|cpp|hpp|h|c|cc|cxx)$|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py)' /tmp/changed-files.txt; then
           echo "has_quality_changes=true" >> "$GITHUB_OUTPUT"
           echo "AI-quality-related changes detected:"
           cat /tmp/changed-files.txt
