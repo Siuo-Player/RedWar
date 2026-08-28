@@ -59,3 +59,10 @@ def test_strength_workflow_retains_raw_experiment_artifacts():
     assert "path: /tmp/redwar-strength-results/" in text
     assert "name: ares-strength-experiment-${{ github.sha }}" in text
     assert "retention-days: 30" in text
+
+
+def test_strength_workflow_uses_python_312_for_current_dependencies():
+    text = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "python-version: '3.12'" in text
+    assert "python-version: '3.10'" not in text

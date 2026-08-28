@@ -30,3 +30,10 @@ def test_calibration_workflow_resolves_frozen_sha_before_execution():
     assert "git worktree add --detach /tmp/redwar-frozen \"$FROZEN_SHA\"" in text
     assert "experiment.get('challenger_version') != frozen_sha" in text
     assert "experiment.get('baseline_version') != frozen_sha" in text
+
+
+def test_calibration_workflow_uses_python_312_for_current_dependencies():
+    text = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "python-version: '3.12'" in text
+    assert "python-version: '3.10'" not in text
