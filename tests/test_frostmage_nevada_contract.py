@@ -46,6 +46,19 @@ def test_nevada_is_blocked_by_opposing_inquisitor_silence():
     assert mage.get_valid_spells(4, 4, board, effects) == []
 
 
+def test_stunned_inquisitor_does_not_project_silence():
+    mage = FrostMage("brancas")
+    inquisitor = Inquisitor("pretas")
+    inquisitor.stun_timer = 2
+    board = empty_board()
+    effects = empty_effects()
+    board[2][4] = inquisitor
+
+    targets = {entry["target"] for entry in mage.get_valid_spells(4, 4, board, effects)}
+
+    assert (4, 4) in targets
+
+
 def test_nevada_can_be_cast_again_on_a_different_center_without_cooldown():
     gs = GameState()
     mage = FrostMage("brancas")
