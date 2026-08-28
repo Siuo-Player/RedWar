@@ -1,10 +1,10 @@
-"""Temporary developer entrypoint for instrumented manual RedWar games.
+"""Developer entrypoint for instrumented manual RedWar games.
 
 Run with:
     python tools/replay/dev_main.py
 
-This imports the normal game and adds only local observability. The ordinary
-``python main.py`` path is unchanged.
+This imports the normal game and adds local observability plus the player-intent
+interaction policy. The ordinary ``python main.py`` path remains unchanged.
 """
 
 from __future__ import annotations
@@ -18,9 +18,11 @@ if str(ROOT) not in sys.path:
 
 from main import JogoController
 from tools.replay.dev_ui import install_dev_replay
+from tools.replay.interaction import install_intent_interaction
 
 
 if __name__ == "__main__":
     app = JogoController()
+    install_intent_interaction(app)
     install_dev_replay(app)
     app.run()
