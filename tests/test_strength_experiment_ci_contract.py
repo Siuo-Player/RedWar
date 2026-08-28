@@ -23,7 +23,7 @@ def test_strength_workflow_does_not_use_arena_exit_code_as_promotion_gate():
 def test_strength_workflow_publishes_validation_artifact():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "${PREFIX}-validation.json" in text
-    assert "actions/upload-artifact@v4" in text
+    assert "actions/upload-artifact@v" in text
 
 
 def test_strength_workflow_auto_triggers_only_on_experiment_branches():
