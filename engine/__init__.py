@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from functools import wraps
 
 
@@ -42,6 +41,7 @@ def _install_spell_silence_guard() -> None:
 def _install_frostmage_nevada_rules() -> None:
     """Nevada is a selectable area spell; it does not require an enemy target."""
     from engine import pieces
+    from engine.config import LINHAS, COLUNAS
 
     cls = pieces.FrostMage
     method = cls.__dict__.get("get_valid_spells")
@@ -58,7 +58,7 @@ def _install_frostmage_nevada_rules() -> None:
                 if abs(dr) + abs(dc) > 3:
                     continue
                 focus_r, focus_c = r + dr, c + dc
-                if not (0 <= focus_r < pieces.LINHAS and 0 <= focus_c < pieces.COLUNAS):
+                if not (0 <= focus_r < LINHAS and 0 <= focus_c < COLUNAS):
                     continue
                 if tile_effects and tile_effects[focus_r][focus_c] and tile_effects[focus_r][focus_c].get("type") == "ice":
                     continue
