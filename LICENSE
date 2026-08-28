@@ -1,3 +1,14 @@
+RedWar — Project License Scope
+
+The general project-owned code and tooling in this repository, outside the
+Ares subsystem under `ai/`, are licensed under the MIT License below.
+
+Project-owned Ares source code under `ai/` is separately licensed under
+GPL-3.0-or-later. See `ai/LICENSE` for that scope and notice.
+
+Third-party material keeps its original license and notices; it is not
+relicensed by this repository-level notice.
+
 MIT License
 
 Copyright (c) 2026 Siuo-Player
