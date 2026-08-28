@@ -101,7 +101,12 @@ def test_restart_is_explicit_after_close():
 
 def test_timeout_marks_bridge_failed(monkeypatch):
     bridge = SubprocessEngineBridge("/tmp/engine")
-    bridge.process = object()
+
+    class RunningProcess:
+        def poll(self):
+            return None
+
+    bridge.process = RunningProcess()
     bridge.lifecycle = BridgeLifecycle.RUNNING
 
     class EmptyQueue:
