@@ -227,7 +227,7 @@ jobs:
 
     - name: Upload AI Arena results
       if: always()
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: redwar-ai-arena-${{ github.sha }}
         path: /tmp/redwar-arena-results

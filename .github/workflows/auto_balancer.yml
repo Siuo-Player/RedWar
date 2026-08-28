@@ -100,14 +100,14 @@ jobs:
             --no-write \
             --report /tmp/auto_balance_report.json
       - name: Upload Auto-Balance Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: redwar-auto-balance-report-${{ github.run_id }}
           path: /tmp/auto_balance_report.json
           if-no-files-found: error
       - name: Upload Training Telemetry and failure diagnostics
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: redwar-training-telemetry-${{ github.run_id }}
           path: |
