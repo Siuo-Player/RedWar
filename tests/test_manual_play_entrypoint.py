@@ -1,5 +1,14 @@
 import inspect
-from types import SimpleNamespace
+import sys
+from types import ModuleType, SimpleNamespace
+
+# ``main`` imports the optional real-time analysis module. This test targets
+# the manual-play entrypoint and should not require the unrelated evaluator
+# dependency just to import the controller.
+if "ai.search" not in sys.modules:
+    search_stub = ModuleType("ai.search")
+    search_stub.analisar_posicao_continuamente = lambda *_args, **_kwargs: iter(())
+    sys.modules["ai.search"] = search_stub
 
 import main
 
