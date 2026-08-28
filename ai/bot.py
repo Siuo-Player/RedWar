@@ -72,6 +72,12 @@ class CppEngineBot:
                 parts = response.split(" ", 1)
                 move_text = parts[1].strip() if len(parts) > 1 else ""
                 if move_text == "0000":
+                    # 0000 is only a legal no-move result when the authoritative
+                    # Python GameState independently confirms terminality. Keep
+                    # non-terminal 0000 responses as hard bridge/engine failures.
+                    game_state.check_game_over()
+                    if game_state.game_over:
+                        return None
                     raise RuntimeError(
                         f"C++ engine returned bestmove 0000 at {rwen} (nodes={self.nodes})"
                     )

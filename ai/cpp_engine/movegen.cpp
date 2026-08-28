@@ -101,8 +101,7 @@ std::vector<MoveVector> compile_move_behavior(const json& mv_json) {
     }
     if (type == "adjacent" || type == "adj") {
         return normalize_vectors({{-1, -1, 1}, {-1, 0, 1}, {-1, 1, 1},
-                                  {0, -1, 1}, {0, 1, 1},
-                                  {1, -1, 1}, {1, 0, 1}, {1, 1, 1}}, 1, ghost);
+                                  {0, -1, 1}, {0, 1, 1}, {1, -1, 1}, {1, 0, 1}, {1, 1, 1}}, 1, ghost);
     }
     if (type == "knight") {
         return normalize_vectors({{-2, -1, 1}, {-2, 1, 1}, {-1, -2, 1}, {-1, 2, 1},
@@ -459,18 +458,7 @@ std::vector<Move> generate_valid_moves(char current_turn) {
                         const int fc = c + dc;
                         if (fr < 0 || fr >= LINHAS || fc < 0 || fc >= COLUNAS) continue;
                         if (!board.effects[fr][fc].is_empty && board.effects[fr][fc].type == "ice") continue;
-
-                        bool has_enemy = false;
-                        for (int i = 0; i < 5; ++i) {
-                            const int ar = fr + (i == 1 ? -1 : i == 2 ? 1 : 0);
-                            const int ac = fc + (i == 3 ? -1 : i == 4 ? 1 : 0);
-                            if (ar < 0 || ar >= LINHAS || ac < 0 || ac >= COLUNAS) continue;
-                            if (!board.pieces[ar][ac].is_empty && board.pieces[ar][ac].team != piece.team) {
-                                has_enemy = true;
-                                break;
-                            }
-                        }
-                        if (has_enemy) moves.push_back({r, c, fr, fc, "SPELL", "nevada", "", 0});
+                        moves.push_back({r, c, fr, fc, "SPELL", "nevada", "", 0});
                     }
                 }
             }
