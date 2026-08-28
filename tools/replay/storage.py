@@ -17,8 +17,10 @@ SCHEMA_VERSION = 1
 HOT_CACHE_SIZE = 10
 CHUNK_SIZE = 256
 DEFAULT_ROOT = Path(__file__).resolve().parents[2] / "data" / "replays"
-_INITIAL_STATES: dict[int, dict[str, Any]] = {}
-_FINALIZED_GAMES: dict[int, str] = {}
+# Keep object references alongside IDs so Python object-id reuse cannot bind a
+# new GameState to stale replay state from an older, collected GameState.
+_INITIAL_STATES: dict[int, tuple[Any, dict[str, Any]]] = {}
+_FINALIZED_GAMES: dict[int, tuple[Any, str]] = {}
 
 
 class ReplayCorruptionError(ValueError):
@@ -157,24 +159,25 @@ def build_record(gs: Any, initial: dict[str, Any]) -> dict[str, Any]:
 
 def capture_initial(gs: Any) -> None:
     """Capture the first battle state for a live GameState."""
-    _INITIAL_STATES.setdefault(id(gs), snapshot_state(gs))
+    _INITIAL_STATES.setdefault(id(gs), (gs, snapshot_state(gs)))
 
 
 def finalize_completed_game(gs: Any) -> str | None:
     """Persist a completed game; repeated finalization returns the same game id."""
     key = id(gs)
-    finalized_id = _FINALIZED_GAMES.get(key)
-    if finalized_id is not None:
-        return finalized_id if gs.game_over else None
+    finalized = _FINALIZED_GAMES.get(key)
+    if finalized is not None and finalized[0] is gs:
+        return finalized[1] if gs.game_over else None
 
-    initial = _INITIAL_STATES.pop(key, None)
+    initial_entry = _INITIAL_STATES.pop(key, None)
+    initial = initial_entry[1] if initial_entry is not None and initial_entry[0] is gs else None
     if initial is None or not gs.game_over:
         return None
 
     record = build_record(gs, initial)
     ReplayStore().save(record)
     game_id = str(record["game_id"])
-    _FINALIZED_GAMES[key] = game_id
+    _FINALIZED_GAMES[key] = (gs, game_id)
     return game_id
 
 
