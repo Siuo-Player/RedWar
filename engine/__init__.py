@@ -151,7 +151,37 @@ def _install_rwen_serialization_compat() -> None:
     GameState.to_rwen = to_rwen
 
 
+def _install_direct_spell_silence_rule() -> None:
+    """Keep direct GameState spell execution aligned with spell generation."""
+    from engine.config import COLUNAS, LINHAS
+    from engine.game_state import GameState
+    from engine.game_state import HERO_DEFS
+
+    method = GameState._is_silenced_piece
+    if getattr(method, "_redwar_direct_silence_rule", False):
+        return
+
+    @wraps(method)
+    def guarded(self, piece, row, col, _method=method):
+        for r in range(LINHAS):
+            for c in range(COLUNAS):
+                source = self.board[r][c]
+                if (
+                    source
+                    and source.team != piece.team
+                    and source.name == "Inquisitor"
+                    and source.can_act()
+                    and max(abs(row - r), abs(col - c)) <= int(HERO_DEFS.get("Inquisitor", {}).get("aura_radius", 2))
+                ):
+                    return True
+        return False
+
+    guarded._redwar_direct_silence_rule = True
+    GameState._is_silenced_piece = guarded
+
+
 _install_spell_silence_guard()
 _install_frostmage_nevada_rules()
 _install_replay_capture_guard()
 _install_rwen_serialization_compat()
+_install_direct_spell_silence_rule()
