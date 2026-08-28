@@ -72,15 +72,17 @@ def action_label(action: dict[str, Any]) -> str:
 
 
 def needs_offensive_target_confirmation(gs: Any, action: dict[str, Any]) -> bool:
-    """Require confirmation when an offensive spell is aimed at an ally/self."""
+    """Require confirmation when an offensive spell is aimed at its caster's ally/self."""
     if action.get("type") != "spell":
         return False
     spell_name = str(action.get("spell_name", "")).casefold()
     if spell_name in SUPPORT_SPELLS:
         return False
-    r, c = action["end"]
-    target = gs.board[r][c]
-    return bool(target is not None and target.team == "brancas")
+    start_r, start_c = action.get("start", (None, None))
+    end_r, end_c = action["end"]
+    target = gs.board[end_r][end_c]
+    caster = gs.board[start_r][start_c] if start_r is not None else None
+    return bool(target is not None and caster is not None and target.team == caster.team)
 
 
 def _button_rects(pygame: Any, width: int, height: int, count: int) -> list[Any]:
@@ -158,13 +160,13 @@ def _install_instance_wrapper(controller: Any) -> None:
             self.casa_selecionada = None
             return None
 
-        clicked_piece = self.gs.board[r][c]
-        if clicked_piece is not None and clicked_piece.team == "brancas":
-            self.casa_selecionada = (r, c)
-            return None
-
+        # Resolve the destination before automatically switching to another
+        # friendly piece. A friendly square can itself be a legal spell target.
         actions = actions_for_destination(self.gs, sr, sc, r, c)
         if not actions:
+            clicked_piece = self.gs.board[r][c]
+            if clicked_piece is not None and clicked_piece.team == "brancas":
+                self.casa_selecionada = (r, c)
             return None
 
         if len(actions) == 1:
