@@ -85,53 +85,85 @@ def needs_offensive_target_confirmation(gs: Any, action: dict[str, Any]) -> bool
     return bool(target is not None and caster is not None and target.team == caster.team)
 
 
-def _button_rects(pygame: Any, width: int, height: int, count: int) -> list[Any]:
-    button_w = min(420, max(220, width - 80))
-    button_h = 52
-    gap = 12
-    total_h = count * button_h + max(0, count - 1) * gap
-    top = (height - total_h) // 2
-    left = (width - button_w) // 2
-    return [pygame.Rect(left, top + i * (button_h + gap), button_w, button_h) for i in range(count)]
-
-
 def _prompt(controller: Any, title: str, labels: list[str], *, allow_cancel: bool = True) -> int | None:
-    """Render a blocking, deterministic selection dialog using current Pygame surface."""
+    """Show a compact action picker without obscuring the board."""
     import pygame
 
-    font = pygame.font.SysFont("arial", 28, bold=True)
-    font_small = pygame.font.SysFont("arial", 20)
-    rects = _button_rects(pygame, *controller.ecra.get_size(), len(labels))
+    width, height = controller.ecra.get_size()
+    board_left = 60
+    board_top = 80
+    board_size = 8 * min(width // 9, max(8, (height - 200) // 8))
+    center_x = board_left + board_size // 2
+    center_y = board_top + board_size // 2
+
+    font = pygame.font.SysFont("arial", 18, bold=True)
+    small = pygame.font.SysFont("arial", 14)
+    button_h = 38
+    gap = 8
+    max_button_w = 210
+    button_ws = [min(max_button_w, max(120, font.size(f"{i}. {label}")[0] + 26)) for i, label in enumerate(labels, start=1)]
+    total_w = sum(button_ws) + gap * (len(labels) - 1)
+    left = max(12, min(width - total_w - 12, center_x - total_w // 2))
+    top = max(12, center_y - button_h // 2)
+    rects = []
+    x = left
+    for button_w in button_ws:
+        rects.append(pygame.Rect(x, top, button_w, button_h))
+        x += button_w + gap
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return None
-            if event.type == pygame.KEYDOWN and allow_cancel and event.key == pygame.K_ESCAPE:
-                return None
+            if event.type == pygame.KEYDOWN:
+                if allow_cancel and event.key == pygame.K_ESCAPE:
+                    return None
+                if pygame.K_1 <= event.key <= pygame.K_9:
+                    index = event.key - pygame.K_1
+                    if index < len(labels):
+                        return index
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 for index, rect in enumerate(rects):
                     if rect.collidepoint(event.pos):
                         return index
-            if event.type == pygame.KEYDOWN and pygame.K_1 <= event.key <= pygame.K_9:
-                index = event.key - pygame.K_1
-                if index < len(labels):
-                    return index
 
-        overlay = pygame.Surface(controller.ecra.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 185))
-        controller.ecra.blit(overlay, (0, 0))
-        title_surface = font.render(title, True, (255, 255, 255))
-        title_rect = title_surface.get_rect(center=(controller.ecra.get_width() // 2, rects[0].y - 55))
-        controller.ecra.blit(title_surface, title_rect)
+        # Keep the complete board visible; only add a small local picker.
+        selected = getattr(controller, "hover_pos", None)
+        if selected is not None:
+            r, c = selected
+            try:
+                off_y, off_x, tam_casa = controller.get_ui_metrics()
+                target_x = off_x + c * tam_casa + tam_casa // 2
+                target_y = off_y + r * tam_casa
+                picker_w = total_w + 16
+                picker_h = button_h + 34
+                picker_left = max(8, min(width - picker_w - 8, target_x - picker_w // 2))
+                picker_top = max(8, target_y - picker_h - 8)
+                rects = []
+                x = picker_left + 8
+                for button_w in button_ws:
+                    rects.append(pygame.Rect(x, picker_top + 26, button_w, button_h))
+                    x += button_w + gap
+                header_rect = pygame.Rect(picker_left, picker_top, picker_w, picker_h)
+            except Exception:
+                header_rect = pygame.Rect(left, top - 22, total_w, button_h + 30)
+        else:
+            header_rect = pygame.Rect(left, top - 22, total_w, button_h + 30)
+
+        shadow = header_rect.move(3, 3)
+        pygame.draw.rect(controller.ecra, (8, 8, 12), shadow, border_radius=9)
+        pygame.draw.rect(controller.ecra, (34, 34, 44), header_rect, border_radius=9)
+        pygame.draw.rect(controller.ecra, (170, 170, 190), header_rect, 2, border_radius=9)
+        title_surface = small.render(title, True, (245, 245, 250))
+        controller.ecra.blit(title_surface, title_surface.get_rect(midtop=(header_rect.centerx, header_rect.top + 6)))
         for i, (rect, label) in enumerate(zip(rects, labels), start=1):
-            pygame.draw.rect(controller.ecra, (55, 55, 70), rect, border_radius=8)
-            pygame.draw.rect(controller.ecra, (180, 180, 200), rect, 2, border_radius=8)
-            txt = font_small.render(f"{i}. {label}", True, (255, 255, 255))
+            pygame.draw.rect(controller.ecra, (58, 58, 74), rect, border_radius=7)
+            pygame.draw.rect(controller.ecra, (145, 145, 165), rect, 1, border_radius=7)
+            txt = font.render(f"{i}. {label}", True, (255, 255, 255))
             controller.ecra.blit(txt, txt.get_rect(center=rect.center))
-        controller.ecra.blit(
-            font_small.render("ESC = cancelar", True, (190, 190, 190)),
-            (20, controller.ecra.get_height() - 34),
-        )
+        hint = small.render("ESC para cancelar", True, (185, 185, 195))
+        hint_rect = hint.get_rect(midbottom=(header_rect.centerx, header_rect.bottom - 5))
+        controller.ecra.blit(hint, hint_rect)
         pygame.display.flip()
         controller.clock.tick(60)
 
@@ -160,8 +192,6 @@ def _install_instance_wrapper(controller: Any) -> None:
             self.casa_selecionada = None
             return None
 
-        # Resolve the destination before automatically switching to another
-        # friendly piece. A friendly square can itself be a legal spell target.
         actions = actions_for_destination(self.gs, sr, sc, r, c)
         if not actions:
             clicked_piece = self.gs.board[r][c]
@@ -181,11 +211,8 @@ def _install_instance_wrapper(controller: Any) -> None:
         if needs_offensive_target_confirmation(self.gs, chosen):
             index = _prompt(
                 self,
-                "Este poder está a ser usado contra um herói aliado. Confirmar?",
-                [
-                    f"Confirmar {action_label(chosen)}",
-                    "Voltar e escolher outro alvo",
-                ],
+                "Confirmar poder contra aliado?",
+                [f"Confirmar {action_label(chosen)}", "Cancelar"],
                 allow_cancel=True,
             )
             if index != 0:
