@@ -1,4 +1,4 @@
-"""Engine package initialization and cross-cutting legality guards."""
+"""Engine initialization and cross-cutting legality/replay guards."""
 
 from __future__ import annotations
 
@@ -38,4 +38,25 @@ def _install_spell_silence_guard() -> None:
         setattr(cls, "get_valid_spells", guarded)
 
 
+def _install_replay_capture_guard() -> None:
+    """Capture the battle-start state on the first real action, not simulations."""
+    from engine.game_state import GameState
+
+    method = GameState.make_action
+    if getattr(method, "_redwar_replay_capture_guard", False):
+        return
+
+    @wraps(method)
+    def guarded(self, *args, **kwargs):
+        is_simulation = bool(kwargs.get("is_simulation", False))
+        if not is_simulation:
+            from tools.replay.storage import capture_initial
+            capture_initial(self)
+        return method(self, *args, **kwargs)
+
+    guarded._redwar_replay_capture_guard = True
+    GameState.make_action = guarded
+
+
 _install_spell_silence_guard()
+_install_replay_capture_guard()
