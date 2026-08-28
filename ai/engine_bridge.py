@@ -98,14 +98,6 @@ class SubprocessEngineBridge(EngineBridge):
     def last_request_id(self) -> int | None:
         return self.last_request.request_id if self.last_request else None
 
-    @property
-    def process(self):
-        return self._process
-
-    @process.setter
-    def process(self, value):
-        self._process = value
-
     def _start_reader(self, stream, target):
         thread = threading.Thread(target=target, args=(stream,), daemon=True)
         thread.start()
@@ -135,6 +127,9 @@ class SubprocessEngineBridge(EngineBridge):
 
         if self.lifecycle == BridgeLifecycle.CLOSED:
             raise EngineBridgeError("engine bridge is closed")
+        if self.lifecycle == BridgeLifecycle.FAILED:
+            error = self.last_error or EngineBridgeProcessExit("engine bridge is failed")
+            raise error
         if not os.path.exists(self.exe_path):
             self.lifecycle = BridgeLifecycle.FAILED
             error = EngineBridgeProcessExit(
@@ -164,6 +159,7 @@ class SubprocessEngineBridge(EngineBridge):
             raise error from exc
 
         self.lifecycle = BridgeLifecycle.RUNNING
+        self.last_error = None
         self._start_reader(self.process.stdout, self._read_stdout)
         self._start_reader(self.process.stderr, self._read_stderr)
         self.send_command("isready")
@@ -207,6 +203,8 @@ class SubprocessEngineBridge(EngineBridge):
             timeout = self.DEFAULT_TIMEOUT
         if timeout <= 0:
             raise ValueError("timeout must be positive")
+        if self.lifecycle == BridgeLifecycle.FAILED and self.last_error is not None:
+            raise self.last_error
         self.ensure_running()
 
         try:
@@ -215,6 +213,7 @@ class SubprocessEngineBridge(EngineBridge):
             error = EngineBridgeTimeout(
                 f"timeout waiting for Ares response (request_id={self.last_request_id})"
             )
+            self.lifecycle = BridgeLifecycle.FAILED
             self.last_error = error
             raise error from exc
 
@@ -254,13 +253,13 @@ class SubprocessEngineBridge(EngineBridge):
                 pass
 
     def restart(self) -> None:
-        """Bounded recovery primitive: close the failed process and start a new one."""
+        """Explicit recovery primitive; never triggered implicitly by reads."""
         if self.lifecycle == BridgeLifecycle.CLOSED:
             raise EngineBridgeError("cannot restart a closed bridge")
         self.close()
-        self.lifecycle = BridgeLifecycle.FAILED
-        self.last_error = None
         self.process = None
+        self.lifecycle = BridgeLifecycle.NEW
+        self.last_error = None
         self.ensure_running()
 
     def __enter__(self) -> "SubprocessEngineBridge":
