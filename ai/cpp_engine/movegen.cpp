@@ -457,6 +457,7 @@ std::vector<Move> generate_valid_moves(char current_turn) {
                         const int fr = r + dr;
                         const int fc = c + dc;
                         if (fr < 0 || fr >= LINHAS || fc < 0 || fc >= COLUNAS) continue;
+                        if (fr == r && fc == c) continue;
                         if (!board.effects[fr][fc].is_empty && board.effects[fr][fc].type == "ice") continue;
                         moves.push_back({r, c, fr, fc, "SPELL", "nevada", "", 0});
                     }
