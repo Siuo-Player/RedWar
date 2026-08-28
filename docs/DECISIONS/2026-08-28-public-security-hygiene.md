@@ -26,7 +26,7 @@ Weekly version-update configuration was added for:
 - `pip` dependencies in `/`;
 - GitHub Actions in `/`.
 
-The configuration does not grant Dependabot write access to `main`; update proposals remain pull requests subject to repository governance. GitHub documents `dependabot.yml` as the configuration mechanism for version-update schedules. citeturn685357search0turn685357search4
+The configuration does not grant Dependabot write access to `main`; update proposals remain pull requests subject to repository governance. See the GitHub documentation for `dependabot.yml` version-update configuration: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-dependency-updates.
 
 ### CodeQL
 
@@ -36,7 +36,7 @@ The workflow does not become a required status check for ordinary PR merges. It 
 
 The initial C++ CodeQL attempt failed because `autobuild` selected `setup.py` without installing Cython. That failure was diagnosed and corrected by switching to CodeQL manual build mode and the repository's existing explicit C++ builder. The corrected CodeQL C++ and Python analyses both passed on PR #154.
 
-CodeQL Action v4 is the current supported major version in the official CodeQL Action repository. citeturn981944search0turn981944search1
+CodeQL Action v4 is the current supported major line of the official CodeQL Action repository: https://github.com/github/codeql-action.
 
 ## Validation
 
@@ -60,7 +60,7 @@ The available repository API did not expose current values for:
 - secret scanning;
 - push protection.
 
-These are GitHub Settings features and must not be represented as enabled merely because configuration files exist in the repository. GitHub documents these as separate security/Advanced Security settings. citeturn685357search2turn685357search5
+These are GitHub Settings features and must not be represented as enabled merely because configuration files exist in the repository. The corresponding GitHub security settings are documented separately at: https://docs.github.com/en/code-security.
 
 ## Security conclusion
 
