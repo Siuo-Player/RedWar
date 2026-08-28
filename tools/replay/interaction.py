@@ -1,10 +1,4 @@
-"""Player-intent interaction policy for manual RedWar sessions.
-
-This module is deliberately independent from the rules engine. It resolves a
-board destination into one or more already-legal actions and asks the player
-when the destination is semantically ambiguous or targets an allied unit with
-an offensive spell.
-"""
+"""Player-intent interaction policy for manual RedWar sessions."""
 
 from __future__ import annotations
 
@@ -34,26 +28,17 @@ def actions_for_destination(gs: Any, sr: int, sc: int, tr: int, tc: int) -> list
 
     for spawn in piece.get_valid_spawns(sr, sc, gs.board, gs.tile_effects):
         if target == (spawn[0], spawn[1]):
-            actions.append(
-                {
-                    "type": "spawn",
-                    "start": (sr, sc),
-                    "end": target,
-                    "spawn_name": spawn[2],
-                }
-            )
+            actions.append({"type": "spawn", "start": (sr, sc), "end": target, "spawn_name": spawn[2]})
 
     for spell in piece.get_valid_spells(sr, sc, gs.board, gs.tile_effects):
         spell_target = spell.get("target") if isinstance(spell, dict) else spell
         if spell_target == target:
-            actions.append(
-                {
-                    "type": "spell",
-                    "start": (sr, sc),
-                    "end": target,
-                    "spell_name": spell.get("spell_type", "spell") if isinstance(spell, dict) else "spell",
-                }
-            )
+            actions.append({
+                "type": "spell",
+                "start": (sr, sc),
+                "end": target,
+                "spell_name": spell.get("spell_type", "spell") if isinstance(spell, dict) else "spell",
+            })
 
     return actions
 
@@ -64,11 +49,7 @@ def action_label(action: dict[str, Any]) -> str:
         return f"Usar {str(action.get('spell_name', 'spell')).upper()}"
     if action_type == "spawn":
         return f"Invocar {action.get('spawn_name', 'unidade')}"
-    return {
-        "move": "Mover",
-        "attack": "Atacar",
-        "stun": "Atordoar",
-    }.get(action_type, action_type.capitalize())
+    return {"move": "Mover", "attack": "Atacar", "stun": "Atordoar"}.get(action_type, action_type.capitalize())
 
 
 def needs_offensive_target_confirmation(gs: Any, action: dict[str, Any]) -> bool:
@@ -86,30 +67,23 @@ def needs_offensive_target_confirmation(gs: Any, action: dict[str, Any]) -> bool
 
 
 def _prompt(controller: Any, title: str, labels: list[str], *, allow_cancel: bool = True) -> int | None:
-    """Show a compact action picker without obscuring the board."""
+    """Show action choices in the existing right-hand game panel."""
     import pygame
 
     width, height = controller.ecra.get_size()
-    board_left = 60
-    board_top = 80
-    board_size = 8 * min(width // 9, max(8, (height - 200) // 8))
-    center_x = board_left + board_size // 2
-    center_y = board_top + board_size // 2
+    off_y, off_x, tam_casa = controller.get_ui_metrics()
+    panel_x = off_x + 8 * tam_casa + 30
+    panel_w = max(220, width - panel_x - 20)
 
-    font = pygame.font.SysFont("arial", 18, bold=True)
-    small = pygame.font.SysFont("arial", 14)
-    button_h = 38
-    gap = 8
-    max_button_w = 210
-    button_ws = [min(max_button_w, max(120, font.size(f"{i}. {label}")[0] + 26)) for i, label in enumerate(labels, start=1)]
-    total_w = sum(button_ws) + gap * (len(labels) - 1)
-    left = max(12, min(width - total_w - 12, center_x - total_w // 2))
-    top = max(12, center_y - button_h // 2)
-    rects = []
-    x = left
-    for button_w in button_ws:
-        rects.append(pygame.Rect(x, top, button_w, button_h))
-        x += button_w + gap
+    title_font = pygame.font.SysFont("arial", 22, bold=True)
+    body_font = pygame.font.SysFont("arial", 17)
+    hint_font = pygame.font.SysFont("arial", 13)
+    button_h = 44
+    gap = 10
+    button_x = panel_x + 14
+    button_w = max(170, panel_w - 28)
+    title_y = 48
+    first_y = title_y + 48
 
     while True:
         for event in pygame.event.get():
@@ -123,47 +97,54 @@ def _prompt(controller: Any, title: str, labels: list[str], *, allow_cancel: boo
                     if index < len(labels):
                         return index
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                for index, rect in enumerate(rects):
+                for index in range(len(labels)):
+                    rect = pygame.Rect(button_x, first_y + index * (button_h + gap), button_w, button_h)
                     if rect.collidepoint(event.pos):
                         return index
 
-        # Keep the complete board visible; only add a small local picker.
-        selected = getattr(controller, "hover_pos", None)
-        if selected is not None:
-            r, c = selected
-            try:
-                off_y, off_x, tam_casa = controller.get_ui_metrics()
-                target_x = off_x + c * tam_casa + tam_casa // 2
-                target_y = off_y + r * tam_casa
-                picker_w = total_w + 16
-                picker_h = button_h + 34
-                picker_left = max(8, min(width - picker_w - 8, target_x - picker_w // 2))
-                picker_top = max(8, target_y - picker_h - 8)
-                rects = []
-                x = picker_left + 8
-                for button_w in button_ws:
-                    rects.append(pygame.Rect(x, picker_top + 26, button_w, button_h))
-                    x += button_w + gap
-                header_rect = pygame.Rect(picker_left, picker_top, picker_w, picker_h)
-            except Exception:
-                header_rect = pygame.Rect(left, top - 22, total_w, button_h + 30)
-        else:
-            header_rect = pygame.Rect(left, top - 22, total_w, button_h + 30)
+        # The normal game frame is already visible behind this panel. Redraw it
+        # using the controller's current renderer, then replace only the right
+        # panel with the action chooser.
+        controller.renderizar(
+            w=width,
+            h=height,
+            off_x=off_x,
+            off_y_tab=off_y,
+            tam_casa=tam_casa,
+            painel_x=panel_x,
+        )
 
-        shadow = header_rect.move(3, 3)
-        pygame.draw.rect(controller.ecra, (8, 8, 12), shadow, border_radius=9)
-        pygame.draw.rect(controller.ecra, (34, 34, 44), header_rect, border_radius=9)
-        pygame.draw.rect(controller.ecra, (170, 170, 190), header_rect, 2, border_radius=9)
-        title_surface = small.render(title, True, (245, 245, 250))
-        controller.ecra.blit(title_surface, title_surface.get_rect(midtop=(header_rect.centerx, header_rect.top + 6)))
-        for i, (rect, label) in enumerate(zip(rects, labels), start=1):
-            pygame.draw.rect(controller.ecra, (58, 58, 74), rect, border_radius=7)
-            pygame.draw.rect(controller.ecra, (145, 145, 165), rect, 1, border_radius=7)
-            txt = font.render(f"{i}. {label}", True, (255, 255, 255))
+        panel_top = 12
+        panel_h = height - 24
+        panel_rect = pygame.Rect(panel_x, panel_top, panel_w, panel_h)
+        pygame.draw.rect(controller.ecra, (18, 18, 24), panel_rect, border_radius=10)
+        pygame.draw.rect(controller.ecra, (115, 115, 135), panel_rect, 1, border_radius=10)
+
+        title_surface = title_font.render(title, True, (245, 245, 250))
+        controller.ecra.blit(title_surface, (button_x, title_y))
+
+        selected = getattr(controller, "casa_selecionada", None)
+        hover = getattr(controller, "hover_pos", None)
+        if selected is not None:
+            sr, sc = selected
+            sub = body_font.render(f"Herói: {controller.gs.board[sr][sc].name}", True, (205, 205, 215))
+            controller.ecra.blit(sub, (button_x, title_y + 28))
+        if hover is not None:
+            r, c = hover
+            target = body_font.render(f"Destino: {r + 1},{c + 1}", True, (175, 175, 190))
+            controller.ecra.blit(target, (button_x, title_y + 48))
+
+        current_y = first_y + 35
+        for index, label in enumerate(labels, start=1):
+            rect = pygame.Rect(button_x, current_y, button_w, button_h)
+            pygame.draw.rect(controller.ecra, (48, 48, 62), rect, border_radius=7)
+            pygame.draw.rect(controller.ecra, (150, 150, 170), rect, 1, border_radius=7)
+            txt = body_font.render(f"{index}. {label}", True, (255, 255, 255))
             controller.ecra.blit(txt, txt.get_rect(center=rect.center))
-        hint = small.render("ESC para cancelar", True, (185, 185, 195))
-        hint_rect = hint.get_rect(midbottom=(header_rect.centerx, header_rect.bottom - 5))
-        controller.ecra.blit(hint, hint_rect)
+            current_y += button_h + gap
+
+        hint = hint_font.render("ESC para cancelar · teclas 1–9", True, (175, 175, 185))
+        controller.ecra.blit(hint, (button_x, panel_rect.bottom - 28))
         pygame.display.flip()
         controller.clock.tick(60)
 
@@ -209,12 +190,7 @@ def _install_instance_wrapper(controller: Any) -> None:
             chosen = actions[index]
 
         if needs_offensive_target_confirmation(self.gs, chosen):
-            index = _prompt(
-                self,
-                "Confirmar poder contra aliado?",
-                [f"Confirmar {action_label(chosen)}", "Cancelar"],
-                allow_cancel=True,
-            )
+            index = _prompt(self, "Confirmar poder contra aliado?", [f"Confirmar {action_label(chosen)}", "Cancelar"])
             if index != 0:
                 return None
 
