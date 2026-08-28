@@ -2,11 +2,12 @@
 
 ## Findings
 
-Manual play exposed three interaction problems:
+Manual play exposed four interaction/observability problems:
 
 1. FrostMage could select Nevada with its own square as the center.
 2. A board destination could correspond to more than one legal action, while the UI silently preferred movement, attack, stun, spawn or spell according to an implementation order.
 3. Developer UI evidence included high-frequency hover/window state and could therefore grow far faster than the semantic decisions it was intended to preserve.
+4. A legal action can disappear for a contextual reason such as Inquisitor silence, while the UI gave no direct visual explanation. This made a valid "not available" state easy to confuse with a board-edge/range bug.
 
 ## Decisions
 
@@ -23,6 +24,14 @@ Manual DEV sessions also support cancelling a selection by clicking the currentl
 ### Ally/self offensive targets
 
 An offensive spell directed at an allied hero, including the spell caster itself, requires explicit confirmation before execution. Support spells such as `purify` and `swap` retain their normal friendly-target semantics.
+
+### Hover emphasis
+
+All legal options remain visible after a hero is selected. The cell currently under the mouse receives the strongest visual emphasis and shows the legal interpretation(s) for that exact destination. Broad AOE/STUN shapes remain visible at lower visual priority so they do not obscure unrelated legal actions.
+
+The DEV UI also renders active Inquisitor silence coverage distinctly. The hovered-cell side panel reports relevant piece status and tile effects, including silence, ice/fire effects and the legal action interpretation at that cell.
+
+The purpose is explanatory, not rule-changing: hover presentation never creates or removes an action.
 
 ### Replay evidence
 
