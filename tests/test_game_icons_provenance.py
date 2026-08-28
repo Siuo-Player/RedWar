@@ -4,6 +4,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_PATH = ROOT / "tools" / "licensing" / "game_icons_manifest.json"
+TOOL_PATH = ROOT / "tools" / "licensing" / "match_game_icons.py"
 
 VALID_STATUSES = {"CONFIRMED", "HIGH CONFIDENCE", "AMBIGUOUS", "UNRESOLVED"}
 
@@ -26,3 +27,8 @@ def test_game_icons_manifest_is_structurally_valid():
 
     summary = payload["summary"]
     assert sum(summary[key] for key in ("confirmed", "high_confidence", "ambiguous", "unresolved")) == 19
+
+
+def test_game_icons_audit_tool_is_valid_python_source():
+    source = TOOL_PATH.read_text(encoding="utf-8")
+    compile(source, str(TOOL_PATH), "exec")
