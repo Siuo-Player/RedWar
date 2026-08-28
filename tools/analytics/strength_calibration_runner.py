@@ -8,6 +8,7 @@ scientific dataset builder with the declared experiment/run identifiers.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -19,6 +20,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from tools.analytics.strength_calibration_protocol import validate_calibration_plan
+
+HARNESS_PATHS = (
+    "tools/analytics/strength_calibration_runner.py",
+    "tools/analytics/strength_calibration_protocol.py",
+    "tools/analytics/arena_tournament.py",
+    "tools/analytics/strength_dataset.py",
+)
 
 
 def load_plan(path: str | Path) -> dict[str, Any]:
@@ -40,6 +48,92 @@ def resolve_games(games: int) -> int:
     if not isinstance(games, int) or isinstance(games, bool) or games <= 0 or games % 2:
         raise ValueError("games must be a positive even integer")
     return games
+
+
+def _git_sha() -> str:
+    completed = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError("unable to resolve the calibration harness Git commit")
+    return completed.stdout.strip()
+
+
+def _git_blob_sha(relative_path: str) -> str:
+    completed = subprocess.run(
+        ["git", "rev-parse", f"HEAD:{relative_path}"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(f"unable to resolve harness blob SHA for {relative_path}")
+    return completed.stdout.strip()
+
+
+def _sha256_file(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _write_run_provenance(
+    output_path: str | Path,
+    *,
+    plan_path: str | Path,
+    run: dict[str, Any],
+    selection_policy: str,
+    controller_population: str,
+    skill_context: str,
+    games: int,
+    nodes: int,
+    results_path: str | Path,
+    summary_path: str | Path,
+    dataset_path: str | Path,
+) -> Path:
+    results = Path(results_path)
+    dataset = Path(dataset_path)
+    summary = Path(summary_path)
+    dataset_payload = json.loads(dataset.read_text(encoding="utf-8"))
+    manifest = {
+        "schema_version": "redwar-strength-run-provenance-v1",
+        "experiment_id": str(run["experiment_id"]),
+        "run_id": str(run["run_id"]),
+        "plan": {"path": str(Path(plan_path).resolve()), "sha256": _sha256_file(plan_path)},
+        "execution": {
+            "harness_git_sha": _git_sha(),
+            "harness_file_blobs": {path: _git_blob_sha(path) for path in HARNESS_PATHS},
+            "challenger_engine_version": str(run["challenger_version"]),
+            "baseline_engine_version": str(run["baseline_version"]),
+            "rules_version": str(run["rules_version"]),
+            "games": games,
+            "node_budget": nodes,
+            "opening_seeds": [int(seed) for seed in run["opening_seeds"]],
+            "seed_policy": str(run["seed_policy"]),
+            "seed_generation_rule": str(run["seed_generation_rule"]),
+            "selection_policy": selection_policy,
+            "controller_population": controller_population,
+            "skill_context": skill_context,
+            "promotion_authority": False,
+        },
+        "artifacts": {
+            "raw_results": {"path": str(results.resolve()), "sha256": _sha256_file(results)},
+            "arena_summary": {"path": str(summary.resolve()), "sha256": _sha256_file(summary)},
+            "dataset": {
+                "path": str(dataset.resolve()),
+                "sha256": _sha256_file(dataset),
+                "canonical_sha256": dataset_payload["manifest"].get("canonical_sha256"),
+            },
+        },
+        "status": "execution_provenance_captured_no_promotion_decision",
+    }
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return output
 
 
 def build_arena_command(
@@ -66,10 +160,6 @@ def build_arena_command(
     opening_seeds = [int(seed) for seed in run.get("opening_seeds", [])]
     if len(opening_seeds) != 16:
         raise ValueError("calibration runner requires exactly 16 predeclared opening seeds")
-
-    # games + 1 is strictly above the maximum possible win-margin for this run.
-    # This keeps the Arena's legacy promotion calculation from ever evaluating
-    # true while retaining its existing game/result semantics.
     promotion_threshold = games + 1
     seed_text = ",".join(str(seed) for seed in opening_seeds)
     return [
@@ -161,8 +251,23 @@ def run_calibration(
     if dataset_completed.returncode != 0:
         raise RuntimeError(f"Strength dataset build failed with exit code {dataset_completed.returncode}")
 
+    provenance_path = dataset.with_name(f"{dataset.stem}.run-provenance.json")
+    _write_run_provenance(
+        provenance_path,
+        plan_path=plan_path,
+        run=run,
+        selection_policy=selection_policy,
+        controller_population=controller_population,
+        skill_context=skill_context,
+        games=resolved_games,
+        nodes=nodes,
+        results_path=results,
+        summary_path=summary_path,
+        dataset_path=dataset,
+    )
+
     return {
-        "schema_version": "redwar-strength-calibration-runner-v1",
+        "schema_version": "redwar-strength-calibration-runner-v2",
         "experiment_id": run["experiment_id"],
         "run_id": run["run_id"],
         "plan_status": "validated",
@@ -180,6 +285,7 @@ def run_calibration(
         "raw_results": str(results),
         "arena_summary": str(summary_path),
         "dataset": str(dataset),
+        "run_provenance": str(provenance_path),
     }
 
 
