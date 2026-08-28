@@ -1,78 +1,75 @@
 # RedWar — Licenças e Conteúdo de Terceiros
 
-> Este documento é uma política de preparação, não uma declaração jurídica definitiva.
+> Este documento descreve a política de licenciamento do repositório. Não substitui aconselhamento jurídico.
 
-## 1. Código do jogo
+## 1. Código geral do projeto
 
-A intenção é que o código do produto possa permanecer sob controlo do autor mesmo com o repositório público.
-
-Antes do lançamento público deve ser escolhida uma licença explícita para cada componente que será distribuído.
+O código próprio do produto e tooling geral do RedWar, fora do subsistema Ares em `ai/`, é distribuído sob a licença **MIT**. O texto da licença está em [`../LICENSE`](../LICENSE).
 
 ## 2. Ares
 
-A intenção é que a Ares venha a ser a parte do projeto aberta a contribuições da comunidade.
+O código próprio do subsistema Ares em `ai/` é distribuído sob **GPL-3.0-or-later**. O aviso de licença está em [`../ai/LICENSE`](../ai/LICENSE).
 
-A licença final da Ares deve ser escolhida antes da abertura formal do fluxo de contribuições automatizadas.
+A licença GPL é uma licença de software livre e não é uma licença "não comercial". A política do projeto não cobra uma licença pelo uso do código.
 
-A escolha deve considerar:
+Esta licença aplica-se apenas ao código próprio do projeto. Componentes de terceiros dentro de `ai/` mantêm as suas licenças originais.
 
-- liberdade para forks;
-- redistribuição;
-- uso comercial ou não comercial;
-- compatibilidade com bibliotecas usadas no C++;
-- compatibilidade com qualquer eventual separação futura do repositório.
+## 3. Componentes de terceiros
 
-## 3. Código assistido por IA
+Os componentes de terceiros não são relicenciados pelo RedWar. Cada componente deve conservar os seus avisos, copyright e licença aplicáveis.
 
-O projeto foi desenvolvido com ajuda de ferramentas como modelos de IA.
+A auditoria atual identifica pelo menos:
 
-Uma ferramenta de IA não é, por si só, uma garantia de que determinado trecho de código seja livre de problemas de licença.
+| Componente | Localização / origem | Licença verificada | Observação |
+| --- | --- | --- | --- |
+| nlohmann/json 3.12.0 | `ai/cpp_engine/nlohmann/json.hpp` | MIT | O próprio ficheiro contém `SPDX-License-Identifier: MIT`. |
+| pygame 2.5.2 | `requirements.txt` / PyPI | LGPL-2.1 | Dependência Python; os termos de pygame continuam aplicáveis. |
+| pytest 9.0.3 | `requirements.txt` / PyPI | MIT | Dependência de testes. |
+| websockets 12.0 | `requirements.txt` / PyPI | BSD-3-Clause | Dependência de rede/websocket. |
+| Cython | `requirements.txt` / PyPI | Apache-2.0 | Ferramenta/dependência de build; requisito não totalmente pinado. |
 
-Antes do lançamento/contribuição pública deve ser feita uma revisão de:
+Pygame declara LGPL-2.1 no pacote 2.5.2; pytest declara MIT; websockets 12.0 declara BSD-3-Clause; Cython declara Apache-2.0. urlpygame 2.5.2 no PyPIhttps://pypi.org/project/pygame/2.5.2/ urlpytest no PyPIhttps://pypi.org/project/pytest/ urlwebsockets 12.0 no PyPIhttps://pypi.org/project/websockets/12.0/ urlCython no PyPIhttps://pypi.org/project/Cython/
 
-- código gerado;
-- snippets copiados de fontes externas;
-- dependências;
-- licenças transitivas;
-- documentação e textos derivados.
+O `nlohmann/json.hpp` vendorizado contém diretamente os avisos SPDX de copyright e MIT. urlnlohmann/json.hpp no RedWarhttps://github.com/Siuo-Player/RedWar/blob/main/ai/cpp_engine/nlohmann/json.hpp
 
-## 4. Assets
+## 4. Game Icons
 
-O projeto utiliza referências/arte de fontes externas, incluindo `game-icons.net`.
+Os PNGs em `ui/assets/` foram copiados manualmente de game-icons.net, segundo a proveniência fornecida pelo autor do repositório.
 
-Cada asset usado na distribuição final deve ser associado à sua licença e, quando necessário, à atribuição exigida.
+A coleção oficial `game-icons/icons` declara os seus SVGs como **CC BY 3.0**, com ficheiro de licença individual que identifica os autores e pede a inclusão de uma menção do tipo `Icons made by {author}` em trabalhos derivados. urlrepositório oficial Game Iconshttps://github.com/game-icons/icons urllicença oficial Game Iconshttps://github.com/game-icons/icons/blob/master/license.txt
 
-Não assumir que “está na internet” significa “pode ser distribuído”.
+A correspondência de cada PNG local com o SVG original é mantida em [`assets/game-icons-attribution.json`](assets/game-icons-attribution.json). Não são inferidos autores a partir do nome do ficheiro: um resultado só pode ser promovido a `CONFIRMED` ou `HIGH CONFIDENCE` quando o matcher tem evidência suficiente.
 
-## 5. Dependências
+A ferramenta permanente de auditoria está em [`../tools/licensing/match_game_icons.py`](../tools/licensing/match_game_icons.py), com instruções em [`../tools/licensing/README.md`](../tools/licensing/README.md).
 
-Antes do lançamento deve existir uma lista de dependências com:
+### Convenção local de renderização
 
-- nome;
-- versão;
-- licença;
-- origem;
-- uso no projeto.
+Os PNGs foram produzidos com Game Icons Studio segundo a convenção declarada pelo autor:
 
-Isto deve incluir dependências Python, C++ e web.
+- 256 × 256;
+- background: black;
+- shape: square;
+- type: gradient;
+- gradient: plain;
+- icon colour: black;
+- frame: reset / back to zero / reset background.
 
-## 6. Assets gerados
+A auditoria distingue o SVG original do PNG transformado localmente. Redimensionamento, recoloração ou composição não removem a obrigação de manter a atribuição aplicável.
 
-Arte gerada por ferramentas de IA ou modificada a partir de assets externos deve ter a sua origem documentada quando necessário.
+## 5. Política para novos terceiros
 
-## 7. Política para Pull Requests
+Antes de adicionar código, imagens, fontes, dados ou outros materiais externos:
 
-Um PR que introduza código ou assets incompatíveis com a política de licenças pode ser recusado independentemente da qualidade técnica.
+1. identificar a origem;
+2. identificar a licença aplicável no próprio material ou na fonte oficial;
+3. verificar compatibilidade com a distribuição pretendida;
+4. preservar copyright/SPDX/attribution notices;
+5. registar a proveniência quando ela for relevante para uma futura auditoria.
 
-## 8. Ação antes do lançamento
+Nunca incorporar material apenas porque "está na internet".
 
-Checklist mínimo:
+## 6. Secrets e histórico
 
-- [ ] escolher licença do produto;
-- [ ] escolher licença do Ares;
-- [ ] auditar `requirements.txt`;
-- [ ] auditar dependências C++;
-- [ ] auditar assets;
-- [ ] documentar atribuições obrigatórias;
-- [ ] rever conteúdo gerado por IA quando necessário;
-- [ ] garantir que o README não promete direitos que a licença não concede.
+O repositório é público. Não devem ser adicionados tokens, passwords, API keys, private keys ou quaisquer credenciais.
+
+Uma auditoria de padrões de secrets no conteúdo atual não encontrou correspondências para `ghp_` nem para `BEGIN PRIVATE KEY`. Isso não substitui uma análise histórica especializada nem constitui garantia absoluta de ausência de secrets no histórico.
