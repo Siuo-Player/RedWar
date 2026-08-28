@@ -6,6 +6,7 @@ any active silence aura receive stronger semantic emphasis.
 """
 from __future__ import annotations
 
+from types import MethodType
 from typing import Any
 
 from tools.replay.interaction import actions_for_destination
@@ -43,7 +44,8 @@ def _draw_hover_overlay(ecra: Any, controller: Any, gs: Any, tam_casa: int, off_
         return
 
     silence_cells = _active_silence_cells(gs)
-    # Keep silence readable but subordinate to legal-action highlights.
+    # Silence is an area-of-effect status. Keep it visible but subordinate to
+    # the hovered/selected action cue, so legal options are never hidden.
     for r, c in silence_cells:
         rect = pygame.Rect(off_x + c * tam_casa, off_y + r * tam_casa, tam_casa, tam_casa)
         pygame.draw.rect(ecra, (155, 90, 180), rect, 2)
@@ -54,8 +56,8 @@ def _draw_hover_overlay(ecra: Any, controller: Any, gs: Any, tam_casa: int, off_
     hover_rect = pygame.Rect(off_x + tc * tam_casa, off_y + tr * tam_casa, tam_casa, tam_casa)
     actions = _hover_actions(controller, gs)
 
-    # The hover border is always the strongest cue; do not repaint the whole
-    # action square with another opaque fill, which used to bury STUN crosses.
+    # Strong hover outline without repainting the cell, so STUN/AOE and other
+    # legal highlights remain visible underneath.
     pygame.draw.rect(ecra, (255, 255, 255), hover_rect, 3)
     pygame.draw.rect(ecra, (255, 220, 70), hover_rect.inflate(-6, -6), 2)
 
@@ -85,6 +87,61 @@ def _draw_hover_overlay(ecra: Any, controller: Any, gs: Any, tam_casa: int, off_
         ecra.blit(text, text.get_rect(center=bg.center))
 
 
+def _hover_panel_lines(controller: Any) -> list[str]:
+    if controller is None or not controller.hover_pos:
+        return []
+    r, c = controller.hover_pos
+    gs = controller.gs
+    lines: list[str] = [f"Casa: {r + 1},{c + 1}"]
+    piece = gs.board[r][c]
+    effect = gs.tile_effects[r][c] if gs.tile_effects else None
+    if piece is not None:
+        lines.append(f"Herói: {piece.name}")
+        if piece.stun_timer > 0:
+            lines.append(f"Atordoado: {piece.stun_timer}")
+        if getattr(piece, "lifespan", None) is not None:
+            lines.append(f"Duração: {piece.lifespan}")
+    if effect:
+        etype = effect.get("type", "?")
+        timer = effect.get("timer")
+        lines.append(f"Efeito: {etype}" + (f" ({timer})" if timer is not None else ""))
+    if (r, c) in _active_silence_cells(gs):
+        lines.append("SILÊNCIO: poderes bloqueados")
+    actions = _hover_actions(controller, gs)
+    if actions:
+        labels = []
+        for action in actions:
+            label = action["type"].upper()
+            if action["type"] == "spell":
+                label = str(action.get("spell_name", "spell")).upper()
+            elif action["type"] == "spawn":
+                label = f"SPAWN {action.get('spawn_name', '')}".strip()
+            labels.append(label)
+        lines.append("Ações: " + " / ".join(labels))
+    elif controller.casa_selecionada:
+        lines.append("Ações: nenhuma legal")
+    return lines
+
+
+def _draw_hover_panel_overlay(ecra: Any, controller: Any, painel_x: int, height: int) -> None:
+    if controller is None or not controller.hover_pos:
+        return
+    import pygame
+    lines = _hover_panel_lines(controller)
+    if not lines:
+        return
+    box_h = min(height - 24, 24 * len(lines) + 18)
+    box = pygame.Rect(painel_x + 12, 20 + height - box_h - 12, 326, box_h)
+    pygame.draw.rect(ecra, (18, 18, 24), box, border_radius=8)
+    pygame.draw.rect(ecra, (160, 160, 180), box, 1, border_radius=8)
+    font = pygame.font.SysFont("arial", 16)
+    y = box.y + 8
+    for line in lines[: max(1, (box_h - 14) // 24)]:
+        surface = font.render(line, True, (235, 235, 240))
+        ecra.blit(surface, (box.x + 8, y))
+        y += 24
+
+
 def _patched_highlights(ecra: Any, gs: Any, casa_selecionada: Any, hover_pos: Any, tam_casa: int, off_x: int, off_y: int) -> None:
     _ORIGINAL_HIGHLIGHTS(ecra, gs, casa_selecionada, hover_pos, tam_casa, off_x, off_y)
     if _ACTIVE_CONTROLLER is not None:
@@ -93,52 +150,12 @@ def _patched_highlights(ecra: Any, gs: Any, casa_selecionada: Any, hover_pos: An
 
 def _patched_panel(ecra: Any, peca: Any, off_x: int, off_y: int, width: int, height: int) -> None:
     _ORIGINAL_PANEL(ecra, peca, off_x, off_y, width, height)
-    controller = _ACTIVE_CONTROLLER
-    if controller is None or not controller.hover_pos:
-        return
-
-    import pygame
-    r, c = controller.hover_pos
-    gs = controller.gs
-    lines = []
-    piece = gs.board[r][c]
-    effect = gs.tile_effects[r][c] if gs.tile_effects else None
-    if piece is not None:
-        lines.append(f"Herói: {piece.name}")
-        if piece.stun_timer > 0:
-            lines.append(f"Atordoado: {piece.stun_timer}")
-    if effect:
-        etype = effect.get("type", "?")
-        timer = effect.get("timer")
-        lines.append(f"Efeito: {etype}" + (f" ({timer})" if timer is not None else ""))
-    if (r, c) in _active_silence_cells(gs):
-        lines.append("SILÊNCIO: heróis nesta casa não usam poderes")
-    actions = _hover_actions(controller, gs)
-    if actions:
-        kinds = []
-        for action in actions:
-            label = action["type"].upper()
-            if action["type"] == "spell":
-                label = str(action.get("spell_name", "spell")).upper()
-            kinds.append(label)
-        lines.append("Nesta casa: " + " / ".join(kinds))
-    if not lines:
-        return
-
-    box_h = 28 * min(len(lines), 5) + 18
-    box = pygame.Rect(off_x + 12, off_y + height - box_h - 12, width - 24, box_h)
-    pygame.draw.rect(ecra, (18, 18, 24), box, border_radius=8)
-    pygame.draw.rect(ecra, (130, 130, 150), box, 1, border_radius=8)
-    font = pygame.font.SysFont("arial", 17)
-    y = box.y + 8
-    for line in lines[:5]:
-        surface = font.render(line, True, (235, 235, 240))
-        ecra.blit(surface, (box.x + 8, y))
-        y += 26
+    # Keep the legacy hero panel intact; the controller-level wrapper below
+    # adds the hovered-cell diagnostics even when the cell is empty.
 
 
 def install_hover_visuals(controller: Any) -> None:
-    """Patch renderer functions before main imports them; DEV-only."""
+    """Install DEV-only hover emphasis and hovered-cell diagnostics."""
     global _ACTIVE_CONTROLLER, _ORIGINAL_HIGHLIGHTS, _ORIGINAL_PANEL
     _ACTIVE_CONTROLLER = controller
     import ui.renderer as renderer
@@ -148,3 +165,18 @@ def install_hover_visuals(controller: Any) -> None:
     if _ORIGINAL_PANEL is None:
         _ORIGINAL_PANEL = renderer.desenhar_painel_heroi
         renderer.desenhar_painel_heroi = _patched_panel
+
+    original_render = controller.renderizar
+
+    def wrapped_render(self: Any, *args: Any, **kwargs: Any) -> Any:
+        result = original_render(*args, **kwargs)
+        if self.fase_atual in {"BATALHA", "ANALISE"} and args:
+            # renderizar's positional arguments are w, h, off_x, off_y_tab,
+            # tam_casa, painel_x; use the named value when supplied.
+            painel_x = kwargs.get("painel_x", args[5] if len(args) > 5 else None)
+            height = kwargs.get("h", args[1] if len(args) > 1 else self.ecra.get_height())
+            if painel_x is not None:
+                _draw_hover_panel_overlay(self.ecra, self, painel_x, height - 40)
+        return result
+
+    controller.renderizar = MethodType(wrapped_render, controller)
