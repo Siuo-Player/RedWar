@@ -3,6 +3,7 @@ from pathlib import Path
 from ai.bot import CppEngineBot
 from ai.engine_bridge import EngineBridge, SubprocessEngineBridge
 from engine.game_state import GameState
+from engine.pieces import criar_peca_por_nome
 
 
 class RecordingBridge(EngineBridge):
@@ -31,9 +32,10 @@ def test_cpp_engine_bot_accepts_an_explicit_bridge():
     bot = CppEngineBot(nodes=10, bridge=bridge)
 
     gs = GameState()
-    gs.check_game_over = lambda: setattr(gs, "game_over", True)
+    gs.board[7][0] = criar_peca_por_nome("Geomancer", "brancas")
 
     assert bot.escolher_jogada(gs) is None
+    assert gs.game_over is True
     assert bridge.commands == [f"position rwen {gs.to_rwen()}", "go nodes 10"]
     assert bridge.closed is False
 
@@ -46,7 +48,7 @@ def test_cpp_engine_bot_keeps_the_existing_command_sequence():
     bot = CppEngineBot(nodes=10, bridge=bridge)
     gs = GameState()
 
-    # The parser should still be responsible for the engine protocol response.
+    # The parser remains responsible for converting protocol text to an action.
     action = bot.escolher_jogada(gs)
 
     assert action["type"] == "move"
