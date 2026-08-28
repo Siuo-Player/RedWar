@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 
 import pytest
 
@@ -45,6 +47,18 @@ def game(index, outcome):
 
 def write_raw(path, games):
     path.write_text("".join(json.dumps(game) + "\n" for game in games), encoding="utf-8")
+
+
+def test_strength_dataset_cli_runs_as_direct_script():
+    result = subprocess.run(
+        [sys.executable, "tools/analytics/strength_dataset.py", "--help"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "Build or audit a RedWar Strength dataset" in result.stdout
 
 
 def test_build_dataset_preserves_scientific_fields_and_pair_units(tmp_path):
