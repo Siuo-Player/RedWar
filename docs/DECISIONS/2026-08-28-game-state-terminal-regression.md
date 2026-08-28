@@ -22,6 +22,10 @@ The Inquisitor change is limited to the intended semantic rule: a stunned opposi
 
 The deterministic regression must pass together with the existing RWEN, differential, Nevada, and replay tests before PR #180 can merge.
 
+The full Test Suite passed 255 tests, including the new terminal regression and Nevada contract tests. CodeQL also passed.
+
+The AI Quality Gate executed its mandatory benchmark and 100-game A/B Arena. It produced 45 challenger wins, 55 baseline wins, 0 draws and 0 invalid games. This is a Strength/promotion result, not a correctness failure; the measured uncertainty proxy was ±755.1. The PR is a semantic rule-correction rather than a claim of improved Ares strength, so this result is not evidence that the Nevada contract is incorrect.
+
 ## Scope
 
 No changes to evaluation, search, Strength methodology, seed sets, holdout data, or promotion authority.
