@@ -61,6 +61,7 @@ on:
   push:
     branches:
       - 'experiment/strength/**'
+      - '!experiment/strength/replication-seed-b-*'
 
 permissions:
   contents: read

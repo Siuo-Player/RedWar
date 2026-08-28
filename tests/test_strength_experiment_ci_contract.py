@@ -26,11 +26,12 @@ def test_strength_workflow_publishes_validation_artifact():
     assert "actions/upload-artifact@v" in text
 
 
-def test_strength_workflow_auto_triggers_only_on_experiment_branches():
+def test_strength_workflow_auto_triggers_only_on_non_calibration_experiment_branches():
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert "  push:" in text
-    assert "      - 'experiment/strength/**'" in text
-    assert "branches:" in text
+    push_block = text.split("  push:\n", 1)[1].split("\n\npermissions:", 1)[0]
+    assert "      - 'experiment/strength/**'" in push_block
+    assert "      - '!experiment/strength/replication-seed-b-*'" in push_block
+    assert push_block.index("experiment/strength/**") < push_block.index("!experiment/strength/replication-seed-b-*")
     assert "branches-ignore:" not in text
 
 
