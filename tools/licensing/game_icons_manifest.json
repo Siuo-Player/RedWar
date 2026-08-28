@@ -3,7 +3,8 @@
   "source_of_truth": {
     "repository": "https://github.com/game-icons/icons",
     "license_url": "https://github.com/game-icons/icons/blob/master/license.txt",
-    "license": "CC BY 3.0",
+    "default_license": "CC BY 3.0",
+    "explicit_license_exceptions": ["CC0"],
     "corpus_revision": "82d948812bfe3f269ef8f731dcdb07b08160edc4"
   },
   "rendering_convention": {
@@ -45,6 +46,7 @@
   ],
   "notes": [
     "The repository confirms these PNGs were copied manually from game-icons.net, but no author/name mapping has been inferred from filenames.",
+    "The upstream default license is CC BY 3.0; the official license.txt explicitly marks some contributors, including Viscious Speed and Zeromancer, as CC0.",
     "The initial manifest is deliberately unresolved because an exhaustive image comparison against the pinned corpus was not reproducible in the current agent environment.",
     "Run tools/licensing/match_game_icons.py with a pinned official corpus checkout to replace unresolved entries with evidence-backed matches."
   ]
