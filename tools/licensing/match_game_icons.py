@@ -31,20 +31,24 @@ from typing import Iterable
 
 try:
     from PIL import Image, ImageChops, ImageStat
+    _PIL_IMPORT_ERROR = None
 except ImportError as exc:  # pragma: no cover - environment dependent
-    raise SystemExit("Pillow is required: python -m pip install pillow") from exc
+    Image = ImageChops = ImageStat = None  # type: ignore[assignment]
+    _PIL_IMPORT_ERROR = exc
 
 try:
     import cairosvg
+    _CAIRO_IMPORT_ERROR = None
 except ImportError as exc:  # pragma: no cover - environment dependent
-    raise SystemExit("CairoSVG is required: python -m pip install cairosvg") from exc
+    cairosvg = None  # type: ignore[assignment]
+    _CAIRO_IMPORT_ERROR = exc
 
 CORPUS_REPOSITORY = "https://github.com/game-icons/icons"
 CORPUS_LICENSE_URL = "https://github.com/game-icons/icons/blob/master/license.txt"
-CORPUS_LICENSE = "CC BY 3.0"
+DEFAULT_LICENSE = "CC BY 3.0"
+CC0_LICENSE = "CC0"
 DEFAULT_SIZE = 64
 SUPPORTED_ASSET_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
-
 STATUS_ORDER = ("CONFIRMED", "HIGH CONFIDENCE", "AMBIGUOUS", "UNRESOLVED")
 
 
@@ -61,6 +65,11 @@ def normalize_name(path: str) -> str:
     return re.sub(r"[^a-z0-9-]+", "-", value).strip("-")
 
 
+def normalize_contributor_name(value: str) -> str:
+    value = value.lower().replace("&", "and")
+    return re.sub(r"[^a-z0-9]+", "-", value).strip("-")
+
+
 def git_revision(path: Path) -> str | None:
     try:
         completed = subprocess.run(
@@ -75,6 +84,49 @@ def git_revision(path: Path) -> str | None:
     if completed.returncode != 0:
         return None
     return completed.stdout.strip()
+
+
+def contributor_licenses(corpus: Path) -> dict[str, dict[str, str]]:
+    """Read contributor/license declarations from the official corpus license.txt."""
+    license_path = corpus / "license.txt"
+    mapping: dict[str, dict[str, str]] = {}
+    if not license_path.is_file():
+        raise ValueError(f"official corpus license file not found: {license_path}")
+
+    for raw_line in license_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line.startswith("- "):
+            continue
+        entry = line[2:].strip()
+        explicit_license = DEFAULT_LICENSE
+        if re.search(r"\s+-\s+CC0\s*$", entry, flags=re.IGNORECASE):
+            entry = re.sub(r"\s+-\s+CC0\s*$", "", entry, flags=re.IGNORECASE).strip()
+            explicit_license = CC0_LICENSE
+        contributor = entry.split(",", 1)[0].strip()
+        mapping[normalize_contributor_name(contributor)] = {
+            "author": contributor,
+            "license": explicit_license,
+        }
+    return mapping
+
+
+def resolve_contributor_metadata(author_slug: str, metadata: dict[str, dict[str, str]]) -> dict[str, str]:
+    """Resolve author/license from the upstream contributor metadata."""
+    exact = metadata.get(normalize_contributor_name(author_slug))
+    if exact is not None:
+        return {**exact, "metadata_match": "exact-folder-to-contributor"}
+    return {
+        "author": author_slug,
+        "license": None,
+        "metadata_match": "unresolved-folder-name",
+    }
+
+
+def require_image_dependencies() -> None:
+    if _PIL_IMPORT_ERROR is not None:
+        raise SystemExit("Pillow is required: python -m pip install pillow") from _PIL_IMPORT_ERROR
+    if _CAIRO_IMPORT_ERROR is not None:
+        raise SystemExit("CairoSVG is required: python -m pip install cairosvg") from _CAIRO_IMPORT_ERROR
 
 
 def _rgba_on_black(image: Image.Image) -> Image.Image:
@@ -100,11 +152,7 @@ def _foreground_mask(image: Image.Image) -> Image.Image:
 
 
 def normalize_image(image: Image.Image, size: int = DEFAULT_SIZE) -> Image.Image:
-    """Normalize canvas while preserving foreground geometry.
-
-    We compare several color/background interpretations because the local PNGs
-    are transformed exports from Game Icons Studio rather than source SVGs.
-    """
+    """Normalize canvas while preserving foreground geometry."""
     mask = _foreground_mask(image)
     bbox = mask.getbbox()
     if bbox is None:
@@ -128,6 +176,7 @@ def normalized_variants(image: Image.Image, size: int = DEFAULT_SIZE) -> tuple[I
 
 
 def rasterize_svg(svg_path: Path, size: int = DEFAULT_SIZE) -> Image.Image:
+    require_image_dependencies()
     png = cairosvg.svg2png(url=str(svg_path), output_width=size, output_height=size)
     from io import BytesIO
 
@@ -141,7 +190,6 @@ def similarity(a: Image.Image, b: Image.Image) -> float:
     diff = ImageChops.difference(a_l, b_l)
     mean_abs = ImageStat.Stat(diff).mean[0]
     mse = sum((x - y) ** 2 for x, y in zip(a_l.getdata(), b_l.getdata())) / (a_l.width * a_l.height)
-    # Combine geometry-sensitive absolute difference and MSE.
     abs_score = 1.0 - min(1.0, mean_abs / 255.0)
     mse_score = 1.0 - min(1.0, math.sqrt(mse) / 255.0)
     return 0.6 * abs_score + 0.4 * mse_score
@@ -161,22 +209,36 @@ def classify(best: float, second: float | None) -> str:
     return "UNRESOLVED"
 
 
-def audit_asset(asset: Path, corpus: Path, *, size: int) -> dict[str, object]:
+def prepare_corpus(corpus: Path, *, size: int) -> tuple[list[tuple[Path, tuple[Image.Image, ...]]], dict[str, dict[str, str]]]:
+    metadata = contributor_licenses(corpus)
+    prepared: list[tuple[Path, tuple[Image.Image, ...]]] = []
+    for source in iter_svg_candidates(corpus):
+        try:
+            source_image = rasterize_svg(source, size)
+            prepared.append((source, normalized_variants(source_image, size)))
+        except Exception:
+            continue
+    return prepared, metadata
+
+
+def audit_asset(
+    asset: Path,
+    corpus: Path,
+    *,
+    size: int,
+    prepared_corpus: list[tuple[Path, tuple[Image.Image, ...]]],
+    contributor_metadata: dict[str, dict[str, str]],
+) -> dict[str, object]:
     local = Image.open(asset).convert("RGBA")
     local_variants = normalized_variants(local, size)
     ranked: list[tuple[float, Path]] = []
 
-    for source in iter_svg_candidates(corpus):
-        try:
-            source_image = rasterize_svg(source, size)
-            source_variants = normalized_variants(source_image, size)
-            score = max(
-                similarity(local_variant, source_variant)
-                for local_variant in local_variants
-                for source_variant in source_variants
-            )
-        except Exception:
-            continue
+    for source, source_variants in prepared_corpus:
+        score = max(
+            similarity(local_variant, source_variant)
+            for local_variant in local_variants
+            for source_variant in source_variants
+        )
         ranked.append((score, source))
 
     ranked.sort(key=lambda item: (-item[0], str(item[1])))
@@ -190,21 +252,26 @@ def audit_asset(asset: Path, corpus: Path, *, size: int) -> dict[str, object]:
     if best is not None:
         rel = best[1].relative_to(corpus).as_posix()
         parts = rel.split("/")
-        author = parts[0] if len(parts) >= 2 else None
+        author_slug = parts[0] if len(parts) >= 2 else ""
         icon_name = Path(parts[-1]).stem
+        author_meta = resolve_contributor_metadata(author_slug, contributor_metadata)
+        if author_meta["license"] is None:
+            status = "UNRESOLVED"
         match = {
             "status": status,
             "confidence": round(best_score, 6),
             "second_best_confidence": None if second_score is None else round(second_score, 6),
             "icon_path": rel,
             "icon_name": icon_name,
-            "author": author,
-            "license": CORPUS_LICENSE,
-            "source_url": f"https://game-icons.net/1x1/{author}/{icon_name}.html" if author else None,
+            "author": author_meta["author"],
+            "license": author_meta["license"],
+            "license_metadata_match": author_meta["metadata_match"],
+            "source_url": f"https://game-icons.net/1x1/{author_slug}/{icon_name}.html" if author_slug else None,
             "comparison": {
                 "method": "rasterized-svg-vs-local-png-normalized-canvas",
                 "raster_size": size,
                 "variants": "black/white/composited normalization",
+                "corpus_rasterization": "one-time-cache-per-svg",
             },
         }
     return {
@@ -218,7 +285,17 @@ def audit_asset(asset: Path, corpus: Path, *, size: int) -> dict[str, object]:
 def build_manifest(assets: Path, corpus: Path, *, size: int) -> dict[str, object]:
     asset_files = [p for p in sorted(assets.rglob("*")) if p.suffix.lower() in SUPPORTED_ASSET_SUFFIXES]
     corpus_revision = git_revision(corpus)
-    results = [audit_asset(asset, corpus, size=size) for asset in asset_files]
+    prepared_corpus, contributor_metadata = prepare_corpus(corpus, size=size)
+    results = [
+        audit_asset(
+            asset,
+            corpus,
+            size=size,
+            prepared_corpus=prepared_corpus,
+            contributor_metadata=contributor_metadata,
+        )
+        for asset in asset_files
+    ]
 
     counts = {status: 0 for status in STATUS_ORDER}
     for result in results:
@@ -231,7 +308,8 @@ def build_manifest(assets: Path, corpus: Path, *, size: int) -> dict[str, object
         "source_of_truth": {
             "repository": CORPUS_REPOSITORY,
             "license_url": CORPUS_LICENSE_URL,
-            "license": CORPUS_LICENSE,
+            "default_license": DEFAULT_LICENSE,
+            "explicit_license_exceptions": [CC0_LICENSE],
             "corpus_revision": corpus_revision,
         },
         "rendering_convention": {
@@ -252,6 +330,7 @@ def build_manifest(assets: Path, corpus: Path, *, size: int) -> dict[str, object
             "filename_only_match_is_not_attribution": True,
             "low_confidence_matches_require_manual_review": True,
             "unresolved_assets_must_not_receive_invented_authorship": True,
+            "license_must_come_from_upstream_contributor_metadata": True,
         },
     }
 
