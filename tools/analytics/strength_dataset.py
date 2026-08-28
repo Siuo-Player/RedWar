@@ -9,8 +9,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from tools.analytics.arena_experiment_validation import validate_experiment_records
 from tools.analytics.arena_strength_audit import build_independent_pair_units
