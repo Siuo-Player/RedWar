@@ -49,7 +49,7 @@ Fontes oficiais:
 - licença: https://github.com/game-icons/icons/blob/master/license.txt
 - site: https://game-icons.net/
 
-A correspondência de cada PNG local com o SVG original é mantida em [`assets/game-icons-attribution.json`](assets/game-icons-attribution.json). Não são inferidos autores a partir do nome do ficheiro: um resultado só pode ser promovido a `CONFIRMED` ou `HIGH CONFIDENCE` quando o matcher tem evidência suficiente.
+A correspondência de cada PNG local com o SVG original é mantida no manifesto [`../tools/licensing/game_icons_manifest.json`](../tools/licensing/game_icons_manifest.json). Não são inferidos autores a partir do nome do ficheiro: um resultado só pode ser promovido a `CONFIRMED` ou `HIGH CONFIDENCE` quando o matcher tem evidência suficiente.
 
 A ferramenta permanente de auditoria está em [`../tools/licensing/match_game_icons.py`](../tools/licensing/match_game_icons.py), com instruções em [`../tools/licensing/README.md`](../tools/licensing/README.md).
 
