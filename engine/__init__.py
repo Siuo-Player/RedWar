@@ -29,6 +29,7 @@ def _install_spell_silence_guard() -> None:
                         source
                         and source.name == "Inquisitor"
                         and source.team != self.team
+                        and source.can_act()
                         and max(abs(r - ir), abs(c - ic)) <= radius
                     ):
                         return []
@@ -53,9 +54,9 @@ def _install_frostmage_nevada_rules() -> None:
         if not self.can_act():
             return []
 
-        # Keep the authoritative silence rule here as well: this wrapper is
-        # intentionally installed after the generic spell guard and therefore
-        # must not bypass it for FrostMage.
+        # A stunned opposing Inquisitor does not project its passive aura.
+        # Keep this wrapper aligned with the generic silence guard and with
+        # Inquisitor.get_aura_positions()/the C++ move generator.
         radius = int(pieces.HERO_DEFS.get("Inquisitor", {}).get("aura_radius", 2))
         for ir in range(LINHAS):
             for ic in range(COLUNAS):
@@ -64,6 +65,7 @@ def _install_frostmage_nevada_rules() -> None:
                     source
                     and source.name == "Inquisitor"
                     and source.team != self.team
+                    and source.can_act()
                     and max(abs(r - ir), abs(c - ic)) <= radius
                 ):
                     return []
