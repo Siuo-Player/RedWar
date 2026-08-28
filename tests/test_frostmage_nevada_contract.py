@@ -17,7 +17,7 @@ def test_nevada_allows_empty_centers_with_manhattan_range_three():
 
     targets = {entry["target"] for entry in mage.get_valid_spells(4, 4, board, effects)}
 
-    assert (4, 4) in targets
+    assert (4, 4) not in targets
     assert (1, 4) in targets
     assert (4, 1) in targets
     assert (2, 5) in targets
@@ -56,7 +56,8 @@ def test_stunned_inquisitor_does_not_project_silence():
 
     targets = {entry["target"] for entry in mage.get_valid_spells(4, 4, board, effects)}
 
-    assert (4, 4) in targets
+    assert (4, 4) not in targets
+    assert (4, 3) in targets
 
 
 def test_nevada_can_be_cast_again_on_a_different_center_without_cooldown():
