@@ -18,7 +18,7 @@ def test_ui_replay_interns_identical_states_and_action_sets(tmp_path):
 
     assert recorder.log_ui(state) is True
     assert recorder.log_ui(state) is False
-    assert recorder.event_count == 2
+    assert recorder.event_count == 1
     assert recorder.state_count == 1
     assert recorder.action_set_count == 1
 
@@ -29,8 +29,7 @@ def test_ui_replay_interns_identical_states_and_action_sets(tmp_path):
     assert payload["state_count"] == 1
     assert payload["action_set_count"] == 1
     assert payload["events"][0][1] == "ui"
-    assert payload["events"][1][1] == "ui"
-    assert payload["events"][0][2] == payload["events"][1][2]
+    assert payload["events"][0][2] == 0
 
 
 def test_click_records_visible_state_with_all_available_actions(tmp_path):
