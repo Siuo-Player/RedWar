@@ -75,6 +75,8 @@ def _install_frostmage_nevada_rules() -> None:
                 focus_r, focus_c = r + dr, c + dc
                 if not (0 <= focus_r < LINHAS and 0 <= focus_c < COLUNAS):
                     continue
+                if focus_r == r and focus_c == c:
+                    continue
                 if (
                     tile_effects
                     and tile_effects[focus_r][focus_c]
