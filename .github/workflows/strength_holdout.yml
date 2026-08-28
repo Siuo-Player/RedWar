@@ -1,0 +1,134 @@
+name: RedWar Strength Protected Holdout
+
+on:
+  push:
+    branches:
+      - 'validation/strength/holdout-2026-08-28'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: '0'
+  FROZEN_SHA: '81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef'
+  NODE_BUDGET: '10000'
+
+jobs:
+  protected-holdout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Validate protected holdout manifest
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from tools.analytics.holdout_validation import validate_holdout
+          count, digest = validate_holdout()
+          if count != 8:
+              raise SystemExit(f'expected 8 protected holdout cases, got {count}')
+          print(f'holdout_cases={count}')
+          print(f'holdout_sha256={digest}')
+          PY
+
+      - name: Resolve and build frozen engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin "$FROZEN_SHA" --no-tags
+          git worktree add --detach /tmp/redwar-frozen "$FROZEN_SHA"
+          pushd /tmp/redwar-frozen/ai/cpp_engine >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+          chmod +x engine
+          popd >/dev/null
+
+      - name: Execute protected holdout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/redwar-holdout
+          python -m tools.analytics.holdout_arena \
+            --challenger-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
+            --baseline-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
+            --nodes "$NODE_BUDGET" \
+            --challenger-version "$FROZEN_SHA" \
+            --baseline-version "$FROZEN_SHA" \
+            --rules-version "$FROZEN_SHA" \
+            --results /tmp/redwar-holdout/summary.json
+
+      - name: Validate holdout result
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - /tmp/redwar-holdout/summary.json "$FROZEN_SHA" "$NODE_BUDGET" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from tools.analytics.holdout_validation import canonical_sha256, load_holdout
+
+          summary = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          frozen_sha = sys.argv[2]
+          nodes = int(sys.argv[3])
+          manifest = load_holdout()
+          expected_case_ids = {case['id'] for case in manifest['cases']}
+
+          if summary['mode'] != 'protected_holdout':
+              raise SystemExit('unexpected holdout mode')
+          if summary['holdout_set_id'] != manifest['set_id']:
+              raise SystemExit('holdout set id mismatch')
+          if summary['holdout_set_sha256'] != canonical_sha256():
+              raise SystemExit('holdout manifest hash mismatch')
+          if summary['cases'] != 8 or summary['games'] != 16 or summary['complete_pairs'] != 8:
+              raise SystemExit('protected holdout size/pair contract failed')
+          if summary['nodes'] != nodes:
+              raise SystemExit('holdout node budget mismatch')
+          experiment = summary['experiment']
+          if experiment['challenger_version'] != frozen_sha or experiment['baseline_version'] != frozen_sha:
+              raise SystemExit('holdout engine provenance mismatch')
+          if experiment['rules_version'] != frozen_sha:
+              raise SystemExit('holdout rules provenance mismatch')
+          if {game['holdout_case'] for game in summary['games_detail']} != expected_case_ids:
+              raise SystemExit('holdout case identity mismatch')
+          if any(not game['valid'] for game in summary['games_detail']):
+              raise SystemExit('protected holdout contains invalid game(s)')
+          print(json.dumps({
+              'cases': summary['cases'],
+              'games': summary['games'],
+              'complete_pairs': summary['complete_pairs'],
+              'wins_challenger': summary['wins_challenger'],
+              'wins_baseline': summary['wins_baseline'],
+              'draws': summary['draws'],
+              'invalid_games': summary['invalid_games'],
+              'holdout_set_sha256': summary['holdout_set_sha256'],
+          }, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Upload protected holdout artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-strength-protected-holdout-${{ github.run_id }}
+          path: /tmp/redwar-holdout/
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Cleanup frozen worktree
+        if: always()
+        run: git worktree remove --force /tmp/redwar-frozen || true
