@@ -106,9 +106,28 @@ compression/decompression CPU
 binary pack/unpack CPU when MessagePack is available
 ```
 
-The current production choice is **compact JSON + chunked gzip** because it uses only the Python standard library at runtime, remains inspectable and language-portable, and directly matches the required append-only archive model. A binary codec remains a measured alternative rather than an unsubstantiated architectural assumption.
+### Initial repeatable fixture measurement
 
-The benchmark fixture deliberately includes short, medium and long action streams, plus spells, summons, lifespan, stun and terrain-effect state. Once enough real local games exist, the same benchmark should be rerun against the actual replay corpus before changing the storage codec.
+The first benchmark was run on deterministic short/medium/long fixture records containing the same state dimensions used by the replay schema. It is an engineering baseline, **not a measurement of gameplay strength and not yet a corpus of real player games**.
+
+| Fixture | Plies | Compact JSON | gzip JSON | gzip B/ply | gzip ratio | MessagePack |
+|---|---:|---:|---:|---:|---:|---:|
+| short | 12 | 938 B | 396 B | 33.00 | 2.37× | 654 B |
+| medium | 80 | 3,301 B | 635 B | 7.94 | 5.20× | 1,919 B |
+| long | 320 | 10,222 B | 683 B | 2.13 | 14.97× | 5,401 B |
+
+Representative median CPU timings on the benchmark environment were:
+
+```text
+                    JSON dump    gzip compress    gzip decompress
+12 plies              10.73 µs       13.18 µs          5.43 µs
+80 plies              39.47 µs       19.68 µs          7.10 µs
+320 plies            118.82 µs       34.73 µs          9.45 µs
+```
+
+MessagePack was smaller than uncompressed JSON but remained substantially larger than gzip JSON for these highly repetitive action streams. It also requires an additional runtime dependency. Therefore the current production choice remains **compact JSON + chunked gzip**: the representation is compact, portable, inspectable, deterministic enough for archival use and uses only the standard library at runtime.
+
+The measurement is intentionally marked provisional: after real local games accumulate, rerun the same benchmark against the real corpus and reconsider codec/chunk sizing only if the data shows a meaningful benefit.
 
 ## Performance model
 
