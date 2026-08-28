@@ -1,0 +1,45 @@
+{
+  "schema_version": "redwar-strength-calibration-evidence-v1",
+  "experiment_id": "strength-calibration-2026-08-27-v3",
+  "run_id": "strength-calibration-2026-08-27-control-replication",
+  "role": "calibration",
+  "control_mode": "same-engine-self-play",
+  "workflow": {
+    "run_id": 33139108032,
+    "artifact_id": 9673256631,
+    "head_sha": "bf6e9a209a0f4ed1ee7754474d5f20d0f8e56e4a"
+  },
+  "raw_sha256": "5d9667f0ea532e17fe2b777d17dc79dcd2d60519023d67ef87842a26bf7982da",
+  "frozen": {
+    "engine_sha": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+    "rules_sha": "81d018d3dd9d509e6ed1e4ba801adfab0d6fe5ef",
+    "node_budget": 10000,
+    "games": 100,
+    "seed_policy": "control-seed-set-a",
+    "opening_seeds": [101, 211, 307, 401, 503, 601, 709, 809, 907, 1009, 1103, 1201, 1301, 1409, 1501, 1601]
+  },
+  "outcomes": {
+    "challenger": 50,
+    "baseline": 50,
+    "draw": 0,
+    "invalid": 0,
+    "complete_pairs": 50
+  },
+  "colour_balance": {
+    "challenger_white": 50,
+    "challenger_black": 50,
+    "challenger_wins_white": 26,
+    "challenger_wins_black": 24
+  },
+  "pentanomial": {
+    "WW": 4,
+    "DD_WL_LW": 42,
+    "LL": 4
+  },
+  "strength_descriptive": {
+    "rating_delta": -0.3131776441787224,
+    "engineering_uncertainty_proxy_half_width": 755.0803193446252
+  },
+  "status": "raw_real_arena_complete; postprocessing_recovered; no_promotion_decision",
+  "interpretation": "This same-engine control is a calibration observation, not strength-improvement evidence. It establishes an empirical zero-effect reference for the frozen protocol but is not sufficient by itself to recalibrate the production uncertainty proxy."
+}
