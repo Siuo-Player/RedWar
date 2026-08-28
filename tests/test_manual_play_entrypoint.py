@@ -84,6 +84,7 @@ def test_intent_wrapper_preserves_all_legal_actions(monkeypatch):
         bot_ativo=None,
         get_ui_metrics=lambda: (80, 60, 60),
         desenhar_animacao=lambda *args: None,
+        renderizar=lambda *args, **kwargs: None,
         tratar_cliques=lambda *_args: None,
     )
 
