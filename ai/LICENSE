@@ -1,0 +1,14 @@
+GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
+
+Project-owned source code in `ai/` is licensed under the GNU General Public License,
+version 3 or (at your option) any later version (GPL-3.0-or-later).
+
+This notice applies only to RedWar project-owned Ares source code. Third-party
+components stored under `ai/`, including vendored libraries, retain their own
+licenses and are not relicensed by this file.
+
+For the complete license terms, see:
+https://www.gnu.org/licenses/gpl-3.0.html
+
+Copyright (c) 2026 Siuo-Player
