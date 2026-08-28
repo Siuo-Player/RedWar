@@ -63,6 +63,19 @@ jobs:
           echo "No AI-quality-related changes detected."
         fi
 
+        # Strength promotion is only an acceptance criterion for changes that
+        # can directly alter evaluation/search/NNUE strength. Rule/legality,
+        # bridge, replay and diagnostics changes still receive correctness and
+        # benchmark evidence, but a semantic fix is not required to outperform
+        # the old rules that it is replacing.
+        if grep -Eq '^(ai/cpp_engine/(evaluate|search|nnue)\.(cpp|h|hpp|cc|cxx)|tools/nnue/)' /tmp/changed-files.txt; then
+          echo "has_promotion_changes=true" >> "$GITHUB_OUTPUT"
+          echo "Strength-sensitive changes detected; promotion Arena required."
+        else
+          echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
+          echo "No direct strength-sensitive changes; Arena remains diagnostic only."
+        fi
+
     - name: Build challenger on current PR rules
       if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
@@ -112,7 +125,7 @@ jobs:
           | tee /tmp/frostmage-quality.txt
 
     - name: Run promotion Arena
-      if: steps.changes.outputs.has_ai_changes == 'true'
+      if: steps.changes.outputs.has_promotion_changes == 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -124,6 +137,14 @@ jobs:
           --nodes 10000 \
           --results /tmp/ai-quality-games.jsonl \
           | tee /tmp/ai-quality-arena.txt
+
+    - name: Record semantic Arena diagnostic
+      if: steps.changes.outputs.has_ai_changes == 'true' && steps.changes.outputs.has_promotion_changes != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Semantic/legality AI change: no strength-promotion claim is made." | tee /tmp/ai-quality-arena.txt
+        echo "The Arena result for this class of PR is diagnostic evidence only." | tee -a /tmp/ai-quality-arena.txt
 
     - name: Upload AI quality evidence
       if: always() && steps.changes.outputs.has_quality_changes == 'true'
