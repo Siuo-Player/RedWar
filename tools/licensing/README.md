@@ -15,6 +15,18 @@ The tool intentionally does not treat filenames as attribution evidence. It rast
 
 The current implementation uses conservative thresholds and preserves the second-best score so ambiguous cases can be reviewed rather than silently accepted.
 
+### License resolution
+
+The upstream corpus is **not uniformly CC BY 3.0**. The official `license.txt` declares CC BY 3.0 as the default and explicitly marks some contributors, including **Viscious Speed** and **Zeromancer**, as **CC0**.
+
+The matcher reads the pinned corpus `license.txt` and resolves the license from the contributor folder rather than attaching a repository-wide hardcoded license to every match. If contributor-folder mapping cannot be established, the match is left without a resolved license and is forced to `UNRESOLVED`.
+
+### Performance
+
+The corpus is rasterized once per SVG for a given audit run and the normalized variants are reused for all local assets. This avoids rasterizing the same upstream SVG once for every local PNG.
+
+The renderer/normalizer preserves the local export convention (256×256 source convention, black background, square SVG rendering, gradient/plain mode, black icon, reset frame) through normalized foreground geometry and multiple background variants. A high numerical similarity score is not by itself sufficient to claim authorship.
+
 ### Reproducible usage
 
 Obtain a pinned checkout of the official corpus first. For example:
@@ -41,6 +53,6 @@ python tools/licensing/match_game_icons.py \
   --output tools/licensing/game_icons_manifest.json
 ```
 
-The official corpus license is CC BY 3.0 (with the repository's stated attribution requirements). Do not change the local attribution manifest from `UNRESOLVED`/`AMBIGUOUS` to a positive status without image evidence.
+The generated manifest records the pinned corpus revision, visual evidence, author, and license resolution metadata per candidate. Do not change unresolved or ambiguous entries to positive attribution statuses without image evidence.
 
 The tool is an audit utility, not a permission grant and not legal advice.
