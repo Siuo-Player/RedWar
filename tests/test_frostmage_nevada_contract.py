@@ -1,5 +1,5 @@
 from engine.game_state import GameState
-from engine.pieces import FrostMage, Inquisitor
+from engine.pieces import FrostMage, Inquisitor, Bone
 
 
 def empty_board():
@@ -20,7 +20,7 @@ def test_nevada_allows_empty_centers_with_manhattan_range_three():
     assert (4, 4) in targets
     assert (1, 4) in targets
     assert (4, 1) in targets
-    assert (2, 6) in targets
+    assert (2, 5) in targets
     assert (0, 0) not in targets
 
 
@@ -50,13 +50,12 @@ def test_nevada_can_be_cast_again_on_a_different_center_without_cooldown():
     gs = GameState()
     mage = FrostMage("brancas")
     gs.board[4][4] = mage
+    gs.board[0][0] = Bone("pretas")
 
     gs.make_action((4, 4), (1, 4), action_type="spell", spell_name="nevada")
     first_ice = gs.tile_effects[1][4]
     assert first_ice and first_ice["type"] == "ice"
 
-    # The rules have no Nevada charge/cooldown. Simulate the opposing side's
-    # turn without touching the mage's state, then let the same mage act again.
     gs.white_to_move = True
     gs.make_action((4, 4), (2, 4), action_type="spell", spell_name="nevada")
 
