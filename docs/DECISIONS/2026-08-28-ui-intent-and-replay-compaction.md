@@ -2,11 +2,12 @@
 
 ## Findings
 
-Manual play exposed three interaction problems:
+Manual play exposed four interaction/observability problems:
 
 1. FrostMage could select Nevada with its own square as the center.
 2. A board destination could correspond to more than one legal action, while the UI silently preferred movement, attack, stun, spawn or spell according to an implementation order.
 3. Developer UI evidence included high-frequency hover/window state and could therefore grow far faster than the semantic decisions it was intended to preserve.
+4. A legal action can disappear for a contextual reason such as Inquisitor silence, while the UI gave no direct visual explanation. This made a valid `not available` state easy to confuse with a board-edge/range bug.
 
 ## Decisions
 
@@ -23,6 +24,14 @@ Manual DEV sessions also support cancelling a selection by clicking the currentl
 ### Ally/self offensive targets
 
 An offensive spell directed at an allied hero, including the spell caster itself, requires explicit confirmation before execution. Support spells such as `purify` and `swap` retain their normal friendly-target semantics.
+
+### Hover emphasis and contextual availability
+
+All legal options remain visible after a hero is selected. The cell currently under the mouse receives the strongest visual emphasis and shows the legal interpretation(s) for that exact destination. Broad AOE/STUN shapes remain visible at lower visual priority so they do not obscure unrelated legal actions.
+
+Active Inquisitor silence coverage is rendered distinctly. The hovered-cell side panel reports the hovered coordinate, piece status, tile effects and whether powers are blocked by silence. Thus a spell that is absent from the legal action set has an observable contextual explanation instead of looking like a range/bounds failure.
+
+The purpose is explanatory, not rule-changing: hover presentation never creates or removes an action.
 
 ### Replay evidence
 
@@ -50,7 +59,7 @@ without repeating the same state payload hundreds or thousands of times.
 
 ## Preservation rule
 
-No decision-relevant information is deliberately discarded. Repetition is removed by interning equivalent states/action sets; canonical replays retain executed actions, and developer replay retains the UI choice context needed to distinguish "not chosen" from "not available".
+No decision-relevant information is deliberately discarded. Repetition is removed by interning equivalent states/action sets; canonical replays retain executed actions, and developer replay retains the UI choice context needed to distinguish `not chosen` from `not available`.
 
 ## Scope
 
