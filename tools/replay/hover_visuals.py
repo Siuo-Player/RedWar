@@ -126,13 +126,14 @@ def _draw_hover_panel_overlay(ecra: Any, controller: Any, painel_x: int, height:
     lines = _hover_panel_lines(controller)
     if not lines:
         return
-    box_h = min(height - 24, 24 * len(lines) + 18)
+    box_h = min(max(42, height - 24), 24 * len(lines) + 18)
     box = pygame.Rect(painel_x + 12, 20 + height - box_h - 12, 326, box_h)
     pygame.draw.rect(ecra, (18, 18, 24), box, border_radius=8)
     pygame.draw.rect(ecra, (160, 160, 180), box, 1, border_radius=8)
     font = pygame.font.SysFont("arial", 16)
     y = box.y + 8
-    for line in lines[: max(1, (box_h - 14) // 24)]:
+    max_lines = max(1, (box_h - 14) // 24)
+    for line in lines[:max_lines]:
         surface = font.render(line, True, (235, 235, 240))
         ecra.blit(surface, (box.x + 8, y))
         y += 24
@@ -164,7 +165,7 @@ def install_hover_visuals(controller: Any) -> None:
 
     def wrapped_render(self: Any, *args: Any, **kwargs: Any) -> Any:
         result = original_render(*args, **kwargs)
-        if self.fase_atual in {"BATALHA", "ANALISE"} and args:
+        if self.fase_atual in {"BATALHA", "ANALISE"}:
             painel_x = kwargs.get("painel_x", args[5] if len(args) > 5 else None)
             height = kwargs.get("h", args[1] if len(args) > 1 else self.ecra.get_height())
             if painel_x is not None:
