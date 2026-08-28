@@ -28,15 +28,26 @@ A auditoria atual identifica pelo menos:
 | websockets 12.0 | `requirements.txt` / PyPI | BSD-3-Clause | Dependência de rede/websocket. |
 | Cython | `requirements.txt` / PyPI | Apache-2.0 | Ferramenta/dependência de build; requisito não totalmente pinado. |
 
-Pygame declara LGPL-2.1 no pacote 2.5.2; pytest declara MIT; websockets 12.0 declara BSD-3-Clause; Cython declara Apache-2.0. urlpygame 2.5.2 no PyPIhttps://pypi.org/project/pygame/2.5.2/ urlpytest no PyPIhttps://pypi.org/project/pytest/ urlwebsockets 12.0 no PyPIhttps://pypi.org/project/websockets/12.0/ urlCython no PyPIhttps://pypi.org/project/Cython/
+Fontes oficiais consultadas:
 
-O `nlohmann/json.hpp` vendorizado contém diretamente os avisos SPDX de copyright e MIT. urlnlohmann/json.hpp no RedWarhttps://github.com/Siuo-Player/RedWar/blob/main/ai/cpp_engine/nlohmann/json.hpp
+- pygame 2.5.2: https://pypi.org/project/pygame/2.5.2/
+- pytest: https://pypi.org/project/pytest/
+- websockets 12.0: https://pypi.org/project/websockets/12.0/
+- Cython: https://pypi.org/project/Cython/
+
+O `nlohmann/json.hpp` vendorizado contém diretamente os avisos SPDX de copyright e MIT.
 
 ## 4. Game Icons
 
 Os PNGs em `ui/assets/` foram copiados manualmente de game-icons.net, segundo a proveniência fornecida pelo autor do repositório.
 
-A coleção oficial `game-icons/icons` declara os seus SVGs como **CC BY 3.0**, com ficheiro de licença individual que identifica os autores e pede a inclusão de uma menção do tipo `Icons made by {author}` em trabalhos derivados. urlrepositório oficial Game Iconshttps://github.com/game-icons/icons urllicença oficial Game Iconshttps://github.com/game-icons/icons/blob/master/license.txt
+A coleção oficial `game-icons/icons` declara os seus SVGs como **CC BY 3.0**, com ficheiro de licença que identifica os autores e pede a inclusão de uma menção do tipo `Icons made by {author}` em trabalhos derivados.
+
+Fontes oficiais:
+
+- coleção: https://github.com/game-icons/icons
+- licença: https://github.com/game-icons/icons/blob/master/license.txt
+- site: https://game-icons.net/
 
 A correspondência de cada PNG local com o SVG original é mantida em [`assets/game-icons-attribution.json`](assets/game-icons-attribution.json). Não são inferidos autores a partir do nome do ficheiro: um resultado só pode ser promovido a `CONFIRMED` ou `HIGH CONFIDENCE` quando o matcher tem evidência suficiente.
 
