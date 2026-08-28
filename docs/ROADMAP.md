@@ -55,6 +55,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #119** integrou diagnóstico da primeira divergência e reprodução por prefixo mínimo sem apagar ações arbitrariamente.
 - **PR #121** integrou o perft/node-count differential Python/C++ com bridge nativa e execução automática no CI.
 - A auditoria de observabilidade (#83) confirmou que, no modo local atual, a informação é secreta apenas durante `DRAFT`; em `BATALHA` o estado completo é público e legal para Ares.
+- O requisito de replay local passou a ser **retenção durável de todas as partidas**, com as 10 mais recentes apenas como hot cache. A primeira implementação compacta usa um stream semântico, chunks JSONL e gzip, com índice por jogo e preservação de partidas antigas.
+- O bug de UI em que uma spell silenciada pelo Inquisitor podia chegar ao validador autoritativo foi tratado na geração de ações Python; regressões cobrem geração e rejeição autoritativa.
 - A `main` atual é a base para o desenvolvimento seguinte.
 
 ### Blocos concluídos relevantes
@@ -84,6 +86,8 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] Paired-game/pentanomial support e auditoria de cor/opening/seed.
 - [x] Separação de conjuntos regression/development/hold-out e hold-out protegido.
 - [x] SPRT implementado como biblioteca isolada; calibração e promoção automática continuam pendentes.
+- [x] Arquitetura local inicial de replay: stream semântico, hot-cache de 10 IDs, cold archive chunked/comprimido, integridade por hash e reconstrução determinística.
+- [x] Regra de seleção de herói no draft: selecionar, mudar a seleção e clicar novamente para desmarcar.
 
 ## Ares — sequência atual
 
@@ -218,181 +222,37 @@ A evolução da Arena deve privilegiar evidência estatística progressivamente 
 - [ ] Continuar a observar partidas sem vencedor em amostras futuras.
 - [ ] Se continuarem, localizar no `GameState` a origem de cada caso e garantir um desempate determinístico e simétrico entre as cores, sem transformar silenciosamente o limite de segurança num empate.
 
-O limite de 10.000 plies é apenas um **guardrail de segurança da Arena**, não uma regra nova de resultado do jogo.
+## UI / Replay / Observabilidade — bloco atual
 
-## Heróis e balanceamento
+### Replay
 
-- [ ] Reduzir lógica de herói espalhada.
-- [ ] Documentar cada herói de forma padronizada.
-- [ ] Melhorar Auto-Pricer quando Ares estiver suficientemente estável.
-- [ ] Reavaliar FrostMage após melhorias de search/TT/NNUE.
-- [ ] Formalizar gelo e empilhamento de efeitos.
+- [x] Replay canónico sem snapshot de tabuleiro a cada ply.
+- [x] Persistência automática de partidas concluídas.
+- [x] Hot cache de 10 partidas através de índice, sem apagar as anteriores.
+- [x] Cold archive chunked + gzip.
+- [x] Índice por `game_id`, chunk, linha e hash.
+- [x] Reconstrução determinística a partir do estado inicial + ações.
+- [x] Marcador explícito para partidas importantes.
+- [x] Benchmark de representações JSON/compact/gzip/MessagePack.
+- [ ] Repetir benchmark com corpus real de partidas de jogadores quando houver amostra suficiente.
+- [ ] Ferramenta de inspeção/exportação de replay para análise externa.
+- [ ] Migração para arquivo server-authoritative quando existir backend.
 
-O Auto-Balancer deve continuar a servir para equilíbrio estatístico; não deve ser usado como substituto de benchmarks táticos de força.
+### Legalidade e UX
 
-Para evoluções futuras, avaliar também composição, matchup, cor, pick rate, mastery, duração e diversidade de estratégias; custo equilibrado não significa necessariamente 50% de win-rate isoladamente. A metodologia detalhada está em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
+- [x] Legalidade de spells respeita silêncio do Inquisitor na geração de ações Python.
+- [x] Validador autoritativo continua a rejeitar chamadas diretas ilegais.
+- [x] Seleção de herói no draft é singular e alternável/desmarcável.
+- [ ] Adicionar tratamento de observabilidade/exportação para análise automática de partidas do jogador.
 
-### Nova fase futura — Balance Lab e Strategic Embeddings
+### Balanceamento
 
-Esta fase **não antecipa nem substitui** os blocos atuais da Ares. Só entra depois de existir uma avaliação de força suficientemente sólida e uma base de jogos/telemetria reproduzível.
+- [ ] Usar partidas reais armazenadas para gerar hipóteses de balanceamento.
+- [ ] Fazer calibração controlada por contexto antes de alterar preços.
+- [ ] Validar qualquer alteração por Arena independente.
 
-A necessidade surge de uma limitação agora explicitada do Auto-Pricer: o valor do herói depende de contexto e não é uma propriedade escalar fixa. O objetivo passa a ser modelar o sistema estratégico inteiro.
+### Futuro distribuído
 
-#### 7. Balance Lab — baseline interpretável
-
-- [ ] construir matriz de resultados por herói/composição/contexto;
-- [ ] separar Ares de outras fontes de evidência de balanceamento;
-- [ ] implementar **Principal Trade-off Analysis (PTA)** como baseline de representação;
-- [ ] visualizar trade-offs, clusters, ciclos e regiões estratégicas;
-- [ ] identificar redundâncias e lacunas do roster;
-- [ ] manter `win-rate`/Elo como métricas auxiliares, não como definição única de valor;
-- [ ] separar development data de hold-out data também para balanceamento.
-
-PTA é especialmente apropriado como primeira ferramenta porque consegue recuperar estrutura estratégica a partir de resultados de jogos sem conhecer previamente as classes/tipos definidos pelo designer. O estudo de Strang et al. demonstrou clusters e ciclos desse tipo no caso de Pokémon. ([SAGE, 2024](https://doi.org/10.1177/14738716241239018))
-
-#### 8. Contextual / relational embeddings
-
-Depois do baseline PTA:
-
-- [ ] representar o estado como grafo de heróis, casas, efeitos e relações;
-- [ ] separar embedding mecânico, comportamental e contextual;
-- [ ] testar descriptors/representações simples antes de GNNs;
-- [ ] testar encoder gráfico/relacional apenas se adicionar poder explicativo/preditivo;
-- [ ] medir valor de herói condicionado a posição, composição, adversário e estado;
-- [ ] descobrir clusters latentes sem impor classes de RPG;
-- [ ] detetar regiões estratégicas demasiado densas ou vazias;
-- [ ] distinguir densidade de cluster de saúde do cluster.
-
-Um herói pode ocupar posições diferentes neste espaço dependendo da composição e do contexto. Os clusters são instrumentos de análise, não classes oficiais do jogo.
-
-#### 9. Automated contextual pricing
-
-Só depois de 7–8 terem demonstrado valor:
-
-```text
-hero/config change
-      ↓
-same controlled states
-      ↓
-old vs new
-      ↓
-Δ matchup / strategy / metagame / embeddings
-      ↓
-optimization
-      ↓
-hold-out validation
-```
-
-Objetivos potenciais da otimização:
-
-```text
-imbalance
-+ strategy concentration
-+ matchup exploitability
-+ roster redundancy
-+ price instability
-```
-
-O preço continua a ser um recurso de draft, não uma estimativa direta de poder absoluto. A otimização deve procurar preservar diversidade estratégica, não forçar todos os heróis a 50% de win-rate.
-
-A literatura de Ludus mostra que global search + automated playtesting pode otimizar parâmetros de cartas segundo métricas de saúde do metagame. ([AAAI, 2022](https://doi.org/10.1609/aaai.v36i11.21550))
-
-#### 10. Roster expansion / 50-hero strategy space
-
-Quando os modelos forem suficientemente estáveis:
-
-- [ ] representar o roster como espaço estratégico, não apenas lista de heróis;
-- [ ] adicionar heróis em lotes pequenos;
-- [ ] reclusterizar após cada lote;
-- [ ] identificar regiões saturadas/vazias;
-- [ ] testar novos heróis como intervenções no espaço estratégico;
-- [ ] rejeitar heróis redundantes quando não acrescentarem diversidade ou função estratégica;
-- [ ] testar se uma alteração pode equilibrar vários heróis através de relações latentes;
-- [ ] manter categorias/classes apenas como metadados analíticos, não como regras obrigatórias.
-
-Um eventual sistema de elementos/`tipo → fraqueza → vantagem` continua **fora do modo normal**. Pode ser investigado posteriormente como modo experimental separado se surgir uma regra que acrescente profundidade sem alterar o núcleo `normal → stun → death`.
-
-## Cor, iniciativa e condições de vitória
-
-Estas questões entram no Balance Lab como variáveis do sistema, não como constantes assumidas.
-
-### 11. Color balance / first-player advantage
-
-O `color-balancer` existente é uma ferramenta experimental válida para este problema: repetir os mesmos jogos com as mesmas IAs e inverter/compensar a cor permite estimar a vantagem estrutural de começar.
-
-Próxima metodologia:
-
-- [ ] separar `first-player advantage` de `hero balance`;
-- [ ] usar os mesmos pares de IA e condições equilibradas;
-- [ ] testar orçamento 200/200 primeiro;
-- [ ] estimar desvio por cor com incerteza;
-- [ ] calibrar compensação no draft apenas depois de medir a vantagem;
-- [ ] quando necessário, estudar condições de desempate favoráveis à cor estruturalmente desfavorecida;
-- [ ] reavaliar a calibração num hold-out de partidas;
-- [ ] manter o orçamento assimétrico como alternativa posterior, porque altera também o espaço do draft.
-
-A ordem experimental recomendada é:
-
-```text
-200/200
-  ↓
-medir vantagem de iniciativa
-  ↓
-compensação pequena no draft ou desempate
-  ↓
-re-medir
-  ↓
-hold-out
-  ↓
-só depois considerar orçamento assimétrico
-```
-
-O objetivo é aproximadamente 50/50 no protocolo competitivo escolhido; isto não significa que cada partida individual tenha de possuir uma compensação artificial.
-
-### 12. Draws / endgame diagnostics
-
-- [ ] guardar separadamente vitórias, derrotas, desistências, falta de movimentos e jogos terminados pelo limite sem captura;
-- [ ] medir a taxa de cada condição de término;
-- [ ] validar se o limite de 50 turnos sem captura está a resolver um caso raro ou mascarar um problema de endgame;
-- [ ] manter o desempate material como baseline simples;
-- [ ] testar alternativas somente com dados, sem alterar simultaneamente outras variáveis de equilíbrio.
-
-Um empate forçado frequente deve ser tratado como possível problema de design de endgame, não apenas como problema de estatística.
-
-## Aplicação / UI
-
-- [ ] Melhorar UI atual.
-- [ ] Menu principal completo.
-- [ ] Seleção de bots/dificuldade.
-- [ ] Dois jogadores locais.
-- [ ] Animações/VFX/Som.
-- [ ] Definições.
-- [ ] Replays.
-- [ ] Histórico e análise no fim das partidas.
-- [ ] Várias resoluções.
-
-A UI deve ser validada jogando o jogo, não apenas por inspeção de código.
-
-## Web / Multiplayer
-
-- [ ] Escolher stack web.
-- [ ] Definir API.
-- [ ] Cliente web.
-- [ ] Autenticação.
-- [ ] Sessão/conta.
-- [ ] Matchmaking.
-- [ ] Transporte persistente/WebSocket.
-- [ ] Servidor autoritativo.
-- [ ] Relógios/reconexão.
-- [ ] Ranking/ELO/MMR.
-- [ ] Desafios/amigos/chat/rematch.
-- [ ] Espectadores.
-- [ ] Histórico.
-
-Quando esta camada começar, preservar a regra de servidor autoritativo e separar matchmaking/rating do balanceamento dos heróis. A metodologia futura de produto está documentada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md).
-
-Se uma futura variante de multiplayer mantiver draft/posicionamento secreto durante a batalha, ela não pode reutilizar automaticamente o full-state Ares interface: deve introduzir observação filtrada/information-set logic antes da AI.
-
-## Regra de manutenção
-
-Cada bloco deve terminar com testes, documentação e uma conclusão experimental clara. PRs de infraestrutura, CI e documentação não devem ser usados como proxies para promoção da Ares. Uma melhoria não pode ser considerada geral apenas porque aumenta o desempenho de benchmarks conhecidos; o Strength Evaluation Framework é a referência para decisões de força.
+- [ ] Backend de arquivo durável.
+- [ ] Cache local pequena com sincronização server-authoritative.
+- [ ] Peer-assisted distribution apenas depois de definir integridade, disponibilidade, privacidade e deleção.
