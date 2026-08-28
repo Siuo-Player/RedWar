@@ -95,10 +95,9 @@ def make_cases() -> list[tuple[str, GameState]]:
     put(attack, 4, 5, "Bone", "pretas")
     cases.append(("attack", attack))
 
-    stun = GameState()
-    put(stun, 4, 4, "FrostMage", "brancas")
-    put(stun, 3, 4, "Bone", "pretas")
-    cases.append(("stun", stun))
+    nevada = GameState()
+    put(nevada, 4, 4, "FrostMage", "brancas")
+    cases.append(("spell-nevada", nevada))
 
     spawn = GameState()
     put(spawn, 4, 4, "Lich", "brancas")
@@ -106,7 +105,7 @@ def make_cases() -> list[tuple[str, GameState]]:
 
     ignite = GameState()
     put(ignite, 4, 4, "Pyromancer", "brancas")
-    cases.append(("spell", ignite))
+    cases.append(("spell-ignite", ignite))
 
     purify = GameState()
     put(purify, 4, 4, "Cleric", "brancas")
