@@ -19,8 +19,8 @@ def test_ui_replay_interns_identical_states_and_action_sets(tmp_path):
     assert recorder.log_ui(state) is True
     assert recorder.log_ui(state) is False
     assert recorder.event_count == 1
-    assert recorder.state_count == 1
-    assert recorder.action_set_count == 1
+    assert len(recorder.states) == 1
+    assert len(recorder.action_sets) == 1
 
     path = recorder.finish(result=None)
     payload = json.loads(path.read_text(encoding="utf-8"))
