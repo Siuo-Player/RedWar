@@ -54,9 +54,6 @@ def _install_frostmage_nevada_rules() -> None:
         if not self.can_act():
             return []
 
-        # A stunned opposing Inquisitor does not project its passive aura.
-        # Keep this wrapper aligned with the generic silence guard and with
-        # Inquisitor.get_aura_positions()/the C++ move generator.
         radius = int(pieces.HERO_DEFS.get("Inquisitor", {}).get("aura_radius", 2))
         for ir in range(LINHAS):
             for ic in range(COLUNAS):
@@ -70,8 +67,6 @@ def _install_frostmage_nevada_rules() -> None:
                 ):
                     return []
 
-        # FrostMage's normal generic spell path is empty because the hero has
-        # no ordinary attack spell. Nevada is defined by its own JSON behavior.
         spells = []
         for dr in range(-3, 4):
             for dc in range(-3, 4):
@@ -116,6 +111,47 @@ def _install_replay_capture_guard() -> None:
         GameState.make_action = guarded_make
 
 
+def _install_rwen_serialization_compat() -> None:
+    """Preserve the legacy GameState RWEN contract used by Arena/differential tools."""
+    from engine.config import COLUNAS, LINHAS
+    from engine.game_state import GameState
+
+    if getattr(GameState, "to_rwen", None) is not None:
+        return
+
+    def to_rwen(self) -> str:
+        lines = []
+        for r in range(LINHAS):
+            cells = []
+            for c in range(COLUNAS):
+                piece = self.board[r][c]
+                effect = self.tile_effects[r][c]
+
+                if not piece:
+                    piece_str = "."
+                else:
+                    team = "W" if piece.team == "brancas" else "B"
+                    name = piece.name.replace(" ", "")
+                    lifespan = str(piece.lifespan) if getattr(piece, "lifespan", None) is not None else "N"
+                    cooldown = str(getattr(piece, "spawn_cooldown", 0))
+                    piece_str = f"{team}_{name}_{piece.stun_timer}_{lifespan}_{cooldown}"
+
+                if not effect:
+                    effect_str = "."
+                else:
+                    effect_team = "W" if effect.get("team") == "brancas" else "B"
+                    effect_str = f"{effect_team}_{effect.get('type', 'none')}_{effect.get('timer', 0)}"
+
+                cells.append(f"{piece_str}:{effect_str}")
+            lines.append(",".join(cells))
+
+        turn = "W" if self.white_to_move else "B"
+        return f"{'/'.join(lines)} {turn} {self.turns_without_capture}"
+
+    GameState.to_rwen = to_rwen
+
+
 _install_spell_silence_guard()
 _install_frostmage_nevada_rules()
 _install_replay_capture_guard()
+_install_rwen_serialization_compat()
