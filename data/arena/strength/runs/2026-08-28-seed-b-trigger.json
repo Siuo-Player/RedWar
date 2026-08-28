@@ -1,0 +1,8 @@
+{
+  "schema_version": "redwar-strength-execution-trigger-v1",
+  "run_id": "strength-calibration-2026-08-27-seed-replication",
+  "triggered_by": "ci/strength-run-b-routing-2026-08-28",
+  "purpose": "operational trigger only; execute predeclared replication-v3 Run B",
+  "scientific_parameters_modified": false,
+  "promotion_authority": false
+}
