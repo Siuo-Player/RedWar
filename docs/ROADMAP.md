@@ -54,6 +54,11 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
 - **PR #119** integrou diagnóstico da primeira divergência e reprodução por prefixo mínimo sem apagar ações arbitrariamente.
 - **PR #121** integrou o perft/node-count differential Python/C++ com bridge nativa e execução automática no CI.
+- **PR #174** corrigiu o routing do workflow de calibração de strength.
+- **PR #177** integrou uma unidade de trabalho independente de infraestrutura/validação.
+- **PR #180** e **PR #182** integraram a correção e validação da semântica FrostMage/NEVADA entre Python e C++.
+- **PR #183** integrou o contrato explícito `EngineBridge` entre Python e Ares, mantendo subprocess como adapter de compatibilidade.
+- **PR #184** integrou a primeira implementação da Battle Sidebar, a seleção repetida de herói no draft e a escolha de ações sem modal fullscreen.
 - A auditoria de observabilidade (#83) confirmou que, no modo local atual, a informação é secreta apenas durante `DRAFT`; em `BATALHA` o estado completo é público e legal para Ares.
 - O requisito de replay local passou a ser **retenção durável de todas as partidas**, com as 10 mais recentes apenas como hot cache. A primeira implementação compacta usa um stream semântico, chunks JSONL e gzip, com índice por jogo e preservação de partidas antigas.
 - O bug de UI em que uma spell silenciada pelo Inquisitor podia chegar ao validador autoritativo foi tratado na geração de ações Python; regressões cobrem geração e rejeição autoritativa.
@@ -88,6 +93,87 @@ RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na 
 - [x] SPRT implementado como biblioteca isolada; calibração e promoção automática continuam pendentes.
 - [x] Arquitetura local inicial de replay: stream semântico, hot-cache de 10 IDs, cold archive chunked/comprimido, integridade por hash e reconstrução determinística.
 - [x] Regra de seleção de herói no draft: selecionar, mudar a seleção e clicar novamente para desmarcar.
+- [x] Battle Sidebar inicial: Selected Hero, Hovered Cell/Context e contextual Actions.
+- [x] Escolha de ação ambígua integrada no painel lateral, sem modal fullscreen.
+- [x] Contrato inicial Python↔C++ através de `EngineBridge`.
+
+## Current execution sequence — sincronizada com PROJECT-STUDIES
+
+A investigação consolidada do `PROJECT-STUDIES/REDWAR` estabelece esta ordem imediata:
+
+```text
+Battle Sidebar implementation
+        ↓
+responsive / visual validation + automatic scene captures
+        ↓
+replay / player telemetry evidence
+        ↓
+Strength / balance / Ares sequence
+        ↓
+search / move ordering / NNUE performance
+        ↓
+Web / App / Multiplayer presentation
+        ↓
+curated player-local themes / broader visual identity
+```
+
+Esta sequência é uma priorização operacional do estado atual; não altera a prioridade estratégica de melhorar a Ares com evidência reproduzível. Um correctness blocker pode interromper a sequência em qualquer momento.
+
+## Battle UI / Replay / Observability
+
+### Battle Sidebar — **implementação inicial concluída; validação pendente**
+
+A arquitetura está documentada em [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md).
+
+Princípios atuais:
+
+- **Selected Hero** é estado persistente.
+- **Hovered Cell / Context** é estado transitório e não substitui o herói selecionado.
+- **Actions** é uma superfície de decisão contextual e só ganha destaque quando há ambiguidade.
+- Uma ação legal executa diretamente; várias ações legais são apresentadas completas no painel.
+- `1..9` e `ESC` continuam a funcionar durante a escolha.
+- O tabuleiro permanece visível.
+- O renderer não decide legalidade nem altera regras.
+
+Próximo work package de UI:
+
+- [ ] validar desktop largo, médio e estreito;
+- [ ] verificar reflow/resize do painel sem perder a distinção semântica;
+- [ ] validar selected/hover/focus states e sinalização não dependente apenas de cor;
+- [ ] validar keyboard/focus interaction;
+- [ ] validar recuperação de destinos ilegais;
+- [ ] validar informação contextual de silêncio, stun, lifespan, cooldown e efeitos;
+- [ ] usar FrostMage/NEVADA como golden visual stress scenario;
+- [ ] adicionar automatic scene/screenshot capture para inspeção/regressão.
+
+### Replay
+
+- [x] Replay canónico sem snapshot de tabuleiro a cada ply.
+- [x] Persistência automática de partidas concluídas.
+- [x] Hot cache de 10 partidas através de índice, sem apagar as anteriores.
+- [x] Cold archive chunked + gzip.
+- [x] Índice por `game_id`, chunk, linha e hash.
+- [x] Reconstrução determinística a partir do estado inicial + ações.
+- [x] Marcador explícito para partidas importantes.
+- [x] Benchmark de representações JSON/compact/gzip/MessagePack.
+- [ ] Repetir benchmark com corpus real de partidas de jogadores quando houver amostra suficiente.
+- [ ] Ferramenta de inspeção/exportação de replay para análise externa.
+- [ ] Telemetria estruturada das partidas reais para gerar evidência de balanceamento e força, respeitando o contrato de observabilidade.
+- [ ] Migração para arquivo server-authoritative quando existir backend.
+
+### Legalidade e UX
+
+- [x] Legalidade de spells respeita silêncio do Inquisitor na geração de ações Python.
+- [x] Validador autoritativo continua a rejeitar chamadas diretas ilegais.
+- [x] Seleção de herói no draft é singular e alternável/desmarcável.
+- [x] Escolha de ação ambígua preserva todas as ações legais e não usa `MOVE` como fallback implícito.
+- [ ] Adicionar tratamento de observabilidade/exportação para análise automática de partidas do jogador.
+
+### Balanceamento
+
+- [ ] Usar partidas reais armazenadas para gerar hipóteses de balanceamento.
+- [ ] Fazer calibração controlada por contexto antes de alterar preços.
+- [ ] Validar qualquer alteração por Arena independente.
 
 ## Ares — sequência atual
 
@@ -222,36 +308,7 @@ A evolução da Arena deve privilegiar evidência estatística progressivamente 
 - [ ] Continuar a observar partidas sem vencedor em amostras futuras.
 - [ ] Se continuarem, localizar no `GameState` a origem de cada caso e garantir um desempate determinístico e simétrico entre as cores, sem transformar silenciosamente o limite de segurança num empate.
 
-## UI / Replay / Observabilidade — bloco atual
-
-### Replay
-
-- [x] Replay canónico sem snapshot de tabuleiro a cada ply.
-- [x] Persistência automática de partidas concluídas.
-- [x] Hot cache de 10 partidas através de índice, sem apagar as anteriores.
-- [x] Cold archive chunked + gzip.
-- [x] Índice por `game_id`, chunk, linha e hash.
-- [x] Reconstrução determinística a partir do estado inicial + ações.
-- [x] Marcador explícito para partidas importantes.
-- [x] Benchmark de representações JSON/compact/gzip/MessagePack.
-- [ ] Repetir benchmark com corpus real de partidas de jogadores quando houver amostra suficiente.
-- [ ] Ferramenta de inspeção/exportação de replay para análise externa.
-- [ ] Migração para arquivo server-authoritative quando existir backend.
-
-### Legalidade e UX
-
-- [x] Legalidade de spells respeita silêncio do Inquisitor na geração de ações Python.
-- [x] Validador autoritativo continua a rejeitar chamadas diretas ilegais.
-- [x] Seleção de herói no draft é singular e alternável/desmarcável.
-- [ ] Adicionar tratamento de observabilidade/exportação para análise automática de partidas do jogador.
-
-### Balanceamento
-
-- [ ] Usar partidas reais armazenadas para gerar hipóteses de balanceamento.
-- [ ] Fazer calibração controlada por contexto antes de alterar preços.
-- [ ] Validar qualquer alteração por Arena independente.
-
-### Futuro distribuído
+## Futuro distribuído
 
 - [ ] Backend de arquivo durável.
 - [ ] Cache local pequena com sincronização server-authoritative.
