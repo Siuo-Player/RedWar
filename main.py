@@ -22,6 +22,8 @@ from ui.hero_encyclopedia import desenhar_enciclopedia_detalhada
 
 from ai.bot import CppEngineBot
 from ai.search import analisar_posicao_continuamente
+from tools.replay.hover_visuals import install_hover_visuals
+from tools.replay.interaction import install_intent_interaction
 
 class JogoController:
     def __init__(self):
@@ -300,7 +302,11 @@ class JogoController:
 
         elif self.fase_atual == "DRAFT":
             for nome, rect in self.botoes_loja.items():
-                if rect.collidepoint(mx, my): self.peca_loja = nome
+                if rect.collidepoint(mx, my):
+                    # Selecting the same hero again explicitly deselects it;
+                    # otherwise keep the selected hero active for repeated copies.
+                    self.peca_loja = None if self.peca_loja == nome else nome
+                    return
             if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < ORCAMENTO_BRANCAS:
                 self.auto_draft_inimigo(ORCAMENTO_PRETAS)
                 self.fase_atual = "BATALHA"
@@ -312,7 +318,8 @@ class JogoController:
                     if p_data and p_data["cost"] <= self.pontos_jogador:
                         self.gs.board[r][c] = p_data["class"]('brancas')
                         self.pontos_jogador -= p_data["cost"]
-                        self.peca_loja = None
+                        # Keep peca_loja selected so repeated copies can be
+                        # placed until budget/space no longer permits it.
 
         elif self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
             if self.hover_pos:
@@ -500,4 +507,6 @@ class JogoController:
 
 if __name__ == "__main__":
     app = JogoController()
+    install_hover_visuals(app)
+    install_intent_interaction(app)
     app.run()
