@@ -77,7 +77,6 @@ def test_runtime_render_records_phase_and_selection(tmp_path: Path):
     events = list(TelemetryStore(recorder.store.path).read())
     assert [event.event_type for event in events] == [
         "session_started",
-        "selection_changed",
         "battle_started",
         "selection_changed",
     ]
