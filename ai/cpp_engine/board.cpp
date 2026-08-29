@@ -470,7 +470,7 @@ UndoInfo make_move(const Move& m) {
             if (undo.target_piece.is_empty || undo.target_piece.team == undo.actor_piece.team) {
                 throw std::runtime_error("Special attack spell requires an enemy target");
             }
-            board.twc = 0;
+            board.twc = (undo.target_piece.lifespan >= 999) ? 0 : (board.twc + 1);
             if (m.spell_name == "bone_v") {
                 update_piece(m.er, m.ec, create_piece("Bone", undo.actor_piece.team));
             } else {
