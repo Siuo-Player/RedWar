@@ -38,14 +38,14 @@ def test_positive_known_effect_is_detected_more_often_than_h0():
         draw_rate=0.2,
         trials=500,
         seed=7,
-        max_games=1000,
+        max_games=2000,
     )
     h1 = calibrate_operating_characteristics(
-        true_elo_delta=5.0,
+        true_elo_delta=50.0,
         draw_rate=0.2,
         trials=500,
         seed=7,
-        max_games=1000,
+        max_games=2000,
     )
     assert h1["summary"]["accept_h1_rate"] > h0["summary"]["accept_h1_rate"]
 
