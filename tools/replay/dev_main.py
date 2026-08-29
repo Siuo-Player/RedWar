@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -54,14 +55,17 @@ if __name__ == "__main__":
     install_intent_interaction(app)
     install_dev_replay(app)
 
-    telemetry_path = ROOT / "data" / "replays" / "telemetry" / "player.jsonl"
+    session_id = uuid.uuid4().hex
+    telemetry_path = ROOT / "data" / "replays" / "telemetry" / f"{session_id}.jsonl"
+    build_commit = _build_commit()
     recorder = TelemetryRecorder(
         TelemetryStore(telemetry_path),
+        session_id=session_id,
         provenance={
-            "rules_version": _build_commit(),
-            "engine_version": _build_commit(),
+            "rules_version": build_commit,
+            "engine_version": build_commit,
             "ui_schema_version": "battle-sidebar-v1",
-            "build_commit": _build_commit(),
+            "build_commit": build_commit,
         },
     )
     install_runtime_telemetry(app, recorder)
