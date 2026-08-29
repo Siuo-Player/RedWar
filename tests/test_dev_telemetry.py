@@ -42,15 +42,20 @@ def test_runtime_instruments_accepted_manual_action(tmp_path: Path):
     events = list(TelemetryStore(recorder.store.path).read())
     assert executed == [action]
     assert [event.event_type for event in events] == ["session_started", "action_selected"]
-    assert events[-1].payload["action"] == action
+    assert events[-1].payload["action"] == {"type": "move", "start": [6, 0], "end": [5, 0]}
 
 
 def test_runtime_instruments_prompt_exposure_and_cancel(tmp_path: Path):
     controller = SimpleNamespace(fase_atual="BATALHA", gs=SimpleNamespace(game_id="game-1"))
     recorder = _recorder(tmp_path)
+    original_prompt = interaction._prompt
+    interaction._prompt = lambda *_args, **_kwargs: None
 
-    install_runtime_telemetry(controller, recorder)
-    interaction._prompt(controller, "ESCOLHER AÇÃO", ["Mover", "Usar NEVADA"])
+    try:
+        install_runtime_telemetry(controller, recorder)
+        interaction._prompt(controller, "ESCOLHER AÇÃO", ["Mover", "Usar NEVADA"])
+    finally:
+        interaction._prompt = original_prompt
 
     events = list(TelemetryStore(recorder.store.path).read())
     assert [event.event_type for event in events] == [
