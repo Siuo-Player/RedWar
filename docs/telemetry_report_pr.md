@@ -1,0 +1,1 @@
+Descriptive telemetry-report metrics only; no inference of preference or strength.
