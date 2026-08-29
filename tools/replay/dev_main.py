@@ -69,4 +69,14 @@ if __name__ == "__main__":
         },
     )
     install_runtime_telemetry(app, recorder)
-    app.run()
+
+    try:
+        app.run()
+    finally:
+        game_id = getattr(app.gs, "game_id", None)
+        if getattr(app, "fase_atual", None) == "BATALHA" and game_id is not None:
+            recorder.battle_finished(
+                game_id=game_id,
+                result=getattr(app.gs, "winner", None),
+            )
+        recorder.session_finished()
