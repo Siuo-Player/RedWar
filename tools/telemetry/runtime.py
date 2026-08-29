@@ -57,14 +57,31 @@ class TelemetryRecorder:
     def session_started(self) -> TelemetryEvent | None:
         return self.emit("session_started")
 
-    def battle_started(self, *, game_id: str | None = None) -> TelemetryEvent | None:
-        payload = {"game_id": game_id} if game_id is not None else {}
+    def battle_started(
+        self,
+        *,
+        game_id: str | None = None,
+        mode: str | None = None,
+    ) -> TelemetryEvent | None:
+        payload: dict[str, Any] = {}
+        if game_id is not None:
+            payload["game_id"] = game_id
+        if mode is not None:
+            payload["mode"] = mode
         return self.emit("battle_started", payload)
 
-    def selection_changed(self, *, selection: tuple[int, int] | None, game_id: str | None = None) -> TelemetryEvent | None:
+    def selection_changed(
+        self,
+        *,
+        selection: tuple[int, int] | None,
+        game_id: str | None = None,
+        turn: int | None = None,
+    ) -> TelemetryEvent | None:
         payload: dict[str, Any] = {"selection": list(selection) if selection is not None else None}
         if game_id is not None:
             payload["game_id"] = game_id
+        if turn is not None:
+            payload["turn"] = int(turn)
         return self.emit("selection_changed", payload)
 
     def action_choices_exposed(
@@ -73,6 +90,7 @@ class TelemetryRecorder:
         decision_id: str,
         actions: list[Mapping[str, Any]],
         game_id: str | None = None,
+        turn: int | None = None,
     ) -> TelemetryEvent | None:
         payload: dict[str, Any] = {
             "decision_id": decision_id,
@@ -80,6 +98,8 @@ class TelemetryRecorder:
         }
         if game_id is not None:
             payload["game_id"] = game_id
+        if turn is not None:
+            payload["turn"] = int(turn)
         return self.emit("action_choices_exposed", payload)
 
     def action_selected(
@@ -88,10 +108,13 @@ class TelemetryRecorder:
         decision_id: str,
         action: Mapping[str, Any],
         game_id: str | None = None,
+        turn: int | None = None,
     ) -> TelemetryEvent | None:
         payload: dict[str, Any] = {"decision_id": decision_id, "action": dict(action)}
         if game_id is not None:
             payload["game_id"] = game_id
+        if turn is not None:
+            payload["turn"] = int(turn)
         return self.emit("action_selected", payload)
 
     def action_rejected(
@@ -100,18 +123,32 @@ class TelemetryRecorder:
         reason: str,
         decision_id: str | None = None,
         game_id: str | None = None,
+        turn: int | None = None,
     ) -> TelemetryEvent | None:
         payload: dict[str, Any] = {"reason": reason}
         if decision_id is not None:
             payload["decision_id"] = decision_id
         if game_id is not None:
             payload["game_id"] = game_id
+        if turn is not None:
+            payload["turn"] = int(turn)
         return self.emit("action_rejected", payload)
 
-    def battle_finished(self, *, game_id: str, result: str | None = None) -> TelemetryEvent | None:
+    def battle_finished(
+        self,
+        *,
+        game_id: str,
+        result: str | None = None,
+        termination: str | None = None,
+        turn: int | None = None,
+    ) -> TelemetryEvent | None:
         payload: dict[str, Any] = {"game_id": game_id}
         if result is not None:
             payload["result"] = result
+        if termination is not None:
+            payload["termination"] = termination
+        if turn is not None:
+            payload["turn"] = int(turn)
         return self.emit("battle_finished", payload)
 
     def session_finished(self) -> TelemetryEvent | None:
