@@ -15,6 +15,26 @@ class SequenceStep:
     action: dict[str, Any]
 
 
+@dataclass(frozen=True)
+class ReplayFailure:
+    index: int
+    action: dict[str, Any]
+    reason: str
+
+
+def _freeze(value: Any) -> Any:
+    if isinstance(value, dict):
+        return tuple(sorted((key, _freeze(item)) for key, item in value.items()))
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze(item) for item in value)
+    return value
+
+
+def action_key(action: dict[str, Any]) -> Any:
+    """Return a stable ordering key for semantically identical action dictionaries."""
+    return _freeze(action)
+
+
 def legal_actions(gs) -> list[dict[str, Any]]:
     """Enumerate actions using the existing GameState/piece semantics."""
     actions: list[dict[str, Any]] = []
@@ -53,7 +73,7 @@ def legal_actions(gs) -> list[dict[str, Any]]:
                         "type": "spell", "start": (r, c), "end": (spell[0], spell[1]),
                         "spell_name": spell[2],
                     })
-    return actions
+    return sorted(actions, key=action_key)
 
 
 def generate_legal_sequence(gs, seed: int, length: int = 32) -> list[dict[str, Any]]:
@@ -70,7 +90,7 @@ def generate_legal_sequence(gs, seed: int, length: int = 32) -> list[dict[str, A
         if not candidates:
             break
         action = rng.choice(candidates)
-        sequence.append(action)
+        sequence.append(action.copy())
         working.execute_action(action)
     return sequence
 
@@ -82,6 +102,18 @@ def execute_with_trace(gs, sequence: Iterable[dict[str, Any]]) -> list[SequenceS
         gs.execute_action(action)
         trace.append(SequenceStep(index, action.copy()))
     return trace
+
+
+def replay_checked(gs, sequence: Iterable[dict[str, Any]]) -> ReplayFailure | None:
+    """Replay only legal prefixes and report the first invalid action without hiding context."""
+    for index, action in enumerate(sequence):
+        if gs.game_over:
+            return ReplayFailure(index, action.copy(), "game already terminal")
+        legal = legal_actions(gs)
+        if action not in legal:
+            return ReplayFailure(index, action.copy(), "action is not legal in current state")
+        gs.execute_action(action)
+    return None
 
 
 def first_divergence(expected: Iterable[str], actual: Iterable[str]) -> int | None:
