@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -7,14 +8,15 @@ from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
 
 ROOT = Path(__file__).resolve().parents[1]
-BRIDGE_NAME = "cpp_make_unmake_bridge_test.exe" if __import__("os").name == "nt" else "cpp_make_unmake_bridge_test"
+BRIDGE_NAME = "cpp_make_unmake_bridge_test.exe" if os.name == "nt" else "cpp_make_unmake_bridge_test"
 BRIDGE = ROOT / BRIDGE_NAME
 
 
-def _state(target_name: str, target_lifespan: int | None = None) -> GameState:
+def _state(target_lifespan: int | None) -> GameState:
     state = GameState()
     attacker = criar_peca_por_nome("Ranger", "brancas")
-    target = criar_peca_por_nome(target_name, "pretas")
+    # Ranger is used for the permanent case; Bone is explicitly temporary.
+    target = criar_peca_por_nome("Ranger" if target_lifespan is None else "Bone", "pretas")
     if target_lifespan is not None:
         target.lifespan = target_lifespan
     state.board[6][0] = attacker  # A2
@@ -56,7 +58,7 @@ def _python_after(state: GameState) -> str:
 
 def test_aimed_shot_preserves_twc_for_temporary_capture():
     assert BRIDGE.exists(), f"C++ bridge binary missing: {BRIDGE}"
-    state = _state("Bone", target_lifespan=4)
+    state = _state(4)
     expected = _python_after(state)
     actual = _cpp_after(state)
     assert actual == expected
@@ -65,7 +67,7 @@ def test_aimed_shot_preserves_twc_for_temporary_capture():
 
 def test_aimed_shot_resets_twc_for_permanent_capture():
     assert BRIDGE.exists(), f"C++ bridge binary missing: {BRIDGE}"
-    state = _state("Ranger")
+    state = _state(None)
     expected = _python_after(state)
     actual = _cpp_after(state)
     assert actual == expected
