@@ -1,0 +1,1 @@
+Metrics in tools/telemetry/report.py are descriptive only: exposure, explicit selection, cancellation and observed selection latency. Missing selection events are not interpreted as rejection or preference. Strength/balance conclusions remain subject to independent evaluation protocols.
