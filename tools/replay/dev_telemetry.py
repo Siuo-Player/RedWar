@@ -18,9 +18,13 @@ def _action_from_label(label: str) -> dict[str, Any]:
 
 
 def install_runtime_telemetry(controller: Any, recorder: TelemetryRecorder) -> TelemetryRecorder:
-    """Observe the developer manual-play surface without entering the rules path."""
-    original_render = controller.renderizar
-    original_execute = controller.gs.execute_action
+    """Observe developer manual-play surfaces without entering the rules path.
+
+    The installer tolerates partial controller doubles used by isolated tests.
+    The real developer entrypoint still receives render and execute-action hooks.
+    """
+    original_render = getattr(controller, "renderizar", None)
+    original_execute = getattr(controller.gs, "execute_action", None)
     original_prompt = interaction._prompt
     last_phase = getattr(controller, "fase_atual", None)
     last_selection = getattr(controller, "casa_selecionada", None)
@@ -28,37 +32,49 @@ def install_runtime_telemetry(controller: Any, recorder: TelemetryRecorder) -> T
 
     recorder.session_started()
 
-    def tracked_render(self: Any, *args: Any, **kwargs: Any) -> Any:
-        nonlocal last_phase, last_selection
-        result = original_render(*args, **kwargs)
-        phase = getattr(self, "fase_atual", None)
-        if phase != last_phase:
-            last_phase = phase
-            if phase == "BATALHA":
-                recorder.battle_started(game_id=getattr(self.gs, "game_id", None))
+    if callable(original_render):
+        def tracked_render(self: Any, *args: Any, **kwargs: Any) -> Any:
+            nonlocal last_phase, last_selection
+            result = original_render(*args, **kwargs)
+            phase = getattr(self, "fase_atual", None)
+            if phase != last_phase:
+                last_phase = phase
+                if phase == "BATALHA":
+                    recorder.battle_started(game_id=getattr(self.gs, "game_id", None))
 
-        selected = getattr(self, "casa_selecionada", None)
-        if selected != last_selection:
-            last_selection = selected
-            recorder.selection_changed(
-                selection=selected,
-                game_id=getattr(self.gs, "game_id", None),
-            )
-        return result
+            selected = getattr(self, "casa_selecionada", None)
+            if selected != last_selection:
+                last_selection = selected
+                recorder.selection_changed(
+                    selection=selected,
+                    game_id=getattr(self.gs, "game_id", None),
+                )
+            return result
 
-    def tracked_execute(action: dict[str, Any], *args: Any, **kwargs: Any) -> Any:
-        result = original_execute(action, *args, **kwargs)
-        if getattr(controller, "fase_atual", None) == "BATALHA":
-            decision_id = pending_decision_id[0] or f"manual-{recorder.sequence}"
-            recorder.action_selected(
-                decision_id=decision_id,
-                action=action,
-                game_id=getattr(controller.gs, "game_id", None),
-            )
-            pending_decision_id[0] = None
-        return result
+        controller.renderizar = MethodType(tracked_render, controller)
 
-    def tracked_prompt(self: Any, title: str, labels: list[str], *, allow_cancel: bool = True) -> int | None:
+    if callable(original_execute):
+        def tracked_execute(action: dict[str, Any], *args: Any, **kwargs: Any) -> Any:
+            result = original_execute(action, *args, **kwargs)
+            if getattr(controller, "fase_atual", None) == "BATALHA":
+                decision_id = pending_decision_id[0] or f"manual-{recorder.sequence}"
+                recorder.action_selected(
+                    decision_id=decision_id,
+                    action=action,
+                    game_id=getattr(controller.gs, "game_id", None),
+                )
+                pending_decision_id[0] = None
+            return result
+
+        controller.gs.execute_action = tracked_execute
+
+    def tracked_prompt(
+        self: Any,
+        title: str,
+        labels: list[str],
+        *,
+        allow_cancel: bool = True,
+    ) -> int | None:
         decision_id = f"prompt-{recorder.sequence}"
         pending_decision_id[0] = decision_id
         recorder.action_choices_exposed(
@@ -76,7 +92,5 @@ def install_runtime_telemetry(controller: Any, recorder: TelemetryRecorder) -> T
             pending_decision_id[0] = None
         return index
 
-    controller.renderizar = MethodType(tracked_render, controller)
-    controller.gs.execute_action = tracked_execute
     interaction._prompt = tracked_prompt
     return recorder
