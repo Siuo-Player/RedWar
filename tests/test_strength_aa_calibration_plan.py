@@ -19,8 +19,11 @@ def test_aa_plan_is_protocol_v3_and_non_promotional():
     runs = plan["runs"]
     assert runs[0]["role"] == "calibration"
     assert runs[1]["role"] == "calibration"
-    assert runs[0]["challenger_version"] == runs[0]["baseline_version"] == "SELF"
-    assert runs[1]["challenger_version"] == runs[1]["baseline_version"] == "SELF"
+    baseline_sha = runs[0]["baseline_version"]
+    assert runs[0]["challenger_version"] == baseline_sha
+    assert runs[1]["challenger_version"] == baseline_sha
+    assert runs[1]["baseline_version"] == baseline_sha
+    assert len(baseline_sha) == 40
     assert runs[2]["role"] == "holdout"
     assert runs[2]["holdout"] is True
     assert runs[2]["execution_ready"] is False
