@@ -1,0 +1,34 @@
+{
+  "schema_version": "redwar-strength-calibration-plan-v1",
+  "plan_id": "aa-calibration-v1",
+  "purpose": "Validate that the Arena measurement pipeline is directionally neutral when the same engine plays both sides under balanced conditions.",
+  "promotion_authority": false,
+  "experimental_unit": "paired-opening-seed",
+  "conditions": [
+    {
+      "run_id": "aa-baseline-v1",
+      "role": "calibration",
+      "challenger_version": "SELF",
+      "baseline_version": "SELF",
+      "rules_version": "current",
+      "node_budget": 250000,
+      "opening_seeds": [101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116],
+      "seed_policy": "fixed_predeclared",
+      "seed_generation_rule": "explicit-list",
+      "expected_direction": "neutral"
+    }
+  ],
+  "requirements": {
+    "balanced_colours": true,
+    "paired_reversal": true,
+    "report_invalid_games": true,
+    "report_unfinished_games": true,
+    "preserve_raw_results": true,
+    "preserve_full_candidate_population": true
+  },
+  "interpretation": {
+    "neutral_target": "rating_delta should be consistent with zero within calibrated uncertainty",
+    "failure_action": "investigate colour/opening/seed/order/implementation/model effects",
+    "automatic_promotion": false
+  }
+}
