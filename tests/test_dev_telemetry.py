@@ -3,10 +3,19 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from tools.replay import interaction
 from tools.replay.dev_telemetry import install_runtime_telemetry
 from tools.telemetry import TelemetryEvent, TelemetryStore
 from tools.telemetry.runtime import TelemetryRecorder
+
+
+@pytest.fixture(autouse=True)
+def restore_prompt():
+    original = interaction._prompt
+    yield
+    interaction._prompt = original
 
 
 def _recorder(tmp_path: Path) -> TelemetryRecorder:
@@ -39,13 +48,9 @@ def test_runtime_instruments_accepted_manual_action(tmp_path: Path):
 def test_runtime_instruments_prompt_exposure_and_cancel(tmp_path: Path):
     controller = SimpleNamespace(fase_atual="BATALHA", gs=SimpleNamespace(game_id="game-1"))
     recorder = _recorder(tmp_path)
-    original_prompt = interaction._prompt
 
-    try:
-        install_runtime_telemetry(controller, recorder)
-        interaction._prompt(controller, "ESCOLHER AÇÃO", ["Mover", "Usar NEVADA"])
-    finally:
-        interaction._prompt = original_prompt
+    install_runtime_telemetry(controller, recorder)
+    interaction._prompt(controller, "ESCOLHER AÇÃO", ["Mover", "Usar NEVADA"])
 
     events = list(TelemetryStore(recorder.store.path).read())
     assert [event.event_type for event in events] == [
