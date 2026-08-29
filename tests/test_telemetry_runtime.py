@@ -21,19 +21,24 @@ def test_runtime_recorder_emits_ordered_events(tmp_path: Path):
     )
 
     first = recorder.session_started()
-    second = recorder.selection_changed(selection=(6, 0), game_id="game-1")
+    second = recorder.selection_changed(selection=(6, 0), game_id="game-1", turn=4)
     third = recorder.action_choices_exposed(
         decision_id="decision-1",
         actions=[{"type": "move"}, {"type": "spell", "spell_name": "nevada"}],
         game_id="game-1",
+        turn=4,
     )
     fourth = recorder.action_selected(
         decision_id="decision-1",
         action={"type": "spell", "spell_name": "nevada"},
         game_id="game-1",
+        turn=4,
     )
 
     assert [event.sequence for event in (first, second, third, fourth)] == [0, 1, 2, 3]
+    assert second.payload["turn"] == 4
+    assert third.payload["turn"] == 4
+    assert fourth.payload["turn"] == 4
     assert [event.event_type for event in TelemetryStore(store.path).read()] == [
         "session_started",
         "selection_changed",
@@ -70,3 +75,27 @@ def test_runtime_recorder_distinguishes_exposure_from_selection(tmp_path: Path):
     assert recorder.sequence == 1
 
     assert [event.event_type for event in store.read()] == ["action_choices_exposed"]
+
+
+def test_runtime_recorder_carries_battle_context_without_schema_bump(tmp_path: Path):
+    store = TelemetryStore(tmp_path / "telemetry.jsonl")
+    recorder = TelemetryRecorder(store, session_id="session-test", clock_ms=lambda: 1000)
+
+    started = recorder.battle_started(game_id="game-1", mode="local-dev")
+    finished = recorder.battle_finished(
+        game_id="game-1",
+        result="brancas",
+        termination="checkmate",
+        turn=27,
+    )
+
+    assert started is not None
+    assert finished is not None
+    assert started.schema_version == 1
+    assert started.payload == {"game_id": "game-1", "mode": "local-dev"}
+    assert finished.payload == {
+        "game_id": "game-1",
+        "result": "brancas",
+        "termination": "checkmate",
+        "turn": 27,
+    }
