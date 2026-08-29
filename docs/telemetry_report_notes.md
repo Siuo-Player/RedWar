@@ -1,0 +1,1 @@
+Metrics are descriptive evidence only: exposure, explicit selection, explicit cancellation, and observed selection latency. Missing selection is not interpreted as rejection or preference.
