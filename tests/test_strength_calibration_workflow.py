@@ -8,8 +8,8 @@ def test_calibration_workflow_is_plan_backed_and_non_promotional():
     text = WORKFLOW.read_text(encoding="utf-8")
 
     assert "strength_calibration_runner.py" in text
-    assert "2026-08-27-replication-v3.json" in text
-    assert "strength-calibration-2026-08-27-control-replication" in text
+    assert "2026-08-29-aa-calibration-v1.json" in text
+    assert "aa-baseline-a-v1" in text
     assert "--challenger-engine /tmp/redwar-frozen/ai/cpp_engine/engine" in text
     assert "--baseline-engine /tmp/redwar-frozen/ai/cpp_engine/engine" in text
     assert "--games \"$CALIBRATION_GAMES\"" in text
@@ -52,6 +52,6 @@ def test_calibration_push_defaults_match_run_a_contract():
 
     assert "CALIBRATION_RUN_ID" in text
     assert "CALIBRATION_GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}" in text
-    assert "CALIBRATION_SELECTION_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.selection_policy || 'stratified-opening-scenarios-v1' }}" in text
-    assert "CALIBRATION_CONTROLLER_POPULATION: ${{ github.event_name == 'workflow_dispatch' && inputs.controller_population || 'Ares-v1-vs-baseline-v1' }}" in text
-    assert "CALIBRATION_SKILL_CONTEXT: ${{ github.event_name == 'workflow_dispatch' && inputs.skill_context || 'fixed-node-budget' }}" in text
+    assert "CALIBRATION_SELECTION_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.selection_policy || 'aa-calibration-v3-fixed-context' }}" in text
+    assert "CALIBRATION_CONTROLLER_POPULATION: ${{ github.event_name == 'workflow_dispatch' && inputs.controller_population || 'same-engine-aa-v1' }}" in text
+    assert "CALIBRATION_SKILL_CONTEXT: ${{ github.event_name == 'workflow_dispatch' && inputs.skill_context || 'fixed-node-budget-250k' }}" in text
