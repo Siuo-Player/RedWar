@@ -13,7 +13,9 @@ class TelemetryRecorder:
     """Best-effort runtime adapter for the derived telemetry stream.
 
     Telemetry failures are deliberately non-fatal: gameplay and canonical replay
-    must continue even when the derived evidence sink is unavailable.
+    must continue even when the derived evidence sink is unavailable. The recorder
+    keeps local health counters so a later successful event can expose telemetry
+    missingness without turning it into zero activity.
     """
 
     def __init__(
@@ -31,10 +33,34 @@ class TelemetryRecorder:
         self._clock_ms = clock_ms or (lambda: time.time_ns() // 1_000_000)
         self._on_error = on_error
         self._sequence = 0
+        self._successful_event_count = 0
+        self._write_failures = 0
 
     @property
     def sequence(self) -> int:
         return self._sequence
+
+    @property
+    def telemetry_enabled(self) -> bool:
+        """Whether this recorder is configured as an active telemetry sink."""
+        return True
+
+    @property
+    def successful_event_count(self) -> int:
+        return self._successful_event_count
+
+    @property
+    def telemetry_write_failures(self) -> int:
+        return self._write_failures
+
+    def health_snapshot(self) -> dict[str, int | bool | str]:
+        """Return session-level telemetry availability counters for derived analysis."""
+        return {
+            "telemetry_enabled": self.telemetry_enabled,
+            "telemetry_write_failures": self._write_failures,
+            "telemetry_event_count": self._successful_event_count,
+            "session_id": self.session_id,
+        }
 
     def emit(self, event_type: str, payload: Mapping[str, Any] | None = None) -> TelemetryEvent | None:
         event = TelemetryEvent(
@@ -48,14 +74,16 @@ class TelemetryRecorder:
         try:
             self.store.append(event)
         except Exception as exc:  # telemetry is never on the gameplay correctness path
+            self._write_failures += 1
             if self._on_error is not None:
                 self._on_error(exc)
             return None
         self._sequence += 1
+        self._successful_event_count += 1
         return event
 
     def session_started(self) -> TelemetryEvent | None:
-        return self.emit("session_started")
+        return self.emit("session_started", {"telemetry_enabled": self.telemetry_enabled})
 
     def battle_started(self, *, game_id: str | None = None) -> TelemetryEvent | None:
         payload = {"game_id": game_id} if game_id is not None else {}
@@ -115,4 +143,4 @@ class TelemetryRecorder:
         return self.emit("battle_finished", payload)
 
     def session_finished(self) -> TelemetryEvent | None:
-        return self.emit("session_finished")
+        return self.emit("session_finished", self.health_snapshot())
