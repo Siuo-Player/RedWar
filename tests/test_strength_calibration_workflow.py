@@ -32,7 +32,7 @@ def test_calibration_workflow_exposes_only_a_and_b_dispatch_runs():
     assert "inputs.controller_population" not in text
     assert "inputs.skill_context" not in text
     assert "allowed_runs = {'aa-baseline-a-v1', 'aa-baseline-b-v1'}" in text
-    assert "run is outside the calibration execution allowlist" in text
+    assert "run {run_id} is outside the calibration execution allowlist" in text
     assert "plan.get('promotion_authority') is not False" in text
 
 
