@@ -31,7 +31,6 @@ on:
   push:
     branches:
       - 'calibration/strength/**'
-      - 'ci/plan-backed-strength-calibration-2026-08-27'
 
 permissions:
   contents: read
