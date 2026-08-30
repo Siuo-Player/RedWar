@@ -21,7 +21,7 @@ permissions:
 env:
   PYTHONHASHSEED: '0'
   CALIBRATION_PLAN: 'data/arena/strength/plans/2026-08-29-aa-calibration-v1.json'
-  CALIBRATION_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.run_id || 'aa-baseline-a-v1' }}
+  CALIBRATION_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.run_id || (startsWith(github.ref, 'refs/heads/calibration/strength/aa-baseline-b/') && 'aa-baseline-b-v1' || (startsWith(github.ref, 'refs/heads/calibration/strength/aa-baseline-a/') && 'aa-baseline-a-v1' || '')) }}
   CALIBRATION_GAMES: '100'
   CALIBRATION_SELECTION_POLICY: 'aa-calibration-v3-fixed-context'
   CALIBRATION_CONTROLLER_POPULATION: 'same-engine-aa-v1'
