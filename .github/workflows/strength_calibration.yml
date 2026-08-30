@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: 'Predeclared calibration run_id from replication-v3'
+        description: 'Predeclared calibration run_id from 2026-08-29 protocol-v3 plan'
         required: false
-        default: 'strength-calibration-2026-08-27-control-replication'
+        default: 'aa-baseline-a-v1'
         type: string
       games:
         description: 'Even number of paired games; explicit because the plan does not encode a default'
@@ -16,33 +16,33 @@ on:
       selection_policy:
         description: 'Declared controller-selection policy'
         required: true
-        default: 'stratified-opening-scenarios-v1'
+        default: 'aa-calibration-v3-fixed-context'
         type: string
       controller_population:
         description: 'Declared controller population'
         required: true
-        default: 'Ares-v1-vs-baseline-v1'
+        default: 'same-engine-aa-v1'
         type: string
       skill_context:
         description: 'Declared strength context'
         required: true
-        default: 'fixed-node-budget'
+        default: 'fixed-node-budget-250k'
         type: string
   push:
     branches:
       - 'calibration/strength/**'
-      - 'ci/plan-backed-strength-calibration-2026-08-27'
 
 permissions:
   contents: read
 
 env:
   PYTHONHASHSEED: '0'
-  CALIBRATION_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.run_id || 'strength-calibration-2026-08-27-control-replication' }}
+  CALIBRATION_PLAN: 'data/arena/strength/plans/2026-08-29-aa-calibration-v1.json'
+  CALIBRATION_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.run_id || 'aa-baseline-a-v1' }}
   CALIBRATION_GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}
-  CALIBRATION_SELECTION_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.selection_policy || 'stratified-opening-scenarios-v1' }}
-  CALIBRATION_CONTROLLER_POPULATION: ${{ github.event_name == 'workflow_dispatch' && inputs.controller_population || 'Ares-v1-vs-baseline-v1' }}
-  CALIBRATION_SKILL_CONTEXT: ${{ github.event_name == 'workflow_dispatch' && inputs.skill_context || 'fixed-node-budget' }}
+  CALIBRATION_SELECTION_POLICY: ${{ github.event_name == 'workflow_dispatch' && inputs.selection_policy || 'aa-calibration-v3-fixed-context' }}
+  CALIBRATION_CONTROLLER_POPULATION: ${{ github.event_name == 'workflow_dispatch' && inputs.controller_population || 'same-engine-aa-v1' }}
+  CALIBRATION_SKILL_CONTEXT: ${{ github.event_name == 'workflow_dispatch' && inputs.skill_context || 'fixed-node-budget-250k' }}
 
 jobs:
   calibration:
@@ -72,7 +72,7 @@ jobs:
           import json
           import os
           from pathlib import Path
-          plan = json.loads(Path('data/arena/strength/plans/2026-08-27-replication-v3.json').read_text(encoding='utf-8'))
+          plan = json.loads(Path(os.environ['CALIBRATION_PLAN']).read_text(encoding='utf-8'))
           run_id = os.environ['CALIBRATION_RUN_ID']
           run = next(item for item in plan['runs'] if item['run_id'] == run_id)
           if not run.get('execution_ready', False) or run['role'] != 'calibration':
@@ -98,7 +98,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/redwar-calibration
           python tools/analytics/strength_calibration_runner.py \
-            data/arena/strength/plans/2026-08-27-replication-v3.json \
+            "$CALIBRATION_PLAN" \
             --run-id "$CALIBRATION_RUN_ID" \
             --challenger-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
             --baseline-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
