@@ -21,7 +21,14 @@ The aggregate 41–59 result is **not** interpreted as a strength estimate becau
 
 The 100 games form 50 colour-reversed pairs. The data confirm the intended pairing structure: the two games in a pair use the same opening and the challenger colour is inverted.
 
-Within pairs, 28 pairs split one game each to challenger and baseline; 12 pairs were won by baseline in both games; 3 pairs were won by challenger in both games; and 7 pairs had the same winning colour across both games while challenger/baseline role reversed.
+The exact pair-outcome decomposition is:
+
+- 25 pairs: challenger won game 1, baseline won game 2;
+- 10 pairs: baseline won game 1, challenger won game 2;
+- 12 pairs: baseline won both games;
+- 3 pairs: challenger won both games.
+
+Thus 35/50 pairs split one game each between challenger and baseline, while 15/50 pairs have the same role winning both games. Independently, 35/50 pairs have the **same board colour** winning both games after the challenger/baseline role reversal.
 
 ## Opening structure
 
