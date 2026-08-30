@@ -74,11 +74,14 @@ def test_calibration_workflow_supports_only_dedicated_calibration_push_namespace
     assert "      - 'experiment/strength/**'" not in text
 
 
-def test_calibration_push_defaults_match_run_a_contract():
+def test_calibration_push_run_selection_is_declared_and_fail_closed():
     text = WORKFLOW.read_text(encoding="utf-8")
 
-    assert "CALIBRATION_RUN_ID" in text
-    assert "CALIBRATION_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.run_id || 'aa-baseline-a-v1' }}" in text
+    assert "startsWith(github.ref, 'refs/heads/calibration/strength/aa-baseline-b/') && 'aa-baseline-b-v1'" in text
+    assert "startsWith(github.ref, 'refs/heads/calibration/strength/aa-baseline-a/') && 'aa-baseline-a-v1'" in text
+    assert "|| ''" in text
+    assert "allowed_runs = {'aa-baseline-a-v1', 'aa-baseline-b-v1'}" in text
+    assert "outside the calibration execution allowlist" in text
     assert "CALIBRATION_GAMES: '100'" in text
     assert "CALIBRATION_SELECTION_POLICY: 'aa-calibration-v3-fixed-context'" in text
     assert "CALIBRATION_CONTROLLER_POPULATION: 'same-engine-aa-v1'" in text
