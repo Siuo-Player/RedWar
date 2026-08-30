@@ -11,6 +11,18 @@ class _FailingStore(TelemetryStore):
         raise OSError("sink unavailable")
 
 
+class _FailOnceStore(TelemetryStore):
+    def __init__(self, path: Path):
+        super().__init__(path)
+        self._failed = False
+
+    def append(self, event):
+        if not self._failed:
+            self._failed = True
+            raise OSError("temporary sink outage")
+        return super().append(event)
+
+
 def test_runtime_recorder_emits_ordered_events(tmp_path: Path):
     store = TelemetryStore(tmp_path / "telemetry.jsonl")
     recorder = TelemetryRecorder(
@@ -34,6 +46,7 @@ def test_runtime_recorder_emits_ordered_events(tmp_path: Path):
     )
 
     assert [event.sequence for event in (first, second, third, fourth)] == [0, 1, 2, 3]
+    assert first.payload["telemetry_enabled"] is True
     assert [event.event_type for event in TelemetryStore(store.path).read()] == [
         "session_started",
         "selection_changed",
@@ -53,7 +66,35 @@ def test_runtime_recorder_storage_failure_is_non_fatal(tmp_path: Path):
 
     assert recorder.action_rejected(reason="invalid_target") is None
     assert recorder.sequence == 0
+    assert recorder.successful_event_count == 0
+    assert recorder.telemetry_write_failures == 1
+    assert recorder.health_snapshot() == {
+        "telemetry_enabled": True,
+        "telemetry_write_failures": 1,
+        "telemetry_event_count": 0,
+        "session_id": "session-test",
+    }
     assert len(errors) == 1
+
+
+def test_runtime_recorder_preserves_missingness_after_recovery(tmp_path: Path):
+    store = _FailOnceStore(tmp_path / "telemetry.jsonl")
+    recorder = TelemetryRecorder(store, session_id="session-test", clock_ms=lambda: 1000)
+
+    assert recorder.action_rejected(reason="cancelled") is None
+    finished = recorder.session_finished()
+
+    assert finished is not None
+    assert finished.payload == {
+        "telemetry_enabled": True,
+        "telemetry_write_failures": 1,
+        "telemetry_event_count": 0,
+        "session_id": "session-test",
+    }
+    assert recorder.sequence == 1
+    assert recorder.successful_event_count == 1
+    events = list(store.read())
+    assert [event.event_type for event in events] == ["session_finished"]
 
 
 def test_runtime_recorder_distinguishes_exposure_from_selection(tmp_path: Path):
