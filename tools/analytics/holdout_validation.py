@@ -6,6 +6,11 @@ import hashlib
 import json
 from pathlib import Path
 
+from tools.analytics.protected_holdout_manifest_hash import (
+    PROTECTED_HOLDOUT_SET_ID,
+    PROTECTED_HOLDOUT_SHA256,
+)
+
 
 ROOT = Path(__file__).resolve().parents[2]
 HOLDOUT_PATH = ROOT / "data" / "validation" / "ARES_HOLDOUT_V1.json"
@@ -33,3 +38,18 @@ def canonical_sha256(path: Path = HOLDOUT_PATH) -> str:
 def validate_holdout(path: Path = HOLDOUT_PATH) -> tuple[int, str]:
     manifest = load_holdout(path)
     return len(manifest["cases"]), canonical_sha256(path)
+
+
+def validate_protected_holdout(path: Path = HOLDOUT_PATH) -> tuple[int, str]:
+    cases, actual_sha = validate_holdout(path)
+    manifest = load_holdout(path)
+    actual_set_id = manifest.get("set_id")
+    if actual_set_id != PROTECTED_HOLDOUT_SET_ID:
+        raise ValueError(
+            f"protected hold-out set_id mismatch: expected {PROTECTED_HOLDOUT_SET_ID!r}, got {actual_set_id!r}"
+        )
+    if actual_sha != PROTECTED_HOLDOUT_SHA256:
+        raise ValueError(
+            f"protected hold-out SHA-256 mismatch: expected {PROTECTED_HOLDOUT_SHA256}, got {actual_sha}"
+        )
+    return cases, actual_sha
