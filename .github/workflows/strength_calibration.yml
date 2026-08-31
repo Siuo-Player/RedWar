@@ -80,6 +80,13 @@ jobs:
           chmod +x engine
           popd >/dev/null
 
+      - name: Diagnose frozen engine before calibration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/analytics/diagnose_frozen_aa_b.py \
+            --engine /tmp/redwar-frozen/ai/cpp_engine/engine
+
       - name: Execute predeclared calibration run
         shell: bash
         run: |
