@@ -17,7 +17,7 @@ env:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -46,10 +46,20 @@ jobs:
           chmod +x engine
           popd >/dev/null
 
-      - name: Capture native failure
+      - name: Capture isolated frozen position
         run: |
           python tools/analytics/diagnose_frozen_aa_b.py \
             --engine /tmp/redwar-frozen/ai/cpp_engine/engine
+
+      - name: Compare persistent and fresh lifecycle
+        run: |
+          python tools/analytics/arena_lifecycle_diagnostic.py \
+            --challenger-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
+            --baseline-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
+            --nodes 250000 \
+            --games 32 \
+            --opening-seeds 201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216 \
+            --output /tmp/redwar-lifecycle-diagnostic.json
 
       - name: Cleanup
         if: always()
