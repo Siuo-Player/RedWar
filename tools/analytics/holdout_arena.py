@@ -9,7 +9,7 @@ from pathlib import Path
 from ai.bot import CppEngineBot
 from tools.analytics.arena_pairs import GameOutcome, validate_pair_structure
 from tools.analytics.arena_tournament import _winner_side, run_headless_match
-from tools.analytics.holdout_validation import canonical_sha256, load_holdout
+from tools.analytics.holdout_validation import canonical_sha256, load_holdout, validate_protected_holdout
 
 
 def run_holdout(
@@ -21,7 +21,10 @@ def run_holdout(
     baseline_version: str = "unknown",
     rules_version: str = "unknown",
 ) -> dict:
+    case_count, manifest_sha = validate_protected_holdout()
     manifest = load_holdout()
+    if case_count != len(manifest["cases"]):
+        raise RuntimeError("protected hold-out manifest changed during validation")
     challenger = CppEngineBot(nodes=nodes, executable_path=challenger_engine)
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
     wins = baseline_wins = draws = invalid_games = 0
@@ -92,7 +95,6 @@ def run_holdout(
         for game in games
     ])
 
-    manifest_sha = canonical_sha256()
     summary = {
         "mode": "protected_holdout",
         "holdout_set_id": manifest["set_id"],
