@@ -57,7 +57,7 @@ jobs:
           set -euo pipefail
           python tools/analytics/diagnose_frozen_bridge_aa_b.py \
             --engine /tmp/redwar-frozen/ai/cpp_engine/engine \
-            --seed 101 \
+            --seed 201 \
             --nodes 250000
 
       - name: Compare persistent and fresh lifecycle
