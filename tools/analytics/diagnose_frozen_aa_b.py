@@ -3,7 +3,12 @@ from __future__ import annotations
 import argparse
 import os
 import subprocess
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
@@ -45,7 +50,7 @@ def main() -> int:
         stderr=subprocess.PIPE,
         text=True,
         encoding="utf-8",
-        cwd=engine.parent.parent.parent,
+        cwd=ROOT,
         env=env,
     )
     assert process.stdin is not None
