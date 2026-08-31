@@ -17,10 +17,15 @@ on:
         default: true
         type: boolean
       holdout:
-        description: 'Run protected Ares hold-out validation instead of promotion Arena'
+        description: 'Run protected Ares hold-out validation from canonical main'
         required: false
         default: false
         type: boolean
+      candidate_sha:
+        description: '40-character commit SHA to validate in the protected hold-out (main only)'
+        required: false
+        default: ''
+        type: string
 
 concurrency:
   group: redwar-ai-arena-${{ github.ref }}
@@ -61,18 +66,32 @@ jobs:
       env:
         FORCE_ARENA: ${{ github.event_name == 'workflow_dispatch' && inputs.force_arena || false }}
         HOLDOUT: ${{ github.event_name == 'workflow_dispatch' && inputs.holdout || false }}
+        CANDIDATE_SHA_INPUT: ${{ github.event_name == 'workflow_dispatch' && inputs.candidate_sha || '' }}
       run: |
         set -euo pipefail
         BASE=$(git merge-base HEAD origin/main)
         echo "BASE_SHA=$BASE" >> "$GITHUB_ENV"
 
         if [[ "$HOLDOUT" == "true" ]]; then
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Protected hold-out can only execute from canonical main."
+            exit 1
+          fi
+          if [[ ! "$CANDIDATE_SHA_INPUT" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "candidate_sha must be a full 40-character commit SHA."
+            exit 1
+          fi
+          if ! git cat-file -e "${CANDIDATE_SHA_INPUT}^{commit}"; then
+            echo "candidate_sha is not available in the fetched repository."
+            exit 1
+          fi
+          echo "CANDIDATE_SHA=$CANDIDATE_SHA_INPUT" >> "$GITHUB_ENV"
           echo "run_arena=true" >> "$GITHUB_OUTPUT"
           echo "holdout=true" >> "$GITHUB_OUTPUT"
           echo "force_arena=true" >> "$GITHUB_OUTPUT"
           echo "arena_mode=protected_holdout" >> "$GITHUB_OUTPUT"
-          echo "$GITHUB_SHA" > /tmp/ai-commits.txt
-          echo "Protected hold-out validation requested."
+          echo "$CANDIDATE_SHA_INPUT" > /tmp/ai-commits.txt
+          echo "Protected hold-out validation requested from canonical main."
           exit 0
         fi
 
@@ -127,11 +146,11 @@ jobs:
       run: |
         set -euo pipefail
         mkdir -p /tmp/redwar-arena-results
-        COMMIT="$GITHUB_SHA"
+        COMMIT="$CANDIDATE_SHA"
         WORKTREE="/tmp/redwar-$COMMIT"
         PREFIX="/tmp/redwar-arena-results/holdout-$COMMIT"
-        git worktree add --detach "$WORKTREE" "$BASE_SHA"
-        git -C "$WORKTREE" restore --source="$COMMIT" -- ai tools/nnue tools/analytics/holdout_arena.py tools/analytics/holdout_validation.py data/validation
+        git worktree add --detach "$WORKTREE" "$COMMIT"
+        git -C "$WORKTREE" restore --source="$COMMIT" -- ai tools/nnue
         pushd "$WORKTREE/ai/cpp_engine" >/dev/null
         cpp_sources=(board.cpp evaluate.cpp movegen.cpp search.cpp)
         if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi

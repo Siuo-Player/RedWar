@@ -1,0 +1,4 @@
+"""Canonical identity for the protected Ares hold-out manifest."""
+
+PROTECTED_HOLDOUT_SET_ID = "ares-holdout-v1"
+PROTECTED_HOLDOUT_SHA256 = "65025f1c89a45d7db018dfd42d7f19c8f75572a4f71cdb241cc957492efc27d6"

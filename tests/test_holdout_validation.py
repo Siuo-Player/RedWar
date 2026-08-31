@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from tools.analytics.holdout_validation import canonical_sha256, load_holdout, validate_holdout
+from tools.analytics.holdout_validation import (
+    canonical_sha256,
+    load_holdout,
+    validate_holdout,
+    validate_protected_holdout,
+)
+from tools.analytics.protected_holdout_manifest_hash import PROTECTED_HOLDOUT_SHA256
 
 
 def test_holdout_manifest_is_non_empty_and_unique():
@@ -18,6 +24,23 @@ def test_holdout_hash_is_deterministic():
     assert first == second
     assert len(first) == 64
     assert validate_holdout()[0] == 8
+
+
+def test_protected_holdout_matches_canonical_identity():
+    cases, manifest_sha = validate_protected_holdout()
+    assert cases == 8
+    assert manifest_sha == PROTECTED_HOLDOUT_SHA256
+
+
+def test_protected_holdout_rejects_mutated_manifest(tmp_path: Path):
+    source = load_holdout()
+    source["policy"] = "mutated"
+    import json
+
+    path = tmp_path / "holdout.json"
+    path.write_text(json.dumps(source), encoding="utf-8")
+    with pytest.raises(ValueError, match="SHA-256 mismatch"):
+        validate_protected_holdout(path)
 
 
 def test_holdout_validator_rejects_duplicate_ids(tmp_path: Path):
