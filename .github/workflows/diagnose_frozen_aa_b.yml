@@ -48,11 +48,21 @@ jobs:
 
       - name: Capture isolated frozen position
         run: |
+          set -euo pipefail
           python tools/analytics/diagnose_frozen_aa_b.py \
             --engine /tmp/redwar-frozen/ai/cpp_engine/engine
 
+      - name: Capture exact bridge path
+        run: |
+          set -euo pipefail
+          python tools/analytics/diagnose_frozen_bridge_aa_b.py \
+            --engine /tmp/redwar-frozen/ai/cpp_engine/engine \
+            --seed 101 \
+            --nodes 250000
+
       - name: Compare persistent and fresh lifecycle
         run: |
+          set -euo pipefail
           python tools/analytics/arena_lifecycle_diagnostic.py \
             --challenger-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
             --baseline-engine /tmp/redwar-frozen/ai/cpp_engine/engine \
