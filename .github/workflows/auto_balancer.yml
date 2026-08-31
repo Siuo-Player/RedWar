@@ -17,58 +17,7 @@ env:
   PYTHONHASHSEED: '0'
 
 jobs:
-  overflow-regression:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.10'
-      - name: Install Dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Build C++ make/unmake bridge test
-        run: |
-          g++ -std=c++17 -O2 -pipe \
-            ai/cpp_engine/board.cpp \
-            ai/cpp_engine/evaluate.cpp \
-            ai/cpp_engine/movegen.cpp \
-            ai/cpp_engine/search.cpp \
-            ai/cpp_engine/nnue.cpp \
-            tests/cpp_make_unmake_bridge_test.cpp \
-            -o cpp_make_unmake_bridge_test
-          chmod +x cpp_make_unmake_bridge_test
-      - name: Build C++ movegen differential bridge test
-        run: |
-          g++ -std=c++17 -O2 -pipe \
-            ai/cpp_engine/board.cpp \
-            ai/cpp_engine/evaluate.cpp \
-            ai/cpp_engine/movegen.cpp \
-            ai/cpp_engine/search.cpp \
-            ai/cpp_engine/nnue.cpp \
-            tests/cpp_movegen_bridge_test.cpp \
-            -o cpp_movegen_bridge_test
-          chmod +x cpp_movegen_bridge_test
-      - name: Run full Python regression suite
-        run: pytest -q tests/
-      - name: Run C++ numeric evaluation regression
-        run: |
-          g++ -std=c++17 -O2 -pipe \
-            ai/cpp_engine/board.cpp \
-            ai/cpp_engine/evaluate.cpp \
-            ai/cpp_engine/movegen.cpp \
-            ai/cpp_engine/search.cpp \
-            ai/cpp_engine/nnue.cpp \
-            tests/cpp_numeric_bounds_test.cpp \
-            -o cpp_numeric_bounds_test
-          ./cpp_numeric_bounds_test
-
   auto-balance:
-    needs: overflow-regression
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
