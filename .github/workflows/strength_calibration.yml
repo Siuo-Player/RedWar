@@ -80,13 +80,6 @@ jobs:
           chmod +x engine
           popd >/dev/null
 
-      - name: Diagnose frozen engine before calibration
-        shell: bash
-        run: |
-          set -euo pipefail
-          python tools/analytics/diagnose_frozen_aa_b.py \
-            --engine /tmp/redwar-frozen/ai/cpp_engine/engine
-
       - name: Execute predeclared calibration run
         shell: bash
         run: |
@@ -116,89 +109,29 @@ jobs:
           import sys
           from pathlib import Path
           from tools.analytics.arena_experiment_validation import validate_experiment_records
-
-          plan_path = Path(sys.argv[1])
-          run_id = sys.argv[2]
-          results = Path(sys.argv[3])
-          games_expected = int(sys.argv[4])
-          frozen_sha = sys.argv[5]
-          selection_policy = sys.argv[6]
-          controller_population = sys.argv[7]
-          skill_context = sys.argv[8]
-          provenance_path = Path(sys.argv[9])
-
-          plan = json.loads(plan_path.read_text(encoding='utf-8'))
-          run = next(item for item in plan['runs'] if item['run_id'] == run_id)
-          if plan.get('promotion_authority') is not False:
-              raise SystemExit('calibration plan must not have promotion authority')
-          if run['role'] != 'calibration' or not run.get('execution_ready', False):
-              raise SystemExit('selected run is not an execution-ready calibration run')
-          if run['challenger_version'] != frozen_sha or run['baseline_version'] != frozen_sha or run['rules_version'] != frozen_sha:
-              raise SystemExit('selected run provenance does not match frozen calibration engine')
-          if int(run['node_budget']) != 250000:
-              raise SystemExit('unexpected node budget for protocol-v3 A/A calibration')
-          if len(run['opening_seeds']) != 16:
-              raise SystemExit('protocol-v3 A/A calibration requires 16 predeclared opening seeds')
-
+          plan_path = Path(sys.argv[1]); run_id = sys.argv[2]; results = Path(sys.argv[3]); games_expected = int(sys.argv[4]); frozen_sha = sys.argv[5]; selection_policy = sys.argv[6]; controller_population = sys.argv[7]; skill_context = sys.argv[8]; provenance_path = Path(sys.argv[9])
+          plan = json.loads(plan_path.read_text(encoding='utf-8')); run = next(item for item in plan['runs'] if item['run_id'] == run_id)
+          if plan.get('promotion_authority') is not False: raise SystemExit('calibration plan must not have promotion authority')
+          if run['role'] != 'calibration' or not run.get('execution_ready', False): raise SystemExit('selected run is not an execution-ready calibration run')
+          if run['challenger_version'] != frozen_sha or run['baseline_version'] != frozen_sha or run['rules_version'] != frozen_sha: raise SystemExit('selected run provenance does not match frozen calibration engine')
+          if int(run['node_budget']) != 250000: raise SystemExit('unexpected node budget for protocol-v3 A/A calibration')
+          if len(run['opening_seeds']) != 16: raise SystemExit('protocol-v3 A/A calibration requires 16 predeclared opening seeds')
           records = [json.loads(line) for line in results.read_text(encoding='utf-8').splitlines() if line.strip()]
-          if not records:
-              raise SystemExit('calibration JSONL is empty')
-          experiment = records[0].get('experiment')
-          if not isinstance(experiment, dict):
-              raise SystemExit('calibration JSONL is missing experiment metadata')
-          if experiment.get('challenger_version') != frozen_sha or experiment.get('baseline_version') != frozen_sha:
-              raise SystemExit('Arena provenance does not match frozen calibration engine')
-          if experiment.get('node_budget') != int(run['node_budget']):
-              raise SystemExit('Arena node budget does not match the frozen protocol run')
-          if experiment.get('opening_count') != len(run['opening_seeds']):
-              raise SystemExit('Arena opening count does not match the frozen protocol run')
-          if experiment.get('seed_policy') != run['seed_policy']:
-              raise SystemExit('Arena seed policy does not match the selected protocol run')
-
-          audit = validate_experiment_records(
-              records,
-              {
-                  'challenger_version': frozen_sha,
-                  'baseline_version': frozen_sha,
-                  'rules_version': frozen_sha,
-                  'node_budget': int(run['node_budget']),
-                  'games': games_expected,
-                  'opening_count': len(run['opening_seeds']),
-              },
-          )
-          print(json.dumps(audit, ensure_ascii=False, indent=2))
-          if audit['invalid_games'] or audit['incomplete_valid_pair_ids']:
-              raise SystemExit('calibration artifacts failed dataset validation')
-
-          if not provenance_path.is_file():
-              raise SystemExit(f'run provenance artifact is missing: {provenance_path}')
+          experiment = records[0].get('experiment') if records else None
+          if not isinstance(experiment, dict): raise SystemExit('calibration JSONL is missing experiment metadata')
+          if experiment.get('challenger_version') != frozen_sha or experiment.get('baseline_version') != frozen_sha: raise SystemExit('Arena provenance does not match frozen calibration engine')
+          if experiment.get('node_budget') != int(run['node_budget']): raise SystemExit('Arena node budget does not match the frozen protocol run')
+          if experiment.get('opening_count') != len(run['opening_seeds']): raise SystemExit('Arena opening count does not match the frozen protocol run')
+          if experiment.get('seed_policy') != run['seed_policy']: raise SystemExit('Arena seed policy does not match the selected protocol run')
+          audit = validate_experiment_records(records, {'challenger_version': frozen_sha,'baseline_version': frozen_sha,'rules_version': frozen_sha,'node_budget': int(run['node_budget']),'games': games_expected,'opening_count': len(run['opening_seeds'])})
+          if audit['invalid_games'] or audit['incomplete_valid_pair_ids']: raise SystemExit('calibration artifacts failed dataset validation')
+          if not provenance_path.is_file(): raise SystemExit(f'run provenance artifact is missing: {provenance_path}')
           provenance = json.loads(provenance_path.read_text(encoding='utf-8'))
-          if provenance.get('experiment_id') != run['experiment_id'] or provenance.get('run_id') != run_id:
-              raise SystemExit('run provenance identity does not match the selected protocol run')
+          if provenance.get('experiment_id') != run['experiment_id'] or provenance.get('run_id') != run_id: raise SystemExit('run provenance identity does not match the selected protocol run')
           execution = provenance.get('execution', {})
-          expected_execution = {
-              'challenger_engine_version': frozen_sha,
-              'baseline_engine_version': frozen_sha,
-              'rules_version': frozen_sha,
-              'games': games_expected,
-              'node_budget': int(run['node_budget']),
-              'opening_seeds': [int(seed) for seed in run['opening_seeds']],
-              'seed_policy': run['seed_policy'],
-              'seed_generation_rule': run['seed_generation_rule'],
-              'selection_policy': selection_policy,
-              'controller_population': controller_population,
-              'skill_context': skill_context,
-              'promotion_authority': False,
-          }
-          for key, expected in expected_execution.items():
-              if execution.get(key) != expected:
-                  raise SystemExit(f'run provenance mismatch for {key!r}')
-
-          print(json.dumps({
-              'run_id': run_id,
-              'promotion_authority': False,
-              'provenance_validated': True,
-          }, ensure_ascii=False, indent=2))
+          expected = {'challenger_engine_version': frozen_sha,'baseline_engine_version': frozen_sha,'rules_version': frozen_sha,'games': games_expected,'node_budget': int(run['node_budget']),'opening_seeds': [int(seed) for seed in run['opening_seeds']],'seed_policy': run['seed_policy'],'seed_generation_rule': run['seed_generation_rule'],'selection_policy': selection_policy,'controller_population': controller_population,'skill_context': skill_context,'promotion_authority': False}
+          for key, value in expected.items():
+              if execution.get(key) != value: raise SystemExit(f'run provenance mismatch for {key!r}')
           PY
           python tools/analytics/strength_dataset.py audit "$DATASET" --bootstrap-samples 2000 --seed 0
 
@@ -210,6 +143,7 @@ jobs:
           path: /tmp/redwar-calibration/
           if-no-files-found: error
           retention-days: 90
+          compression-level: 6
 
       - name: Cleanup frozen worktree
         if: always()
