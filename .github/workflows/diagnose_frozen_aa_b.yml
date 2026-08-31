@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - 'diagnostic/frozen-aa-b-root-cause-*'
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
