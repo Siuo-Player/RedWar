@@ -156,16 +156,16 @@ def test_python_cpp_move_generation_equivalence():
 
 
 def test_seed_b_first_failing_position_has_legal_cpp_moves():
-    """Regression fixture for the first A/A-B-B position that returned 0000."""
+    """Regression fixture for the exact first A/A-B-B position that returned 0000."""
     rwen = (
         ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:."
         "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:."
         "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
         "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
         "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
-        "/.:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:."
-        "/.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:.,.:."
-        "/.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+        "/.:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:.,.:."
+        "/.:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:.,.:."
+        "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
     )
     actions = cpp_actions([rwen])[0]
     expected = {"MOVE E2 D1", "MOVE E2 E1", "MOVE E2 F1"}
