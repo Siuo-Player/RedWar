@@ -28,6 +28,7 @@ class CppEngineBot:
 
         self.bridge = bridge or SubprocessEngineBridge(self.exe_path)
         self.last_position_rwen = None
+        self.last_engine_info = None
 
     @property
     def process(self):
@@ -64,24 +65,26 @@ class CppEngineBot:
     def escolher_jogada(self, game_state):
         rwen = game_state.to_rwen()
         self.last_position_rwen = rwen
+        self.last_engine_info = None
         self._send_command(f"position rwen {rwen}")
         self._send_command(f"go nodes {self.nodes}")
         while True:
             response = self._read_response()
             if not response:
                 raise RuntimeError(f"C++ engine returned no response for position: {rwen}")
+            if response.startswith("info "):
+                self.last_engine_info = response
+                continue
             if response.startswith("bestmove"):
                 parts = response.split(" ", 1)
                 move_text = parts[1].strip() if len(parts) > 1 else ""
                 if move_text == "0000":
-                    # 0000 is only a legal no-move result when the authoritative
-                    # Python GameState independently confirms terminality. Keep
-                    # non-terminal 0000 responses as hard bridge/engine failures.
                     game_state.check_game_over()
                     if game_state.game_over:
                         return None
+                    diagnostic = f"; engine_info={self.last_engine_info!r}" if self.last_engine_info else ""
                     raise RuntimeError(
-                        f"C++ engine returned bestmove 0000 at {rwen} (nodes={self.nodes})"
+                        f"C++ engine returned bestmove 0000 at {rwen} (nodes={self.nodes}){diagnostic}"
                     )
                 parsed = ActionParser.parse(move_text)
                 if not parsed:

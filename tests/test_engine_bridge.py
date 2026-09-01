@@ -69,6 +69,20 @@ def test_cpp_engine_bot_keeps_the_existing_command_sequence():
     assert bridge.read_timeouts == [None]
 
 
+def test_cpp_engine_bot_preserves_native_error_info_for_non_terminal_0000():
+    bridge = RecordingBridge([
+        "info string search error: NNUE feature index out of range",
+        "bestmove 0000",
+    ])
+    bot = CppEngineBot(nodes=10, bridge=bridge)
+    gs = GameState()
+
+    with pytest.raises(RuntimeError, match="engine_info=.*NNUE feature index out of range"):
+        bot.escolher_jogada(gs)
+
+    assert bot.last_engine_info == "info string search error: NNUE feature index out of range"
+
+
 def test_subprocess_bridge_resolves_repository_root_from_engine_path():
     bridge = SubprocessEngineBridge(
         str(Path("/workspace/RedWar/ai/cpp_engine/engine"))
