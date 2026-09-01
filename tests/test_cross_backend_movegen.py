@@ -53,16 +53,7 @@ def python_actions(gs: GameState) -> set[str]:
                     actions.add(action_text({"type": "stun", "start": (r, c), "end": end}))
 
             for spawn_r, spawn_c, spawn_name in piece.get_valid_spawns(r, c, gs.board, gs.tile_effects):
-                actions.add(
-                    action_text(
-                        {
-                            "type": "spawn",
-                            "start": (r, c),
-                            "end": (spawn_r, spawn_c),
-                            "spawn_name": spawn_name,
-                        }
-                    )
-                )
+                actions.add(action_text({"type": "spawn", "start": (r, c), "end": (spawn_r, spawn_c), "spawn_name": spawn_name}))
 
             for spell in piece.get_valid_spells(r, c, gs.board, gs.tile_effects):
                 if isinstance(spell, dict):
@@ -72,16 +63,7 @@ def python_actions(gs: GameState) -> set[str]:
                     target = spell[0:2]
                     spell_name = spell[2] if len(spell) >= 3 else ("jump" if piece.name == "Dragoon" and len(spell) == 2 else None)
                 if spell_name:
-                    actions.add(
-                        action_text(
-                            {
-                                "type": "spell",
-                                "start": (r, c),
-                                "end": tuple(target),
-                                "spell_name": spell_name,
-                            }
-                        )
-                    )
+                    actions.add(action_text({"type": "spell", "start": (r, c), "end": tuple(target), "spell_name": spell_name}))
 
     return actions
 
@@ -111,15 +93,12 @@ def make_cases() -> list[tuple[str, GameState]]:
     put(spells, 1, 6, "Templar", "pretas")
     cases.append(("spells", spells))
 
-    # Geometry-symmetric laboratory fixture for the Dragoon jump action.
     special = GameState()
     put(special, 3, 3, "Dragoon", "brancas")
     put(special, 3, 4, "FrostMage", "brancas")
     special.white_to_move = True
     cases.append(("special", special))
 
-    # Effect-focused position: use non-directional pieces so the metamorphic
-    # check isolates tile/effect colour handling rather than forward movement.
     effects = GameState()
     put(effects, 4, 3, "Ranger", "brancas")
     put(effects, 3, 4, "Bone", "pretas")
@@ -174,3 +153,23 @@ def test_python_cpp_move_generation_equivalence():
             f"Missing in C++ ({len(missing)}): {missing}\n"
             f"Extra in C++ ({len(extra)}): {extra}"
         )
+
+
+def test_seed_b_first_failing_position_has_legal_cpp_moves():
+    """Regression fixture for the first A/A-B-B position that returned 0000."""
+    rwen = (
+        ".:.,.:.,.:.,B_Obelisk_0_N_0:.,B_Cleric_0_N_0:.,B_BoneLord_0_N_0:./"
+        ".:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:.,.:./"
+        ".:.,.:.,.:.,.:.,.:.,.:.,.:./"
+        ".:.,.:.,.:.,.:.,.:.,.:.,.:./"
+        ".:.,.:.,.:.,.:.,.:.,.:.,.:./"
+        ".:.,.:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:./"
+        ".:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:.,.:./"
+        ".:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+    )
+    actions = cpp_actions([rwen])[0]
+    expected = {"MOVE E2 D1", "MOVE E2 E1", "MOVE E2 F1"}
+    assert expected.issubset(actions), (
+        f"seed-B opening lost legal Lich moves: missing={sorted(expected - actions)}; "
+        f"cpp_action_count={len(actions)}"
+    )
