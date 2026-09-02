@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / ("cpp_movegen_bridge_test.exe" if os.name == "nt" else "cpp_movegen_bridge_test")
 
 # Literal 8x8 RWEN corresponding to the first failing Arena position recorded
-# by calibration run 33532248234. Keep this representation structurally valid.
+# by calibration run 33532248234. The white Lich is on F2.
 EXACT_FAILING_RWEN = (
     ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:."
     "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:."
@@ -75,3 +75,25 @@ def test_exact_first_aa_b_failure_search_sees_same_root() -> None:
     result = lines[1].split(" ", 1)[1]
     assert result != "0000"
     assert lines[2] == "END_SEARCH"
+
+
+def test_exact_failure_search_is_stable_across_repeated_requests() -> None:
+    """Diagnostic-only: exercise the exact state repeatedly in one persistent C++ process."""
+    completed = subprocess.run(
+        [str(BRIDGE)],
+        input="".join(f"SEARCH {_validated_rwen()}\n" for _ in range(5)),
+        text=True,
+        capture_output=True,
+        cwd=ROOT,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr or completed.stdout
+
+    lines = [line for line in completed.stdout.splitlines() if line]
+    assert len(lines) == 15, lines
+    for offset in range(0, len(lines), 3):
+        assert lines[offset].startswith("ROOT_COUNT "), lines[offset:offset + 3]
+        assert int(lines[offset].split()[1]) > 0, lines[offset:offset + 3]
+        assert lines[offset + 1].startswith("SEARCH_RESULT "), lines[offset:offset + 3]
+        assert lines[offset + 1].split(" ", 1)[1] != "0000", lines[offset:offset + 3]
+        assert lines[offset + 2] == "END_SEARCH", lines[offset:offset + 3]
