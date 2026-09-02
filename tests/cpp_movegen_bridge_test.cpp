@@ -8,6 +8,9 @@
 
 int main() {
     try {
+        // Mirror the production engine's startup path: main.cpp loads the
+        // optional NNUE model before accepting isready/position commands.
+        redwar::nnue::load_model();
         ensure_hero_behaviors_loaded();
 
         std::string input;
@@ -18,8 +21,8 @@ int main() {
             const std::string rwen = search_probe ? input.substr(7) : input;
 
             parse_rwen(rwen);
+            redwar::nnue::sync_board();
             if (search_probe) {
-                redwar::nnue::sync_board();
                 const auto root_moves = generate_valid_moves(board.turn);
                 std::cout << "ROOT_COUNT " << root_moves.size() << '\n';
                 node_limit = 250000;
