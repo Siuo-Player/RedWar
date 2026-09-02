@@ -1,3 +1,4 @@
+#include "../ai/cpp_engine/nnue.hpp"
 #include "../ai/cpp_engine/types.hpp"
 
 #include <algorithm>
@@ -9,11 +10,25 @@ int main() {
     try {
         ensure_hero_behaviors_loaded();
 
-        std::string rwen;
-        while (std::getline(std::cin, rwen)) {
-            if (rwen.empty()) continue;
+        std::string input;
+        while (std::getline(std::cin, input)) {
+            if (input.empty()) continue;
+
+            const bool search_probe = input.rfind("SEARCH ", 0) == 0;
+            const std::string rwen = search_probe ? input.substr(7) : input;
 
             parse_rwen(rwen);
+            if (search_probe) {
+                redwar::nnue::sync_board();
+                const auto root_moves = generate_valid_moves(board.turn);
+                std::cout << "ROOT_COUNT " << root_moves.size() << '\n';
+                node_limit = 250000;
+                const std::string best = search_best_move(MAX_PLY - 1);
+                std::cout << "SEARCH_RESULT " << (best.empty() ? "0000" : best) << '\n';
+                std::cout << "END_SEARCH\n";
+                continue;
+            }
+
             auto moves = generate_valid_moves(board.turn);
             std::vector<std::string> encoded;
             encoded.reserve(moves.size());
