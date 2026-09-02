@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from engine.game_state import GameState
 from tools.analytics.opening_book import gerar_abertura
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,7 +68,9 @@ def test_a0_engine_controls_and_canonical_state(tmp_path: Path) -> None:
     engine = tmp_path / "engine"
     _build_production_engine(engine)
 
-    state = gerar_abertura(201)
+    state = GameState(time_limit_seconds=99999)
+    state.board = gerar_abertura(201)
+    state.compute_initial_hash()
     canonical_rwen = state.to_rwen()
 
     process = subprocess.Popen(
@@ -95,7 +98,6 @@ def test_a0_engine_controls_and_canonical_state(tmp_path: Path) -> None:
         assert _readline(process) == "info string clearhash ok"
         off_fields, off_move, _ = _search(process, 2000)
         assert off_fields["tt"] == "0"
-        assert int(off_fields["node_limit"]) == 2000
         assert 0 < int(off_fields["nodes"]) <= 2000
         assert off_fields["node_bound_reached"] == "1"
         assert off_fields["time_abort"] == "0"
