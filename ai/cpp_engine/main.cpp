@@ -21,11 +21,68 @@ int main() {
         if (search_thread.joinable()) search_thread.join();
     };
 
+    const auto clear_transposition_table = [&]() {
+        std::vector<TTEntry> fresh_table(TT_SIZE);
+        transposition_table.swap(fresh_table);
+    };
+
+    const auto serialize_board = [&]() {
+        std::string result;
+        result.reserve(8 * 8 * 32 + 16);
+        for (int r = 0; r < LINHAS; ++r) {
+            if (r != 0) result += '/';
+            for (int c = 0; c < COLUNAS; ++c) {
+                if (c != 0) result += ',';
+
+                const Piece& piece = board.pieces[r][c];
+                if (piece.is_empty) {
+                    result += '.';
+                } else {
+                    result += piece.team;
+                    result += '_';
+                    result += piece.name;
+                    result += '_';
+                    result += std::to_string(piece.stun_timer);
+                    result += '_';
+                    result += (piece.lifespan == 999 ? "N" : std::to_string(piece.lifespan));
+                    result += '_';
+                    result += std::to_string(piece.spawn_cooldown);
+                }
+
+                result += ':';
+                const TileEffect& effect = board.effects[r][c];
+                if (effect.is_empty) {
+                    result += '.';
+                } else {
+                    result += effect.team;
+                    result += '_';
+                    result += effect.type;
+                    result += '_';
+                    result += std::to_string(effect.timer);
+                }
+            }
+        }
+        result += ' ';
+        result += board.turn;
+        result += ' ';
+        result += std::to_string(board.twc);
+        return result;
+    };
+
     const auto launch_search = [&](int depth) {
         abort_search = false;
         search_thread = std::thread([depth]() {
             try {
                 const std::string move = search_best_move(depth);
+                const bool terminal_no_move = board.twc >= 50 || generate_valid_moves(board.turn).empty();
+                const bool node_bound_reached = node_limit > 0 && static_cast<uint64_t>(nodes_evaluated) >= node_limit;
+                std::cout << "info string search nodes=" << nodes_evaluated
+                          << " node_limit=" << node_limit
+                          << " node_bound_reached=" << (node_bound_reached ? 1 : 0)
+                          << " time_abort=0"
+                          << " terminal_no_move=" << (terminal_no_move ? 1 : 0)
+                          << " tt=" << (use_transposition_table ? 1 : 0)
+                          << '\n';
                 std::cout << "bestmove " << (move.empty() ? "0000" : move) << '\n';
                 std::cout.flush();
             } catch (const std::exception& error) {
@@ -55,6 +112,38 @@ int main() {
             if (command == "isready") {
                 ensure_hero_behaviors_loaded();
                 std::cout << "readyok\n";
+                std::cout.flush();
+                continue;
+            }
+
+            if (command == "clearhash") {
+                stop_search();
+                clear_transposition_table();
+                std::cout << "info string clearhash ok\n";
+                std::cout.flush();
+                continue;
+            }
+
+            constexpr const char* SETOPTION_USETT_PREFIX = "setoption name UseTT value ";
+            if (command.rfind(SETOPTION_USETT_PREFIX, 0) == 0) {
+                stop_search();
+                const std::string value = command.substr(std::char_traits<char>::length(SETOPTION_USETT_PREFIX));
+                if (value == "true") use_transposition_table = true;
+                else if (value == "false") {
+                    use_transposition_table = false;
+                    clear_transposition_table();
+                } else {
+                    throw std::runtime_error("UseTT expects true or false");
+                }
+                std::cout << "info string UseTT " << (use_transposition_table ? "true" : "false") << '\n';
+                std::cout.flush();
+                continue;
+            }
+
+            if (command == "state canonical") {
+                stop_search();
+                std::cout << "state rwen " << serialize_board() << '\n';
+                std::cout << "state hash " << board.hash << '\n';
                 std::cout.flush();
                 continue;
             }
@@ -121,7 +210,7 @@ int main() {
                         throw std::runtime_error("invalid node count: " + value_text);
                     }
                     node_limit = value;
-                    time_limit_ms = 3000.0;
+                    time_limit_ms = std::numeric_limits<double>::infinity();
                     launch_search(MAX_PLY - 1);
                     continue;
                 }
