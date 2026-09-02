@@ -53,12 +53,16 @@ def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
     assert count == len(moves)
     assert count > 0
 
-    expected = {"MOVE E2 D1", "MOVE E2 F1"}
-    assert expected.issubset(moves), (
-        f"exact Arena-failure RWEN lacks expected Lich moves: "
-        f"missing={sorted(expected - moves)} count={count}"
+    expected = {
+        "MOVE F2 E1",
+        "MOVE F2 E3",
+        "MOVE F2 G1",
+        "MOVE F2 G3",
+    }
+    assert moves == expected, (
+        f"exact Arena-failure RWEN produced unexpected C++ moves: "
+        f"expected={sorted(expected)} actual={sorted(moves)}"
     )
-    assert "MOVE E2 E1" not in moves
 
 
 def test_exact_first_aa_b_failure_search_sees_same_root() -> None:
