@@ -55,62 +55,72 @@ def _build_production_engine(output: Path) -> None:
     )
 
 
+def _test_engine_path() -> Path:
+    # CppEngineBot derives project_root from the executable location. Keeping
+    # the temporary binary inside ai/cpp_engine makes that derivation resolve
+    # back to the checked-out RedWar root and therefore finds engine/heroes_config.json.
+    return CPP_DIR / f".diagnostic_engine_{os.getpid()}"
+
+
 def test_exact_failure_fixture_round_trips_to_canonical_rwen():
     """Diagnostic-only: fixture decoding must preserve N lifespans as None."""
     state = _fixture_game_state()
     assert state.to_rwen() == EXACT_FAILING_RWEN
 
 
-def test_exact_failure_through_production_main_path(tmp_path):
+def test_exact_failure_through_production_main_path():
     """Diagnostic-only: run the actual C++ main/protocol path on the exact RWEN."""
     if os.name == "nt":
         return
 
-    engine = tmp_path / "engine"
-    _build_production_engine(engine)
+    engine = _test_engine_path()
+    try:
+        _build_production_engine(engine)
 
-    process = subprocess.Popen(
-        [str(engine)],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
-        cwd=ROOT,
-    )
-    assert process.stdin is not None
-    assert process.stdout is not None
+        process = subprocess.Popen(
+            [str(engine)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            cwd=ROOT,
+        )
+        assert process.stdin is not None
+        assert process.stdout is not None
 
-    process.stdin.write("isready\n")
-    process.stdin.write(f"position rwen {EXACT_FAILING_RWEN}\n")
-    process.stdin.write("go nodes 250000\n")
-    process.stdin.flush()
+        process.stdin.write("isready\n")
+        process.stdin.write(f"position rwen {EXACT_FAILING_RWEN}\n")
+        process.stdin.write("go nodes 250000\n")
+        process.stdin.flush()
 
-    stdout_lines: list[str] = []
-    for line in process.stdout:
-        line = line.rstrip("\r\n")
-        stdout_lines.append(line)
-        if line.startswith("bestmove "):
-            break
+        stdout_lines: list[str] = []
+        for line in process.stdout:
+            line = line.rstrip("\r\n")
+            stdout_lines.append(line)
+            if line.startswith("bestmove "):
+                break
 
-    process.stdin.write("quit\n")
-    process.stdin.flush()
-    process.wait(timeout=30)
+        process.stdin.write("quit\n")
+        process.stdin.flush()
+        process.wait(timeout=30)
 
-    bestmoves = [line for line in stdout_lines if line.startswith("bestmove ")]
-    assert bestmoves, f"production path produced no bestmove: {stdout_lines!r}"
-    assert bestmoves[-1] != "bestmove 0000", (
-        "production main/protocol path reproduced non-terminal bestmove 0000; "
-        f"stdout={stdout_lines!r}"
-    )
+        bestmoves = [line for line in stdout_lines if line.startswith("bestmove ")]
+        assert bestmoves, f"production path produced no bestmove: {stdout_lines!r}"
+        assert bestmoves[-1] != "bestmove 0000", (
+            "production main/protocol path reproduced non-terminal bestmove 0000; "
+            f"stdout={stdout_lines!r}"
+        )
+    finally:
+        engine.unlink(missing_ok=True)
 
 
-def test_exact_failure_through_persistent_cpp_engine_bot_bridge(tmp_path):
+def test_exact_failure_through_persistent_cpp_engine_bot_bridge():
     """Diagnostic-only: exercise the exact fixture through the same persistent Python bridge used by Arena."""
     if os.name == "nt":
         return
 
-    engine = tmp_path / "engine"
+    engine = _test_engine_path()
     _build_production_engine(engine)
     bot = CppEngineBot(nodes=250_000, executable_path=str(engine))
     state_a = _fixture_game_state()
@@ -126,6 +136,7 @@ def test_exact_failure_through_persistent_cpp_engine_bot_bridge(tmp_path):
         move_a2 = bot.escolher_jogada(state_a)
     finally:
         bot.bridge.close()
+        engine.unlink(missing_ok=True)
 
     assert move_a1 is not None
     assert move_b is not None
