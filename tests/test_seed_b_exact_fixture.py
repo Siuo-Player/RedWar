@@ -7,17 +7,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / ("cpp_movegen_bridge_test.exe" if os.name == "nt" else "cpp_movegen_bridge_test")
 
-# Literal RWEN captured from calibration run 33532248234 at the first failing
-# Arena call. Keep this byte-for-byte equivalent to the logged position.
+# Literal 8x8 RWEN corresponding to the first failing Arena position recorded
+# by calibration run 33532248234. Keep this representation structurally valid.
 EXACT_FAILING_RWEN = (
     ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:."
-    "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:.,.:."
-    "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
-    "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
-    "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
-    "/.:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:.,.:."
-    "/.:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:.,.:."
-    "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+    "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:."
+    "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
+    "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
+    "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
+    "/.:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:."
+    "/.:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:."
+    "/.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
 )
 
 
@@ -44,7 +44,7 @@ def run_helper(payload: str) -> list[str]:
 
 
 def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
-    """Diagnostic-only: verify the literal Arena-failure RWEN has root actions."""
+    """Diagnostic-only: verify the exact Arena-failure RWEN has root actions."""
     lines = run_helper(_validated_rwen())
     assert lines and lines[0].startswith("COUNT ")
     count = int(lines[0].split()[1])
@@ -53,7 +53,6 @@ def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
     assert count == len(moves)
     assert count > 0
 
-    # Lich is on E2. In the C++ move model its normal movement is diagonal.
     expected = {"MOVE E2 D1", "MOVE E2 F1"}
     assert expected.issubset(moves), (
         f"exact Arena-failure RWEN lacks expected Lich moves: "
