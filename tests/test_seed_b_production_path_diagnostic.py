@@ -4,18 +4,36 @@ import os
 import subprocess
 from pathlib import Path
 
+from ai.bot import CppEngineBot
+from engine.game_state import GameState
+from engine.pieces import criar_peca_por_nome
 from tests.test_seed_b_exact_fixture import EXACT_FAILING_RWEN
 
 ROOT = Path(__file__).resolve().parents[1]
 CPP_DIR = ROOT / "ai" / "cpp_engine"
 
 
-def test_exact_failure_through_production_main_path(tmp_path):
-    """Diagnostic-only: run the actual C++ main/protocol path on the exact RWEN."""
-    if os.name == "nt":
-        return
+def _fixture_game_state() -> GameState:
+    board_text, turn, twc = EXACT_FAILING_RWEN.split()
+    state = GameState(time_limit_seconds=99999)
+    state.white_to_move = turn == "W"
+    state.turns_without_capture = int(twc)
+    for r, row in enumerate(board_text.split("/")):
+        for c, cell in enumerate(row.split(",")):
+            piece_text = cell.split(":", 1)[0]
+            if piece_text == ".":
+                continue
+            team, name, stun, lifespan, cooldown = piece_text.split("_")
+            piece = criar_peca_por_nome(name, "brancas" if team == "W" else "pretas")
+            piece.stun_timer = int(stun)
+            piece.lifespan = 999 if lifespan == "N" else int(lifespan)
+            piece.spawn_cooldown = int(cooldown)
+            state.board[r][c] = piece
+    state.compute_initial_hash()
+    return state
 
-    engine = tmp_path / "engine"
+
+def _build_production_engine(output: Path) -> None:
     sources = ["board.cpp", "evaluate.cpp", "main.cpp", "movegen.cpp", "search.cpp", "nnue.cpp"]
     subprocess.run(
         [
@@ -29,11 +47,20 @@ def test_exact_failure_through_production_main_path(tmp_path):
             "-pipe",
             *sources,
             "-o",
-            str(engine),
+            str(output),
         ],
         cwd=CPP_DIR,
         check=True,
     )
+
+
+def test_exact_failure_through_production_main_path(tmp_path):
+    """Diagnostic-only: run the actual C++ main/protocol path on the exact RWEN."""
+    if os.name == "nt":
+        return
+
+    engine = tmp_path / "engine"
+    _build_production_engine(engine)
 
     process = subprocess.Popen(
         [str(engine)],
@@ -69,3 +96,22 @@ def test_exact_failure_through_production_main_path(tmp_path):
         "production main/protocol path reproduced non-terminal bestmove 0000; "
         f"stdout={stdout_lines!r}"
     )
+
+
+def test_exact_failure_through_persistent_cpp_engine_bot_bridge(tmp_path):
+    """Diagnostic-only: exercise the exact fixture through the same persistent Python bridge used by Arena."""
+    if os.name == "nt":
+        return
+
+    engine = tmp_path / "engine"
+    _build_production_engine(engine)
+    bot = CppEngineBot(nodes=250_000, executable_path=str(engine))
+    state = _fixture_game_state()
+    assert state.to_rwen() == EXACT_FAILING_RWEN
+
+    try:
+        moves = [bot.escolher_jogada(state) for _ in range(3)]
+    finally:
+        bot.bridge.close()
+
+    assert all(move is not None for move in moves), moves
