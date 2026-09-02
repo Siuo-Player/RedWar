@@ -30,6 +30,12 @@ def _build_production_engine(output: Path) -> None:
     )
 
 
+def _engine_path() -> Path:
+    # Keep the executable under ai/cpp_engine so SubprocessEngineBridge derives
+    # the checked-out repository root and resolves engine/heroes_config.json.
+    return CPP_DIR / f".a0_engine_{os.getpid()}"
+
+
 def _read_until_bestmove(process: subprocess.Popen[str]) -> tuple[list[str], str]:
     assert process.stdout is not None
     lines: list[str] = []
@@ -64,8 +70,8 @@ def _search(process: subprocess.Popen[str], nodes: int) -> tuple[dict[str, str],
 
 
 @pytest.mark.skipif(os.name == "nt", reason="diagnostic C++ protocol harness is POSIX-only")
-def test_a0_engine_controls_and_canonical_state(tmp_path: Path) -> None:
-    engine = tmp_path / "engine"
+def test_a0_engine_controls_and_canonical_state() -> None:
+    engine = _engine_path()
     _build_production_engine(engine)
 
     state = GameState(time_limit_seconds=99999)
@@ -124,9 +130,10 @@ def test_a0_engine_controls_and_canonical_state(tmp_path: Path) -> None:
         assert warm_fields["terminal_no_move"] == "0"
         assert warm_move != "0000"
 
-        # Best-move identity is not asserted across TT modes because the current
-        # search API does not declare an explicit tie-breaking contract.
+        # The current search contract does not guarantee a unique tie-break
+        # across TT states, so C1 does not require identical text bestmoves.
     finally:
         if process.poll() is None:
             _send(process, "quit")
             process.wait(timeout=30)
+        engine.unlink(missing_ok=True)
