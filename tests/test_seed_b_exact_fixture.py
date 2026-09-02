@@ -9,7 +9,7 @@ BRIDGE = ROOT / ("cpp_movegen_bridge_test.exe" if os.name == "nt" else "cpp_move
 
 EXACT_FAILING_RWEN = (
     ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:."
-    "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:."
+    "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
