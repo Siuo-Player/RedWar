@@ -38,9 +38,14 @@ def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
     moves = set(lines[1:-1])
     assert lines[-1] == "END"
     assert count == len(moves)
+    assert count > 0
 
-    expected = {"MOVE E2 D1", "MOVE E2 E1", "MOVE E2 F1"}
+    # Lich is on E2. Its C++ config is diagonal, so these are the four
+    # geometrically legal one-step moves available in the exact snapshot;
+    # occupied D3/F3 are filtered by occupancy.
+    expected = {"MOVE E2 D1", "MOVE E2 F1"}
     assert expected.issubset(moves), (
-        f"exact Arena-failure RWEN has no expected Lich root moves: "
+        f"exact Arena-failure RWEN lacks expected Lich moves: "
         f"missing={sorted(expected - moves)} count={count}"
     )
+    assert "MOVE E2 E1" not in moves
