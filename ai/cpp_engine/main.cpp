@@ -121,7 +121,11 @@ int main() {
                         throw std::runtime_error("invalid node count: " + value_text);
                     }
                     node_limit = value;
-                    time_limit_ms = 3000.0;
+                    // A node-bounded search must not also expire because of
+                    // wall-clock time. Wall-clock limits remain available to
+                    // future time-bounded commands, but are disabled here so
+                    // fixed-node experiments are reproducible across hosts.
+                    time_limit_ms = std::numeric_limits<double>::infinity();
                     launch_search(MAX_PLY - 1);
                     continue;
                 }
