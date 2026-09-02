@@ -9,7 +9,7 @@ BRIDGE = ROOT / ("cpp_movegen_bridge_test.exe" if os.name == "nt" else "cpp_move
 
 EXACT_FAILING_RWEN = (
     ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:."
-    "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:.,.:."
+    "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
@@ -17,6 +17,14 @@ EXACT_FAILING_RWEN = (
     "/.:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:.,.:."
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
 )
+
+
+def _validated_rwen() -> str:
+    board_text, turn, twc = EXACT_FAILING_RWEN.split()
+    widths = [len(row.split(",")) for row in board_text.split("/")]
+    assert widths == [8] * 8, f"fixture RWEN row widths invalid: {widths}"
+    assert turn == "W" and twc == "0"
+    return EXACT_FAILING_RWEN
 
 
 def run_helper(payload: str) -> list[str]:
@@ -35,7 +43,7 @@ def run_helper(payload: str) -> list[str]:
 
 def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
     """Diagnostic-only: verify the literal Arena-failure RWEN has root actions."""
-    lines = run_helper(EXACT_FAILING_RWEN)
+    lines = run_helper(_validated_rwen())
     assert lines and lines[0].startswith("COUNT ")
     count = int(lines[0].split()[1])
     moves = set(lines[1:-1])
@@ -54,7 +62,7 @@ def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
 
 def test_exact_first_aa_b_failure_search_sees_same_root() -> None:
     """Diagnostic-only: compare root generation with the synchronous search entrypoint."""
-    lines = run_helper("SEARCH " + EXACT_FAILING_RWEN)
+    lines = run_helper("SEARCH " + _validated_rwen())
     assert lines[:1] and lines[0].startswith("ROOT_COUNT ")
     root_count = int(lines[0].split()[1])
     assert root_count > 0
