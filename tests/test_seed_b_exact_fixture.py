@@ -19,20 +19,23 @@ EXACT_FAILING_RWEN = (
 )
 
 
-def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
-    """Diagnostic-only: verify the literal Arena-failure RWEN has root actions."""
+def run_helper(payload: str) -> list[str]:
     assert BRIDGE.exists(), f"missing movegen helper: {BRIDGE}"
     completed = subprocess.run(
         [str(BRIDGE)],
-        input=EXACT_FAILING_RWEN + "\n",
+        input=payload + "\n",
         text=True,
         capture_output=True,
         cwd=ROOT,
         check=False,
     )
     assert completed.returncode == 0, completed.stderr or completed.stdout
+    return completed.stdout.splitlines()
 
-    lines = completed.stdout.splitlines()
+
+def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
+    """Diagnostic-only: verify the literal Arena-failure RWEN has root actions."""
+    lines = run_helper(EXACT_FAILING_RWEN)
     assert lines and lines[0].startswith("COUNT ")
     count = int(lines[0].split()[1])
     moves = set(lines[1:-1])
@@ -40,12 +43,22 @@ def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
     assert count == len(moves)
     assert count > 0
 
-    # Lich is on E2. Its C++ config is diagonal, so these are the four
-    # geometrically legal one-step moves available in the exact snapshot;
-    # occupied D3/F3 are filtered by occupancy.
+    # The C++ configuration makes Lich's normal move one-step diagonal.
     expected = {"MOVE E2 D1", "MOVE E2 F1"}
     assert expected.issubset(moves), (
         f"exact Arena-failure RWEN lacks expected Lich moves: "
         f"missing={sorted(expected - moves)} count={count}"
     )
     assert "MOVE E2 E1" not in moves
+
+
+def test_exact_first_aa_b_failure_search_sees_same_root() -> None:
+    """Diagnostic-only: compare root generation with the synchronous search entrypoint."""
+    lines = run_helper("SEARCH " + EXACT_FAILING_RWEN)
+    assert lines[:1] and lines[0].startswith("ROOT_COUNT ")
+    root_count = int(lines[0].split()[1])
+    assert root_count > 0
+    assert lines[1].startswith("SEARCH_RESULT ")
+    result = lines[1].split(" ", 1)[1]
+    assert result != "0000"
+    assert lines[2] == "END_SEARCH"
