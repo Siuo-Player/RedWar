@@ -8,6 +8,7 @@ from ai.bot import CppEngineBot
 from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
 from tests.test_seed_b_exact_fixture import EXACT_FAILING_RWEN
+from tools.analytics.opening_book import gerar_abertura
 
 ROOT = Path(__file__).resolve().parents[1]
 CPP_DIR = ROOT / "ai" / "cpp_engine"
@@ -106,12 +107,20 @@ def test_exact_failure_through_persistent_cpp_engine_bot_bridge(tmp_path):
     engine = tmp_path / "engine"
     _build_production_engine(engine)
     bot = CppEngineBot(nodes=250_000, executable_path=str(engine))
-    state = _fixture_game_state()
-    assert state.to_rwen() == EXACT_FAILING_RWEN
+    state_a = _fixture_game_state()
+    state_b = GameState(time_limit_seconds=99999)
+    state_b.board = gerar_abertura(201)
+    state_b.compute_initial_hash()
+    assert state_a.to_rwen() == EXACT_FAILING_RWEN
+    assert state_b.to_rwen() != state_a.to_rwen()
 
     try:
-        moves = [bot.escolher_jogada(state) for _ in range(3)]
+        move_a1 = bot.escolher_jogada(state_a)
+        move_b = bot.escolher_jogada(state_b)
+        move_a2 = bot.escolher_jogada(state_a)
     finally:
         bot.bridge.close()
 
-    assert all(move is not None for move in moves), moves
+    assert move_a1 is not None
+    assert move_b is not None
+    assert move_a2 is not None
