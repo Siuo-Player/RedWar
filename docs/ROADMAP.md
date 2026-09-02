@@ -174,6 +174,9 @@ Próximo work package de UI:
 - [ ] Usar partidas reais armazenadas para gerar hipóteses de balanceamento.
 - [ ] Fazer calibração controlada por contexto antes de alterar preços.
 - [ ] Validar qualquer alteração por Arena independente.
+- [ ] **Quando o balanceamento e a análise de dados estiverem suficientemente maduros e funcionais, executar o `BALANCE_STATE_OF_GAME_AUDIT.md` como gate obrigatório de pausa.**
+- [ ] O audit deve consolidar custo de draft, valor contextual da Ares, matchup, composição/sinergia, breakpoints, counterplay, geometria do roster, distribuição de custos, game-health e qualidade dos dados.
+- [ ] Após gerar o relatório consolidado, **parar o ciclo de tuning** e aguardar uma decisão manual, uma decisão automática explicitamente autorizada ou a decisão de recolher mais dados.
 
 ## Ares — sequência atual
 
@@ -266,6 +269,119 @@ Validação empírica que permanece:
 - [ ] estudar um segundo eixo de **intrinsic/move quality strength** baseado na perda de avaliação por decisão.
 
 Até esta validação empírica estar feita, o rating baseline é uma medida comparativa auxiliar e **não prova sozinho melhoria global de força**.
+
+### 3.1. Balance Cost Model / contextual pricing — **modelo metodológico; implementação pendente**
+
+O `draft cost` continua a ser a variável central de balanceamento e permanece fixo durante o draft e durante a partida. O valor da mesma peça para a Ares, porém, pode variar por estado e deve ser tratado como **valor contextual em combate**, não como alteração do preço de draft.
+
+O modelo V2 deve combinar, sem substituir o Auto-Pricer existente:
+
+```text
+intrinsic hero features
+        ↓
+interaction / synergy structure
+        ↓
+contextual Ares value
+        ↓
+empirical Arena calibration
+        ↓
+uncertainty
+        ↓
+estimated fair draft value
+```
+
+Features iniciais devem ser reais do RedWar, por exemplo:
+
+```text
+mobility
+attack geometry/reach
+area influence
+control
+utility
+board alteration
+action economy
+positional dependence
+restrictions
+persistent-effect capability
+```
+
+Não introduzir `damage`, `life/HP` ou cooldown geral de ataques no modelo: essas abstrações não existem no RedWar. Stun, morte, controlo e persistência permanecem mecânicas distintas.
+
+Regras de custo:
+
+```text
+estimated fair value < 5
+    → urgent balance
+
+estimated fair value > 200
+    → urgent balance
+
+5 ≤ estimated fair value ≤ 200
+    → diagnostic/manual balancing
+```
+
+Para valores dentro do domínio, a primeira banda de coerência é:
+
+```text
+max(10% of estimated value, 5 points)
+```
+
+Ou seja, fora dessa banda o custo é suspeito, mas não deve ser alterado automaticamente apenas por essa discrepância.
+
+A análise de sinergia deve permitir combos estratégicos, mas sinalizar pacotes desproporcionais. O primeiro teto diagnóstico para o **synergy premium** é `+15%` sobre o valor combinado independente; ultrapassá-lo é um gatilho de revisão, não um nerf automático. Combinações dominantes devem ter pelo menos um counter significativo com custo de draft menor ou igual ao custo relevante do pacote dominante, admitindo ciclos pedra-papel-tesoura em vez de exigir 50/50 global.
+
+### 3.2. State-of-the-game balance audit — **gate futuro obrigatório após maturidade dos dados**
+
+Depois de o sistema de balanceamento e análise de dados ter cobertura relevante e ferramentas funcionais, executar `docs/BALANCE_STATE_OF_GAME_AUDIT.md`.
+
+O audit deve ser uma fotografia abrangente do estado do jogo e não outra passagem automática de tuning. Deve produzir, pelo menos:
+
+- auditoria de todos os draft costs e fair-value estimates;
+- valor contextual de peças por momentos, lugares, aliados, inimigos e situações;
+- matchup matrix e counter cycles;
+- synergy/composition analysis;
+- breakpoint analysis;
+- counterplay analysis;
+- draft-efficiency analysis;
+- projeção PCA/clustering do espaço matemático do roster;
+- regiões densas, redundantes, isoladas e vazias do espaço de heróis;
+- distribuição de custo e de papéis estratégicos;
+- game-health telemetry quando disponível;
+- auditoria de validade, cobertura e incerteza dos dados.
+
+Visualização do roster:
+
+```text
+standardized feature vectors
+        ↓
+PCA 2D
+        ↓
+clustering k=3..6
+        ↓
+silhouette + interpretability
+        ↓
+plot heroes + draft cost + role
+```
+
+Esta análise serve para responder matematicamente **o que o jogo tem, o que está redundante e que espaço estratégico pode estar sub-representado**, sem concluir automaticamente que é necessário adicionar conteúdo.
+
+### 3.3. Balance decision freeze
+
+Quando o audit terminar:
+
+```text
+REPORT
+  ↓
+STOP
+  ↓
+manual adjustment
+OR
+explicitly authorized automatic adjustment
+OR
+collect more evidence
+```
+
+Não reutilizar o próprio relatório como dados de desenvolvimento e iniciar imediatamente outro ciclo de tuning sem uma nova decisão experimental. Isto protege contra loops auto-reforçados e sobreajuste do hold-out.
 
 ### 4. Search / move ordering RPG — **próximo bloco de IA após a validação empírica mínima de Strength**
 
