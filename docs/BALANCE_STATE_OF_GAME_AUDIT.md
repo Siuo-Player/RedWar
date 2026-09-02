@@ -34,6 +34,61 @@ Run this audit only when:
 
 Do not use a single arbitrary global game count as the sole entry criterion. Coverage and uncertainty must be reported per hero and per slice.
 
+### Minimum evidence-coverage gate
+
+The following are the default **engineering thresholds** for a full state-of-the-game audit. They are deliberately explicit so that an audit cannot be declared mature merely because the total number of games looks large.
+
+```text
+For every draftable hero:
+    >= 200 valid hero exposures
+
+For every draftable hero and colour:
+    >= 75 valid exposures per colour
+
+For every draftable hero:
+    >= 4 distinct opponent heroes represented
+
+For any pairwise hero-vs-hero conclusion:
+    >= 50 valid games in that matchup cell
+
+For contextual Ares value analysis:
+    >= 500 sampled valid states per hero
+    and >= 5 context strata represented per hero
+```
+
+These thresholds are **coverage gates, not claims of universal statistical sufficiency**. They may be tightened or relaxed when a later validation study demonstrates a better operating point.
+
+A hero or slice below a threshold must be explicitly marked `INSUFFICIENT EVIDENCE` or `SPARSE SLICE`; it must not be silently pooled away.
+
+The contextual sample should be stratified rather than drawn as a naive uniform sample over all replay states. At minimum, the sampling plan should attempt coverage across relevant combinations of:
+
+- game phase;
+- board density;
+- position/deployment region;
+- legal-action-set size/type;
+- ally composition;
+- enemy composition;
+- tactical threat level;
+- initiative/side to move;
+- persistence/control state where applicable.
+
+A state can contribute to multiple diagnostic dimensions, but the report must expose the achieved coverage so that abundant trivial positions cannot dominate the estimate.
+
+### When thresholds are not met
+
+Do not auto-balance merely to compensate for sparse evidence.
+
+Instead:
+
+```text
+insufficient coverage
+    -> collect more representative evidence
+    -> preserve the protected hold-out
+    -> rerun the audit gate
+```
+
+A sparse matchup matrix is acceptable for the audit to run, provided the missing cells are explicitly reported and no unsupported pairwise conclusion is drawn from them.
+
 ## Draft-cost rules
 
 The draft resource is defined as a fixed **5–200** range and is spent only before the game.
@@ -136,6 +191,8 @@ Report:
 
 A local win-rate far from 50/50 is not automatically a balance failure when it forms part of a meaningful counter structure.
 
+Pairwise cells below 50 valid games remain visible in the matrix but are not eligible for a strong pairwise balance conclusion.
+
 ## Synergy and anti-abuse rule
 
 Strategic synergy is desirable because the draft should reward players for constructing combinations and thinking ahead.
@@ -204,7 +261,8 @@ Every state-of-the-game audit must expose:
 - opening/seed coverage;
 - Ares/version/config identity;
 - development/hold-out designation;
-- uncertainty and sparse slices.
+- uncertainty and sparse slices;
+- achieved evidence-coverage thresholds and any gate failures.
 
 ## Output classification
 
