@@ -27,7 +27,7 @@ def _fixture_game_state() -> GameState:
             team, name, stun, lifespan, cooldown = piece_text.split("_")
             piece = criar_peca_por_nome(name, "brancas" if team == "W" else "pretas")
             piece.stun_timer = int(stun)
-            piece.lifespan = 999 if lifespan == "N" else int(lifespan)
+            piece.lifespan = None if lifespan == "N" else int(lifespan)
             piece.spawn_cooldown = int(cooldown)
             state.board[r][c] = piece
     state.compute_initial_hash()
@@ -53,6 +53,12 @@ def _build_production_engine(output: Path) -> None:
         cwd=CPP_DIR,
         check=True,
     )
+
+
+def test_exact_failure_fixture_round_trips_to_canonical_rwen():
+    """Diagnostic-only: fixture decoding must preserve N lifespans as None."""
+    state = _fixture_game_state()
+    assert state.to_rwen() == EXACT_FAILING_RWEN
 
 
 def test_exact_failure_through_production_main_path(tmp_path):
