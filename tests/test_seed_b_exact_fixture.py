@@ -7,6 +7,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE = ROOT / ("cpp_movegen_bridge_test.exe" if os.name == "nt" else "cpp_movegen_bridge_test")
 
+# Literal RWEN captured from calibration run 33532248234 at the first failing
+# Arena call. Keep this byte-for-byte equivalent to the logged position.
 EXACT_FAILING_RWEN = (
     ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:."
     "/.:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:."
@@ -15,7 +17,7 @@ EXACT_FAILING_RWEN = (
     "/.:.,.:.,.:.,.:.,.:.,.:.,.:."
     "/.:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:.,.:."
     "/.:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:.,.:."
-    "/.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+    "/.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
 )
 
 
@@ -51,7 +53,8 @@ def test_exact_first_aa_b_failure_has_legal_cpp_moves() -> None:
     assert count == len(moves)
     assert count > 0
 
-    # The C++ configuration makes Lich's normal move one-step diagonal.
+    # Lich is on E2. In the C++ move model its normal movement is diagonal;
+    # D3 is occupied by black Inquisitor, so only D1/F1 are expected here.
     expected = {"MOVE E2 D1", "MOVE E2 F1"}
     assert expected.issubset(moves), (
         f"exact Arena-failure RWEN lacks expected Lich moves: "
