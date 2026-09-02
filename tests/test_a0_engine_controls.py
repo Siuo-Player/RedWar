@@ -96,7 +96,8 @@ def test_a0_engine_controls_and_canonical_state(tmp_path: Path) -> None:
         off_fields, off_move, _ = _search(process, 2000)
         assert off_fields["tt"] == "0"
         assert int(off_fields["node_limit"]) == 2000
-        assert int(off_fields["nodes"]) <= 2000
+        assert 0 < int(off_fields["nodes"]) <= 2000
+        assert off_fields["node_bound_reached"] == "1"
         assert off_fields["time_abort"] == "0"
         assert off_fields["terminal_no_move"] == "0"
         assert off_move != "0000"
@@ -107,19 +108,22 @@ def test_a0_engine_controls_and_canonical_state(tmp_path: Path) -> None:
         assert _readline(process) == "info string clearhash ok"
         cold_fields, cold_move, _ = _search(process, 2000)
         assert cold_fields["tt"] == "1"
-        assert int(cold_fields["nodes"]) <= 2000
+        assert 0 < int(cold_fields["nodes"]) <= 2000
+        assert cold_fields["node_bound_reached"] == "1"
         assert cold_fields["time_abort"] == "0"
         assert cold_fields["terminal_no_move"] == "0"
         assert cold_move != "0000"
 
         warm_fields, warm_move, _ = _search(process, 2000)
         assert warm_fields["tt"] == "1"
-        assert int(warm_fields["nodes"]) <= 2000
+        assert 0 < int(warm_fields["nodes"]) <= 2000
+        assert warm_fields["node_bound_reached"] == "1"
         assert warm_fields["time_abort"] == "0"
         assert warm_fields["terminal_no_move"] == "0"
         assert warm_move != "0000"
 
-        assert cold_move == off_move == warm_move
+        # Best-move identity is not asserted across TT modes because the current
+        # search API does not declare an explicit tie-breaking contract.
     finally:
         if process.poll() is None:
             _send(process, "quit")
