@@ -27,6 +27,9 @@ constexpr int MAX_TIMER_EFFECTS = LINHAS * COLUNAS;
 constexpr int MAX_EXPIRED_PIECES = LINHAS * COLUNAS;
 
 extern uint64_t node_limit;
+extern uint64_t tt_probes;
+extern uint64_t tt_hits;
+extern uint64_t tt_stores;
 extern int history_table[2][LINHAS][COLUNAS][LINHAS][COLUNAS];
 extern int action_history_table[2][ACTION_TYPE_COUNT][LINHAS][COLUNAS][LINHAS][COLUNAS];
 
