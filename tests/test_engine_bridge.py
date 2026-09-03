@@ -76,7 +76,8 @@ def test_cpp_engine_bot_preserves_native_error_info_for_non_terminal_0000():
     ])
     bot = CppEngineBot(nodes=10, bridge=bridge)
     gs = GameState()
-    gs.board[7][0] = criar_peca_por_nome("Geomancer", "brancas")
+    gs.board[6][0] = criar_peca_por_nome("Geomancer", "brancas")
+    gs.board[0][7] = criar_peca_por_nome("Geomancer", "pretas")
 
     with pytest.raises(RuntimeError, match="engine_info=.*NNUE feature index out of range"):
         bot.escolher_jogada(gs)
