@@ -9,8 +9,8 @@ ENGINE_NAME = "engine.exe" if os.name == "nt" else "engine"
 ENGINE = ROOT / "ai" / "cpp_engine" / ENGINE_NAME
 
 CANONICAL = (
-    ".:.,.:.,.:.,.:.,.:.,.:.,.:./"
-    ".:.,.:.,.:.,.:.,.:.,.:.,.:./"
+    "W_FrostMage_0_N_0:.,B_Bone_0_N_0:.,.:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,W_Bone_0_N_0:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,B_Lich_0_N_0:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
@@ -25,7 +25,7 @@ NON_CANONICAL = CANONICAL.replace(":.", "")
 def read_canonical(rwen: str) -> tuple[str, int]:
     result = subprocess.run(
         [str(ENGINE)],
-        input=f"position rwen {rwen}\nstate canonical\nquit\n",
+        input=f"position rwen {rwen}\nisready\nstate canonical\nquit\n",
         text=True,
         capture_output=True,
         cwd=ROOT,
@@ -34,6 +34,8 @@ def read_canonical(rwen: str) -> tuple[str, int]:
     )
     assert result.returncode == 0, result.stderr or result.stdout
     lines = [line for line in result.stdout.splitlines() if line]
+    command_errors = [line for line in lines if line.startswith("info string command error ")]
+    assert not command_errors, "native protocol rejected input: " + " | ".join(command_errors)
     state_line = next(line for line in lines if line.startswith("info string state canonical "))
     payload = state_line.removeprefix("info string state canonical ")
     canonical, hash_text = payload.rsplit(" hash=", 1)
