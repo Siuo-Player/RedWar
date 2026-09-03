@@ -75,7 +75,13 @@ def test_cpp_engine_bot_preserves_native_error_info_for_non_terminal_0000():
         "bestmove 0000",
     ])
     bot = CppEngineBot(nodes=10, bridge=bridge)
+
     gs = GameState()
+    gs.board = [[None for _ in range(8)] for _ in range(8)]
+    gs.tile_effects = [[None for _ in range(8)] for _ in range(8)]
+    gs.white_to_move = True
+    gs.board[6][0] = criar_peca_por_nome("Bone", "brancas")
+    gs.board[1][7] = criar_peca_por_nome("Bone", "pretas")
 
     with pytest.raises(RuntimeError, match="engine_info=.*NNUE feature index out of range"):
         bot.escolher_jogada(gs)
