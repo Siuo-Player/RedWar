@@ -1,9 +1,9 @@
 """Independent legal-action reference for the A0 C3 gate.
 
 This module intentionally does not call Piece.get_valid_* methods or Ares
-move-generation/search code.  It implements small, explicit predicates from
-the published RedWar rule model so that cross-implementation agreement can be
-checked against a separate code path.
+move-generation/search code. It uses explicit, small predicates so that
+cross-implementation agreement is not based on calling the implementation
+under test.
 """
 from __future__ import annotations
 
@@ -27,25 +27,16 @@ class OracleAction:
     spawn_name: str | None = None
 
     def key(self) -> tuple[Any, ...]:
-        return (
-            self.action_type,
-            self.start,
-            self.end,
-            self.spell_name,
-            self.spawn_name,
-        )
+        return (self.action_type, self.start, self.end, self.spell_name, self.spawn_name)
 
 
 def canonical_actions(actions: list[OracleAction] | set[OracleAction]) -> tuple[tuple[Any, ...], ...]:
-    return tuple(sorted(action.key() for action in actions))
+    """Canonical semantic action set: deterministic ordering + deduplication."""
+    return tuple(sorted({action.key() for action in actions}))
 
 
 def _inside(r: int, c: int) -> bool:
     return 0 <= r < ROWS and 0 <= c < COLS
-
-
-def _piece(board: list[list[Any]], r: int, c: int) -> Any:
-    return board[r][c]
 
 
 def _effect_is_ice(tile_effects: list[list[Any]] | None, r: int, c: int) -> bool:
@@ -55,7 +46,7 @@ def _effect_is_ice(tile_effects: list[list[Any]] | None, r: int, c: int) -> bool
     return bool(effect and effect.get("type") == "ice")
 
 
-def _team_name(piece: Any) -> str:
+def _team(piece: Any) -> str:
     return str(piece.team)
 
 
@@ -64,11 +55,10 @@ def _side_name(state: Any) -> str:
 
 
 def _silenced(state: Any, row: int, col: int, team: str) -> bool:
-    board = state.board
     for r in range(ROWS):
         for c in range(COLS):
-            source = board[r][c]
-            if source is None or source.name != "Inquisitor" or _team_name(source) == team:
+            source = state.board[r][c]
+            if source is None or source.name != "Inquisitor" or _team(source) == team:
                 continue
             if getattr(source, "stun_timer", 0) != 0:
                 continue
@@ -77,65 +67,48 @@ def _silenced(state: Any, row: int, col: int, team: str) -> bool:
     return False
 
 
-def _ray_actions(
-    *,
-    state: Any,
-    r: int,
-    c: int,
-    vectors: tuple[tuple[int, int], ...],
-    max_steps: int,
-    min_steps: int,
-    action_type: str,
-    spell_name: str | None = None,
-) -> list[OracleAction]:
+def _ray_actions(state: Any, r: int, c: int, vectors: tuple[tuple[int, int], ...], max_steps: int,
+                 min_steps: int, action_type: str, spell_name: str | None = None) -> list[OracleAction]:
     board = state.board
     effects = state.tile_effects
-    team = _team_name(board[r][c])
+    team = _team(board[r][c])
     out: list[OracleAction] = []
     for dr, dc in vectors:
         for step in range(1, max_steps + 1):
             nr, nc = r + dr * step, c + dc * step
             if not _inside(nr, nc) or _effect_is_ice(effects, nr, nc):
                 break
-            target = _piece(board, nr, nc)
+            target = board[nr][nc]
             if target is None:
                 continue
-            if _team_name(target) != team and step >= min_steps and not _silenced(state, r, c, team):
+            if _team(target) != team and step >= min_steps and not _silenced(state, r, c, team):
                 out.append(OracleAction(action_type, (r, c), (nr, nc), spell_name=spell_name))
             break
     return out
 
 
 def _movement_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction]:
-    if getattr(piece, "stun_timer", 0) != 0:
-        return []
-
-    name = piece.name
-    team = _team_name(piece)
     board = state.board
     effects = state.tile_effects
-
+    team = _team(piece)
+    name = piece.name
     if name in {"Obelisk", "StoneWall"}:
-        vectors: tuple[tuple[int, int], ...] = ()
-        max_steps = 0
-        ghost = False
+        vectors, max_steps, ghost = (), 0, False
     elif name in {"Lich", "Cleric", "Pyromancer"}:
         vectors, max_steps, ghost = DIAGONAL, 1, False
-    elif name in {"FrostMage"}:
+    elif name == "FrostMage":
         vectors, max_steps, ghost = DIAGONAL, 2, False
-    elif name in {"Nightshade"}:
+    elif name == "Nightshade":
         vectors, max_steps, ghost = ORTHOGONAL, 4, True
-    elif name in {"Bone", "Obelisk", "Sentry", "Ranger", "Templar", "Geomancer"}:
+    elif name in {"Bone", "Sentry", "Ranger", "Templar", "Geomancer"}:
         vectors, max_steps, ghost = ORTHOGONAL, 1, False
     elif name in {"BoneLord", "Berserker", "Inquisitor"}:
         vectors, max_steps, ghost = ADJACENT, 1, False
     elif name in {"Phantom", "Trickster"}:
         vectors, max_steps, ghost = KNIGHT, 1, False
     elif name == "Ghoul":
-        # Black moves in the positive row direction, white in the negative.
         raw = ((1, -1), (1, 0), (1, 1))
-        vectors = tuple((-dr, dc) if team == "brancas" else (dr, dc) for dr, dc in raw)
-        max_steps, ghost = 1, False
+        vectors, max_steps, ghost = tuple((-dr, dc) if team == "brancas" else (dr, dc) for dr, dc in raw), 1, False
     elif name == "Dragoon":
         vectors, max_steps, ghost = ORTHOGONAL, 1, False
     else:
@@ -158,35 +131,20 @@ def _movement_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleActi
 def _attack_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction]:
     if getattr(piece, "stun_timer", 0) != 0:
         return []
+    spell_attacks = {
+        "Phantom": (KNIGHT, 1, 1, "spectral_strike"),
+        "Sentry": (ORTHOGONAL, 8, 1, "sentinel_shot"),
+        "Ranger": (ORTHOGONAL, 8, 2, "aimed_shot"),
+        "BoneLord": (((-1, -1), (-1, 1), (-2, -2), (-2, 2)), 1, 1, "bone_v"),
+    }
+    if piece.name in spell_attacks:
+        vectors, max_steps, min_steps, spell = spell_attacks[piece.name]
+        return _ray_actions(state, r, c, tuple(vectors), max_steps, min_steps, "SPELL", spell)
 
-    name = piece.name
-    if name in {"FrostMage", "Lich", "Cleric", "Trickster", "Geomancer", "Pyromancer", "Dragoon", "Inquisitor", "BoneLord", "Phantom", "Sentry", "Ranger"}:
-        spell_attacks = {
-            "Phantom": (KNIGHT, 1, "spectral_strike"),
-            "Sentry": (ORTHOGONAL, 8, "sentinel_shot"),
-            "Ranger": (ORTHOGONAL, 8, "aimed_shot"),
-            "BoneLord": (((-1, -1), (-1, 1), (-2, -2), (-2, 2)), 1, "bone_v"),
-        }
-        spec = spell_attacks.get(name)
-        if spec is not None:
-            vectors, max_steps, spell = spec
-            min_steps = 2 if name == "Ranger" else 1
-            return _ray_actions(
-                state=state,
-                r=r,
-                c=c,
-                vectors=tuple(vectors),
-                max_steps=max_steps,
-                min_steps=min_steps,
-                action_type="SPELL",
-                spell_name=spell,
-            )
-        return []
-
-    if name == "Ghoul":
+    if piece.name == "Ghoul":
         raw = ((1, -1), (1, 0), (1, 1))
         vectors = tuple((-dr, dc) if piece.team == "brancas" else (dr, dc) for dr, dc in raw)
-        return _ray_actions(state=state, r=r, c=c, vectors=vectors, max_steps=1, min_steps=1, action_type="ATTACK")
+        return _ray_actions(state, r, c, vectors, 1, 1, "ATTACK")
 
     geometry = {
         "Bone": (ORTHOGONAL, 1),
@@ -196,17 +154,16 @@ def _attack_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction
         "Inquisitor": (ADJACENT, 1),
         "Nightshade": (ORTHOGONAL, 1),
     }
-    spec = geometry.get(name)
+    spec = geometry.get(piece.name)
     if spec is None:
         return []
     vectors, max_steps = spec
-    return _ray_actions(state=state, r=r, c=c, vectors=tuple(vectors), max_steps=max_steps, min_steps=1, action_type="ATTACK")
+    return _ray_actions(state, r, c, tuple(vectors), max_steps, 1, "ATTACK")
 
 
 def _spell_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction]:
-    if getattr(piece, "stun_timer", 0) != 0 or _silenced(state, r, c, _team_name(piece)):
+    if getattr(piece, "stun_timer", 0) != 0 or _silenced(state, r, c, _team(piece)):
         return []
-
     board = state.board
     effects = state.tile_effects
     name = piece.name
@@ -222,12 +179,11 @@ def _spell_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction]
     elif name == "FrostMage":
         for dr in range(-3, 4):
             for dc in range(-3, 4):
-                if dr == 0 and dc == 0 or abs(dr) + abs(dc) > 3:
+                if (dr == 0 and dc == 0) or abs(dr) + abs(dc) > 3:
                     continue
-                fr, fc = r + dr, c + dc
-                if not _inside(fr, fc) or _effect_is_ice(effects, fr, fc):
-                    continue
-                out.append(OracleAction("SPELL", (r, c), (fr, fc), spell_name="nevada"))
+                nr, nc = r + dr, c + dc
+                if _inside(nr, nc) and not _effect_is_ice(effects, nr, nc):
+                    out.append(OracleAction("SPELL", (r, c), (nr, nc), spell_name="nevada"))
 
     elif name == "Cleric":
         for dr in range(-2, 3):
@@ -243,8 +199,10 @@ def _spell_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction]
         for dr in range(-3, 4):
             for dc in range(-3, 4):
                 nr, nc = r + dr, c + dc
-                if _inside(nr, nc) and (nr, nc) != (r, c) and board[nr][nc] is not None and board[nr][nc].team == piece.team:
-                    out.append(OracleAction("SPELL", (r, c), (nr, nc), spell_name="swap"))
+                if _inside(nr, nc) and (nr, nc) != (r, c):
+                    target = board[nr][nc]
+                    if target is not None and target.team == piece.team:
+                        out.append(OracleAction("SPELL", (r, c), (nr, nc), spell_name="swap"))
 
     elif name == "Geomancer":
         for dr, dc in ADJACENT:
@@ -265,31 +223,25 @@ def _spell_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction]
                     out.append(OracleAction("SPELL", (r, c), (nr, nc), spell_name="ignite"))
 
     elif name == "Dragoon":
-        max_jump = 2
         for dr, dc in (*ORTHOGONAL, *DIAGONAL):
-            for step in range(2, max_jump + 1):
-                nr, nc = r + dr * step, c + dc * step
-                if not _inside(nr, nc) or _effect_is_ice(effects, nr, nc):
-                    break
-                target = board[nr][nc]
-                if target is None:
-                    out.append(OracleAction("SPELL", (r, c), (nr, nc), spell_name="jump"))
-                else:
-                    if target.team != piece.team:
-                        out.append(OracleAction("SPELL", (r, c), (nr, nc), spell_name="jump"))
-                    break
+            nr, nc = r + dr * 2, c + dc * 2
+            if not _inside(nr, nc) or _effect_is_ice(effects, nr, nc):
+                continue
+            target = board[nr][nc]
+            if target is None or target.team != piece.team:
+                out.append(OracleAction("SPELL", (r, c), (nr, nc), spell_name="jump"))
 
     return out
 
 
 def legal_actions(state: Any) -> tuple[tuple[Any, ...], ...]:
-    """Return a canonical independent action set for a RedWar GameState-like object."""
+    """Return canonical legal actions for a GameState-like object."""
     team = _side_name(state)
     actions: list[OracleAction] = []
     for r in range(ROWS):
         for c in range(COLS):
             piece = state.board[r][c]
-            if piece is None or _team_name(piece) != team or getattr(piece, "stun_timer", 0) != 0:
+            if piece is None or _team(piece) != team or getattr(piece, "stun_timer", 0) != 0:
                 continue
             actions.extend(_movement_actions(state, r, c, piece))
             actions.extend(_attack_actions(state, r, c, piece))
