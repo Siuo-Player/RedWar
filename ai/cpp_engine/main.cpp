@@ -4,41 +4,10 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
-#include <sstream>
 #include <string>
 #include <thread>
 
 #ifndef RUN_SMOKE_TESTS
-
-namespace {
-
-std::string canonical_rwen() {
-    std::ostringstream out;
-    for (int r = 0; r < LINHAS; ++r) {
-        if (r != 0) out << '/';
-        for (int c = 0; c < COLUNAS; ++c) {
-            if (c != 0) out << ',';
-
-            const Piece& piece = board.pieces[r][c];
-            if (piece.is_empty) {
-                out << ".:.";
-                continue;
-            }
-
-            out << piece.team << '_' << piece.name << '_' << piece.stun_timer << '_'
-                << (piece.lifespan == 999 ? "N" : std::to_string(piece.lifespan)) << '_'
-                << piece.spawn_cooldown << ':';
-
-            const TileEffect& effect = board.effects[r][c];
-            if (effect.is_empty) out << '.';
-            else out << effect.team << '_' << effect.type << '_' << effect.timer;
-        }
-    }
-    out << ' ' << board.turn << ' ' << board.twc;
-    return out.str();
-}
-
-} // namespace
 
 int main() {
     std::ios_base::sync_with_stdio(false);
@@ -97,14 +66,6 @@ int main() {
                 else if (value == "false") use_transposition_table = false;
                 else throw std::runtime_error("UseTT expects true or false");
                 std::cout << "info string UseTT " << (use_transposition_table ? "true" : "false") << '\n';
-                std::cout.flush();
-                continue;
-            }
-
-            if (command == "state canonical") {
-                stop_search();
-                std::cout << "info string state canonical " << canonical_rwen()
-                          << " hash=" << board.hash << '\n';
                 std::cout.flush();
                 continue;
             }
