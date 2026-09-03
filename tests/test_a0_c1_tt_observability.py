@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -43,12 +44,20 @@ def run_bridge(*commands: str) -> list[str]:
 
 
 def parse_diag(line: str) -> dict[str, int | str]:
-    parts = line.split()
-    data: dict[str, int | str] = {"label": parts[0]}
-    for token in parts[1:]:
-        key, value = token.split("=", 1)
-        data[key] = int(value) if key != "move" else value
-    return data
+    match = re.fullmatch(
+        r"(?P<label>\S+) move=(?P<move>.+?) nodes=(?P<nodes>\d+) "
+        r"tt_probes=(?P<tt_probes>\d+) tt_hits=(?P<tt_hits>\d+) tt_stores=(?P<tt_stores>\d+)",
+        line,
+    )
+    assert match is not None, f"unexpected diagnostic line: {line!r}"
+    return {
+        "label": match.group("label"),
+        "move": match.group("move"),
+        "nodes": int(match.group("nodes")),
+        "tt_probes": int(match.group("tt_probes")),
+        "tt_hits": int(match.group("tt_hits")),
+        "tt_stores": int(match.group("tt_stores")),
+    }
 
 
 def test_fixture_has_eight_rows_and_eight_cells_per_row():
