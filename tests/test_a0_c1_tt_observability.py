@@ -12,12 +12,12 @@ BRIDGE = ROOT / BRIDGE_NAME
 # root move generation is independently known to produce four legal Lich moves.
 FIXTURE = (
     ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:./"
-    ".:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
-    ".:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:.,.:./"
-    ".:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:./"
+    ".:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,.:.,B_Nightshade_0_N_0:W_Lich_0_N_0:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
 )
 
