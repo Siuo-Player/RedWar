@@ -151,6 +151,7 @@ def _attack_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction
         "Obelisk": (ORTHOGONAL, 1),
         "Templar": (ORTHOGONAL, 1),
         "Berserker": (ADJACENT, 1),
+        "Dragoon": (ORTHOGONAL, 1),
         "Inquisitor": (ADJACENT, 1),
         "Nightshade": (ORTHOGONAL, 1),
     }
