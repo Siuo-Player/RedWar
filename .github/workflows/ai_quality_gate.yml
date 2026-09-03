@@ -63,17 +63,12 @@ jobs:
           echo "No AI-quality-related changes detected."
         fi
 
-        # Strength promotion is required for changes that are intended to
-        # modify search/evaluation strength. A0 C1 is an observability seam:
-        # it exposes TT activity and adds test-only controls without changing
-        # the production default behaviour. Keep its Arena diagnostic-only so
-        # the A0 acceptance boundary remains conformance/observability first.
-        if grep -Eq '(^|/)tests/test_a0_c1_tt_observability\.py$' /tmp/changed-files.txt && \
-           ! grep -Eq '^tools/nnue/' /tmp/changed-files.txt && \
-           ! grep -Eq '^ai/cpp_engine/(evaluate|nnue)\.(cpp|h|hpp|cc|cxx)$' /tmp/changed-files.txt; then
-          echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
-          echo "A0 C1 TT observability seam detected; Arena remains diagnostic only."
-        elif grep -Eq '^(ai/cpp_engine/(evaluate|search|nnue)\.(cpp|h|hpp|cc|cxx)|tools/nnue/)' /tmp/changed-files.txt; then
+        # Strength promotion is only an acceptance criterion for changes that
+        # can directly alter evaluation/search/NNUE strength. Rule/legality,
+        # bridge, replay and diagnostics changes still receive correctness and
+        # benchmark evidence, but a semantic fix is not required to outperform
+        # the old rules that it is replacing.
+        if grep -Eq '^(ai/cpp_engine/(evaluate|search|nnue)\.(cpp|h|hpp|cc|cxx)|tools/nnue/)' /tmp/changed-files.txt; then
           echo "has_promotion_changes=true" >> "$GITHUB_OUTPUT"
           echo "Strength-sensitive changes detected; promotion Arena required."
         else
@@ -148,7 +143,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        echo "Semantic/legality/observability AI change: no strength-promotion claim is made." | tee /tmp/ai-quality-arena.txt
+        echo "Semantic/legality AI change: no strength-promotion claim is made." | tee /tmp/ai-quality-arena.txt
         echo "The Arena result for this class of PR is diagnostic evidence only." | tee -a /tmp/ai-quality-arena.txt
 
     - name: Upload AI quality evidence
