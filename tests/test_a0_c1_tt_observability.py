@@ -5,12 +5,12 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-BRIDGE_NAME = "engine.exe" if os.name == "nt" else "engine"
-BRIDGE = ROOT / "ai" / "cpp_engine" / BRIDGE_NAME
+BRIDGE_NAME = "cpp_movegen_bridge_test.exe" if os.name == "nt" else "cpp_movegen_bridge_test"
+BRIDGE = ROOT / BRIDGE_NAME
 
 FIXTURE = (
     ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:./"
-    ".:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
@@ -43,7 +43,7 @@ def parse_diag(line: str) -> dict[str, int | str]:
 
 
 def test_tt_off_has_no_tt_activity():
-    assert BRIDGE.exists(), f"native engine helper missing: {BRIDGE}"
+    assert BRIDGE.exists(), f"native helper missing: {BRIDGE}"
     lines = run_bridge(f"TT_OFF {FIXTURE}")
     assert len(lines) == 1
     diag = parse_diag(lines[0])
