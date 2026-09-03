@@ -8,18 +8,25 @@ ROOT = Path(__file__).resolve().parents[1]
 BRIDGE_NAME = "cpp_movegen_bridge_test.exe" if os.name == "nt" else "cpp_movegen_bridge_test"
 BRIDGE = ROOT / BRIDGE_NAME
 
-# Exact non-terminal fixture from the historical A/A-B failure. Its native
-# root move generation is independently known to produce four legal Lich moves.
-FIXTURE = (
-    ".:.,.:.,.:.,B_Obelisk_0_N_0:.,.:.,B_Cleric_0_N_0:.,.:.,B_BoneLord_0_N_0:./"
-    ".:.,.:.,.:.,B_Ranger_0_N_0:.,.:.,.:.,.:./"
-    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
-    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
-    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
-    ".:.,.:.,B_Inquisitor_0_N_0:.,.:.,W_Obelisk_0_N_0:.,.:.,.:.,.:./"
-    ".:.,.:.,.:.,.:.,B_Nightshade_0_N_0:.,W_Lich_0_N_0:.,.:./"
-    ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
-)
+
+def build_fixture() -> str:
+    rows = [[".:."] * 8 for _ in range(8)]
+    pieces = {
+        (0, 3): "B_Obelisk_0_N_0:.",
+        (0, 5): "B_Cleric_0_N_0:.",
+        (0, 7): "B_BoneLord_0_N_0:.",
+        (1, 3): "B_Ranger_0_N_0:.",
+        (5, 3): "B_Inquisitor_0_N_0:.",
+        (5, 5): "W_Obelisk_0_N_0:.",
+        (6, 4): "B_Nightshade_0_N_0:.",
+        (6, 5): "W_Lich_0_N_0:.",
+    }
+    for (row, col), piece in pieces.items():
+        rows[row][col] = piece
+    return "/".join(",".join(row) for row in rows) + " W 0"
+
+
+FIXTURE = build_fixture()
 
 
 def run_bridge(*commands: str) -> list[str]:
@@ -44,8 +51,15 @@ def parse_diag(line: str) -> dict[str, int | str]:
     return data
 
 
+def test_fixture_has_eight_rows_and_eight_cells_per_row():
+    board = FIXTURE.split(" ", 1)[0]
+    rows = board.split("/")
+    assert len(rows) == 8
+    assert all(len(row.split(",")) == 8 for row in rows)
+
+
 def test_tt_off_has_no_tt_activity():
-    assert BRIDGE.exists(), f"native helper missing: {BRIDGE}. Run build_cpp_engine.py --movegen-test."
+    assert BRIDGE.exists(), f"native helper missing: {BRIDGE}"
     lines = run_bridge(f"TT_OFF {FIXTURE}")
     assert len(lines) == 1
     diag = parse_diag(lines[0])
@@ -74,7 +88,6 @@ def test_tt_warmup_makes_reuse_observable():
     assert lines[0] == "WARMUP_CLEAR before_occupied=0"
     warmup = parse_diag(lines[1])
     warm = parse_diag(lines[2])
-
     assert warmup["label"] == "WARMUP"
     assert warm["label"] == "WARM"
     assert warmup["tt_stores"] > 0
