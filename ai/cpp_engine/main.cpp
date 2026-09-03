@@ -1,6 +1,7 @@
 #include "types.hpp"
 #include "nnue.hpp"
 
+#include <algorithm>
 #include <iostream>
 #include <limits>
 #include <string>
@@ -26,6 +27,11 @@ int main() {
         search_thread = std::thread([depth]() {
             try {
                 const std::string move = search_best_move(depth);
+                std::cout << "info string search diagnostics nodes=" << nodes_evaluated
+                          << " tt_probes=" << tt_probes
+                          << " tt_hits=" << tt_hits
+                          << " tt_stores=" << tt_stores
+                          << '\n';
                 std::cout << "bestmove " << (move.empty() ? "0000" : move) << '\n';
                 std::cout.flush();
             } catch (const std::exception& error) {
@@ -43,6 +49,26 @@ int main() {
         try {
             if (command == "quit") { stop_search(); break; }
             if (command == "stop") { stop_search(); continue; }
+
+            if (command == "clearhash") {
+                stop_search();
+                std::fill(transposition_table.begin(), transposition_table.end(), TTEntry{});
+                std::cout << "info string clearhash ok\n";
+                std::cout.flush();
+                continue;
+            }
+
+            constexpr const char* SETOPTION_PREFIX = "setoption name UseTT value ";
+            if (command.rfind(SETOPTION_PREFIX, 0) == 0) {
+                stop_search();
+                const std::string value = command.substr(std::char_traits<char>::length(SETOPTION_PREFIX));
+                if (value == "true") use_transposition_table = true;
+                else if (value == "false") use_transposition_table = false;
+                else throw std::runtime_error("UseTT expects true or false");
+                std::cout << "info string UseTT " << (use_transposition_table ? "true" : "false") << '\n';
+                std::cout.flush();
+                continue;
+            }
 
             constexpr const char* POSITION_PREFIX = "position rwen ";
             if (command.rfind(POSITION_PREFIX, 0) == 0) {
