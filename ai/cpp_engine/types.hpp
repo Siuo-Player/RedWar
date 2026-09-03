@@ -27,6 +27,7 @@ constexpr int MAX_TIMER_EFFECTS = LINHAS * COLUNAS;
 constexpr int MAX_EXPIRED_PIECES = LINHAS * COLUNAS;
 
 extern uint64_t node_limit;
+extern bool use_transposition_table;
 extern uint64_t tt_probes;
 extern uint64_t tt_hits;
 extern uint64_t tt_stores;
