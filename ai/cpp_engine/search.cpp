@@ -8,6 +8,10 @@
 
 int action_history_table[2][ACTION_TYPE_COUNT][LINHAS][COLUNAS][LINHAS][COLUNAS]{};
 Move action_killer_moves[MAX_PLY][ACTION_TYPE_COUNT][KILLER_SLOTS];
+bool use_transposition_table = true;
+uint64_t tt_probes = 0;
+uint64_t tt_hits = 0;
+uint64_t tt_stores = 0;
 
 namespace {
 
@@ -349,17 +353,22 @@ int alpha_beta(
     if (board.turn != current_turn) return evaluate_board();
 
     const uint64_t key = search_position_key();
-    TTEntry& slot = transposition_table[key & TT_MASK];
+    TTEntry* slot = nullptr;
+    if (use_transposition_table) {
+        ++tt_probes;
+        slot = &transposition_table[key & TT_MASK];
+    }
     Move tt_best_move;
     const bool tactical_context = continuation.active;
 
-    if (!tactical_context && slot.occupied && slot.zobrist_key == key) {
-        tt_best_move = slot.best_move;
-        if (slot.depth >= depth) {
-            if (slot.flag == TT_EXACT) return slot.value;
-            if (slot.flag == TT_LOWERBOUND) alpha = std::max(alpha, slot.value);
-            else if (slot.flag == TT_UPPERBOUND) beta = std::min(beta, slot.value);
-            if (alpha >= beta) return slot.value;
+    if (!tactical_context && slot != nullptr && slot->occupied && slot->zobrist_key == key) {
+        ++tt_hits;
+        tt_best_move = slot->best_move;
+        if (slot->depth >= depth) {
+            if (slot->flag == TT_EXACT) return slot->value;
+            if (slot->flag == TT_LOWERBOUND) alpha = std::max(alpha, slot->value);
+            else if (slot->flag == TT_UPPERBOUND) beta = std::min(beta, slot->value);
+            if (alpha >= beta) return slot->value;
         }
     }
 
@@ -450,7 +459,10 @@ int alpha_beta(
         TTFlag flag = TT_EXACT;
         if (best_value <= original_alpha) flag = TT_UPPERBOUND;
         else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-        if (!tactical_context) slot = {key, depth, best_value, flag, best_move, true};
+        if (!tactical_context && use_transposition_table && slot != nullptr) {
+            *slot = {key, depth, best_value, flag, best_move, true};
+            ++tt_stores;
+        }
         return best_value;
     }
 
@@ -488,7 +500,10 @@ int alpha_beta(
     TTFlag flag = TT_EXACT;
     if (best_value <= original_alpha) flag = TT_UPPERBOUND;
     else if (best_value >= original_beta) flag = TT_LOWERBOUND;
-    if (!tactical_context) slot = {key, depth, best_value, flag, best_move, true};
+    if (!tactical_context && use_transposition_table && slot != nullptr) {
+        *slot = {key, depth, best_value, flag, best_move, true};
+        ++tt_stores;
+    }
     return best_value;
 }
 
@@ -498,6 +513,9 @@ std::string search_best_move(int max_depth) {
     ensure_hero_behaviors_loaded();
     abort_search = false;
     nodes_evaluated = 0;
+    tt_probes = 0;
+    tt_hits = 0;
+    tt_stores = 0;
     search_start_time = std::chrono::steady_clock::now();
 
     if (max_depth < 1 || board.twc >= 50) return "";
@@ -535,8 +553,14 @@ std::string search_best_move(int max_depth) {
         if (node_limit > 0 && static_cast<uint64_t>(nodes_evaluated) >= node_limit) break;
 
         const uint64_t key = search_position_key();
-        TTEntry& root_slot = transposition_table[key & TT_MASK];
-        const Move tt_move = (root_slot.occupied && root_slot.zobrist_key == key) ? root_slot.best_move : Move();
+        TTEntry* root_slot = nullptr;
+        if (use_transposition_table) {
+            ++tt_probes;
+            root_slot = &transposition_table[key & TT_MASK];
+        }
+        const bool root_hit = root_slot != nullptr && root_slot->occupied && root_slot->zobrist_key == key;
+        if (root_hit) ++tt_hits;
+        const Move tt_move = root_hit ? root_slot->best_move : Move();
 
         score_moves(root_moves, tt_move, 0, board.turn);
         std::sort(root_moves.begin(), root_moves.end());
@@ -590,7 +614,10 @@ std::string search_best_move(int max_depth) {
 
         if (abort_search) break;
         best_overall_move = best_move_this_depth;
-        transposition_table[key & TT_MASK] = {key, depth, best_value, TT_EXACT, best_move_this_depth, true};
+        if (use_transposition_table && root_slot != nullptr) {
+            *root_slot = {key, depth, best_value, TT_EXACT, best_move_this_depth, true};
+            ++tt_stores;
+        }
         if (is_terminal_score(best_value)) break;
     }
 
