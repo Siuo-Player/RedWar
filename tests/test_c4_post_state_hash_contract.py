@@ -26,7 +26,7 @@ def assert_rwen_roundtrip(state: GameState) -> None:
     expected_turn = "W" if state.white_to_move else "B"
 
     assert turn == expected_turn
-    assert twc == state.turn_without_capture
+    assert twc == state.turns_without_capture
 
     for row in range(8):
         for col in range(8):
