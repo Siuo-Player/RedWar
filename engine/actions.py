@@ -106,6 +106,15 @@ class GameAction:
         return result
 
 
+def normalize_action(action: GameAction | Mapping[str, Any]) -> GameAction:
+    """Return the canonical action object without changing action semantics."""
+    if isinstance(action, GameAction):
+        return action
+    if isinstance(action, Mapping):
+        return GameAction.from_dict(action)
+    raise TypeError("action must be a GameAction or mapping")
+
+
 def _coordinate(value: Any, field: str) -> tuple[int, int]:
     if isinstance(value, (str, bytes)):
         raise TypeError(f"{field} coordinate must be a two-item sequence")
