@@ -1,7 +1,7 @@
 # RedWar Core Contracts — C0–C5
 
 **Status:** architectural baseline for implementation work  
-**Date:** 2026-09-04  
+**Date:** 2026-09-05  
 **Scope:** Python core, independent oracle, native Ares move generation/transition, bridge and serialized state
 
 This document defines what each correctness layer is responsible for, which implementation is authoritative today, and which boundaries must become explicit before large product/search expansion.
@@ -70,7 +70,9 @@ A C0 state is valid only when its board/effect objects, lifecycle fields, turn i
 
 ### Current representation
 
-Actions are dictionaries such as:
+`engine.actions.GameAction` is the canonical typed action representation for the core. It captures the action type, origin/destination coordinates and action-specific payloads (`area`, `spawn_name`, `spell_name`).
+
+Legacy dictionaries remain supported at compatibility boundaries, for example:
 
 ```python
 {
@@ -80,25 +82,37 @@ Actions are dictionaries such as:
 }
 ```
 
-Optional fields currently include:
+`engine.actions.normalize_action()` converts a legacy mapping to `GameAction` and leaves an existing `GameAction` unchanged. This allows producers to migrate independently without changing gameplay semantics.
 
-- `area` for STUN;
-- `spell_name` for spells;
-- `spawn_name` for SPAWN.
+### Boundary status
 
-Construction appears in UI/controller code, bot code, replay code, tests, and analysis helpers.
+`GameState.execute_action()` accepts both canonical `GameAction` values and legacy mappings. The canonical path is already exercised by analysis search, the stateful sequence model, and the manual battle interaction execution seam. UI/manual producers and other compatibility-facing code may still construct dictionaries deliberately.
 
-### Contract target
+The migration rule is therefore:
 
-Every action crossing the engine boundary must have one canonical representation with:
+```text
+legacy producer
+      ↓
+normalize_action()
+      ↓
+GameAction
+      ↓
+GameState.execute_action()
+      ↓
+make_action() transition authority
+```
+
+New consumers should prefer `GameAction` at execution boundaries. Legacy dictionaries should remain only where an existing public/compatibility contract still requires them.
+
+### Contract
+
+Every action crossing an engine execution boundary should have one canonical representation with:
 
 - normalized action type;
 - two integer board coordinates for origin and target;
 - action-specific payload only when required;
-- deterministic serialization to/from the Ares protocol;
+- deterministic serialization to/from the Ares protocol where applicable;
 - no UI-specific objects.
-
-The migration should initially be additive. Existing dictionaries can be normalized at the boundary before stronger typing is introduced.
 
 ### Non-goal
 
@@ -110,7 +124,7 @@ Do not encode game rules inside the action object. An action describes intent; t
 
 `GameState.make_action()` is the current authoritative Python state transition. It handles movement, attacks, stuns, spawns, spells, TWC, timers, terminal detection and incremental hash updates.
 
-`GameState.execute_action()` is a convenience boundary that converts an action dictionary into `make_action()` arguments.
+`GameState.execute_action()` is a convenience boundary that normalizes/accepts the canonical action representation and forwards the resulting fields into `make_action()`.
 
 ### Important distinction
 
@@ -166,7 +180,7 @@ It must not call:
 
 `ai/cpp_engine/movegen.cpp` is the native implementation under comparison.
 
-The deterministic campaign now includes FrostMage/Nevada after confirming that the independent oracle and native generator describe the same legal target envelope for that action class.
+The deterministic campaign includes FrostMage/Nevada after confirming that the independent oracle and native generator describe the same legal target envelope for that action class.
 
 ### Evidence boundary
 
@@ -300,9 +314,11 @@ The UI, replay system and Arena consume these contracts. They should not become 
 
 ## 9. Implementation sequence
 
-### Step C1.1 — action boundary
+### Step C1.1 — action boundary — substantially complete
 
-Add one normalization/validation helper for action dictionaries. Keep existing producers working. The first change should reject malformed action structure consistently without changing legal-game semantics.
+The canonical `GameAction` value object and `normalize_action()` adapter are now present. `GameState.execute_action()` accepts the typed representation while preserving legacy mappings for compatibility. Analysis search, stateful sequence execution, and manual interaction execution already normalize before crossing the engine execution boundary.
+
+The remaining C1 work is incremental migration of additional consumers where the compatibility contract is not public or protocol-facing. Do not force a repository-wide producer rewrite merely to remove every dictionary literal.
 
 ### Step C4.1 — deterministic post-state contract
 
