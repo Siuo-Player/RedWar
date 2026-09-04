@@ -9,9 +9,8 @@ from tests.test_cross_backend_movegen import cpp_actions
 from tools.analytics.legal_action_oracle import legal_actions
 
 
-# FrostMage remains outside this randomized corpus until its complete spell
-# semantics are covered independently; the fixed-corpus comparison already
-# exercises its current native/oracle action representation.
+# FrostMage is now covered because the independent oracle has an explicit
+# Nevada legal-action contract matching the native move generator.
 HEROES = (
     "Bone",
     "Obelisk",
@@ -30,6 +29,7 @@ HEROES = (
     "Geomancer",
     "StoneWall",
     "Inquisitor",
+    "FrostMage",
 )
 
 
