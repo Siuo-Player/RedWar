@@ -17,7 +17,7 @@ def test_execute_action_accepts_canonical_game_action_and_matches_legacy_path():
     legacy_state = canonical_state.fast_clone()
 
     action = GameAction(ActionType.MOVE, (6, 0), (5, 0))
-    canonical_state.execute_action(action.to_dict())
+    canonical_state.execute_action(action)
     legacy_state.execute_action({"type": "move", "start": (6, 0), "end": (5, 0)})
 
     assert canonical_state.to_rwen() == legacy_state.to_rwen()
@@ -31,7 +31,7 @@ def test_legal_shape_but_illegal_transition_rejects_before_state_mutation():
 
     invalid_transition = GameAction(ActionType.SPAWN, (6, 0), (6, 0), spawn_name="Bone")
     with pytest.raises(ValueError, match="SPAWN target square is occupied"):
-        state.execute_action(invalid_transition.to_dict())
+        state.execute_action(invalid_transition)
 
     assert state.to_rwen() == before_rwen
     assert state.get_state_hash() == before_hash
@@ -53,7 +53,7 @@ def test_action_contract_keeps_transition_authority_in_gamestate():
     state = _state_with_piece()
     action = GameAction(ActionType.MOVE, (6, 0), (5, 0))
 
-    state.execute_action(action.to_dict())
+    state.execute_action(action)
 
     assert state.board[6][0] is None
     assert state.board[5][0] is not None
