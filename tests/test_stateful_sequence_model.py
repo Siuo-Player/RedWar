@@ -1,6 +1,8 @@
+from engine.actions import GameAction
 from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
 from tools.stateful_sequence_model import (
+    execute_with_trace,
     first_divergence,
     generate_legal_sequence,
     legal_actions,
@@ -44,6 +46,29 @@ def test_sequence_replay_reconstructs_identical_state():
 
     assert live.to_rwen() == reconstructed.to_rwen()
     assert live.get_state_hash() == reconstructed.get_state_hash()
+
+
+def test_execute_with_trace_uses_canonical_game_actions():
+    class RecordingGameState(GameState):
+        def __init__(self):
+            super().__init__()
+            self.received_types = []
+
+        def execute_action(self, action):
+            self.received_types.append(type(action))
+            return super().execute_action(action)
+
+    state = RecordingGameState()
+    state.board[7][0] = criar_peca_por_nome("Geomancer", "brancas")
+    state.compute_initial_hash()
+
+    trace = execute_with_trace(
+        state,
+        [{"type": "move", "start": (7, 0), "end": (6, 0)}],
+    )
+
+    assert trace[0].action["type"] == "move"
+    assert state.received_types == [GameAction]
 
 
 def test_first_divergence_identifies_first_mismatch_or_length_change():
