@@ -1,6 +1,9 @@
 from ai.evaluator import avaliador_mestre
 import random
 
+from engine.actions import normalize_action
+
+
 def get_all_moves_for_analysis(gs):
     # Gerador simplificado que extrai todas as jogadas legais num formato listável
     acoes = []
@@ -14,6 +17,7 @@ def get_all_moves_for_analysis(gs):
                 for at in p.get_valid_attacks(r, c, gs.board, gs.tile_effects):
                     acoes.append({"start": (r, c), "end": at, "type": "attack"})
     return acoes
+
 
 def analisar_posicao_continuamente(gs, max_depth=6):
     """
@@ -34,16 +38,16 @@ def analisar_posicao_continuamente(gs, max_depth=6):
             # Simula a jogada e usa o avaliador base (apenas 1 nível por agora para ser em tempo real)
             # Numa engine completa, isto desceria recursivamente.
             gs_clone = gs.fast_clone()
-            gs_clone.execute_action(acao)
-            
+            gs_clone.execute_action(normalize_action(acao))
+
             # Perspetiva do Avaliador (Sempre negativo para o oponente)
             score = -avaliador_mestre(gs_clone)
-            
+
             # Adiciona um pequeno ruído para desempatar jogadas iguais
             acao["score"] = score + random.randint(-10, 10)
 
         # Ordena do melhor para o pior
         acoes.sort(key=lambda x: x["score"], reverse=True)
-        
+
         # Devolve o Top 5 a esta profundidade para o UI desenhar
         yield depth, acoes[:5]
