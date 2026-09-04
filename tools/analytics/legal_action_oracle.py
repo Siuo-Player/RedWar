@@ -73,6 +73,9 @@ def _ray_actions(state: Any, r: int, c: int, vectors: tuple[tuple[int, int], ...
     effects = state.tile_effects
     team = _team(board[r][c])
     out: list[OracleAction] = []
+    silenced = action_type == "SPELL" and _silenced(state, r, c, team)
+    if silenced:
+        return out
     for dr, dc in vectors:
         for step in range(1, max_steps + 1):
             nr, nc = r + dr * step, c + dc * step
