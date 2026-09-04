@@ -9,6 +9,8 @@ from __future__ import annotations
 from types import MethodType
 from typing import Any
 
+from engine.actions import normalize_action
+
 SUPPORT_SPELLS = {"purify", "swap"}
 
 
@@ -328,7 +330,7 @@ def _install_instance_wrapper(controller: Any) -> None:
 
         _, off_x, tam_casa = self.get_ui_metrics()
         self.desenhar_animacao(self.gs, chosen["start"], chosen["end"], chosen["type"], tam_casa, off_x, 80)
-        self.gs.execute_action(chosen)
+        self.gs.execute_action(normalize_action(chosen))
         self.casa_selecionada = None
         return None
 

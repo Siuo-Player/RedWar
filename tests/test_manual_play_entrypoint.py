@@ -12,6 +12,7 @@ if "ai.search" not in sys.modules:
 
 import main
 
+from engine.actions import GameAction
 from tools.replay import interaction
 
 
@@ -91,4 +92,9 @@ def test_intent_wrapper_preserves_all_legal_actions(monkeypatch):
     interaction.install_intent_interaction(controller)
     controller.tratar_cliques(0, 0, (0, 0))
 
-    assert executed == [actions[1]]
+    assert len(executed) == 1
+    assert isinstance(executed[0], GameAction)
+    assert executed[0].type.value == "spell"
+    assert executed[0].start == (6, 0)
+    assert executed[0].end == (5, 0)
+    assert executed[0].spell_name == "nevada"
