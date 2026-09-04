@@ -81,7 +81,7 @@ def _ray_actions(state: Any, r: int, c: int, vectors: tuple[tuple[int, int], ...
             target = board[nr][nc]
             if target is None:
                 continue
-            if _team(target) != team and step >= min_steps and not _silenced(state, r, c, team):
+            if _team(target) != team and step >= min_steps:
                 out.append(OracleAction(action_type, (r, c), (nr, nc), spell_name=spell_name))
             break
     return out
