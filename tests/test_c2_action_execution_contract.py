@@ -24,16 +24,14 @@ def test_execute_action_accepts_canonical_game_action_and_matches_legacy_path():
     assert canonical_state.get_state_hash() == legacy_state.get_state_hash()
 
 
-def test_invalid_canonical_action_rejects_before_state_mutation():
+def test_legal_shape_but_illegal_transition_rejects_before_state_mutation():
     state = _state_with_piece()
     before_rwen = state.to_rwen()
     before_hash = state.get_state_hash()
 
-    invalid = GameAction(ActionType.SPAWN, (6, 0), (5, 0), spawn_name="Bone")
-    # The action object itself is structurally valid; the current execution
-    # adapter still rejects illegal transition input before mutating state.
-    with pytest.raises(ValueError):
-        state.execute_action(invalid.to_dict())
+    invalid_transition = GameAction(ActionType.SPAWN, (6, 0), (6, 0), spawn_name="Bone")
+    with pytest.raises(ValueError, match="SPAWN target square is occupied"):
+        state.execute_action(invalid_transition.to_dict())
 
     assert state.to_rwen() == before_rwen
     assert state.get_state_hash() == before_hash
@@ -44,7 +42,7 @@ def test_unknown_legacy_action_is_rejected_without_mutation():
     before_rwen = state.to_rwen()
     before_hash = state.get_state_hash()
 
-    with pytest.raises((ValueError, KeyError)):
+    with pytest.raises(ValueError):
         state.execute_action({"type": "teleport", "start": (6, 0), "end": (5, 0)})
 
     assert state.to_rwen() == before_rwen
