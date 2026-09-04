@@ -73,6 +73,9 @@ def _ray_actions(state: Any, r: int, c: int, vectors: tuple[tuple[int, int], ...
     effects = state.tile_effects
     team = _team(board[r][c])
     out: list[OracleAction] = []
+    silenced = action_type == "SPELL" and _silenced(state, r, c, team)
+    if silenced:
+        return out
     for dr, dc in vectors:
         for step in range(1, max_steps + 1):
             nr, nc = r + dr * step, c + dc * step
@@ -81,7 +84,7 @@ def _ray_actions(state: Any, r: int, c: int, vectors: tuple[tuple[int, int], ...
             target = board[nr][nc]
             if target is None:
                 continue
-            if _team(target) != team and step >= min_steps and not _silenced(state, r, c, team):
+            if _team(target) != team and step >= min_steps:
                 out.append(OracleAction(action_type, (r, c), (nr, nc), spell_name=spell_name))
             break
     return out
@@ -151,6 +154,7 @@ def _attack_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleAction
         "Obelisk": (ORTHOGONAL, 1),
         "Templar": (ORTHOGONAL, 1),
         "Berserker": (ADJACENT, 1),
+        "Dragoon": (ORTHOGONAL, 1),
         "Inquisitor": (ADJACENT, 1),
         "Nightshade": (ORTHOGONAL, 1),
     }
