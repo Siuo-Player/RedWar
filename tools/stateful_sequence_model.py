@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import random
 from typing import Any, Iterable
 
+from engine.actions import normalize_action
 from engine.config import LINHAS, COLUNAS
 
 
@@ -71,7 +72,7 @@ def generate_legal_sequence(gs, seed: int, length: int = 32) -> list[dict[str, A
             break
         action = rng.choice(candidates)
         sequence.append(action)
-        working.execute_action(action)
+        working.execute_action(normalize_action(action))
     return sequence
 
 
@@ -79,7 +80,7 @@ def execute_with_trace(gs, sequence: Iterable[dict[str, Any]]) -> list[SequenceS
     """Execute a sequence and retain its ordered semantic actions."""
     trace: list[SequenceStep] = []
     for index, action in enumerate(sequence):
-        gs.execute_action(action)
+        gs.execute_action(normalize_action(action))
         trace.append(SequenceStep(index, action.copy()))
     return trace
 
