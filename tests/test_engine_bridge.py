@@ -80,8 +80,10 @@ def test_cpp_engine_bot_preserves_native_error_info_for_non_terminal_0000():
     gs.board = [[None for _ in range(8)] for _ in range(8)]
     gs.tile_effects = [[None for _ in range(8)] for _ in range(8)]
     gs.white_to_move = True
-    gs.board[6][0] = criar_peca_por_nome("Bone", "brancas")
-    gs.board[1][7] = criar_peca_por_nome("Bone", "pretas")
+    # Keep this fixture explicitly non-terminal so the assertion exercises the
+    # bridge diagnostic path rather than GameState's terminal-position logic.
+    gs.board[7][0] = criar_peca_por_nome("Geomancer", "brancas")
+    gs.board[0][7] = criar_peca_por_nome("Geomancer", "pretas")
 
     with pytest.raises(RuntimeError, match="engine_info=.*NNUE feature index out of range"):
         bot.escolher_jogada(gs)
