@@ -63,6 +63,12 @@ def transformed_action_set(state):
     return {action_text(transform_action(action, state)) for action in actions_for(state)}
 
 
+def _stable_action(state):
+    actions = actions_for(state)
+    assert actions
+    return min(actions, key=lambda action: action_text(normalize_action(action, state)))
+
+
 def test_legal_action_set_is_color_symmetric():
     for label, state in make_cases():
         swapped = swap_colors_and_mirror(state)
@@ -92,3 +98,67 @@ def test_action_execution_is_color_equivariant():
             assert restored.get_state_hash() == left.get_state_hash(), (
                 f"{label}: hash lost color equivariance for {action}"
             )
+
+
+def test_repeated_legal_action_generation_is_state_pure():
+    for label, state in make_cases():
+        before_rwen = state.to_rwen()
+        before_hash = state.get_state_hash()
+        before_last_move = state.last_move
+        before_turns_without_capture = state.turns_without_capture
+
+        first = canonical_actions(state)
+        second = canonical_actions(state)
+
+        assert first == second, f"{label}: repeated legal-action generation changed the action set"
+        assert state.to_rwen() == before_rwen, f"{label}: action generation mutated the board state"
+        assert state.get_state_hash() == before_hash, f"{label}: action generation changed the state hash"
+        assert state.last_move == before_last_move, f"{label}: action generation changed last_move"
+        assert state.turns_without_capture == before_turns_without_capture, (
+            f"{label}: action generation changed turns_without_capture"
+        )
+
+
+def test_same_legal_action_on_independent_clones_has_identical_lifecycle_result():
+    for label, state in make_cases():
+        action = _stable_action(state)
+        left = state.fast_clone()
+        right = state.fast_clone()
+
+        left.execute_action(action)
+        right.execute_action(action)
+
+        assert left.to_rwen() == right.to_rwen(), (
+            f"{label}: identical actions produced different resulting states"
+        )
+        assert left.get_state_hash() == right.get_state_hash(), (
+            f"{label}: identical actions produced different hashes"
+        )
+        assert left.white_to_move == right.white_to_move, (
+            f"{label}: identical actions produced different side-to-move state"
+        )
+        assert left.last_move == right.last_move, (
+            f"{label}: identical actions produced different last_move metadata"
+        )
+        assert left.turns_without_capture == right.turns_without_capture, (
+            f"{label}: identical actions produced different capture-counter state"
+        )
+
+
+def test_executing_on_clone_does_not_mutate_source_lifecycle_state():
+    for label, state in make_cases():
+        source_rwen = state.to_rwen()
+        source_hash = state.get_state_hash()
+        source_last_move = state.last_move
+        source_turns_without_capture = state.turns_without_capture
+        action = _stable_action(state)
+
+        clone = state.fast_clone()
+        clone.execute_action(action)
+
+        assert state.to_rwen() == source_rwen, f"{label}: clone execution mutated the source board"
+        assert state.get_state_hash() == source_hash, f"{label}: clone execution mutated the source hash"
+        assert state.last_move == source_last_move, f"{label}: clone execution mutated source last_move"
+        assert state.turns_without_capture == source_turns_without_capture, (
+            f"{label}: clone execution mutated source capture-counter state"
+        )
