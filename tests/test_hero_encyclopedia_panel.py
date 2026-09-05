@@ -50,6 +50,7 @@ def test_lines_are_derived_from_canonical_context():
         "Descrição: desc",
         "Movimento: move",
         "Ataque: attack",
+        "Passiva: passive",
         "Spells: fire",
         "Regras especiais:",
         "• rule",
