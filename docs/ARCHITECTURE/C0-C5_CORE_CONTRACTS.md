@@ -62,9 +62,11 @@ The current hash is therefore a derived identity, not an independent source of t
 
 A C0 state is valid only when its board/effect objects, lifecycle fields, turn information and derived hash describe the same logical position. Any state mutation must either maintain the hash incrementally or invalidate it so it can be recomputed safely.
 
-### Known architectural debt
+### Serializer status
 
-`to_rwen()` compatibility is installed dynamically from `engine/__init__.py`. This preserves the existing protocol but hides an important serialization contract behind import-time mutation. Future work should make the state serializer explicit and versioned without changing current RWEN semantics first.
+`GameState.to_rwen()` is defined directly on the authoritative `GameState` class and is the current canonical Python serializer for the Ares-facing RWEN representation. The current implementation therefore does **not** rely on import-time installation of `to_rwen()` from `engine/__init__.py`.
+
+Future work may version the RWEN serializer and parser, but that is a compatibility evolution task rather than a removal of an existing monkey-patch. Existing RWEN text semantics must remain unchanged until a dedicated decision and compatibility tests authorize a versioned format.
 
 ## 3. C1 — canonical action
 
@@ -196,7 +198,7 @@ Any test/report that claims more must name the stronger layer explicitly.
 
 ## 6. C4 — semantic transition equivalence
 
-The repository already contains meaningful C4 evidence, including Python/C++ make-unmake fixtures and persistent sequence checks.
+The repository already contains meaningful C4 evidence, including Python/C++ make-unmake fixtures and persistent sequence checks. The post-state hash/RWEN contract also now has explicit representative-action and deterministic-sequence coverage.
 
 ### Required semantic comparison
 
@@ -320,13 +322,15 @@ The canonical `GameAction` value object and `normalize_action()` adapter are now
 
 The remaining C1 work is incremental migration of additional consumers where the compatibility contract is not public or protocol-facing. Do not force a repository-wide producer rewrite merely to remove every dictionary literal.
 
-### Step C4.1 — deterministic post-state contract
+### Step C4.1 — deterministic post-state contract — substantially complete
 
-Extend existing cross-backend sequence tests with explicit per-step assertions for serialized state and derived identity. Reuse existing make/unmake infrastructure instead of building a parallel harness.
+Existing cross-backend make/unmake and persistent-sequence checks are complemented by explicit Python-side post-state hash and RWEN round-trip assertions over representative actions and a deterministic multi-step sequence.
 
-### Step C0.1 — explicit serializer
+The remaining C4 work should concentrate on cross-backend semantic coverage where the native bridge can expose the same observable state, rather than duplicating Python-only serialization checks.
 
-Move RWEN compatibility from import-time monkey-patching towards an explicit serializer API, preserving exact current text format and adding a serializer version for future evolution.
+### Step C0.1 — explicit/versioned serializer
+
+`GameState.to_rwen()` is already explicit on the authoritative state class. The next C0 step is therefore **not** removing an import-time monkey-patch; it is defining a compatibility/versioning contract for RWEN parsing and serialization without changing the current wire format.
 
 ### Step C5.1 — protocol specification
 
