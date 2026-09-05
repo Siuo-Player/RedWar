@@ -76,17 +76,17 @@ The Python bridge treats an unexpected process exit, timeout, malformed transpor
 
 An earlier A0 seam exposed a `state canonical` diagnostic command. The current production `main.cpp` does not expose that command; references to it in older documents describe historical tooling only and must not be treated as a current protocol requirement.
 
-## Conformance targets
+## Current conformance coverage and future evolution
 
-Future protocol changes should be accompanied by executable checks covering, as applicable:
+The current protocol contract is backed by executable checks rather than being only a future target. The existing C5 coverage includes:
 
-1. readiness and lifecycle ordering;
-2. canonical RWEN acceptance and bridge state identity;
-3. command response grammar;
-4. search completion ordering (`info` diagnostics before `bestmove`);
-5. node-bounded search determinism at the protocol level;
-6. option and hash lifecycle;
-7. explicit failure semantics;
-8. clean close/quit behavior.
+1. readiness and lifecycle ordering in `tests/test_engine_bridge.py` and `tests/test_c5_ares_protocol.py`;
+2. canonical RWEN acceptance and bridge state identity in the bridge/lifecycle tests;
+3. command response grammar in the C5 protocol tests and action matrix;
+4. search completion ordering (`info` diagnostics before `bestmove`) in the lifecycle/action-matrix coverage;
+5. node-bounded protocol behavior and deterministic node accounting in the C5/search checks;
+6. option and hash lifecycle, including cancellation before stateful hash changes;
+7. explicit failure semantics, including timeout, transport failure, and non-terminal `0000` handling;
+8. clean close/quit behavior and restart-after-close coverage.
 
-A protocol change should update this contract and its conformance tests in the same change series.
+Protocol changes should update this contract and their executable conformance checks in the same change series. Remaining forward-looking work is limited to compatibility features that have a concrete need, notably explicit protocol/feature negotiation and RWEN versioning; those should not be added speculatively.
