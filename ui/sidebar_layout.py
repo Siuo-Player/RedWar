@@ -52,8 +52,11 @@ def sidebar_layout_for_viewport(
     else:
         mode = "narrow"
 
-    # Treat minimum_width as a preferred floor, but never violate the viewport.
-    panel_width = max(0, min(max(minimum_width, available_width), available_width))
+    # Prefer the configured minimum when there is room for it, but never let
+    # the sidebar extend beyond the viewport. In a genuinely constrained view,
+    # the caller must adapt the presentation rather than receive overflowing
+    # geometry.
+    panel_width = available_width if available_width < minimum_width else available_width
 
     return SidebarLayout(
         mode=mode,
