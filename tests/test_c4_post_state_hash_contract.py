@@ -3,6 +3,7 @@ from __future__ import annotations
 from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
 from tests.test_cross_backend_make_unmake import actions_for
+from tools.nnue.features import load_hero_ids, parse_rwen
 
 
 def put(state: GameState, row: int, col: int, name: str, team: str, *, stun: int = 0, lifespan=None, cooldown: int = 0) -> None:
@@ -17,6 +18,39 @@ def rebuilt_hash(state: GameState) -> int:
     """Force the canonical hash calculation path instead of the incremental cache."""
     state._hash_valid = False
     return state.get_state_hash()
+
+
+def assert_rwen_roundtrip(state: GameState) -> None:
+    """Verify that the authoritative RWEN preserves serialized post-state semantics."""
+    board, effects, turn, twc = parse_rwen(state.to_rwen(), load_hero_ids())
+    expected_turn = "W" if state.white_to_move else "B"
+
+    assert turn == expected_turn
+    assert twc == state.turns_without_capture
+
+    for row in range(8):
+        for col in range(8):
+            piece = state.board[row][col]
+            parsed = board[row][col]
+            if piece is None:
+                assert parsed is None
+            else:
+                assert parsed is not None
+                assert parsed.team == ("W" if piece.team == "brancas" else "B")
+                assert parsed.name == piece.name
+                assert parsed.stun == piece.stun_timer
+                assert parsed.lifespan == (999 if piece.lifespan is None else piece.lifespan)
+                assert parsed.cooldown == piece.spawn_cooldown
+
+            effect = state.tile_effects[row][col] if state.tile_effects else None
+            parsed_effect = effects[row][col]
+            if effect is None:
+                assert parsed_effect is None
+            else:
+                assert parsed_effect is not None
+                assert parsed_effect.team == ("W" if effect.get("team") == "brancas" else "B")
+                assert parsed_effect.type == effect.get("type")
+                assert parsed_effect.timer == effect.get("timer")
 
 
 def test_incremental_hash_matches_recomputed_hash_after_representative_actions():
@@ -75,6 +109,7 @@ def test_incremental_hash_matches_recomputed_hash_after_representative_actions()
 
         assert incremental == recomputed
         assert after.to_rwen() != before_rwen
+        assert_rwen_roundtrip(after)
         assert state.to_rwen() == before_rwen
         assert state.get_state_hash() == before_hash
 
@@ -102,6 +137,7 @@ def test_hash_remains_reconstructible_across_a_deterministic_legal_sequence():
         incremental = after.get_state_hash()
         recomputed = rebuilt_hash(after)
         assert incremental == recomputed
+        assert_rwen_roundtrip(after)
 
         state = after
 
