@@ -153,17 +153,19 @@ validate coordinates/source
 
 Simulation calls are explicitly supported through `is_simulation` and must not create real-game replay side effects.
 
-### Required future guardrails
+### Established executable guardrails
 
-Before extracting `GameState` into multiple classes, add deterministic tests that assert for representative actions:
+The formerly proposed “future” guardrails are now represented by existing deterministic checks across the C2/C4 test suite. The coverage includes:
 
-- pre-state is unchanged when a clone is executed;
-- post-state RWEN is canonical;
-- post-state hash equals the hash of the reconstructed state;
-- TWC follows the documented permanent-vs-temporary capture rule;
-- lifecycle timers/effects advance exactly once;
-- terminal state is identical across implementations;
-- replay capture is absent from simulation paths.
+- clone execution preserving the pre-state;
+- canonical post-state RWEN round-trip;
+- post-state hash matching a reconstructed state;
+- TWC permanent-vs-temporary capture semantics;
+- lifecycle timers/effects advancing once per transition;
+- terminal-state agreement across the compared implementations;
+- absence of replay side effects on simulation paths.
+
+Future C2 work should therefore extend edge-case coverage where gaps are discovered rather than treating these invariants as wholly unimplemented.
 
 ## 5. C3 — legal-action contract
 
@@ -261,9 +263,13 @@ At minimum, the product currently relies on concepts including:
 - `clearhash`;
 - diagnostic handling for `bestmove 0000`.
 
-### Contract target
+### Current implementation status
 
-The Ares protocol should become a standalone, versioned interface specifying:
+The wire contract is now documented in `docs/ARCHITECTURE/C5_ARES_ENGINE_PROTOCOL.md` and backed by executable C5 protocol/bridge tests, including lifecycle ordering, action/response grammar, node-bounded search semantics, hash/option lifecycle, explicit failure handling, and clean close/quit behaviour.
+
+### Future compatibility target
+
+A separately versioned protocol interface remains a valid architectural evolution, but it should be introduced only for a concrete compatibility need. Such a versioned contract would specify:
 
 ```text
 protocol version
@@ -332,9 +338,9 @@ The remaining C4 work should concentrate on cross-backend semantic coverage wher
 
 `GameState.to_rwen()` is already explicit on the authoritative state class. The next C0 step is therefore **not** removing an import-time monkey-patch; it is defining a compatibility/versioning contract for RWEN parsing and serialization without changing the current wire format.
 
-### Step C5.1 — protocol specification
+### Step C5.1 — protocol specification — substantially complete
 
-Document the current Ares wire contract, then add machine-checkable version/feature negotiation only when a concrete compatibility need exists.
+The current Ares wire contract is documented and executable conformance is already present. The remaining evolution is explicit protocol/feature negotiation only when a concrete compatibility need exists.
 
 ### Later extraction
 
@@ -363,5 +369,7 @@ The phase can be considered complete when repository documentation and tests mak
 7. how serialization and hashing identify a state;
 8. which protocol guarantees the bridge provides;
 9. which evidence supports correctness versus search/strength claims.
+
+The documentation and executable checks now cover these contract categories. Remaining work should be treated as targeted gap-filling or compatibility evolution rather than an open-ended C0-C5 specification phase.
 
 Only then should the roadmap prioritize deeper Ares/NNUE optimization or major product expansion.
