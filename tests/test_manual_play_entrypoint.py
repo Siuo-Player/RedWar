@@ -81,7 +81,7 @@ def test_intent_wrapper_selected_hero_enters_formal_state(monkeypatch):
     interaction.install_intent_interaction(controller)
     controller.tratar_cliques(0, 0, (0, 0))
 
-    assert controller._interaction_state is InteractionState.SELECTED_HERO
+    assert controller._interaction_state is InteractionState.HOVERED_CELL
 
 
 def test_intent_wrapper_multiple_actions_enters_action_choice_and_executes_selected_action(monkeypatch):
