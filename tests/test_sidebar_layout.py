@@ -43,7 +43,7 @@ def test_narrow_viewport_shrinks_to_available_width_without_overflow():
     assert layout.panel_x + layout.panel_width + layout.right_margin == 900
 
 
-def test_narrow_viewport_with_no_horizontal_room_returns_zero_width():
+def test_narrow_viewport_clamps_panel_origin_when_board_consumes_viewport():
     layout = sidebar_layout_for_viewport(
         viewport_width=100,
         board_left=20,
@@ -51,8 +51,9 @@ def test_narrow_viewport_with_no_horizontal_room_returns_zero_width():
     )
 
     assert layout.mode == "narrow"
-    assert layout.panel_x == 130
+    assert layout.panel_x == 80
     assert layout.panel_width == 0
+    assert layout.panel_x + layout.panel_width + layout.right_margin == 100
 
 
 def test_custom_margins_are_deterministic():
@@ -80,6 +81,7 @@ def test_layout_never_extends_beyond_viewport():
             board_width=700,
         )
         assert layout.panel_width >= 0
+        assert layout.panel_x >= 0
         assert layout.panel_x + layout.panel_width + layout.right_margin <= viewport_width
 
 
