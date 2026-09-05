@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -106,6 +107,7 @@ def test_production_protocol_stop_cancels_infinite_search(production_engine: Pat
         assert bridge.read_response(timeout=10) == "readyok"
         bridge.send_command(f"position rwen {state.to_rwen()}")
         bridge.send_command("go infinite")
+        time.sleep(0.05)
         bridge.send_command("stop")
 
         responses = _read_until_bestmove(bridge)
