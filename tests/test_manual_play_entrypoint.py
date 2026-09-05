@@ -14,6 +14,7 @@ import main
 
 from engine.actions import GameAction
 from tools.replay import interaction
+from tools.replay.interaction_state import InteractionState
 
 
 def test_main_entrypoint_installs_interaction_policies():
@@ -60,13 +61,42 @@ def test_main_draft_selected_shop_button_toggles_off():
     assert controller.peca_loja is None
 
 
-def test_intent_wrapper_preserves_all_legal_actions(monkeypatch):
+def test_intent_wrapper_selected_hero_enters_formal_state(monkeypatch):
+    monkeypatch.setattr(interaction, "_install_sidebar_render", lambda *_: None)
+    controller = SimpleNamespace(
+        fase_atual="BATALHA",
+        gs=SimpleNamespace(
+            white_to_move=True,
+            game_over=False,
+            board=[[None] * 8 for _ in range(8)],
+            tile_effects=[[None] * 8 for _ in range(8)],
+        ),
+        hover_pos=(6, 0),
+        casa_selecionada=None,
+        renderizar=lambda *args, **kwargs: None,
+        tratar_cliques=lambda *_args: None,
+    )
+    controller.gs.board[6][0] = SimpleNamespace(team="brancas", name="FrostMage")
+
+    interaction.install_intent_interaction(controller)
+    controller.tratar_cliques(0, 0, (0, 0))
+
+    assert controller._interaction_state is InteractionState.SELECTED_HERO
+
+
+def test_intent_wrapper_multiple_actions_enters_action_choice_and_executes_selected_action(monkeypatch):
     actions = [
         {"type": "move", "start": (6, 0), "end": (5, 0)},
         {"type": "spell", "start": (6, 0), "end": (5, 0), "spell_name": "nevada"},
     ]
     monkeypatch.setattr(interaction, "actions_for_destination", lambda *_: actions)
-    monkeypatch.setattr(interaction, "_prompt", lambda *_args, **_kwargs: 1)
+    observed = []
+
+    def prompt(*_args, **_kwargs):
+        observed.append(controller._interaction_state)
+        return 1
+
+    monkeypatch.setattr(interaction, "_prompt", prompt)
 
     executed = []
     controller = SimpleNamespace(
@@ -92,9 +122,93 @@ def test_intent_wrapper_preserves_all_legal_actions(monkeypatch):
     interaction.install_intent_interaction(controller)
     controller.tratar_cliques(0, 0, (0, 0))
 
+    assert observed == [InteractionState.ACTION_CHOICE]
     assert len(executed) == 1
     assert isinstance(executed[0], GameAction)
     assert executed[0].type.value == "spell"
     assert executed[0].start == (6, 0)
     assert executed[0].end == (5, 0)
     assert executed[0].spell_name == "nevada"
+    assert controller._interaction_state is InteractionState.IDLE
+
+
+def test_intent_wrapper_cancelled_action_recovers_to_selected_or_hover_state(monkeypatch):
+    actions = [
+        {"type": "move", "start": (6, 0), "end": (5, 0)},
+        {"type": "spell", "start": (6, 0), "end": (5, 0), "spell_name": "nevada"},
+    ]
+    monkeypatch.setattr(interaction, "actions_for_destination", lambda *_: actions)
+    monkeypatch.setattr(interaction, "_prompt", lambda *_args, **_kwargs: None)
+
+    controller = SimpleNamespace(
+        fase_atual="BATALHA",
+        gs=SimpleNamespace(
+            white_to_move=True,
+            game_over=False,
+            board=[[None] * 8 for _ in range(8)],
+            tile_effects=[[None] * 8 for _ in range(8)],
+        ),
+        hover_pos=(5, 0),
+        casa_selecionada=(6, 0),
+        modo_predador=False,
+        pondering_active=False,
+        bot_ativo=None,
+        renderizar=lambda *args, **kwargs: None,
+        tratar_cliques=lambda *_args: None,
+    )
+
+    interaction.install_intent_interaction(controller)
+    controller.tratar_cliques(0, 0, (0, 0))
+
+    assert controller._interaction_state is InteractionState.HOVERED_CELL
+    assert controller._interaction_destination is None
+    assert controller._interaction_action_count == 0
+
+
+def test_intent_wrapper_confirmation_state_is_observable(monkeypatch):
+    action = {
+        "type": "spell",
+        "start": (6, 0),
+        "end": (5, 0),
+        "spell_name": "fire",
+    }
+    monkeypatch.setattr(interaction, "actions_for_destination", lambda *_: [action])
+    prompts = iter([0])
+    observed = []
+
+    def prompt(*_args, **_kwargs):
+        observed.append(controller._interaction_state)
+        return next(prompts)
+
+    monkeypatch.setattr(interaction, "_prompt", prompt)
+    ally = SimpleNamespace(team="brancas", name="Ally")
+    caster = SimpleNamespace(team="brancas", name="Mage")
+    board = [[None] * 8 for _ in range(8)]
+    board[6][0] = caster
+    board[5][0] = ally
+
+    controller = SimpleNamespace(
+        fase_atual="BATALHA",
+        gs=SimpleNamespace(
+            white_to_move=True,
+            game_over=False,
+            board=board,
+            tile_effects=[[None] * 8 for _ in range(8)],
+            execute_action=lambda *_: None,
+        ),
+        hover_pos=(5, 0),
+        casa_selecionada=(6, 0),
+        modo_predador=False,
+        pondering_active=False,
+        bot_ativo=None,
+        get_ui_metrics=lambda: (80, 60, 60),
+        desenhar_animacao=lambda *args: None,
+        renderizar=lambda *args, **kwargs: None,
+        tratar_cliques=lambda *_args: None,
+    )
+
+    interaction.install_intent_interaction(controller)
+    controller.tratar_cliques(0, 0, (0, 0))
+
+    assert observed == [InteractionState.ACTION_CONFIRMATION]
+    assert controller._interaction_state is InteractionState.IDLE
