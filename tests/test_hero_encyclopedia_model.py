@@ -12,6 +12,7 @@ def test_context_reads_canonical_definition():
     assert context.name == name
     assert context.cost == int(HERO_DEFS[name].get("cost", 0))
     assert context.description == str(HERO_DEFS[name].get("descricao", "Sem descrição."))
+    assert context.passive == str(HERO_DEFS[name].get("passiva", "Nenhuma."))
 
 
 def test_context_preserves_configured_spells():
