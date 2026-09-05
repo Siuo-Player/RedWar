@@ -40,6 +40,7 @@ def test_lines_are_derived_from_canonical_context():
         description="desc",
         movement="move",
         attack="attack",
+        passive="passive",
         spells=("fire",),
         special_rules=("rule",),
     )
