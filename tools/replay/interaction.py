@@ -10,6 +10,7 @@ from types import MethodType
 from typing import Any
 
 from engine.actions import normalize_action
+from tools.replay.interaction_state import InteractionContext, InteractionState, derive_interaction_state
 
 SUPPORT_SPELLS = {"purify", "swap"}
 
@@ -74,6 +75,50 @@ def needs_offensive_target_confirmation(gs: Any, action: dict[str, Any]) -> bool
     target = gs.board[end_r][end_c]
     caster = gs.board[start_r][start_c] if start_r is not None else None
     return bool(target is not None and caster is not None and target.team == caster.team)
+
+
+def _sync_interaction_state(
+    controller: Any,
+    *,
+    destination: tuple[int, int] | None = None,
+    action_count: int | None = None,
+    confirmation_required: bool | None = None,
+) -> InteractionState:
+    """Mirror current UI intent into the formal state model without changing authority."""
+    if destination is not None:
+        controller._interaction_destination = destination
+    elif not hasattr(controller, "_interaction_destination"):
+        controller._interaction_destination = None
+    if action_count is not None:
+        controller._interaction_action_count = action_count
+    elif not hasattr(controller, "_interaction_action_count"):
+        controller._interaction_action_count = 0
+    if confirmation_required is not None:
+        controller._interaction_confirmation_required = confirmation_required
+    elif not hasattr(controller, "_interaction_confirmation_required"):
+        controller._interaction_confirmation_required = False
+
+    gs = getattr(controller, "gs", None)
+    context = InteractionContext(
+        selected_hero=getattr(controller, "casa_selecionada", None),
+        hovered_cell=getattr(controller, "hover_pos", None),
+        destination=getattr(controller, "_interaction_destination", None),
+        action_count=getattr(controller, "_interaction_action_count", 0),
+        confirmation_required=getattr(controller, "_interaction_confirmation_required", False),
+        game_over=bool(getattr(gs, "game_over", False)),
+        enemy_turn=bool(gs is not None and not getattr(gs, "white_to_move", True)),
+        replay_analysis=bool(getattr(controller, "replay_analysis", False)),
+    )
+    state = derive_interaction_state(context)
+    controller._interaction_state = state
+    return state
+
+
+def _clear_pending_interaction(controller: Any) -> None:
+    controller._interaction_destination = None
+    controller._interaction_action_count = 0
+    controller._interaction_confirmation_required = False
+    _sync_interaction_state(controller)
 
 
 def _panel_geometry(controller: Any) -> tuple[int, int, int]:
@@ -232,6 +277,7 @@ def _install_sidebar_render(controller: Any) -> None:
         result = original(*args, **kwargs)
         if self.fase_atual == "BATALHA":
             _draw_sidebar(self.ecra, self)
+        _sync_interaction_state(self)
         return result
 
     controller.renderizar = MethodType(wrapped_render, controller)
@@ -246,6 +292,8 @@ def _prompt(controller: Any, title: str, labels: list[str], *, allow_cancel: boo
     width, height = controller.ecra.get_size()
     panel_x, panel_w, _ = _panel_geometry(controller)
     action_labels = labels
+    controller._interaction_action_count = len(action_labels)
+    _sync_interaction_state(controller)
 
     while True:
         for event in pygame.event.get():
@@ -264,7 +312,6 @@ def _prompt(controller: Any, title: str, labels: list[str], *, allow_cancel: boo
                     if rect.collidepoint(event.pos):
                         return index
 
-        # Keep selected hero and destination visible while choosing.
         controller.renderizar(
             w=width,
             h=height,
@@ -281,6 +328,7 @@ def _prompt(controller: Any, title: str, labels: list[str], *, allow_cancel: boo
 def _install_instance_wrapper(controller: Any) -> None:
     original = controller.tratar_cliques
     _install_sidebar_render(controller)
+    _sync_interaction_state(controller)
 
     def wrapped(self: Any, mx: int, my: int, pos: tuple[int, int]) -> Any:
         if not (
@@ -296,11 +344,14 @@ def _install_instance_wrapper(controller: Any) -> None:
             piece = self.gs.board[r][c]
             if piece is not None and piece.team == "brancas":
                 self.casa_selecionada = (r, c)
+                _clear_pending_interaction(self)
+                _sync_interaction_state(self)
             return None
 
         sr, sc = self.casa_selecionada
         if (sr, sc) == (r, c):
             self.casa_selecionada = None
+            _clear_pending_interaction(self)
             return None
 
         actions = actions_for_destination(self.gs, sr, sc, r, c)
@@ -308,7 +359,13 @@ def _install_instance_wrapper(controller: Any) -> None:
             clicked_piece = self.gs.board[r][c]
             if clicked_piece is not None and clicked_piece.team == "brancas":
                 self.casa_selecionada = (r, c)
+                _clear_pending_interaction(self)
+                _sync_interaction_state(self)
             return None
+
+        self._interaction_destination = (r, c)
+        self._interaction_action_count = len(actions)
+        _sync_interaction_state(self)
 
         if len(actions) == 1:
             chosen = actions[0]
@@ -316,12 +373,17 @@ def _install_instance_wrapper(controller: Any) -> None:
             labels = [action_label(action) for action in actions]
             index = _prompt(self, "ESCOLHER AÇÃO", labels)
             if index is None:
+                _clear_pending_interaction(self)
                 return None
             chosen = actions[index]
 
         if needs_offensive_target_confirmation(self.gs, chosen):
+            self._interaction_confirmation_required = True
+            _sync_interaction_state(self)
             index = _prompt(self, "CONFIRMAR PODER", [f"Confirmar {action_label(chosen)}", "Cancelar"])
+            self._interaction_confirmation_required = False
             if index != 0:
+                _clear_pending_interaction(self)
                 return None
 
         if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, "stop_pondering"):
@@ -332,6 +394,7 @@ def _install_instance_wrapper(controller: Any) -> None:
         self.desenhar_animacao(self.gs, chosen["start"], chosen["end"], chosen["type"], tam_casa, off_x, 80)
         self.gs.execute_action(normalize_action(chosen))
         self.casa_selecionada = None
+        _clear_pending_interaction(self)
         return None
 
     controller.tratar_cliques = MethodType(wrapped, controller)
