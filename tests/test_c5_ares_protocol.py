@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -96,6 +97,27 @@ def test_production_protocol_lifecycle(production_engine: Path):
         bridge.close()
 
     assert bridge.lifecycle is BridgeLifecycle.CLOSED
+
+
+def test_production_protocol_stop_cancels_infinite_search(production_engine: Path):
+    state = _fixture_position()
+    bridge = SubprocessEngineBridge(str(production_engine))
+    try:
+        bridge.ensure_running()
+        assert bridge.read_response(timeout=10) == "readyok"
+        bridge.send_command(f"position rwen {state.to_rwen()}")
+        bridge.send_command("go infinite")
+        time.sleep(0.05)
+        bridge.send_command("stop")
+
+        responses = _read_until_bestmove(bridge)
+        assert responses[-1].startswith("bestmove ")
+        diagnostics = [
+            line for line in responses if line.startswith("info string search diagnostics ")
+        ]
+        assert len(diagnostics) == 1
+    finally:
+        bridge.close()
 
 
 def test_production_protocol_unknown_command(production_engine: Path):
