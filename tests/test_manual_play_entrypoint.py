@@ -242,7 +242,6 @@ def test_intent_wrapper_single_action_exposes_selected_destination_before_execut
         observed.append((controller._interaction_state, action_to_execute))
 
     controller.gs.execute_action = execute
-    controller.desenhar_animacao = lambda *args: None
     interaction.install_intent_interaction(controller)
     controller.tratar_cliques(0, 0, (0, 0))
 
