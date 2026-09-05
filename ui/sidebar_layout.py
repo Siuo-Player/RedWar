@@ -43,7 +43,8 @@ def sidebar_layout_for_viewport(
     if right_margin < 0 or board_gap < 0 or minimum_width < 1:
         raise ValueError("layout margins must be non-negative and minimum_width positive")
 
-    panel_x = board_left + board_width + board_gap
+    requested_panel_x = board_left + board_width + board_gap
+    panel_x = min(requested_panel_x, max(0, viewport_width - right_margin))
     available_width = max(0, viewport_width - panel_x - right_margin)
 
     if viewport_width >= 1600:
