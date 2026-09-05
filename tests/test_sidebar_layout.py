@@ -29,7 +29,7 @@ def test_medium_viewport_uses_medium_mode_and_available_width():
     assert layout.panel_width == 430
 
 
-def test_narrow_viewport_contracts_to_minimum_width():
+def test_narrow_viewport_shrinks_to_available_width_without_overflow():
     layout = sidebar_layout_for_viewport(
         viewport_width=900,
         board_left=20,
@@ -39,7 +39,21 @@ def test_narrow_viewport_contracts_to_minimum_width():
 
     assert layout.mode == "narrow"
     assert layout.panel_x == 750
-    assert layout.panel_width == 240
+    assert layout.panel_width == 130
+    assert layout.panel_x + layout.panel_width + layout.right_margin == 900
+
+
+def test_narrow_viewport_clamps_panel_origin_when_board_consumes_viewport():
+    layout = sidebar_layout_for_viewport(
+        viewport_width=100,
+        board_left=20,
+        board_width=80,
+    )
+
+    assert layout.mode == "narrow"
+    assert layout.panel_x == 80
+    assert layout.panel_width == 0
+    assert layout.panel_x + layout.panel_width + layout.right_margin == 100
 
 
 def test_custom_margins_are_deterministic():
@@ -56,6 +70,19 @@ def test_custom_margins_are_deterministic():
     assert layout.panel_x == 834
     assert layout.panel_width == 550
     assert layout.right_margin == 16
+
+
+def test_layout_never_extends_beyond_viewport():
+    viewports = (240, 320, 480, 720, 900, 1080, 1280, 1920)
+    for viewport_width in viewports:
+        layout = sidebar_layout_for_viewport(
+            viewport_width=viewport_width,
+            board_left=20,
+            board_width=700,
+        )
+        assert layout.panel_width >= 0
+        assert layout.panel_x >= 0
+        assert layout.panel_x + layout.panel_width + layout.right_margin <= viewport_width
 
 
 @pytest.mark.parametrize(
