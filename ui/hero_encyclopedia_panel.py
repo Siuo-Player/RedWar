@@ -64,6 +64,7 @@ def encyclopedia_lines(context: HeroEncyclopediaContext) -> tuple[str, ...]:
         f"Descrição: {context.description}",
         f"Movimento: {context.movement}",
         f"Ataque: {context.attack}",
+        f"Passiva: {context.passive}",
         "Spells: " + (", ".join(context.spells) if context.spells else "Nenhuma"),
     ]
     if context.special_rules:
