@@ -14,13 +14,14 @@ from engine.pieces import HERO_DEFS
 
 @dataclass(frozen=True)
 class HeroEncyclopediaContext:
-    """Compact rule summary suitable for a contextual battle panel."""
+    """Complete presentation-neutral rule summary for one hero."""
 
     name: str
     cost: int
     description: str
     movement: str
     attack: str
+    passive: str
     spells: tuple[str, ...]
     special_rules: tuple[str, ...]
 
@@ -105,6 +106,7 @@ def hero_encyclopedia_context(name: str) -> HeroEncyclopediaContext:
         description=str(data.get("descricao", "Sem descrição.")),
         movement=_movement_text(data),
         attack=_attack_text(data),
+        passive=str(data.get("passiva", "Nenhuma.")),
         spells=spells,
         special_rules=_special_lines(name, data),
     )

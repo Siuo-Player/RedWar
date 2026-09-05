@@ -1,54 +1,9 @@
 from __future__ import annotations
 
-from typing import Any
-
 import pygame
 
-from engine.pieces import HERO_DEFS
+from ui.hero_encyclopedia_model import hero_encyclopedia_context
 from ui.renderer import AssetManager, COLORS, FontManager, draw_text_wrapped, desenhar_botao
-
-
-def _movement_text(data: dict[str, Any]) -> str:
-    movement = data.get("behavior", {}).get("movement", {}) or {}
-    kind = movement.get("type", "none")
-    if kind == "none":
-        return "Nenhum"
-    if kind == "orthogonal":
-        return f"Ortogonal — até {movement.get('max_steps', 1)} casa(s)"
-    if kind == "diagonal":
-        return f"Diagonal — até {movement.get('max_steps', 1)} casa(s)"
-    if kind == "adjacent":
-        return "Uma casa em qualquer direção"
-    if kind == "knight":
-        return "Em L (padrão de cavalo)"
-    if kind == "forward_cone":
-        return "Cone frontal: " + str(movement.get("deltas", []))
-    if kind == "ray":
-        return f"Raio — mínimo {movement.get('min_steps', 1)} casa(s), sem bloqueio especial declarado"
-    return f"Padrão: {kind}"
-
-
-def _attack_text(data: dict[str, Any]) -> str:
-    attack = data.get("behavior", {}).get("attack", {}) or {}
-    kind = attack.get("type", "none")
-    if kind == "none":
-        return "Nenhum ataque básico"
-    if attack.get("attack_action") == "spell":
-        return f"SPELL: {attack.get('spell_name', 'desconhecida')}"
-    if kind == "orthogonal":
-        return f"Ortogonal — até {attack.get('max_steps', 1)} casa(s)"
-    if kind == "diagonal":
-        return f"Diagonal — até {attack.get('max_steps', 1)} casa(s)"
-    if kind == "adjacent":
-        return "Uma casa em qualquer direção"
-    if kind == "knight":
-        return "Em L (padrão de cavalo)"
-    if kind == "ray":
-        minimum = attack.get("min_steps", 1)
-        return f"Raio — mínimo {minimum} casa(s), máximo o tabuleiro"
-    if kind == "pattern":
-        return f"Padrão: {attack.get('deltas', [])}"
-    return f"Padrão: {kind}"
 
 
 SPELL_DETAILS = {
@@ -64,32 +19,6 @@ SPELL_DETAILS = {
     "jump": "Salto até 2 casas em qualquer direção, respeitando as condições de salto/casa de destino.",
     "spawn_ghoul": "Invoca 1 Ghoul numa das três casas à frente, se estiver livre. A invocação aplica cooldown ao Lich.",
 }
-
-
-def _special_lines(name: str, data: dict[str, Any]) -> list[str]:
-    lines: list[str] = []
-    behavior = data.get("behavior", {}) or {}
-    if data.get("aura_radius") is not None:
-        lines.append(f"Aura: raio {data['aura_radius']} — impede spells inimigas ao alcance.")
-    if data.get("jump_max") is not None:
-        lines.append(f"Salto máximo configurado: {data['jump_max']} casas.")
-    if data.get("lifespan") is not None:
-        lines.append(f"Unidade temporária: dura {data['lifespan']} turnos.")
-    if data.get("spawn_cooldown"):
-        lines.append(f"Cooldown inicial de invocação: {data['spawn_cooldown']} turnos.")
-    if name == "Lich":
-        lines.append("Quando a invocação é usada, o cooldown passa para 4 turnos; o spawn ocupa a única ação do turno.")
-    if name == "FrostMage":
-        lines.append("Não tem ataque básico. Nevada é a ação ofensiva especial e pode ser lançada uma vez por turno, desde que o mago possa agir e não esteja silenciado.")
-        lines.append("Não existe limite de usos global nem cooldown configurado para Nevada.")
-    if name == "Pyromancer":
-        lines.append("Não tem ataque básico. Ignite não possui contagem de usos/cooldown configurada.")
-    if name in {"Cleric", "Trickster", "Geomancer", "Dragoon"}:
-        lines.append("A spell ocupa a ação do turno; não existe uma contagem global de usos na configuração atual.")
-    if behavior.get("passives"):
-        for passive in behavior["passives"]:
-            lines.append(f"Passiva técnica: trigger={passive.get('trigger')}, efeito={passive.get('effect')}.")
-    return lines
 
 
 def desenhar_enciclopedia_detalhada(
@@ -127,23 +56,23 @@ def desenhar_enciclopedia_detalhada(
     if catalogo:
         item = catalogo[selected_index]
         name = item["name"]
-        data = HERO_DEFS[name]
+        context = hero_encyclopedia_context(name)
         avatar = AssetManager.get_image(name, "brancas", 96)
         if avatar:
             avatar_rect = avatar.get_rect(topright=(right.right - 18, right.y + 18))
             ecra.blit(avatar, avatar_rect)
         headline = FontManager.get("arial", 30, bold=True)
-        ecra.blit(headline.render(name, True, COLORS["white_team"]), (right.x + 20, right.y + 18))
-        ecra.blit(meta_font.render(f"Custo de draft: {data.get('cost', 0)} pontos", True, COLORS["text"]), (right.x + 22, right.y + 53))
+        ecra.blit(headline.render(context.name, True, COLORS["white_team"]), (right.x + 20, right.y + 18))
+        ecra.blit(meta_font.render(f"Custo de draft: {context.cost} pontos", True, COLORS["text"]), (right.x + 22, right.y + 53))
 
         y = right.y + 88
         label = FontManager.get("arial", 17, bold=True)
         body = FontManager.get("arial", 15)
         blocks = [
-            ("Movimento", _movement_text(data), COLORS["text"]),
-            ("Ataque básico", _attack_text(data), COLORS["text"]),
-            ("Descrição", data.get("descricao", "Sem descrição."), COLORS["text"]),
-            ("Passiva", data.get("passiva", "Nenhuma."), (150, 255, 170)),
+            ("Movimento", context.movement, COLORS["text"]),
+            ("Ataque básico", context.attack, COLORS["text"]),
+            ("Descrição", context.description, COLORS["text"]),
+            ("Passiva", context.passive, (150, 255, 170)),
         ]
         for heading, text, color in blocks:
             ecra.blit(label.render(heading + ":", True, (190, 200, 220)), (right.x + 20, y))
@@ -151,20 +80,18 @@ def desenhar_enciclopedia_detalhada(
             y = draw_text_wrapped(ecra, text, body, color, right.x + 20, y, right.width - 40)
             y += 5
 
-        spells = data.get("spells", []) or []
-        if spells:
+        if context.spells:
             ecra.blit(label.render("Spells:", True, (190, 200, 220)), (right.x + 20, y))
             y += 20
-            for spell in spells:
+            for spell in context.spells:
                 detail = SPELL_DETAILS.get(spell, "Detalhe especializado não documentado.")
                 y = draw_text_wrapped(ecra, f"• {spell.upper()}: {detail}", body, (210, 180, 255), right.x + 20, y, right.width - 40)
                 y += 2
 
-        special = _special_lines(name, data)
-        if special:
+        if context.special_rules:
             ecra.blit(label.render("Regras especiais / limites:", True, (190, 200, 220)), (right.x + 20, y))
             y += 20
-            for line in special:
+            for line in context.special_rules:
                 y = draw_text_wrapped(ecra, "• " + line, body, COLORS["warning"], right.x + 20, y, right.width - 40)
                 y += 2
 
