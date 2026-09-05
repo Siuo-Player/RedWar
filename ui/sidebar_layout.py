@@ -32,8 +32,9 @@ def sidebar_layout_for_viewport(
     """Return stable sidebar geometry for a viewport without touching game state.
 
     The sidebar remains to the right of the board when the viewport permits it.
-    At narrower widths it contracts below the requested minimum rather than
-    overflowing past the viewport boundary.
+    ``minimum_width`` is a preferred presentation floor: in a genuinely
+    constrained viewport, the panel may shrink below that floor so that its
+    geometry never extends beyond the viewport boundary.
     """
     if viewport_width < 1:
         raise ValueError("viewport_width must be positive")
@@ -52,11 +53,8 @@ def sidebar_layout_for_viewport(
     else:
         mode = "narrow"
 
-    # Prefer the configured minimum when there is room for it, but never let
-    # the sidebar extend beyond the viewport. In a genuinely constrained view,
-    # the caller must adapt the presentation rather than receive overflowing
-    # geometry.
-    panel_width = available_width if available_width < minimum_width else available_width
+    # The available width is authoritative: never allow the panel to overflow.
+    panel_width = available_width
 
     return SidebarLayout(
         mode=mode,
