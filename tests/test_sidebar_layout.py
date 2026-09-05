@@ -1,5 +1,6 @@
 import pytest
 
+from tools.replay.interaction import _panel_geometry
 from ui.sidebar_layout import sidebar_layout_for_viewport
 
 
@@ -71,3 +72,24 @@ def test_custom_margins_are_deterministic():
 def test_invalid_geometry_is_rejected(kwargs):
     with pytest.raises(ValueError):
         sidebar_layout_for_viewport(**kwargs)
+
+
+def test_battle_panel_geometry_uses_shared_layout_contract():
+    class FakeSurface:
+        def get_size(self):
+            return (1280, 720)
+
+    class FakeController:
+        ecra = FakeSurface()
+
+        @staticmethod
+        def get_ui_metrics():
+            return 40, 40, 80
+
+    expected = sidebar_layout_for_viewport(
+        viewport_width=1280,
+        board_left=40,
+        board_width=8 * 80,
+    )
+
+    assert _panel_geometry(FakeController()) == (expected.panel_x, expected.panel_width, 40)
