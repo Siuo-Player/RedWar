@@ -29,16 +29,18 @@ class RecordingBridge(EngineBridge):
 
 
 @pytest.mark.parametrize(
-    ("wire", "expected_type", "expected_payload"),
+    ("wire", "expected_type", "expected_end", "expected_payload"),
     [
-        ("MOVE A2 A3", "move", {}),
-        ("ATTACK A2 B2", "attack", {}),
-        ("STUN A2 B2", "stun", {}),
-        ("SPAWN Bone A2 A3", "spawn", {"spawn_name": "Bone"}),
-        ("SPELL ignite A2 A3", "spell", {"spell_name": "ignite"}),
+        ("MOVE A2 A3", "move", (5, 0), {}),
+        ("ATTACK A2 B2", "attack", (6, 1), {}),
+        ("STUN A2 B2", "stun", (6, 1), {}),
+        ("SPAWN Bone A2 A3", "spawn", (5, 0), {"spawn_name": "Bone"}),
+        ("SPELL ignite A2 A3", "spell", (5, 0), {"spell_name": "ignite"}),
     ],
 )
-def test_bot_preserves_protocol_action_matrix(wire, expected_type, expected_payload):
+def test_bot_preserves_protocol_action_matrix(
+    wire, expected_type, expected_end, expected_payload
+):
     bridge = RecordingBridge(f"bestmove {wire}")
     bot = CppEngineBot(nodes=10, bridge=bridge)
     state = GameState()
@@ -47,7 +49,7 @@ def test_bot_preserves_protocol_action_matrix(wire, expected_type, expected_payl
 
     assert action["type"] == expected_type
     assert action["start"] == (6, 0)
-    assert action["end"] == (5, 0)
+    assert action["end"] == expected_end
     for key, value in expected_payload.items():
         assert action[key] == value
     assert bridge.commands == [f"position rwen {state.to_rwen()}", "go nodes 10"]
