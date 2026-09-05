@@ -11,6 +11,8 @@ from typing import Any
 
 from engine.actions import normalize_action
 from tools.replay.interaction_state import InteractionContext, InteractionState, derive_interaction_state
+from ui.sidebar_layout import sidebar_layout_for_viewport
+from ui.sidebar_theme import SIDEBAR_THEME
 
 SUPPORT_SPELLS = {"purify", "swap"}
 
@@ -124,9 +126,15 @@ def _clear_pending_interaction(controller: Any) -> None:
 def _panel_geometry(controller: Any) -> tuple[int, int, int]:
     width, _ = controller.ecra.get_size()
     off_y, off_x, tam_casa = controller.get_ui_metrics()
-    panel_x = off_x + 8 * tam_casa + 30
-    panel_w = max(240, width - panel_x - 20)
-    return panel_x, panel_w, off_y
+    layout = sidebar_layout_for_viewport(
+        viewport_width=width,
+        board_left=off_x,
+        board_width=8 * tam_casa,
+        right_margin=20,
+        board_gap=30,
+        minimum_width=240,
+    )
+    return layout.panel_x, layout.panel_width, off_y
 
 
 def _selected_piece(controller: Any) -> Any:
@@ -147,10 +155,10 @@ def _hover_target(controller: Any) -> tuple[int, int] | None:
 
 def _draw_section(ecra: Any, rect: Any, title: str) -> None:
     import pygame
-    pygame.draw.rect(ecra, (18, 18, 24), rect, border_radius=8)
-    pygame.draw.rect(ecra, (95, 95, 112), rect, 1, border_radius=8)
+    pygame.draw.rect(ecra, SIDEBAR_THEME.surface, rect, border_radius=8)
+    pygame.draw.rect(ecra, SIDEBAR_THEME.border, rect, 1, border_radius=8)
     font = pygame.font.SysFont("arial", max(16, min(21, rect.height // 8)), bold=True)
-    ecra.blit(font.render(title, True, (235, 235, 242)), (rect.x + 12, rect.y + 8))
+    ecra.blit(font.render(title, True, SIDEBAR_THEME.text_heading), (rect.x + 12, rect.y + 8))
 
 
 def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None = None, action_title: str = "AÇÕES") -> list[Any]:
@@ -180,12 +188,12 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
     small = pygame.font.SysFont("arial", 13)
 
     if piece is None:
-        ecra.blit(body.render("Nenhum herói selecionado", True, (175, 175, 185)), (selected_rect.x + 12, selected_rect.y + 52))
+        ecra.blit(body.render("Nenhum herói selecionado", True, SIDEBAR_THEME.text_muted), (selected_rect.x + 12, selected_rect.y + 52))
     else:
-        name = body.render(piece.name, True, (255, 255, 255))
+        name = body.render(piece.name, True, SIDEBAR_THEME.text_primary)
         ecra.blit(name, (selected_rect.x + 12, selected_rect.y + 48))
         team_label = "Brancas" if piece.team == "brancas" else "Pretas"
-        ecra.blit(small.render(team_label, True, (185, 185, 198)), (selected_rect.x + 12, selected_rect.y + 72))
+        ecra.blit(small.render(team_label, True, SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, selected_rect.y + 72))
         status = []
         if piece.stun_timer > 0:
             status.append(f"Atordoado: {piece.stun_timer}")
@@ -197,7 +205,7 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
             status.append("Estado: normal")
         y = selected_rect.y + 96
         for line in status[:3]:
-            ecra.blit(small.render(line, True, (210, 210, 220)), (selected_rect.x + 12, y))
+            ecra.blit(small.render(line, True, SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, y))
             y += 20
 
         abilities: list[str] = []
@@ -209,44 +217,44 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
         except (AttributeError, TypeError):
             pass
         if abilities:
-            ecra.blit(small.render("Poderes disponíveis agora: " + ", ".join(abilities[:4]), True, (205, 205, 215)), (selected_rect.x + 12, min(selected_rect.bottom - 24, y + 8)))
+            ecra.blit(small.render("Poderes disponíveis agora: " + ", ".join(abilities[:4]), True, SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, min(selected_rect.bottom - 24, y + 8)))
 
     target = _hover_target(controller)
     _draw_section(ecra, context_rect, "CASA EM HOVER")
     if target is None:
-        ecra.blit(body.render("Move o cursor sobre o tabuleiro", True, (175, 175, 185)), (context_rect.x + 12, context_rect.y + 52))
+        ecra.blit(body.render("Move o cursor sobre o tabuleiro", True, SIDEBAR_THEME.text_muted), (context_rect.x + 12, context_rect.y + 52))
     else:
         r, c = target
         y = context_rect.y + 48
-        ecra.blit(body.render(f"Casa: {r + 1},{c + 1}", True, (250, 250, 255)), (context_rect.x + 12, y))
+        ecra.blit(body.render(f"Casa: {r + 1},{c + 1}", True, SIDEBAR_THEME.text_primary), (context_rect.x + 12, y))
         y += 24
         target_piece = controller.gs.board[r][c]
         if target_piece is None:
-            ecra.blit(small.render("Vazia", True, (190, 190, 200)), (context_rect.x + 12, y))
+            ecra.blit(small.render("Vazia", True, SIDEBAR_THEME.text_secondary), (context_rect.x + 12, y))
         else:
             team = "Brancas" if target_piece.team == "brancas" else "Pretas"
-            ecra.blit(body.render(f"{target_piece.name} · {team}", True, (225, 225, 235)), (context_rect.x + 12, y))
+            ecra.blit(body.render(f"{target_piece.name} · {team}", True, SIDEBAR_THEME.text_secondary), (context_rect.x + 12, y))
             y += 22
             if target_piece.stun_timer > 0:
-                ecra.blit(small.render(f"Atordoado: {target_piece.stun_timer}", True, (210, 210, 220)), (context_rect.x + 12, y))
+                ecra.blit(small.render(f"Atordoado: {target_piece.stun_timer}", True, SIDEBAR_THEME.text_secondary), (context_rect.x + 12, y))
                 y += 19
             if getattr(target_piece, "lifespan", None) is not None:
-                ecra.blit(small.render(f"Duração: {target_piece.lifespan}", True, (210, 210, 220)), (context_rect.x + 12, y))
+                ecra.blit(small.render(f"Duração: {target_piece.lifespan}", True, SIDEBAR_THEME.text_secondary), (context_rect.x + 12, y))
                 y += 19
         effect = controller.gs.tile_effects[r][c] if controller.gs.tile_effects else None
         if effect:
             etype = effect.get("type", "?")
             timer = effect.get("timer")
             label = f"Efeito: {etype}" + (f" · {timer} turnos" if timer is not None else "")
-            ecra.blit(small.render(label, True, (210, 225, 240)), (context_rect.x + 12, y))
+            ecra.blit(small.render(label, True, SIDEBAR_THEME.info), (context_rect.x + 12, y))
             y += 19
         if _selected_piece(controller) is not None and controller.gs.white_to_move:
             sr, sc = controller.casa_selecionada
             actions = actions_for_destination(controller.gs, sr, sc, r, c)
             if actions:
-                ecra.blit(small.render("Ações legais: " + " / ".join(action_label(a) for a in actions), True, (230, 230, 240)), (context_rect.x + 12, min(context_rect.bottom - 22, y + 6)))
+                ecra.blit(small.render("Ações legais: " + " / ".join(action_label(a) for a in actions), True, SIDEBAR_THEME.text_secondary), (context_rect.x + 12, min(context_rect.bottom - 22, y + 6)))
             else:
-                ecra.blit(small.render("Nenhuma ação legal", True, (150, 150, 160)), (context_rect.x + 12, min(context_rect.bottom - 22, y + 6)))
+                ecra.blit(small.render("Nenhuma ação legal", True, SIDEBAR_THEME.text_disabled), (context_rect.x + 12, min(context_rect.bottom - 22, y + 6)))
 
     clickable: list[Any] = []
     if action_rect is not None:
@@ -256,13 +264,13 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
         bw = action_rect.width - 24
         for index, label in enumerate(action_labels):
             rect = pygame.Rect(action_rect.x + 12, by, bw, button_h)
-            pygame.draw.rect(ecra, (48, 48, 62), rect, border_radius=7)
-            pygame.draw.rect(ecra, (150, 150, 170), rect, 1, border_radius=7)
-            txt = body.render(f"{index + 1}. {label}", True, (255, 255, 255))
+            pygame.draw.rect(ecra, SIDEBAR_THEME.action_surface, rect, border_radius=7)
+            pygame.draw.rect(ecra, SIDEBAR_THEME.focus_border, rect, 1, border_radius=7)
+            txt = body.render(f"{index + 1}. {label}", True, SIDEBAR_THEME.text_primary)
             ecra.blit(txt, txt.get_rect(center=rect.center))
             clickable.append(rect)
             by += button_h + 8
-        hint = small.render("ESC cancelar · 1–9 escolher", True, (170, 170, 180))
+        hint = small.render("ESC cancelar · 1–9 escolher", True, SIDEBAR_THEME.text_muted)
         ecra.blit(hint, (action_rect.x + 12, action_rect.bottom - 22))
 
     return clickable
