@@ -49,74 +49,16 @@ def test_frostmage_get_valid_spells_ends_at_return_spells():
 ''', encoding="utf-8")
 
 workflow = WORKFLOW.read_text(encoding="utf-8")
-expected_workflow = """name: RedWar Test Suite
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-  push:
-    branches-ignore: [main]
-  workflow_dispatch:
-
-concurrency:
-  group: redwar-tests-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
-
-permissions:
-  contents: read
-
-jobs:
-  tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      PYTHONHASHSEED: '0'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.12'
-          cache: pip
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Build C++ differential test helpers
-        run: |
-          python tools/scripts/build_cpp_engine.py --bridge-test
-          python tools/scripts/build_cpp_engine.py --movegen-test
-          python tools/scripts/build_cpp_engine.py --numeric-test
-          python tools/scripts/build_cpp_engine.py --perft-test
-
-      - name: Run Python test suite
-        run: python -m pytest tests/
-"""
-cleanup_step = """      - name: One-off FrostMage cleanup
-        if: hashFiles('tools/scripts/_finish_frostmage_cleanup_once.py') != ''
-        shell: bash
-        run: |
-          python tools/scripts/_finish_frostmage_cleanup_once.py
-          git diff --check
-          python -m py_compile engine/pieces.py tests/test_frostmage_no_unreachable_stun_suffix.py
-          python -m pytest -q tests/test_frostmage_no_unreachable_stun_suffix.py tests/test_frostmage_nevada_contract.py tests/test_cross_backend_movegen.py tests/test_cross_backend_make_unmake.py
-          git add engine/pieces.py tests/test_frostmage_no_unreachable_stun_suffix.py .github/workflows/test_suite.yml
-          git diff --cached --check
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'fix: remove unreachable FrostMage stun code'
-          git push
-          exit 0
-
-"""
-if workflow.count(cleanup_step) != 1:
+write_marker = "permissions:\n  contents: write\n"
+step_marker = "      - name: One-off FrostMage cleanup\n"
+next_step_marker = "      - name: Build C++ differential test helpers\n"
+if workflow.count(write_marker) != 1:
+    raise SystemExit("Temporary write permission not found exactly once")
+if workflow.count(step_marker) != 1:
     raise SystemExit("Temporary cleanup step not found exactly once")
-restored = workflow.replace(cleanup_step, "", 1)
-if restored.replace("permissions:\n  contents: write\n", "permissions:\n  contents: read\n", 1) != expected_workflow:
-    raise SystemExit("test_suite.yml differs from the known baseline beyond temporary changes")
-WORKFLOW.write_text(expected_workflow, encoding="utf-8")
+step_start = workflow.index(step_marker)
+next_step = workflow.index(next_step_marker, step_start)
+workflow = workflow[:step_start] + workflow[next_step:]
+workflow = workflow.replace(write_marker, "permissions:\n  contents: read\n", 1)
+WORKFLOW.write_text(workflow, encoding="utf-8")
 HELPER.unlink()
