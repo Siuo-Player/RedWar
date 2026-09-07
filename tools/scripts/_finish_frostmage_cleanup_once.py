@@ -96,9 +96,27 @@ jobs:
       - name: Run Python test suite
         run: python -m pytest tests/
 """
-if workflow.count("permissions:\n  contents: write\n") != 1:
-    raise SystemExit("Temporary write permission not found exactly once")
-if workflow.replace("permissions:\n  contents: write\n", "permissions:\n  contents: read\n", 1) != expected_workflow:
-    raise SystemExit("test_suite.yml differs from the known baseline beyond temporary permissions")
+cleanup_step = """      - name: One-off FrostMage cleanup
+        if: hashFiles('tools/scripts/_finish_frostmage_cleanup_once.py') != ''
+        shell: bash
+        run: |
+          python tools/scripts/_finish_frostmage_cleanup_once.py
+          git diff --check
+          python -m py_compile engine/pieces.py tests/test_frostmage_no_unreachable_stun_suffix.py
+          python -m pytest -q tests/test_frostmage_no_unreachable_stun_suffix.py tests/test_frostmage_nevada_contract.py tests/test_cross_backend_movegen.py tests/test_cross_backend_make_unmake.py
+          git add engine/pieces.py tests/test_frostmage_no_unreachable_stun_suffix.py .github/workflows/test_suite.yml
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: remove unreachable FrostMage stun code'
+          git push
+          exit 0
+
+"""
+if workflow.count(cleanup_step) != 1:
+    raise SystemExit("Temporary cleanup step not found exactly once")
+restored = workflow.replace(cleanup_step, "", 1)
+if restored.replace("permissions:\n  contents: write\n", "permissions:\n  contents: read\n", 1) != expected_workflow:
+    raise SystemExit("test_suite.yml differs from the known baseline beyond temporary changes")
 WORKFLOW.write_text(expected_workflow, encoding="utf-8")
 HELPER.unlink()
