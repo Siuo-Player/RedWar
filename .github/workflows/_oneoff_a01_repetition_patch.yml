@@ -1,0 +1,131 @@
+name: One-off A0.1 repetition patch
+
+on:
+  push:
+    branches:
+      - fix/a01-repetition-idempotent-v3
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Apply exact repetition patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('engine/game_state.py')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  '        "black_time", "state_history", "current_hash", "_hash_valid", "current_score",\n',
+                  '        "black_time", "state_history", "current_hash", "_hash_valid", "current_score",\n        "_last_history_hash",\n',
+              ),
+              (
+                  '        self.current_score: float | int | None = None\n',
+                  '        self.current_score: float | int | None = None\n        self._last_history_hash: int | None = None\n',
+              ),
+              (
+                  '        novo_gs._hash_valid = self._hash_valid\n',
+                  '        novo_gs._hash_valid = self._hash_valid\n        novo_gs._last_history_hash = self._last_history_hash\n',
+              ),
+              (
+                  '        current_hash = self.get_state_hash()\n        self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1\n        if self.state_history[current_hash] >= 3:\n',
+                  '        current_hash = self.get_state_hash()\n        if current_hash != self._last_history_hash:\n            self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1\n            self._last_history_hash = current_hash\n        if self.state_history.get(current_hash, 0) >= 3:\n',
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected exactly one occurrence; found {count}: {old!r}')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text, encoding='utf-8')
+
+      - name: Add focused regression tests
+        shell: bash
+        run: |
+          cat > tests/test_repetition_history_idempotence.py <<'PY'
+          from engine.game_state import GameState
+          from engine.pieces import criar_peca_por_nome
+
+
+          def _state_with_two_mobile_sides():
+              state = GameState()
+              state.board[6][0] = criar_peca_por_nome("Geomancer", "brancas")
+              state.board[1][0] = criar_peca_por_nome("Cleric", "pretas")
+              state.compute_initial_hash()
+              return state
+
+
+          def test_check_game_over_is_idempotent_for_same_position():
+              state = _state_with_two_mobile_sides()
+              current_hash = state.get_state_hash()
+              state.state_history = {current_hash: 2}
+
+              state.check_game_over()
+              assert state.game_over is True
+              assert state.state_history[current_hash] == 3
+
+              state.check_game_over()
+              assert state.state_history[current_hash] == 3
+
+
+          def test_real_reobservation_after_different_position_increments_history():
+              state = _state_with_two_mobile_sides()
+              initial_hash = state.get_state_hash()
+
+              state.check_game_over()
+              assert state.state_history[initial_hash] == 1
+
+              state.white_to_move = not state.white_to_move
+              state._hash_valid = False
+              different_hash = state.get_state_hash()
+              assert different_hash != initial_hash
+              state.check_game_over()
+              assert state.state_history[different_hash] == 1
+
+              state.white_to_move = not state.white_to_move
+              state._hash_valid = False
+              assert state.get_state_hash() == initial_hash
+              state.check_game_over()
+              assert state.state_history[initial_hash] == 2
+
+
+          def test_fast_clone_preserves_last_history_observation_marker():
+              state = _state_with_two_mobile_sides()
+              current_hash = state.get_state_hash()
+              state.check_game_over()
+
+              clone = state.fast_clone()
+              clone.check_game_over()
+
+              assert state.state_history[current_hash] == 1
+              assert clone.state_history[current_hash] == 1
+          PY
+
+      - name: Verify and self-remove
+        shell: bash
+        run: |
+          git diff --check
+          python -m py_compile engine/game_state.py tests/test_repetition_history_idempotence.py
+          python -m pytest tests/test_repetition_history_idempotence.py -q
+          rm .github/workflows/_oneoff_a01_repetition_patch.yml
+          git add engine/game_state.py tests/test_repetition_history_idempotence.py
+          git add -u .github/workflows/_oneoff_a01_repetition_patch.yml
+          git diff --cached --check
+          git diff --cached --stat
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: make repetition observation idempotent'
+          git push
