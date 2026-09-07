@@ -5,7 +5,10 @@ import subprocess
 from pathlib import Path
 
 from engine.game_state import GameState
+from engine.legal_actions import legal_actions
+from engine.pieces import criar_peca_por_nome
 from tests.test_cross_backend_make_unmake import BRIDGE, actions_for, move_text, put
+from tools.analytics.legal_action_oracle import legal_actions as oracle_legal_actions
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -71,3 +74,48 @@ def test_berserker_aoe_passive_round_trips_through_both_backends():
     assert len(lines) == 2
     assert lines[0].removeprefix("AFTER ") == after.to_rwen()
     assert lines[1].removeprefix("RESTORED ") == state.to_rwen()
+
+
+def _canonical_engine_actions(state: GameState) -> tuple[tuple, ...]:
+    return tuple(
+        sorted(
+            (
+                action.type.value,
+                action.start,
+                action.end,
+                action.spell_name,
+                action.spawn_name,
+            )
+            for action in legal_actions(state)
+        )
+    )
+
+
+def test_stunned_inquisitor_does_not_silence_spells_and_matches_c3_oracle():
+    state = GameState()
+    put(state, 4, 4, "Pyromancer", "brancas")
+    put(state, 4, 5, "Inquisitor", "pretas", stun=1)
+
+    engine_actions = _canonical_engine_actions(state)
+    oracle_actions = oracle_legal_actions(state)
+
+    assert any(
+        action[0] == "spell" and action[3] == "ignite"
+        for action in engine_actions
+    )
+    assert engine_actions == oracle_actions
+
+
+def test_active_inquisitor_silences_spells_and_matches_c3_oracle():
+    state = GameState()
+    put(state, 4, 4, "Pyromancer", "brancas")
+    put(state, 4, 5, "Inquisitor", "pretas")
+
+    engine_actions = _canonical_engine_actions(state)
+    oracle_actions = oracle_legal_actions(state)
+
+    assert not any(
+        action[0] == "spell" and action[3] == "ignite"
+        for action in engine_actions
+    )
+    assert engine_actions == oracle_actions
