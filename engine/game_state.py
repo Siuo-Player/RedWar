@@ -70,6 +70,7 @@ class GameState:
         "board", "tile_effects", "white_to_move", "game_over", "winner",
         "turns_without_capture", "move_log", "last_move", "white_time",
         "black_time", "state_history", "current_hash", "_hash_valid", "current_score",
+        "_last_history_hash",
     )
 
     def __init__(self, time_limit_seconds: float = 600.0):
@@ -87,6 +88,7 @@ class GameState:
         self.current_hash = 0
         self._hash_valid = False
         self.current_score: float | int | None = None
+        self._last_history_hash: int | None = None
 
     def compute_initial_hash(self):
         h = ZOBRIST_WTM if self.white_to_move else 0
@@ -158,6 +160,7 @@ class GameState:
         novo_gs.move_log = []
         novo_gs.current_hash = self.current_hash
         novo_gs._hash_valid = self._hash_valid
+        novo_gs._last_history_hash = self._last_history_hash
         novo_gs.board = [row[:] for row in self.board]
         novo_gs.tile_effects = [row[:] for row in self.tile_effects]
 
@@ -556,8 +559,10 @@ class GameState:
             return
 
         current_hash = self.get_state_hash()
-        self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1
-        if self.state_history[current_hash] >= 3:
+        if current_hash != self._last_history_hash:
+            self.state_history[current_hash] = self.state_history.get(current_hash, 0) + 1
+            self._last_history_hash = current_hash
+        if self.state_history.get(current_hash, 0) >= 3:
             self.game_over = True
             self.winner = resolver_por_material()
             return
