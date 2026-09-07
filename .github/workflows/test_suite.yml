@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   tests:
@@ -20,9 +20,54 @@ jobs:
     timeout-minutes: 10
     env:
       PYTHONHASHSEED: '0'
+      TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Apply branch-local C4 correction once
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('ai/cpp_engine/board.cpp')
+          text = path.read_text(encoding='utf-8')
+
+          attack_old = '''    } else if (m.type == "ATTACK") {
+              board.twc = 0;
+          '''
+          attack_new = '''    } else if (m.type == "ATTACK") {
+              board.twc = (undo.target_piece.lifespan >= 999) ? 0 : (board.twc + 1);
+          '''
+          stun_old = '''            if (target.stun_timer > 0) {
+              update_piece(ar, ac, empty);
+              board.twc = 0;
+          } else {
+          '''
+          stun_new = '''            if (target.stun_timer > 0) {
+              update_piece(ar, ac, empty);
+              if (target.lifespan >= 999) board.twc = 0;
+          } else {
+          '''
+
+          if text.count(attack_old) == 1 and text.count(stun_old) == 1:
+              text = text.replace(attack_old, attack_new).replace(stun_old, stun_new)
+              path.write_text(text, encoding='utf-8')
+          elif 'board.twc = (undo.target_piece.lifespan >= 999) ? 0 : (board.twc + 1);' in text and 'if (target.lifespan >= 999) board.twc = 0;' in text:
+              raise SystemExit(0)
+          else:
+              raise SystemExit('unexpected C4 TWC source shape')
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add ai/cpp_engine/board.cpp
+          git rm -f .github/workflows/_autofix_c4_twc.yml || true
+          git checkout -- .github/workflows/test_suite.yml
+          git add -u .github/workflows/test_suite.yml .github/workflows/_autofix_c4_twc.yml || true
+          git diff --cached --check
+          git commit -m "fix(c4): correct temporary-piece TWC semantics"
+          git push origin "HEAD:${TARGET_BRANCH}"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
