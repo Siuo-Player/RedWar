@@ -80,7 +80,7 @@ def _canonical_engine_actions(state: GameState) -> tuple[tuple, ...]:
     return tuple(
         sorted(
             (
-                action.type.value,
+                action.type.value.upper(),
                 action.start,
                 action.end,
                 action.spell_name,
@@ -100,7 +100,7 @@ def test_stunned_inquisitor_does_not_silence_spells_and_matches_c3_oracle():
     oracle_actions = oracle_legal_actions(state)
 
     assert any(
-        action[0] == "spell" and action[3] == "ignite"
+        action[0] == "SPELL" and action[3] == "ignite"
         for action in engine_actions
     )
     assert engine_actions == oracle_actions
@@ -115,7 +115,7 @@ def test_active_inquisitor_silences_spells_and_matches_c3_oracle():
     oracle_actions = oracle_legal_actions(state)
 
     assert not any(
-        action[0] == "spell" and action[3] == "ignite"
+        action[0] == "SPELL" and action[3] == "ignite"
         for action in engine_actions
     )
     assert engine_actions == oracle_actions
