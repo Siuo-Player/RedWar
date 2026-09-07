@@ -32,42 +32,80 @@ jobs:
 
           path = Path('ai/cpp_engine/board.cpp')
           text = path.read_text(encoding='utf-8')
+          attack_old = '    } else if (m.type == "ATTACK") {\n        board.twc = 0;\n'
+          attack_new = '    } else if (m.type == "ATTACK") {\n        board.twc = (undo.target_piece.lifespan >= 999) ? 0 : (board.twc + 1);\n'
+          stun_old = '            if (target.stun_timer > 0) {\n                update_piece(ar, ac, empty);\n                board.twc = 0;\n            } else {'
+          stun_new = '            if (target.stun_timer > 0) {\n                update_piece(ar, ac, empty);\n                if (target.lifespan >= 999) board.twc = 0;\n            } else {'
 
-          attack_old = '''    } else if (m.type == "ATTACK") {
-              board.twc = 0;
-          '''
-          attack_new = '''    } else if (m.type == "ATTACK") {
-              board.twc = (undo.target_piece.lifespan >= 999) ? 0 : (board.twc + 1);
-          '''
-          stun_old = '''            if (target.stun_timer > 0) {
-              update_piece(ar, ac, empty);
-              board.twc = 0;
-          } else {
-          '''
-          stun_new = '''            if (target.stun_timer > 0) {
-              update_piece(ar, ac, empty);
-              if (target.lifespan >= 999) board.twc = 0;
-          } else {
-          '''
-
-          if text.count(attack_old) == 1 and text.count(stun_old) == 1:
+          attack_matches = text.count(attack_old)
+          stun_matches = text.count(stun_old)
+          if attack_matches == 1 and stun_matches == 1:
               text = text.replace(attack_old, attack_new).replace(stun_old, stun_new)
               path.write_text(text, encoding='utf-8')
           elif 'board.twc = (undo.target_piece.lifespan >= 999) ? 0 : (board.twc + 1);' in text and 'if (target.lifespan >= 999) board.twc = 0;' in text:
-              raise SystemExit(0)
+              pass
           else:
-              raise SystemExit('unexpected C4 TWC source shape')
+              raise SystemExit(f'unexpected C4 TWC source shape: attack={attack_matches} stun={stun_matches}')
+
+          original_workflow = '''name: RedWar Test Suite
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: redwar-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build C++ differential test helpers
+        run: |
+          python tools/scripts/build_cpp_engine.py --bridge-test
+          python tools/scripts/build_cpp_engine.py --movegen-test
+          python tools/scripts/build_cpp_engine.py --numeric-test
+          python tools/scripts/build_cpp_engine.py --perft-test
+
+      - name: Run Python test suite
+        run: python -m pytest tests/
+'''
+          Path('.github/workflows/test_suite.yml').write_text(original_workflow, encoding='utf-8')
+          Path('.github/workflows/_autofix_c4_twc.yml').unlink(missing_ok=True)
           PY
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add ai/cpp_engine/board.cpp
-          git rm -f .github/workflows/_autofix_c4_twc.yml || true
-          git checkout -- .github/workflows/test_suite.yml
-          git add -u .github/workflows/test_suite.yml .github/workflows/_autofix_c4_twc.yml || true
+          git add -A
           git diff --cached --check
-          git commit -m "fix(c4): correct temporary-piece TWC semantics"
-          git push origin "HEAD:${TARGET_BRANCH}"
+          if ! git diff --cached --quiet; then
+            git commit -m "fix(c4): correct temporary-piece TWC semantics"
+            git push origin "HEAD:${TARGET_BRANCH}"
+          fi
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
