@@ -39,6 +39,8 @@ jobs:
         if: hashFiles('tools/scripts/_finish_frostmage_cleanup_once.py') != ''
         shell: bash
         run: |
+          python tools/scripts/build_cpp_engine.py --bridge-test
+          python tools/scripts/build_cpp_engine.py --movegen-test
           python tools/scripts/_finish_frostmage_cleanup_once.py
           git diff --check
           python -m py_compile engine/pieces.py tests/test_frostmage_no_unreachable_stun_suffix.py
