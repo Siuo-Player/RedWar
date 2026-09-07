@@ -408,7 +408,7 @@ UndoInfo make_move(const Move& m) {
         update_piece(m.sr, m.sc, empty);
         update_piece(m.er, m.ec, undo.actor_piece);
     } else if (m.type == "ATTACK") {
-        board.twc = 0;
+        board.twc = (undo.target_piece.lifespan >= 999) ? 0 : (board.twc + 1);
 
         const HeroBehavior* attacker_beh = find_hero_behavior(undo.actor_piece.name);
         if (!attacker_beh) throw std::runtime_error("Missing behavior for hero: " + undo.actor_piece.name);
@@ -451,7 +451,7 @@ UndoInfo make_move(const Move& m) {
 
             if (target.stun_timer > 0) {
                 update_piece(ar, ac, empty);
-                board.twc = 0;
+                if (target.lifespan >= 999) board.twc = 0;
             } else {
                 target.stun_timer = 2;
                 update_piece(ar, ac, target);
