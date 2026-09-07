@@ -119,6 +119,7 @@ jobs:
         run: |
           git diff --check
           python -m py_compile engine/game_state.py tests/test_repetition_history_idempotence.py
+          python -m pip install -r requirements.txt
           python -m pytest tests/test_repetition_history_idempotence.py -q
           rm .github/workflows/_oneoff_a01_repetition_patch.yml
           git add engine/game_state.py tests/test_repetition_history_idempotence.py
