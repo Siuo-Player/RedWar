@@ -1,0 +1,78 @@
+name: One-off A0.1 FrostMage cleanup
+
+on:
+  push:
+    branches:
+      - fix/a01-frostmage-unreachable-code
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Remove only unreachable FrostMage suffix
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('engine/pieces.py')
+          text = path.read_text(encoding='utf-8')
+          class_start = text.index('class FrostMage(DataPiece):')
+          method_start = text.index('    def get_valid_spells', class_start)
+          return_marker = '        return spells\n'
+          return_pos = text.index(return_marker, method_start)
+          next_class = text.index('\n\nclass ', return_pos)
+          dead = text[return_pos + len(return_marker):next_class]
+          if '        stuns = {}\n' not in dead or 'return stuns' not in dead:
+              raise SystemExit('Expected legacy unreachable FrostMage STUN suffix was not found')
+          replacement = text[:return_pos + len(return_marker)] + text[next_class + 2:]
+          if replacement.count('class FrostMage(DataPiece):') != 1:
+              raise SystemExit('FrostMage class structure changed unexpectedly')
+          path.write_text(replacement, encoding='utf-8')
+
+      - name: Add source-level regression
+        shell: bash
+        run: |
+          cat > tests/test_frostmage_no_unreachable_stun_suffix.py <<'PY'
+          import ast
+          from pathlib import Path
+
+
+          def test_frostmage_get_valid_spells_ends_at_return_spells():
+              source = Path('engine/pieces.py').read_text(encoding='utf-8')
+              tree = ast.parse(source)
+              frostmage = next(node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == 'FrostMage')
+              method = next(node for node in frostmage.body if isinstance(node, ast.FunctionDef) and node.name == 'get_valid_spells')
+              returns = [
+                  i for i, node in enumerate(method.body)
+                  if isinstance(node, ast.Return)
+                  and isinstance(node.value, ast.Name)
+                  and node.value.id == 'spells'
+              ]
+              assert len(returns) == 1
+              assert returns[0] == len(method.body) - 1
+          PY
+
+      - name: Validate focused cleanup
+        shell: bash
+        run: |
+          git diff --check
+          python -m py_compile engine/pieces.py tests/test_frostmage_no_unreachable_stun_suffix.py
+          python -m pip install -r requirements.txt
+          python -m pytest -q tests/test_frostmage_no_unreachable_stun_suffix.py tests/test_frostmage_nevada_contract.py tests/test_cross_backend_movegen.py tests/test_cross_backend_make_unmake.py
+          rm .github/workflows/_oneoff_frostmage_cleanup.yml
+          git add engine/pieces.py tests/test_frostmage_no_unreachable_stun_suffix.py
+          git add -u .github/workflows/_oneoff_frostmage_cleanup.yml
+          git diff --cached --check
+          git diff --cached --stat
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: remove unreachable FrostMage stun code'
+          git push
