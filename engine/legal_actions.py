@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from engine.actions import GameAction
+from engine.actions import ActionType, GameAction
 from engine.config import COLUNAS, LINHAS
 
 
@@ -24,23 +24,23 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
                 continue
 
             for end in piece.get_valid_moves(r, c, gs.board, gs.tile_effects):
-                actions.add(GameAction("move", (r, c), tuple(end)))
+                actions.add(GameAction(ActionType.MOVE, (r, c), tuple(end)))
 
             for end in piece.get_valid_attacks(r, c, gs.board, gs.tile_effects):
-                actions.add(GameAction("attack", (r, c), tuple(end)))
+                actions.add(GameAction(ActionType.ATTACK, (r, c), tuple(end)))
 
             for end, info in piece.get_valid_stuns(r, c, gs.board, gs.tile_effects).items():
                 if not info or not info.get("has_enemy"):
                     continue
                 area = tuple(tuple(position) for position in info.get("aoe", ()))
-                actions.add(GameAction("stun", (r, c), tuple(end), area=area))
+                actions.add(GameAction(ActionType.STUN, (r, c), tuple(end), area=area))
 
             for spawn_r, spawn_c, spawn_name in piece.get_valid_spawns(
                 r, c, gs.board, gs.tile_effects
             ):
                 actions.add(
                     GameAction(
-                        "spawn",
+                        ActionType.SPAWN,
                         (r, c),
                         (int(spawn_r), int(spawn_c)),
                         spawn_name=str(spawn_name),
@@ -60,7 +60,7 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
                     continue
                 actions.add(
                     GameAction(
-                        "spell",
+                        ActionType.SPELL,
                         (r, c),
                         tuple(target),
                         spell_name=str(spell_name),
