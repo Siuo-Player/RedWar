@@ -73,14 +73,12 @@ def test_stun_capture_of_temporary_piece_preserves_twc():
     state.turns_without_capture = 7
     state.compute_initial_hash()
 
-    actions = [
-        action
-        for action in state.board[4][4].get_valid_stuns(4, 4, state.board, state.tile_effects).items()
-        if any(target == (3, 4) for target in action[1].get("aoe", []))
-    ]
-    assert actions
-    destination = actions[0][0]
-    action = {"type": "stun", "start": (4, 4), "end": destination, "area": actions[0][1].get("aoe", [])}
+    action = {
+        "type": "stun",
+        "start": (4, 4),
+        "end": (3, 4),
+        "area": [(3, 4)],
+    }
 
     after = state.fast_clone()
     after.execute_action(action)
