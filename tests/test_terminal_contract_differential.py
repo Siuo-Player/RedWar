@@ -60,7 +60,8 @@ def test_terminal_contract_matrix_matches_python_terminal_classes():
     twc50.board[6][0] = criar_peca_por_nome("Geomancer", "brancas")
     twc50.board[1][0] = criar_peca_por_nome("Cleric", "pretas")
     twc50.turns_without_capture = 50
-    _assert_python_terminal(twc50, twc50.winner)
+    _assert_python_terminal(twc50, None)
+    assert twc50.game_over is True
     assert twc50.winner is not None and "Desempate por Material" in twc50.winner
 
     twc49 = GameState()
