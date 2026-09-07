@@ -6,7 +6,7 @@ import types
 
 from engine.game_state import GameState
 from engine.legal_actions import is_legal_action, legal_actions
-from engine.pieces import Bone, Lich, Pyromancer
+from engine.pieces import Bone, Lich, Pyromancer, Templar
 
 
 def _load_analysis_module(monkeypatch):
@@ -19,9 +19,10 @@ def _load_analysis_module(monkeypatch):
 
 def test_engine_legal_action_adapter_covers_all_implemented_action_kinds():
     state = GameState()
-    state.board[4][4] = Pyromancer("brancas")
+    state.board[4][4] = Templar("brancas")
     state.board[6][3] = Bone("brancas")
-    state.board[3][4] = Bone("pretas")
+    state.board[2][2] = Pyromancer("brancas")
+    state.board[4][5] = Bone("pretas")
     state.board[5][4] = Bone("pretas")
 
     actions = legal_actions(state)
