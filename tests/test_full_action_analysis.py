@@ -9,7 +9,7 @@ from engine.pieces import Bone, Lich, Pyromancer
 def test_engine_legal_action_adapter_covers_all_implemented_action_kinds():
     state = GameState()
     state.board[4][4] = Pyromancer("brancas")
-    state.board[3][3] = Bone("brancas")
+    state.board[6][3] = Bone("brancas")
     state.board[3][4] = Bone("pretas")
     state.board[5][4] = Bone("pretas")
 
