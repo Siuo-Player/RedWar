@@ -1,9 +1,20 @@
 from __future__ import annotations
 
-import ai.search as search
+import importlib
+import sys
+import types
+
 from engine.game_state import GameState
 from engine.legal_actions import is_legal_action, legal_actions
 from engine.pieces import Bone, Lich, Pyromancer
+
+
+def _load_analysis_module(monkeypatch):
+    evaluator = types.ModuleType("ai.evaluator")
+    evaluator.avaliador_mestre = lambda _state: 0
+    monkeypatch.setitem(sys.modules, "ai.evaluator", evaluator)
+    sys.modules.pop("ai.search", None)
+    return importlib.import_module("ai.search")
 
 
 def test_engine_legal_action_adapter_covers_all_implemented_action_kinds():
@@ -62,7 +73,8 @@ def test_engine_legal_action_adapter_includes_spawn_and_stun_shape():
     )
 
 
-def test_python_analysis_uses_complete_canonical_action_space():
+def test_python_analysis_uses_complete_canonical_action_space(monkeypatch):
+    search = _load_analysis_module(monkeypatch)
     state = GameState()
     state.board[4][4] = Lich("brancas")
     state.board[3][3] = Bone("pretas")
@@ -73,7 +85,7 @@ def test_python_analysis_uses_complete_canonical_action_space():
 
 
 def test_analysis_ties_are_deterministic(monkeypatch):
-    monkeypatch.setattr(search, "avaliador_mestre", lambda _state: 0)
+    search = _load_analysis_module(monkeypatch)
     state = GameState()
     state.board[4][4] = Bone("brancas")
     state.board[6][6] = Bone("pretas")
