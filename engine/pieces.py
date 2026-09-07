@@ -608,30 +608,6 @@ class FrostMage(DataPiece):
                 if has_enemy:
                     spells.append({"target": (focus_r, focus_c), "spell_type": "nevada"})
         return spells
-        stuns = {}
-        for dr in range(-3, 4):
-            for dc in range(-3, 4):
-                if abs(dr) + abs(dc) > 3:
-                    continue
-                focus_r, focus_c = r + dr, c + dc
-                if not (0 <= focus_r < LINHAS and 0 <= focus_c < COLUNAS):
-                    continue
-                if tile_effects and tile_effects[focus_r][focus_c] and tile_effects[focus_r][focus_c].get("type") == "ice":
-                    continue
-                aoe = []
-                has_enemy = False
-                for adr, adc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
-                    ar, ac = focus_r + adr, focus_c + adc
-                    if not (0 <= ar < LINHAS and 0 <= ac < COLUNAS):
-                        continue
-                    if tile_effects and tile_effects[ar][ac] and tile_effects[ar][ac].get("type") == "ice":
-                        continue
-                    aoe.append((ar, ac))
-                    target = board[ar][ac]
-                    if target and target.team != self.team:
-                        has_enemy = True
-                stuns[(focus_r, focus_c)] = {"aoe": aoe, "has_enemy": has_enemy}
-        return stuns
 
 
 class Lich(DataPiece):
