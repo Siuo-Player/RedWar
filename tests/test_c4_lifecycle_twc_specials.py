@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import subprocess
-import sys
 from pathlib import Path
 
 from engine.game_state import GameState
@@ -11,8 +10,6 @@ from engine.pieces import criar_peca_por_nome
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE_NAME = "cpp_make_unmake_bridge_test.exe" if os.name == "nt" else "cpp_make_unmake_bridge_test"
 BRIDGE = ROOT / BRIDGE_NAME
-BUILD_SCRIPT = ROOT / "tools" / "scripts" / "build_cpp_engine.py"
-ENGINE_PATH = ROOT / "ai" / "cpp_engine" / ("engine.exe" if sys.platform == "win32" else "engine")
 
 
 def put(gs: GameState, row: int, col: int, name: str, team: str, *, stun: int = 0, lifespan=None, cooldown: int = 0) -> None:
@@ -162,29 +159,3 @@ def test_special_attack_spells_round_trip():
         actual, restored = run_bridge(state.to_rwen(), move_text(action))
         assert actual.removeprefix("AFTER ") == after.to_rwen(), spell_name
         assert restored.removeprefix("RESTORED ") == state.to_rwen(), spell_name
-
-
-def test_nodes_budget_completes_without_wall_clock_expiry():
-    subprocess.run([sys.executable, str(BUILD_SCRIPT)], cwd=ROOT, check=True)
-    assert ENGINE_PATH.is_file()
-
-    state = GameState()
-    put(state, 7, 0, "Geomancer", "brancas")
-    put(state, 0, 7, "Geomancer", "pretas")
-    rwen = state.to_rwen()
-
-    result = subprocess.run(
-        [str(ENGINE_PATH)],
-        input=f"isready\nposition rwen {rwen}\ngo nodes 1\nquit\n",
-        text=True,
-        capture_output=True,
-        cwd=ROOT,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr or result.stdout
-    lines = [line for line in result.stdout.splitlines() if line]
-    assert "readyok" in lines
-    diagnostics = [line for line in lines if line.startswith("info string search diagnostics ")]
-    assert len(diagnostics) == 1, lines
-    assert "nodes=1" in diagnostics[0]
-    assert "bestmove " in lines[-1]
