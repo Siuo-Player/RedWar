@@ -3,10 +3,10 @@ from __future__ import annotations
 import ai.search as search
 from engine.game_state import GameState
 from engine.legal_actions import is_legal_action, legal_actions
-from engine.pieces import Bone, FrostMage, Lich, Pyromancer
+from engine.pieces import Bone, Lich, Pyromancer
 
 
-def test_engine_legal_action_adapter_covers_all_action_kinds():
+def test_engine_legal_action_adapter_covers_all_implemented_action_kinds():
     state = GameState()
     state.board[4][4] = Pyromancer("brancas")
     state.board[3][3] = Bone("brancas")
@@ -20,7 +20,7 @@ def test_engine_legal_action_adapter_covers_all_action_kinds():
     assert all(is_legal_action(state, action) for action in actions)
 
 
-def test_engine_legal_action_adapter_includes_spawn_and_stun():
+def test_engine_legal_action_adapter_includes_spawn_and_stun_shape():
     spawn_state = GameState()
     spawn_state.board[4][4] = Lich("brancas")
     spawn_actions = legal_actions(spawn_state)
@@ -29,12 +29,35 @@ def test_engine_legal_action_adapter_includes_spawn_and_stun():
         for action in spawn_actions
     )
 
+    class StunPiece:
+        team = "brancas"
+        name = "TestStunner"
+
+        def can_act(self):
+            return True
+
+        def get_valid_moves(self, *args):
+            return []
+
+        def get_valid_attacks(self, *args):
+            return []
+
+        def get_valid_spawns(self, *args):
+            return []
+
+        def get_valid_spells(self, *args):
+            return []
+
+        def get_valid_stuns(self, *args):
+            return {(4, 4): {"has_enemy": True, "aoe": [(4, 4), (4, 5)]}}
+
     stun_state = GameState()
-    stun_state.board[4][4] = FrostMage("brancas")
-    stun_state.board[4][5] = Bone("pretas")
+    stun_state.board[3][3] = StunPiece()
     stun_actions = legal_actions(stun_state)
     assert any(
-        action.type.value == "stun" and action.end == (4, 4) and action.area
+        action.type.value == "stun"
+        and action.end == (4, 4)
+        and action.area == ((4, 4), (4, 5))
         for action in stun_actions
     )
 
