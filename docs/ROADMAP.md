@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `21cef6afb5556d991d9a0f111ca2de42874ffc09`  
+**Baseline operacional:** `main` @ `c93a6c659451b86d9d32d73b5f5a1ba66a879f2f`  
 **Data:** 2026-09-08
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -60,11 +60,20 @@ PR #338 foi merged como `21cef6afb5556d991d9a0f111ca2de42874ffc09`. A decisão c
 
 Isto fecha a necessidade de uma **decisão arquitetural**, mas **não** declara equivalência threefold Python↔C++.
 
+## Estado 4 — A0.1 / A.1: EVIDÊNCIA REFORÇADA; BLOCKER #317 AINDA ABERTO
+
+O baseline de Estado 4 começou em `21cef6afb5556d991d9a0f111ca2de42874ffc09` e terminou no `main` `c93a6c659451b86d9d32d73b5f5a1ba66a879f2f`.
+
+- **PR #343** — contrato de rejeição de transições + segurança de não-mutação em erro. A cobertura verifica, entre outros casos, SPAWN em casa ocupada, SPELL bloqueado por silêncio de Inquisitor e SPELL desconhecido; os erros específicos do domínio são preservados e o estado RWEN não é alterado. Merged em `20b7022f88ae49deceaaeac5b0a94aee730e99ee` após as três gates verdes.
+- **PR #344** — paridade representativa entre `engine.legal_actions(state)` e um oracle independente em `tools/analytics/legal_action_oracle.py`, cobrindo MOVE/ATTACK/SPELL/SPAWN em 11 heróis representativos e sem usar geradores de `Piece` como oracle. Merged em `c93a6c659451b86d9d32d73b5f5a1ba66a879f2f` após `RedWar AI Quality Gate #655`, `RedWar Test Suite #1791` e `RedWar CodeQL #615` verdes.
+
+**Interpretação da evidência:** Estado 4 demonstra paridade representativa e preservação dos contratos de erro/mutação, mas **não fecha #317**. O oracle ainda é uma cobertura independente representativa, não uma enumeração provada de toda a superfície historicamente aceite; permanecem necessárias a matriz exaustiva de `MOVE/ATTACK/STUN/SPAWN/SPELL`, as variantes especiais/legacy e a reconciliação completa entre ações canónicas e fixtures aceites.
+
 ### Gate A0.1 atual
 
-A0.1 permanece **OPEN apenas por A.1/#317**. A.2 já não é uma decisão pendente; é uma fronteira deliberada e documentada/testada.
+A0.1 permanece **OPEN apenas por A.1/#317**. A.2 continua **CLOSED AS ARCHITECTURAL BOUNDARY**.
 
-**Próximo estado:** fechar a cobertura canónica de A.1 sem duplicar regras.
+**Próximo estado:** fechar a cobertura canónica/executável de A.1 sem duplicar regras, começando pela matriz completa de ações/variantes que `execute_action()` deve aceitar ou rejeitar explicitamente.
 
 # B — Medição de força e calibração da Arena
 
