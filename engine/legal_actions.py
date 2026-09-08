@@ -71,16 +71,12 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
 
 
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
-    """Resolve a request to the canonical execution representation.
+    """Resolve an input action to the canonical action currently legal in ``gs``.
 
-    Exact action-space members are returned unchanged. Legacy STUN payloads that
-    omit the derived AOE are expanded when they identify one canonical STUN.
-
-    Some existing RedWar transition fixtures intentionally exercise executable
-    special actions that the current piece-level action-space projection does not
-    enumerate. For STUN/SPAWN/SPELL those canonical payloads are returned for the
-    next, pure transition-domain validation in ``GameState``. This function still
-    performs no mutation and does not duplicate hero rules.
+    The exact canonical value is returned unchanged when present in the current
+    action space. Legacy STUN payloads may omit the derived AOE; when that form
+    identifies exactly one canonical STUN action, that canonical value is
+    returned. No hero-specific rule is duplicated here.
     """
     normalized = normalize_action(action)
     available = legal_actions(gs)
@@ -100,9 +96,6 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
         )
         if len(compatible) == 1:
             return compatible[0]
-
-    if normalized.type in {ActionType.STUN, ActionType.SPAWN, ActionType.SPELL}:
-        return normalized
 
     raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
 
