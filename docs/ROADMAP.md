@@ -75,11 +75,9 @@ CI verde é condição necessária para mudanças de código, mas não é prova 
 
 > `AI_BENCHMARK_PROTOCOL.md`: “Regression / Development / Validation”.
 
-> `STRENGTH_EVALUATION.md`: a Arena A/B é o instrumento principal para medir se uma revisão da Ares ficou globalmente mais forte.
+> `STRENGTH_EVALUATION.md`: “Uma alteração correta pode continuar a ser uma regressão global.”
 
-> `STRENGTH_EVALUATION.md`: “implemented != tested != benchmarked != stronger”.
-
-> `BALANCE_METHODOLOGY.md`: desenvolvimento e hold-out são conjuntos diferentes e o hold-out não deve ser reciclado para tuning.
+> `BALANCE_METHODOLOGY.md`: “pricing heuristic ≠ global power estimate ≠ design judgement”.
 
 ## Trabalho
 
@@ -104,7 +102,7 @@ CI verde é condição necessária para mudanças de código, mas não é prova 
 
 > `AI_ENGINE.md`: Ares usa alpha-beta/PVS, TT, Zobrist, iterative deepening, killer/history, move ordering e quiescence/tactical search.
 
-> `ENGINEERING_METHODOLOGY_AND_RESEARCH.md`: “Não copiar uma heurística de Stockfish apenas porque existe em Stockfish.”
+> `ENGINEERING_METHODOLOGY_AND_RESEARCH.md`: “Uma heurística deve ser justificada pelo fenómeno de RedWar que tenta explorar e pela evidência de custo/força obtida.”
 
 > `AI_BENCHMARK_PROTOCOL.md`: um benchmark é regression/capability evidence, não prova de força geral.
 
@@ -131,9 +129,9 @@ CI verde é condição necessária para mudanças de código, mas não é prova 
 
 > `NNUE.md`: “A implementação atual mantém uma sincronização completa da posição como baseline de correção.”
 
-> `NNUE.md`: a ordem correta é provar paridade, ligar transições reais, medir NPS/custo e só então otimizar.
+> `NNUE.md`: “A existência desses hooks não significa integração concluída.”
 
-> `AI_ENGINE.md`: NNUE só pode tornar-se default depois de correção, determinismo, rede treinada, custo, bestmove regressions e Arena.
+> `AI_ENGINE.md`: `sync_board()` permanece oracle de correção até existir paridade incremental provada.
 
 ## Trabalho
 
@@ -159,9 +157,9 @@ CI verde é condição necessária para mudanças de código, mas não é prova 
 
 > `BATTLE_UI_SIDEBAR.md`: “Selected Hero” é persistente; “Hovered Cell / Context” é transitório; “Actions” é a superfície de decisão contextual.
 
-> `BATTLE_UI_SIDEBAR.md`: uma ação legal executa diretamente; várias ações legais são apresentadas completas no painel; o renderer não decide legalidade.
+> `BATTLE_UI_SIDEBAR.md`: “Uma ação legal executa diretamente. Quando existem várias ações legais para o mesmo contexto, o painel expõe a escolha completa.”
 
-> `CURRENT_STATE.md`/`REPLAY_STORAGE.md`: o replay local foi arquitetado para retenção durável, hot-cache e arquivo cold; não deve ser reconstruído como se fosse apenas histórico temporário.
+> `CURRENT_STATE.md`: “A Battle Sidebar inicial e o contexto Encyclopedia já estão implementados; a validação visual/responsiva continua trabalho de produto.”
 
 ## Trabalho
 
@@ -184,7 +182,7 @@ CI verde é condição necessária para mudanças de código, mas não é prova 
 
 > `BALANCE_METHODOLOGY.md`: “pricing heuristic ≠ global power estimate ≠ design judgement”.
 
-> `BALANCE_METHODOLOGY.md`: investigar mecânica → legalidade → contexto → matchup → composição → validade dos dados → só depois alterar preço.
+> `BALANCE_METHODOLOGY.md`: a sequência de investigação começa na mecânica correta e só chega ao preço depois de contexto, matchup, composição e validade dos dados.
 
 ## Trabalho
 
