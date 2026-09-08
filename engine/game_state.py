@@ -3,7 +3,7 @@ import json
 import os
 from typing import Any
 
-from engine.actions import GameAction
+from engine.actions import GameAction, normalize_action
 from engine.config import COLUNAS, LINHAS
 
 ZOBRIST_TABLE = {}
@@ -184,10 +184,8 @@ class GameState:
         return novo_gs
 
     def execute_action(self, acao_dict):
-        if isinstance(acao_dict, GameAction):
-            acao_dict = acao_dict.to_dict()
-        elif not isinstance(acao_dict, dict):
-            raise TypeError("Action must be a dictionary or GameAction")
+        action = normalize_action(acao_dict)
+        acao_dict = action.to_dict()
 
         m_type = str(acao_dict.get("type", "move")).lower()
         start_pos = tuple(acao_dict["start"])
