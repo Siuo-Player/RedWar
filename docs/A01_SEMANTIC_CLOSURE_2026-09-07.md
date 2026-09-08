@@ -14,7 +14,7 @@ Three independently relevant layers agree on the intended contract:
 - The Python runtime spell wrapper requires `source.can_act()` for the Inquisitor aura.
 - The native C++ move generator ignores stunned enemy silence sources.
 
-PR `#291` adds explicit engine-vs-oracle tests for both active and stunned Inquisitor sources so this contract is no longer only transitively covered.
+PR `#292` adds explicit engine-vs-oracle tests for both active and stunned Inquisitor sources so this contract is no longer only transitively covered.
 
 ### Repetition / threefold
 
@@ -24,18 +24,26 @@ This is therefore an unresolved architecture boundary, not a presumed parity fac
 
 ### Terminal semantics
 
-Python terminal resolution includes material/no-capture and no-legal-action handling. Native search has corresponding material/no-capture/no-move scoring paths, but the equivalence still needs dedicated differential tests covering the exact terminal classes and winner/value semantics.
+The deterministic terminal matrix is now closed by PR `#310`. The regression compares the same RWEN fixtures across Python and the native backend for mutual annihilation, one-side annihilation, blocked side, TWC=50 and the TWC=49 non-terminal boundary. Native terminal scores for terminal classes are obtained from the actual `alpha_beta()` implementation rather than a duplicated test-side formula; the external root representation remains `bestmove 0000` for terminal positions.
+
+### Special-spell legality
+
+PR `#303` closed the discovered inherited-spell legality gap in the Python silence guard and established explicit special-spell legality coverage. The canonical action adapter and the C3/native comparisons therefore have a single documented action-space boundary for MOVE/ATTACK/STUN/SPAWN/SPELL.
+
+### Canonical action boundary
+
+PR `#306` made `engine.legal_actions` an explicit engine-facing canonical action boundary, with explicit legacy conversion for compatibility consumers. PR `#308` then made `GameState.execute_action()` normalize accepted inputs through `normalize_action()` before crossing the existing `make_action()` transition seam.
 
 ## Open gate checklist
 
 - [ ] repetition / threefold parity or an explicitly documented backend boundary
-- [ ] terminal-state differential parity
+- [x] terminal-state differential parity
 - [x] silence/stun semantic contract explicitly tested against C3 oracle
-- [ ] all special-spell legality parity under one canonical contract
-- [x] engine-facing canonical action adapter introduced by PR #291
-- [ ] authoritative execute path rejects illegal canonical actions by contract
+- [x] all special-spell legality parity under one canonical contract
+- [x] engine-facing canonical action adapter consolidated by PR #306
+- [ ] authoritative execute path rejects illegal canonical actions by contract (`#309` / follow-up `#311`)
 - [ ] differential coverage of every closed transition contract
-- [ ] confirmed dead rule code removed only after replacement behavior is covered
+- [x] confirmed dead rule code removed only after replacement behavior is covered (PR `#300`)
 
 ## Constraints
 
