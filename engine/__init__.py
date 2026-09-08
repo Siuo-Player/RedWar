@@ -14,7 +14,7 @@ def _install_spell_silence_guard() -> None:
     radius = int(hero_defs.get("Inquisitor", {}).get("aura_radius", 2))
 
     for cls in pieces.TODAS_AS_PECAS:
-        method = cls.__dict__.get("get_valid_spells")
+        method = getattr(cls, "get_valid_spells", None)
         if method is None or getattr(method, "_redwar_silence_guard", False):
             continue
 
