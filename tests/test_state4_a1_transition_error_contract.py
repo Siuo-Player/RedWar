@@ -45,10 +45,10 @@ def test_silenced_declared_spell_keeps_domain_error_and_does_not_mutate() -> Non
     )
 
 
-def test_unknown_spell_is_rejected_without_mutation() -> None:
+def test_unknown_spell_keeps_specific_domain_error_and_does_not_mutate() -> None:
     state = _state("FrostMage")
     _assert_rejected_without_mutation(
         state,
         {"type": "spell", "start": (4, 4), "end": (4, 5), "spell_name": "not_a_spell"},
-        "illegal action",
+        "Unknown spell: not_a_spell",
     )
