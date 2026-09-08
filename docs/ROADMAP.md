@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `b1aadb8a26d8af0e80839e0149b693d6ca710f40`  
+**Baseline operacional:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`  
 **Data:** 2026-09-08
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -46,7 +46,7 @@ Uma fase só pode ser marcada `CLOSED` quando os critérios de aceitação dessa
 
 ### Pré-requisitos
 
-A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #292, #299, #300, #303, #306, #308 e #310.
+A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #292, #299, #300, #303, #306, #308, #310 e #321.
 
 ### Evidência base
 
@@ -56,8 +56,10 @@ A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #2
 - #306 — fronteira canónica `GameAction`.
 - #308 — `execute_action()` normaliza para `GameAction`, preservando a compatibilidade legacy.
 - #310 — terminal regression observa o `alpha_beta()` nativo real.
+- #321 — `resolve_legal_action()` centraliza a resolução exacta e a compatibilidade legacy STUN; merged no `main` atual `e17afcd…`.
 - #309 — não merged: contrato proposto para autoridade de legalidade no executor.
-- #315 — não merged: tentativa posterior do mesmo boundary; não deve ser tratada como implementação presente.
+- #315 — não merged: tentativa posterior do mesmo boundary; a CI expôs que action-space não cobre todo o contrato de transição/compatibilidade.
+- #317 — issue aberta que formaliza a lacuna entre action-space e transition validity.
 
 ### Documentos canónicos
 
@@ -66,30 +68,39 @@ A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #2
 - [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md)
 - [`AI_ENGINE.md`](AI_ENGINE.md)
 - [`A01_SEMANTIC_CLOSURE_2026-09-07.md`](A01_SEMANTIC_CLOSURE_2026-09-07.md)
+- [`DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md`](DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md)
 
-> `A01_SEMANTIC_CLOSURE_2026-09-07.md`: “Não considerar este ponto fechado apenas porque `execute_action()` aceita `GameAction`.”
+> `A01_SEMANTIC_CLOSURE_2026-09-07.md`: a normalização/resolução canónica não fecha por si só a autoridade de execução.
 
 ### Trabalho
 
 **A.1 — authoritative execute legality**  
 Estado: `OPEN / UNVERIFIED`.
 
-A autoridade desejada é:
+A fronteira deve distinguir explicitamente dois predicados:
 
 ```text
-input action
-→ normalize canonical action
-→ canonical legal-action membership
-→ only then mutate state
+canonical action-space resolution
+        ↓
+transition-domain validation
+        ↓
+only then mutate state
 ```
+
+`legal_actions()` continua a representar o action-space canónico produzido pelas primitivas de peças. `resolve_legal_action()` resolve uma entrada para a representação canónica/legacy quando ela pertence a esse espaço. Condições de transição existentes em `GameState.make_action()` continuam a ser autoridade para rejeições de domínio e não devem ser duplicadas em `legal_actions()`.
+
+O executor não deve usar `fast_clone()` para preflight. `fast_clone()` permanece ferramenta auxiliar de referência/replay/testes offline e não é parte da autoridade Ares.
 
 ### Aceitação A.1
 
-- uma ação estruturalmente válida mas ilegal é rejeitada **antes** de qualquer mutação observável;
-- a legalidade é derivada da autoridade canónica existente, sem duplicar regras por tipo de ação;
-- inputs legacy continuam compatíveis quando legalmente equivalentes;
+- uma ação fora do action-space é rejeitada antes de qualquer mutação observável;
+- ações canónicas e inputs legacy equivalentes resolvem através de `resolve_legal_action()`;
+- uma ação no action-space que falhe uma condição específica de transição é rejeitada pelo contrato de `GameState`, preservando o erro de domínio;
+- nenhuma validação de execução depende de clone especulativo;
+- rejeições deixam board, hash e metadata observável inalterados;
 - legal e illegal paths têm regressão executável;
-- differential relevante permanece verde.
+- differential relevante permanece verde;
+- nenhum novo hardcoding por herói é introduzido no adapter de ações.
 
 **Gate:** apenas fechar A.1 quando a alteração estiver merged e testada no `main`.
 
@@ -100,7 +111,7 @@ Documentar e decidir explicitamente:
 
 - identidade de repetição;
 - papel do TWC nessa identidade;
-- se history pertence à posição, ao search context ou a uma camada de adjudicação;
+- se history pertence à posição, ao search context ou à adjudicação;
 - interação de history com `make/unmake`, RWEN e search;
 - como a equivalência deve ser provada.
 
@@ -170,7 +181,7 @@ A0.1 fechado. B com instrumento de medição operacional quando uma alegação d
 - [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md)
 - [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md)
 
-> `AI_BENCHMARK_PROTOCOL.md`: “Uma alteração de search que melhora apenas este benchmark fica classificada como `capability improved` até existir evidência de generalização e, para uma afirmação de força, Arena A/B.”
+> [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md): uma melhoria apenas no benchmark permanece capability evidence até haver generalização e, para força, Arena A/B.
 
 ### Aceitação por alteração
 
@@ -197,8 +208,6 @@ Cada otimização precisa de:
 - [`AI_ENGINE.md`](AI_ENGINE.md)
 - [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md)
 
-> `NNUE.md`: “A existência desses hooks não significa integração concluída.”
-
 ### Trabalho
 
 - ligar hooks às mutações reais de `BoardState`;
@@ -210,9 +219,7 @@ Cada otimização precisa de:
 
 ### Nota sobre #314 / #316
 
-#314 (`research: harden NNUE dataset validation...`) não foi merged: as alterações de split/auditoria aí propostas não são implementação atual do `main`. #316 foi merged e **apenas** classifica a estreita classe de metodologia de dataset na CI separadamente da promoção de strength.
-
-> #316: “The deterministic build/diagnostic steps remain available; only the strength-promotion requirement is disabled for this narrowly defined maintenance class.”
+#314 não foi merged: as alterações aí propostas não são implementação atual do `main`. #316 foi merged e apenas classifica a estreita classe de metodologia de dataset NNUE na CI separadamente da promoção de strength.
 
 **Aceitação:** paridade incremental/full-resync provada + benchmark de custo + treino reproduzível + evidência competitiva suficiente para a alegação feita.
 
@@ -231,8 +238,6 @@ Cada otimização precisa de:
 - [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md)
 - `REPLAY_STORAGE.md`
 - documentação de telemetria
-
-> `BATTLE_UI_SIDEBAR.md`: “O trabalho restante é **validação visual/UX**, não redesenho arbitrário da arquitetura.”
 
 ### Aceitação
 
@@ -253,14 +258,6 @@ UI validada nos tamanhos suportados e estados de interação; keyboard/focus ver
 - [`BALANCE_METHODOLOGY.md`](BALANCE_METHODOLOGY.md)
 - `BALANCE_STATE_OF_GAME_AUDIT.md`
 - [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md)
-
-> `BALANCE_METHODOLOGY.md`: “pricing heuristic ≠ global power estimate ≠ design judgement”.
-
-### Aceitação
-
-Uma alteração de balanceamento tem correctness, evidência de desenvolvimento controlada, validação protegida quando aplicável, análise contextual e decisão de design explícita.
-
-**Não significa:** Auto-Pricer output ≠ causal hero power.
 
 **Próximo bloco:** G — online/server-authoritative.
 
