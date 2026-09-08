@@ -1,4 +1,4 @@
-#include "../ai/cpp_engine/types.hpp"
+#include "../ai/cpp_engine/search.cpp"
 
 #include <iostream>
 #include <sstream>
@@ -17,18 +17,12 @@ std::string terminal_kind() {
     return "NON_TERMINAL";
 }
 
-int terminal_score_contract(int ply = 0) {
-    if (board.white_pieces == 0) return -INFINITO + 100;
-    if (board.black_pieces == 0) return INFINITO - 100;
-    if (board.twc >= 50) {
-        const int margin = MAX_PLY - ply;
-        return board.material_score > 0 ? INFINITO - margin : -INFINITO + margin;
-    }
-    if (generate_valid_moves(board.turn).empty()) {
-        const int margin = MAX_PLY - ply;
-        return (board.turn == 'W') ? -INFINITO + margin : INFINITO - margin;
-    }
-    return 0;
+int actual_terminal_score(const std::string& kind) {
+    if (kind == "NON_TERMINAL") return 0;
+    abort_search = false;
+    nodes_evaluated = 0;
+    search_start_time = std::chrono::steady_clock::now();
+    return alpha_beta(1, -INFINITO, INFINITO, board.turn, 0, {});
 }
 
 std::string trim(const std::string& value) {
@@ -54,7 +48,7 @@ int main() {
             board.hash = compute_initial_hash();
 
             const std::string kind = terminal_kind();
-            const int score = terminal_score_contract();
+            const int score = actual_terminal_score(kind);
             std::string bestmove = search_best_move(1);
             if (bestmove.empty()) bestmove = "0000";
 
