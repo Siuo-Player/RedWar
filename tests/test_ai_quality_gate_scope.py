@@ -35,3 +35,14 @@ def test_ai_quality_gate_still_detects_real_ai_sources_and_nnue_tooling():
         "tools/nnue/export_model.py",
     ):
         assert pattern.search(path), path
+
+
+def test_ai_quality_gate_documents_narrow_dataset_methodology_exception():
+    source = WORKFLOW.read_text(encoding="utf-8")
+
+    assert "dataset_methodology_only=false" in source
+    assert "docs/RESEARCH_ENGINEERING_2026-09-08.md" in source
+    assert "tests/test_nnue_dataset_tools.py" in source
+    assert "tools/nnue/audit_dataset.py" in source
+    assert "tools/nnue/train.py" in source
+    assert "NNUE dataset-methodology validation change detected" in source
