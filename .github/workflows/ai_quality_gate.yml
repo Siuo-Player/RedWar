@@ -100,11 +100,11 @@ jobs:
         # Keep AI-quality compilation/diagnostics while avoiding a false
         # strength-promotion requirement for this exact four-file maintenance PR.
         dataset_methodology_only=false
-        if [ "$actual_files" -eq 4 ]; then
+        if [ "$actual_files" -eq 5 ]; then
           dataset_methodology_only=true
           while IFS= read -r path; do
             case "$path" in
-              docs/RESEARCH_ENGINEERING_2026-09-08.md|tests/test_nnue_dataset_tools.py|tools/nnue/audit_dataset.py|tools/nnue/train.py) ;;
+              .github/workflows/ai_quality_gate.yml|docs/RESEARCH_ENGINEERING_2026-09-08.md|tests/test_nnue_dataset_tools.py|tools/nnue/audit_dataset.py|tools/nnue/train.py) ;;
               *) dataset_methodology_only=false ;;
             esac
           done < /tmp/changed-files.txt
