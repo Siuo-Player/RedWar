@@ -16,7 +16,6 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
     """Return all legal actions for the side to move in deterministic order."""
     current_team = "brancas" if gs.white_to_move else "pretas"
     actions: set[GameAction] = set()
-
     for r in range(LINHAS):
         for c in range(COLUNAS):
             piece = gs.board[r][c]
@@ -48,29 +47,16 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
     return tuple(sorted(actions, key=_action_key))
 
 
-def _spell_candidates(gs: Any, action: GameAction) -> tuple[GameAction, ...]:
-    """Resolve a SPELL against the source piece's generator without duplicating rules."""
-    start_row, start_col = action.start
-    piece = gs.board[start_row][start_col]
-    current_team = "brancas" if gs.white_to_move else "pretas"
-    if piece is None or piece.team != current_team:
-        return ()
-    candidates: list[GameAction] = []
-    for spell in piece.get_valid_spells(start_row, start_col, gs.board, gs.tile_effects):
-        if isinstance(spell, dict):
-            target = spell.get("target")
-            spell_name = spell.get("spell_type")
-        else:
-            target = spell[0:2]
-            spell_name = spell[2] if len(spell) >= 3 else (
-                "jump" if piece.name == "Dragoon" and len(spell) == 2 else None
-            )
-        if target is None or not spell_name:
-            continue
-        candidate = GameAction(ActionType.SPELL, action.start, tuple(target), spell_name=str(spell_name))
-        if candidate.end == action.end and (candidate.spell_name or "").lower() == (action.spell_name or "").lower():
-            candidates.append(candidate)
-    return tuple(candidates)
+def _declared_spell_names(gs: Any, piece: Any) -> set[str]:
+    """Return spells owned by a hero from the canonical hero configuration."""
+    from engine.pieces import HERO_DEFS
+
+    definition = HERO_DEFS.get(piece.name, {}) or {}
+    names = {str(name).lower() for name in definition.get("spells", []) if name}
+    attack = (definition.get("behavior") or {}).get("attack") or {}
+    if attack.get("attack_action") == "spell" and attack.get("spell_name"):
+        names.add(str(attack["spell_name"]).lower())
+    return names
 
 
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
@@ -93,12 +79,13 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
             return compatible[0]
 
     if normalized.type is ActionType.SPELL:
-        spell_candidates = _spell_candidates(gs, normalized)
-        if len(spell_candidates) == 1:
-            return spell_candidates[0]
-        if not spell_candidates:
+        start_row, start_col = normalized.start
+        piece = gs.board[start_row][start_col]
+        current_team = "brancas" if gs.white_to_move else "pretas"
+        spell_name = (normalized.spell_name or "").lower()
+        if piece is None or piece.team != current_team or spell_name not in _declared_spell_names(gs, piece):
             raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
-        raise ValueError(f"ambiguous spell action for current position: {normalized.to_dict()}")
+        return normalized
 
     validator = getattr(gs, "_validate_transition", None)
     if validator is not None:
