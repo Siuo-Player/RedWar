@@ -71,12 +71,17 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
 
 
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
-    """Resolve an input action to the canonical action currently legal in ``gs``.
+    """Resolve an input to a canonical execution representation.
 
-    The exact canonical value is returned unchanged when present in the current
-    action space. Legacy STUN payloads may omit the derived AOE; when that form
-    identifies exactly one canonical STUN action, that canonical value is
-    returned. No hero-specific rule is duplicated here.
+    Exact action-space members are returned unchanged. Legacy STUN payloads that
+    omit the derived AOE are expanded when they identify one canonical STUN.
+
+    When an input is not in the action-space but the existing pure transition
+    validator rejects it, the normalized representation is returned so the
+    executor can preserve the historical domain-specific error. A transition
+    that passes validation but is absent from the canonical action-space still
+    raises the canonical illegal-action error. This keeps action-space membership
+    and transition validity as separate predicates without duplicating hero rules.
     """
     normalized = normalize_action(action)
     available = legal_actions(gs)
@@ -96,6 +101,20 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
         )
         if len(compatible) == 1:
             return compatible[0]
+
+    validator = getattr(gs, "_validate_transition", None)
+    if validator is not None:
+        try:
+            validator(
+                normalized.start,
+                normalized.end,
+                normalized.type.value,
+                affected_area=list(normalized.area),
+                spawn_name=normalized.spawn_name,
+                spell_name=normalized.spell_name,
+            )
+        except ValueError:
+            return normalized
 
     raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
 
