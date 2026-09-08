@@ -1,32 +1,48 @@
 # RedWar — Project Reasoning Spine
 
 **Estado:** operacional  
-**Baseline verificado:** `main` @ `73cf14bc0861bd3d6fdb4a437fe9f433b7322a07`  
+**Baseline verificado:** `main` @ `b1aadb8a26d8af0e80839e0149b693d6ca710f40`  
 **Data:** 2026-09-08
 
-Este é o **eixo de raciocínio transversal** do RedWar. Não substitui documentos de domínio: explica a ordem em que eles devem ser usados para tomar decisões e impede que uma tarefa futura salte diretamente de uma ideia para uma implementação sem atravessar as evidências necessárias.
+Este é o eixo de raciocínio transversal do RedWar. Não substitui documentos de domínio nem `ROADMAP.md`: explica a cadeia de dependências e o nível de evidência necessário para cada tipo de afirmação.
 
 ## 1. Hierarquia que não pode ser confundida
 
-Para saber **o que o sistema faz**, usar primeiro:
+Para saber **o que o sistema faz agora**, usar primeiro:
 
 ```text
 implementação atual + testes executáveis
 ```
 
-Para saber **qual é o contrato que o sistema pretende manter**, usar os documentos canónicos.
+Para saber **qual é o contrato operacional atual**, usar os documentos canónicos.
 
 Para saber **por que uma decisão histórica foi tomada**, usar `DECISIONS/`.
 
-Para saber **o que foi investigado ou proposto**, usar auditorias/research.
+Para saber **o que foi investigado/proposto**, usar audits/research.
 
-Para saber **o que fazer a seguir**, usar exclusivamente `ROADMAP.md`.
+Para saber **o que fazer a seguir**, usar exclusivamente [`ROADMAP.md`](ROADMAP.md).
 
-Um snapshot antigo nunca pode reabrir uma decisão já fechada. Uma proposta nunca pode ser tratada como implementação. Uma métrica nunca pode ser promovida a prova de força sem o protocolo de força.
+Snapshots antigos são contexto histórico; não vencem o `main` nem um contrato canónico atual.
 
-## 2. A linha causal completa
+## 2. Estados de conhecimento
 
-Toda alteração material do RedWar deve poder ser reconstruída assim:
+```text
+DOCUMENTED
+    ↓
+IMPLEMENTED
+    ↓
+TESTED
+    ↓
+VALIDATED
+    ↓
+PROVEN (para uma alegação específica)
+```
+
+A sequência é conceptual, não uma promoção automática. Uma implementação pode existir sem estar suficientemente testada; um teste pode existir sem validar generalização; uma validação de capability não prova strength.
+
+## 3. Linha causal completa
+
+Toda alteração material deve poder ser reconstruída como:
 
 ```text
 problema / oportunidade
@@ -41,7 +57,7 @@ menor alteração que testa a hipótese
         ↓
 teste de correção
         ↓
-teste diferencial / property / benchmark
+differential / property / benchmark
         ↓
 medição independente de custo ou força, quando aplicável
         ↓
@@ -49,14 +65,12 @@ decisão: aceitar / rejeitar / continuar
         ↓
 contrato canónico atualizado
         ↓
-ROADMAP.md atualizado
+ROADMAP atualizado
 ```
 
-Quando um passo não é necessário, isso deve ser explicitamente justificado pela natureza da alteração. Não se deve simplesmente saltá-lo por conveniência.
+Quando um passo não se aplica, a razão deve ser explícita.
 
-## 3. Dependência técnica do projeto
-
-A dependência principal é:
+## 4. Dependência técnica
 
 ```text
 GAME_RULES / HERO_SYSTEM
@@ -64,7 +78,7 @@ GAME_RULES / HERO_SYSTEM
 ação e estado canónicos
         ↓
 Python reference
-        ↕  differential contract
+        ↕ differential
         C++ Ares hot path
         ↓
 search / evaluation
@@ -76,43 +90,44 @@ balance decisions
 produto / online
 ```
 
-A camada de UI/replay/telemetria é transversal:
+UI/replay/telemetria é transversal ao estado observado:
 
 ```text
 rules + state
    ↓
 interaction / replay / telemetry
    ↓
-observação do produto
+product evidence
 ```
 
-Por isso **força da Ares**, **balanceamento** e **qualidade do produto** são problemas diferentes, embora partilhem estado e evidência.
+Por isso **correctness, capability, performance, strength, balance e UX** são alegações distintas.
 
-## 4. Estado atual que limita a próxima fase
+## 5. Estado atual que limita a sequência
 
-A fundação A0 está fechada como gate histórico, mas o projeto está no **A0.1 Semantic Closure** para resolver os últimos limites de autoridade semântica antes de reabrir tuning de força.
+A0 é um gate histórico fechado. O baseline atual permanece em **A0.1 Semantic Closure**.
 
-### Fechado
+### Fechado e evidenciado
 
-- geração de ações especiais: coberta por contrato explícito;
-- fronteira canónica `GameAction`: consolidada nos consumidores principais;
-- normalização na entrada de `execute_action()`;
-- terminal differential: agora observa o `alpha_beta()` nativo real;
-- repetição Python: observação idempotente;
-- código FrostMage morto removido depois de cobertura;
-- fixed node budget: contractualmente testado.
+- Inquisitor silence/stun: regressão explícita em #292;
+- Python repetition observation: idempotência em #299;
+- FrostMage unreachable code: removido e protegido por AST regression em #300;
+- special-spell legality parity: #303;
+- canonical `GameAction` boundary: #306;
+- `execute_action()` normalization: #308;
+- terminal contract contra o `alpha_beta()` real: #310;
+- fixed node-budget contract: cobertura dedicada existente.
 
 ### Ainda aberto
 
-- legalidade deve ser rejeitada **antes da mutação** por uma autoridade de execução única;
-- Python e C++ ainda não possuem uma história de repetição nativa equivalente definida como contrato;
-- a matriz differential deve continuar a crescer para cada nova fronteira semântica, especialmente quando uma mudança tocar vários estados persistentes.
+- `GameState.execute_action()` ainda não tem, no `main`, a autoridade de canonical legal-action membership que rejeite uma ação ilegal antes da mutação; #309 e #315 não foram merged;
+- native repetition/history ainda não é um contrato equivalente ao `state_history` Python;
+- future semantic changes continuam a exigir differential evidence conforme a matriz.
 
-Estas pendências são de correção/arquitetura. Não devem ser mascaradas por ganhos de benchmark.
+Estas pendências não podem ser anuladas por benchmark, dataset, Elo ou uma CI verde.
 
-## 5. Regra Ares
+## 6. Regra Ares
 
-Ares deve ser melhorada nesta ordem:
+Ares deve evoluir conceptualmente como:
 
 ```text
 semantic correctness
@@ -126,104 +141,66 @@ evaluation quality
 competitive strength
 ```
 
-A ordem não significa que todos os níveis sejam estritamente sequenciais para sempre; significa que **uma alegação de nível superior não pode apagar uma dúvida de nível inferior**.
+Uma alegação superior não pode mascarar uma dúvida inferior.
 
-Exemplos:
+- NPS maior sem equivalência semântica ≠ progresso aceite;
+- benchmark táctico melhor = capability evidence;
+- lower NNUE loss = training evidence;
+- batch Elo de amostra dependente = efeito descritivo, não calibragem global automática.
 
-- NPS maior sem equivalência semântica = não é progresso aceite.
-- benchmark táctico melhor = capability evidence, não força global.
-- loss NNUE menor = não é força global.
-- maior Elo numa amostra dependente = não prova calibração geral.
-
-## 6. Regra de evidência por afirmação
+## 7. Regra de evidência por afirmação
 
 | Afirmação | Evidência mínima |
 |---|---|
-| “a regra funciona” | teste de transição + regressão |
-| “Python e C++ concordam” | differential após cada estado relevante |
-| “a pesquisa encontra X” | benchmark táctico determinístico |
-| “ficou mais rápido” | benchmark controlado de custo/NPS |
-| “ficou mais forte” | Arena A/B + conjunto protegido + incerteza adequada |
-| “o roster está melhor balanceado” | análise contextual + validação independente |
-| “a UX melhorou” | testes de interação + validação visual/uso |
+| regra funciona | teste de transição + regressão |
+| Python/C++ concordam | differential nos estados relevantes |
+| pesquisa encontra X | benchmark determinístico específico |
+| ficou mais rápido | benchmark controlado de custo |
+| ficou mais forte | Arena A/B + protocolo de incerteza apropriado |
+| roster está melhor balanceado | análise contextual + validação independente |
+| UX melhorou | testes de interação + validação visual/uso |
 
-## 7. Como usar os documentos
+## 8. Como usar os documentos
 
-### Para regras
+- **Regras:** `GAME_RULES.md` + `HERO_SYSTEM.md`.
+- **Arquitetura:** `ARCHITECTURE.md` + `MECHANICS_TRACEABILITY_MATRIX.md`.
+- **Ares:** `AI_ENGINE.md` + `AI_BENCHMARK_PROTOCOL.md` + `STRENGTH_EVALUATION.md`.
+- **NNUE:** `NNUE.md` + `AI_ENGINE.md`; hooks ≠ integração concluída.
+- **Strength:** `STRENGTH_EVALUATION.md` + `ARENA_STATISTICAL_METHODOLOGY.md` + hold-out.
+- **Balance:** `BALANCE_METHODOLOGY.md`; Auto-Pricer é diagnóstico.
+- **UI:** `BATTLE_UI_SIDEBAR.md`; arquitetura já implementada não deve ser reaberta por snapshots antigos.
 
-Começar em `GAME_RULES.md` e `HERO_SYSTEM.md`. Se houver divergência, confrontar a implementação e os testes; depois abrir uma decisão caso o contrato precise realmente de mudar.
+## 9. Regra anti-ficção documental
 
-### Para arquitetura
-
-Usar `ARCHITECTURE.md`, `MECHANICS_TRACEABILITY_MATRIX.md` e este documento. A matriz não prova tudo sozinha; mostra onde a prova ainda tem de existir.
-
-### Para Ares
-
-Usar `AI_ENGINE.md` + `AI_BENCHMARK_PROTOCOL.md` + `STRENGTH_EVALUATION.md`.
-
-### Para NNUE
-
-Usar `NNUE.md` + `AI_ENGINE.md`. A existência de hooks incrementais não equivale à sua integração; a integração só termina quando houver paridade com rescan e benchmark de custo.
-
-### Para balanceamento
-
-Usar `BALANCE_METHODOLOGY.md`. O Auto-Pricer é diagnóstico, não autoridade causal.
-
-### Para UI/replay
-
-Usar `BATTLE_UI_SIDEBAR.md`, `REPLAY_STORAGE.md` e a documentação de telemetria. Não reabrir arquitetura já implementada como se ainda fosse design exploratório.
-
-### Para online
-
-Usar `WEB_MULTIPLAYER.md` somente depois de existir um contrato de estado/ação suficientemente estável no núcleo.
-
-## 8. Regra anti-ficção documental
-
-É proibido inferir estado do projeto por frases como:
+É inválido inferir:
 
 - “planeado” = implementado;
 - “documentado” = provado;
-- “testado” = validado para o uso final;
+- “testado” = validado para qualquer uso;
 - “benchmark verde” = mais forte;
-- “CI verde” = correção total;
-- “existe no branch” = existe no `main`.
+- “CI verde” = correctness total;
+- “existe num branch” = existe no `main`.
 
-A palavra **concluído** só deve aparecer no roadmap quando a evidência indicada na própria etapa existir no baseline alvo.
+## 10. Regra para novos documentos
 
-## 9. Regra para novos documentos
+Antes de criar um ficheiro:
 
-Antes de criar um documento novo:
+1. procurar o proprietário canónico no `00_INDEX.md`;
+2. verificar `CURRENT_STATE.md` e `ROADMAP.md`;
+3. verificar o documento do domínio;
+4. consultar `DECISIONS/` apenas quando a rationale histórica for necessária.
 
-1. verificar `00_INDEX.md`;
-2. verificar este spine;
-3. verificar o documento canónico do domínio;
-4. verificar `DECISIONS/`;
-5. só criar novo ficheiro se o artefacto tiver responsabilidade/lifecycle próprios.
+Uma nova investigação normalmente termina com atualização do documento canónico + roadmap, e não com outro snapshot paralelo.
 
-Uma nova investigação normalmente deve acabar por produzir alterações em **um documento canónico existente + ROADMAP**, não num novo ficheiro paralelo.
+## 11. Unidade mínima de continuidade
 
-## 10. Critério para a próxima IA
-
-Uma IA que continue o RedWar deve começar por:
-
-```text
-README
- → 00_INDEX
- → PROJECT_REASONING
- → CURRENT_STATE
- → ROADMAP
- → documento canónico do domínio da tarefa
- → decisão histórica relevante, se existir
- → código + testes
-```
-
-Depois de trabalhar, deve atualizar na mesma unidade:
+Quando código/testes alterarem um contrato ou prioridade:
 
 ```text
 código/testes
- + documento canónico afetado
+ + contrato canónico
  + ROADMAP
- + decisão, se a política mudou
+ + decisão histórica, se a política mudou
 ```
 
-O objetivo é que a conversa deixe de ser necessária para reconstruir **por que** a próxima tarefa vem antes da seguinte.
+O objetivo é que a próxima IA consiga reconstruir **onde estamos, o que está provado, o que não está provado e por que o próximo bloco vem a seguir**, sem depender da conversa original.
