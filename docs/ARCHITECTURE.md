@@ -33,18 +33,36 @@ A duplicação Python/C++ é dívida controlada. Enquanto ambos forem usados par
 
 ## Estado A0.1
 
-**Verificado no `main` atual:**
+**Verificado no `main` atual (`e17afcd54ad57635e222f3b3c9a5bb9966df9394`):**
 
 - a fronteira canónica `GameAction` está implementada e a entrada de `execute_action()` é normalizada (#306/#308);
+- `resolve_legal_action()` foi introduzido e testado no #321 para centralizar resolução exacta e compatibilidade legacy STUN;
 - terminal, special-spell legality, Inquisitor silence/stun e vários outros contratos têm regressões explícitas (#292/#303/#310);
 - repetição Python tem observação idempotente (#299).
 
 **Ainda não provado/implementado no `main`:**
 
-- `execute_action()` rejeitar canonical legal actions fora do conjunto legal **antes da mutação**; #309 e #315 não foram merged;
+- `execute_action()` rejeitar canonical legal actions fora do action-space e manter separadas as validações específicas da transição antes da mutação;
+- ausência de mutação observável para todos os caminhos de rejeição relevantes;
 - um contrato nativo de repetition/history equivalente à história Python.
 
-Não promover a intenção arquitetural a facto implementado apenas porque existe um PR ou um decision record.
+O boundary de A.1 é explicitamente:
+
+```text
+input
+  ↓
+canonical normalization / resolution
+  ↓
+action-space membership
+  ↓
+transition-domain validation
+  ↓
+mutation
+```
+
+`legal_actions()` continua responsável pelo action-space derivado das primitivas de peças; `GameState.make_action()` continua autoridade de transição. Não transformar nenhum dos dois numa cópia do outro.
+
+`fast_clone()` não é parte dessa autoridade. É permitido como ferramenta auxiliar fora do execution/search boundary; em particular, não é preflight de `execute_action()` nem componente do hot path C++ Ares.
 
 ## Implemented vs proven
 
