@@ -41,6 +41,7 @@ jobs:
           python tools/scripts/build_cpp_engine.py --movegen-test
           python tools/scripts/build_cpp_engine.py --numeric-test
           python tools/scripts/build_cpp_engine.py --perft-test
+          python tools/scripts/build_cpp_engine.py --terminal-test
 
       - name: Run Python test suite
         run: python -m pytest tests/

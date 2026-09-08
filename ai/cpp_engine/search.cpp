@@ -520,6 +520,8 @@ std::string search_best_move(int max_depth) {
 
     if (max_depth < 1 || board.twc >= 50) return "";
 
+    if (is_terminal_score(evaluate_board())) return "";
+
     for (int team = 0; team < 2; ++team)
         for (int sr = 0; sr < LINHAS; ++sr)
             for (int sc = 0; sc < COLUNAS; ++sc)
