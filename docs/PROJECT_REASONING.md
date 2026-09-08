@@ -1,7 +1,7 @@
 # RedWar — Project Reasoning Spine
 
 **Estado:** operacional  
-**Baseline verificado:** `main` @ `b1aadb8a26d8af0e80839e0149b693d6ca710f40`  
+**Baseline verificado:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`  
 **Data:** 2026-09-08
 
 Este é o eixo de raciocínio transversal do RedWar. Não substitui documentos de domínio nem `ROADMAP.md`: explica a cadeia de dependências e o nível de evidência necessário para cada tipo de afirmação.
@@ -90,15 +90,7 @@ balance decisions
 produto / online
 ```
 
-UI/replay/telemetria é transversal ao estado observado:
-
-```text
-rules + state
-   ↓
-interaction / replay / telemetry
-   ↓
-product evidence
-```
+UI/replay/telemetria é transversal ao estado observado.
 
 Por isso **correctness, capability, performance, strength, balance e UX** são alegações distintas.
 
@@ -115,15 +107,30 @@ A0 é um gate histórico fechado. O baseline atual permanece em **A0.1 Semantic 
 - canonical `GameAction` boundary: #306;
 - `execute_action()` normalization: #308;
 - terminal contract contra o `alpha_beta()` real: #310;
+- canonical action resolution seam: #321;
 - fixed node-budget contract: cobertura dedicada existente.
 
 ### Ainda aberto
 
-- `GameState.execute_action()` ainda não tem, no `main`, a autoridade de canonical legal-action membership que rejeite uma ação ilegal antes da mutação; #309 e #315 não foram merged;
+- `GameState.execute_action()` ainda não tem, no `main`, a autoridade completa de execution legality que una action-space membership a transition-domain validation antes da mutação; #317 permanece aberto;
 - native repetition/history ainda não é um contrato equivalente ao `state_history` Python;
 - future semantic changes continuam a exigir differential evidence conforme a matriz.
 
 Estas pendências não podem ser anuladas por benchmark, dataset, Elo ou uma CI verde.
+
+Para A.1 a separação arquitetural é obrigatória:
+
+```text
+normalização/resolução canónica
+        ↓
+action-space membership
+        ↓
+transition-domain validation
+        ↓
+mutation
+```
+
+`fast_clone()` não é parte desta fronteira. Não deve ser usado para preflight nem para authority de execução; permanece ferramenta auxiliar de referência/replay/testes offline.
 
 ## 6. Regra Ares
 
@@ -168,7 +175,7 @@ Uma alegação superior não pode mascarar uma dúvida inferior.
 - **NNUE:** `NNUE.md` + `AI_ENGINE.md`; hooks ≠ integração concluída.
 - **Strength:** `STRENGTH_EVALUATION.md` + `ARENA_STATISTICAL_METHODOLOGY.md` + hold-out.
 - **Balance:** `BALANCE_METHODOLOGY.md`; Auto-Pricer é diagnóstico.
-- **UI:** `BATTLE_UI_SIDEBAR.md`; arquitetura já implementada não deve ser reaberta por snapshots antigos.
+- **UI:** `BATTLE_UI_SIDEBAR.md`.
 
 ## 9. Regra anti-ficção documental
 
