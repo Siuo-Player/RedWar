@@ -10,18 +10,36 @@ A regra transversal está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md). Mud
 
 A camada canónica de ações distingue `MOVE`, `ATTACK`, `STUN`, `SPAWN` e `SPELL`. Uma ofensiva implementada como spell não deve ser artificialmente duplicada como `ATTACK`.
 
-PR #291 consolidou a análise Python sobre todo o espaço de ação canónico.
+PR #291 consolidou a análise Python sobre o espaço de ação canónico; #306 tornou a fronteira explícita e #308 normaliza `execute_action()` através dela. **Isto não prova ainda que qualquer ação estruturalmente válida seja rejeitada por membership antes da mutação:** esse bloco continua aberto porque #309/#315 não foram merged.
 
 ## Casos especiais já validados
 
-- Inquisitor: apenas um Inquisitor capaz de agir aplica a condição de silêncio prevista; a exceção para Inquisitor atordoado é explicitamente testada.
-- FrostMage: `NEVADA` é uma spell; o código morto que sugeria um segundo mecanismo de STUN foi removido em #300 depois de existir cobertura para o comportamento ativo.
-- Special spells: a paridade de legalidade foi explicitamente coberta em #303.
+- **Inquisitor:** a condição de silêncio e a exceção de Inquisitor atordoado têm regressão explícita em #292.
+- **FrostMage:** `NEVADA` é `SPELL`; o código morto que sugeria um segundo mecanismo de STUN foi removido em #300 depois de cobertura para o comportamento ativo.
+- **Special spells:** a paridade de legalidade é coberta em #303 para as ações especiais declaradas no contrato desse PR.
 
 ## Estado data-driven
 
-O sistema continua **híbrido**. A configuração é fonte dos dados e vocabulary, mas ainda existem comportamentos especializados em código. A redução desse hardcoding é uma refatoração futura, não uma condição para fingir que o sistema já é totalmente declarativo.
+O sistema continua **híbrido**. A configuração é fonte dos dados e vocabulary, mas ainda existem comportamentos especializados em código. A redução desse hardcoding é trabalho futuro, não evidência de que o sistema já seja totalmente declarativo.
+
+## Níveis de evidência
+
+Para evitar sobreinterpretação:
+
+```text
+DOCUMENTED
+≠
+IMPLEMENTED
+≠
+TESTED
+≠
+VALIDATED
+≠
+PROVEN para qualquer estado possível
+```
+
+As regressões de ações especiais provam os casos e condições que exercitam; não constituem por si só prova de semantic closure universal.
 
 ## Regra para nova mecânica
 
-Uma nova mecânica só entra no contrato como concluída quando passa a cadeia da matriz: configuração/schema quando aplicável → Python → C++ → ações → transição → RWEN → make/unmake → hash → differential → regressão → benchmark quando altera capacidade de search.
+Uma nova mecânica só entra no contrato como concluída quando passa a cadeia relevante da matriz: configuração/schema quando aplicável → Python → C++ → ações → transição → RWEN → make/unmake → hash → differential → regressão → benchmark quando altera capacidade de search.

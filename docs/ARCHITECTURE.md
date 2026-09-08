@@ -2,9 +2,9 @@
 
 ## Current authority
 
-A arquitetura do RedWar é uma arquitetura de pequeno projeto com complexidade sistémica: regras Python, Ares C++, validação diferencial, Arena/Strength, NNUE, UI/replay e futura camada online.
+A arquitetura atual é uma arquitetura de pequeno projeto com complexidade sistémica: regras Python, Ares C++, validação diferencial, Arena/Strength, NNUE, UI/replay e futura camada online.
 
-A ordem causal entre estas áreas está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md). Este documento define as fronteiras arquiteturais.
+[`CURRENT_STATE.md`](CURRENT_STATE.md) identifica o baseline atual; [`ROADMAP.md`](ROADMAP.md) define a sequência; este documento define as fronteiras arquiteturais.
 
 ## Núcleo
 
@@ -20,9 +20,9 @@ product semantics                         search/eval
 replay / telemetry                    Arena / strength
 ```
 
-A duplicação Python/C++ é uma dívida controlada: enquanto existir, qualquer mudança semântica que atravesse ambos precisa de differential evidence.
+A duplicação Python/C++ é dívida controlada. Enquanto ambos forem usados para regras/engine, mudanças que atravessem essa fronteira exigem evidence diferencial apropriada.
 
-## Invariantes
+## Invariantes alvo
 
 1. Mesma posição → mesmas ações legais.
 2. `make → unmake` restaura posição e metadados relevantes.
@@ -33,16 +33,40 @@ A duplicação Python/C++ é uma dívida controlada: enquanto existir, qualquer 
 
 ## Estado A0.1
 
-A0 foi fechado como gate histórico. A0.1 continua porque:
+**Verificado no `main` atual:**
 
-- o executor ainda precisa de uma autoridade explícita que rejeite ação ilegal antes da mutação;
-- repetição/threefold ainda necessita de um contrato nativo de history, em vez de uma implementação ad hoc.
+- a fronteira canónica `GameAction` está implementada e a entrada de `execute_action()` é normalizada (#306/#308);
+- terminal, special-spell legality, Inquisitor silence/stun e vários outros contratos têm regressões explícitas (#292/#303/#310);
+- repetição Python tem observação idempotente (#299).
 
-Não tratar estas pendências como “bugs já corrigidos”.
+**Ainda não provado/implementado no `main`:**
+
+- `execute_action()` rejeitar canonical legal actions fora do conjunto legal **antes da mutação**; #309 e #315 não foram merged;
+- um contrato nativo de repetition/history equivalente à história Python.
+
+Não promover a intenção arquitetural a facto implementado apenas porque existe um PR ou um decision record.
+
+## Implemented vs proven
+
+```text
+IMPLEMENTED
+= comportamento presente no código alvo
+
+TESTED
+= existe regressão executável para a propriedade
+
+VALIDATED
+= a propriedade foi exercida pelo método de validação adequado
+
+PROVEN
+= a evidência é suficiente para a alegação específica feita
+```
+
+O desenho arquitetural pode ser um **intended invariant** antes de ser um invariant plenamente provado em todo o espaço de estados.
 
 ## Modularidade
 
-Search, evaluator, NNUE, Arena e UI devem permanecer separados da autoridade das regras. Ferramentas experimentais não devem duplicar `GameState` nem inventar uma segunda linguagem de regras.
+Search, evaluator, NNUE, Arena e UI permanecem separados da autoridade das regras. Ferramentas experimentais não devem duplicar `GameState` nem inventar uma segunda linguagem de regras.
 
 ## Critério de mudança
 
@@ -51,10 +75,12 @@ Uma alteração arquitetural deve declarar:
 ```text
 fronteira afetada
 → contrato
+→ evidência atual
 → dependências
 → testes
 → efeito esperado
+→ critério de saída
 → próximo gate
 ```
 
-Consultar [`PROJECT_DEVELOPMENT_METHODOLOGY.md`](PROJECT_DEVELOPMENT_METHODOLOGY.md) para a decomposição e [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md) para mudanças de mecânicas.
+Consultar [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md) para mudanças que atravessam regras, estado ou backends.
