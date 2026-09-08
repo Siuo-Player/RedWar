@@ -1,90 +1,68 @@
 # RedWar — Current State
 
-**Snapshot:** 2026-08-27  
-**Verified baseline:** `main` after provenance, Strength context, matchup/intransitivity diagnostics, real Arena report support and dedicated Strength experiment triggering.
+**Snapshot:** 2026-09-08  
+**Verified `main`:** `73cf14bc0861bd3d6fdb4a437fe9f433b7322a07`
 
-This document is a dated navigation snapshot. It is not a replacement for the canonical domain documents listed in [`docs/00_INDEX.md`](00_INDEX.md).
+Este ficheiro é uma fotografia do baseline. A explicação causal está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md); a sequência operacional está em [`ROADMAP.md`](ROADMAP.md).
 
-## Engineering baseline
+## 1. Estado de correção
 
-- `main` contains the foundation gates established from the project-study audit.
-- The regression suite now covers 100+ tests, including Python/C++ differential, make/unmake, move-generation, persistent-state, metamorphic and per-mechanic coverage.
-- Long persistent-state differential coverage exercises lifespan, spawn cooldown, stun, tile effects and TWC across multiple plies.
-- Differential diagnostics identify the first divergent transition instead of only reporting a final aggregate mismatch.
-- Python/C++ perft/node-count differential is now part of the regression layer for deterministic positions.
-- Arena result provenance is explicit: game validity and termination reason are retained, and invalid observations are excluded from strength inference and promotion.
-- Protected hold-out validation is frozen through `data/validation/ARES_HOLDOUT_V1.json` and its canonical hash contract.
+A0 foi fechado como gate histórico. O projeto está agora em **A0.1 Semantic Closure**.
 
-## Ares
+Fechado no baseline:
 
-Canonical source: [`AI_ENGINE.md`](AI_ENGINE.md).
+- terminal differential e terminal score usam a implementação `alpha_beta()` real (#310);
+- special-spell legality parity (#303);
+- canonical `GameAction` boundary e normalização de `execute_action()` (#306, #308);
+- Python analysis cobre MOVE/ATTACK/STUN/SPAWN/SPELL (#291);
+- repetition observation Python tornou-se idempotente (#299);
+- FrostMage unreachable code removido após cobertura (#300);
+- fixed node-budget semantics testado (#285).
 
-Current architecture uses the C++ engine on the hot path with alpha-beta/PVS, transposition table, Zobrist hashing, iterative deepening, move ordering, quiescence/tactical search and bounded search. The classic evaluator remains the correctness/compatibility baseline.
+Ainda aberto:
 
-NNUE infrastructure exists and is optional. Incremental NNUE primitives exist, but integration into the real `BoardState` transition hot path is still an open engineering block; full-refresh consistency remains the correctness baseline.
+- autoridade de execução deve rejeitar ações ilegais antes da mutação;
+- repetição/threefold ainda não tem história nativa equivalente definida como contrato;
+- novas alterações devem continuar a fechar a cadeia differential → transition → make/unmake → hash conforme a matriz de traceability.
 
-## Strength / Arena
+Fonte canónica: [`A01_SEMANTIC_CLOSURE_2026-09-07.md`](A01_SEMANTIC_CLOSURE_2026-09-07.md).
 
-Canonical sources:
+## 2. Ares
 
-- [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md)
-- [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md)
-- [`ARENA_HOLDOUT_CI.md`](ARENA_HOLDOUT_CI.md)
-- [`ARENA_STRENGTH_DATASET.md`](ARENA_STRENGTH_DATASET.md)
-- [`DECISIONS/2026-08-27-strength-replication-calibration-protocol.md`](DECISIONS/2026-08-27-strength-replication-calibration-protocol.md)
+Ares usa C++ no hot path com alpha-beta/PVS, TT, Zobrist, iterative deepening, move ordering, killer/history e quiescence/tactical search.
 
-The current strength estimator remains an Elo-compatible engineering baseline. Paired-game/pentanomial methodology, empirical uncertainty auditing and sequential testing are validation layers; SPRT is not yet the automatic promotion authority.
+A avaliação clássica continua disponível como baseline. NNUE é opcional.
 
-The Arena records enough provenance to distinguish valid games from invalid/blocked/max-ply observations. A strength claim must be based on valid, controlled experimental evidence rather than raw game counts alone.
+O NNUE tem infraestrutura de features e hooks incrementais, mas a integração completa desses hooks no caminho real de `BoardState` continua uma tarefa de engenharia. `sync_board()` permanece o oracle de correção até existir paridade incremental provada.
 
-Population context for Strength experiments is structured and machine-validated so results can retain the population, selection policy, controller population and skill context that produced the games.
+Fonte: [`AI_ENGINE.md`](AI_ENGINE.md), [`NNUE.md`](NNUE.md).
 
-The first persistent real-Arena control dataset is now stored under `data/arena/strength/`. It contains 100 valid games grouped into 50 complete colour-inverted pairs and is consumed by the existing paired empirical uncertainty audit. This is the first empirical calibration observation in the repository, not a completed calibration programme: the 50 pairs are resampling units for the paired audit, but they are not 50 independent experimental conditions because opening/seed combinations are reused.
+## 3. Strength / Arena
 
-The next evidence block is therefore replication across intentional experiment runs and population/context variation. The engineering uncertainty proxy remains unchanged until repeated-run evidence supports recalibration. Legitimate draws, invalid/incomplete games, dependence from repeated conditions and a predeclared hold-out must be represented in the calibration programme.
+A infraestrutura de Arena, provenance, população, Elo-compatible rating, uncertainty, paired-game/pentanomial analysis, hold-out e SPRT isolado existe.
 
-## Game / heroes
+O primeiro dataset real persistido contém 100 jogos válidos em 50 pares de inversão de cor. Esses pares são unidades de resampling para a análise existente; não devem ser tratados como 50 condições experimentais independentes porque condições/openings/seeds são reutilizados.
 
-Canonical sources:
+A calibração de strength ainda exige replicação deliberada, variação de população/contexto e validação da incerteza antes de um gate automático de promoção.
 
-- [`GAME_DESIGN.md`](GAME_DESIGN.md)
-- [`GAME_RULES.md`](GAME_RULES.md)
-- [`HERO_SYSTEM.md`](HERO_SYSTEM.md)
-- [`../engine/HEROES_SCHEMA.md`](../engine/HEROES_SCHEMA.md)
+Fontes: [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md), [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md), [`ARENA_STRENGTH_DATASET.md`](ARENA_STRENGTH_DATASET.md), e decisões de strength em [`DECISIONS/`](DECISIONS/).
 
-The hero system remains a hybrid declarative/runtime design: JSON data defines supported structure while specialized code is permitted where mechanics cannot yet be represented declaratively. The mechanics traceability matrix is the current guard against semantic drift across Python/C++ and state transitions.
+## 4. Heróis e regras
 
-Directed differential fixtures cover rare mechanics including Dragoon jump, BoneLord on-kill spawning and Berserker area damage.
+O sistema continua híbrido: configuração declarativa define a estrutura suportada e código especializado cobre mecânicas que ainda não cabem no schema. Isto é uma decisão conhecida, não prova de que o sistema já seja totalmente data-driven.
 
-## Observability
+A matriz de traceability continua a ser o mecanismo de verificação transversal. Especialmente importantes são STUN, spells, passivas, lifespan, cooldown, efeitos e TWC.
 
-Canonical source: [`OBSERVABILITY_CONTRACT.md`](OBSERVABILITY_CONTRACT.md).
+Fontes: [`GAME_RULES.md`](GAME_RULES.md), [`HERO_SYSTEM.md`](HERO_SYSTEM.md), [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md).
 
-The current local game mode distinguishes setup/draft information from battle-state information. Ares must obey the same observability contract as the legal player model; experiments must not infer strength from an information representation that would be illegal in the product model.
+## 5. UI / replay / telemetria
 
-## Balance
+A Battle Sidebar inicial e o contexto Encyclopedia já estão implementados; a validação visual/responsiva continua trabalho de produto.
 
-Canonical source: [`BALANCE_METHODOLOGY.md`](BALANCE_METHODOLOGY.md).
+A arquitetura de replay local já suporta retenção durável; as próximas tarefas são inspeção/exportação e telemetria estruturada com provenance.
 
-The Auto-Pricer remains a diagnostic pricing heuristic, not a causal estimator of hero power. Balance analysis is explicitly contextual: hero, skill, matchup, composition, colour, pick-rate and other available evidence must be separated rather than reduced to global win-rate alone.
+Fontes: [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md), `REPLAY_STORAGE.md` e documentos de telemetria.
 
-## Roadmap position
+## 6. Regra operacional
 
-The project has completed the main correctness/provenance foundation and is moving through the remaining Strength validation layers before the next major Ares performance block.
-
-Current priority order is:
-
-```text
-real Strength dataset persistence
-→ multi-run replication + population variation
-→ contextual / matchup stability
-→ uncertainty calibration + hold-out
-→ SPRT operating-characteristic validation
-→ sequential promotion gate
-→ intrinsic/move-quality strength
-→ broader Ares search/NNUE optimisation
-```
-
-The previously planned long persistent differential, first-divergence diagnostics and perft/node-count differential layers are implemented in `main`.
-
-No individual tactical benchmark or single control experiment should be interpreted as global strength evidence.
+A ordem seguinte é sempre a de [`ROADMAP.md`](ROADMAP.md). Não usar snapshots antigos, branches documentais ou ficheiros de backlog para substituir essa ordem.

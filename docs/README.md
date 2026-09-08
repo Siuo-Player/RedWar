@@ -1,36 +1,47 @@
 # RedWar — Documentação
 
-A documentação está dividida por público e por responsabilidade.
+A documentação segue uma regra simples: **não há múltiplos roadmaps nem múltiplos estados operacionais**.
 
-## Para jogadores
+## Entrada recomendada
 
-- [`GAME_RULES.md`](GAME_RULES.md) — regras atuais, combate, stun, efeitos e vitória.
-- [`GAME_DESIGN.md`](GAME_DESIGN.md) — filosofia de design e razões por trás das mecânicas.
+1. [`00_INDEX.md`](00_INDEX.md)
+2. [`PROJECT_REASONING.md`](PROJECT_REASONING.md)
+3. [`CURRENT_STATE.md`](CURRENT_STATE.md)
+4. [`ROADMAP.md`](ROADMAP.md)
+5. documento canónico do domínio da tarefa
 
-## Para desenvolvedores
+## Principais documentos
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — arquitetura atual e arquitetura alvo.
-- [`AI_ENGINE.md`](AI_ENGINE.md) — Ares, pesquisa, avaliação, hashing e Arena.
-- [`HERO_SYSTEM.md`](HERO_SYSTEM.md) — heróis, `heroes_config.json` e modelo data-driven.
-- [`WEB_MULTIPLAYER.md`](WEB_MULTIPLAYER.md) — aplicação, web, servidor, contas e multiplayer.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — fluxo de desenvolvimento e testes.
-- [`CONTRIBUTION_POLICY.md`](CONTRIBUTION_POLICY.md) — política de contribuição e separação Ares/produto.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — fronteiras e invariantes do sistema.
+- [`GAME_RULES.md`](GAME_RULES.md) — regras operacionais.
+- [`GAME_DESIGN.md`](GAME_DESIGN.md) — intenção de design.
+- [`HERO_SYSTEM.md`](HERO_SYSTEM.md) — contrato do sistema de heróis.
+- [`AI_ENGINE.md`](AI_ENGINE.md) — Ares.
+- [`NNUE.md`](NNUE.md) — avaliação NNUE.
+- [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md) — capability/regression benchmarks.
+- [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md) — strength/Arena.
+- [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md) — estatística.
+- [`ARENA_HOLDOUT_CI.md`](ARENA_HOLDOUT_CI.md) — hold-out.
+- [`BALANCE_METHODOLOGY.md`](BALANCE_METHODOLOGY.md) — balanceamento.
+- [`OBSERVABILITY_CONTRACT.md`](OBSERVABILITY_CONTRACT.md) — informação legal por modo.
+- [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md) — cobertura cross-backend.
+- [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md) — UI de batalha.
+- [`WEB_MULTIPLAYER.md`](WEB_MULTIPLAYER.md) — online.
 
-## Planeamento
+## Autoridade
 
-- [`ROADMAP.md`](ROADMAP.md) — trabalho atual, fases seguintes e decisões ainda abertas.
-- [`COPILOT_BACKLOG.md`](COPILOT_BACKLOG.md) — backlog técnico detalhado.
-- [`Estrutura_Projeto.md`](Estrutura_Projeto.md) — mapa da estrutura do repositório.
-- [`Documento_Design_Jogo.md`](Documento_Design_Jogo.md) — documento de design histórico/compatível com decisões atuais.
+Para comportamento existente, a prioridade é:
 
-## Fontes autoritativas
+```text
+implementação + testes executáveis
+→ documento canónico
+→ decisão histórica
+→ research/audit
+→ roadmap/proposta
+```
 
-Quando existir conflito entre documentos:
+Para **ordem de desenvolvimento**, a autoridade é exclusivamente [`ROADMAP.md`](ROADMAP.md).
 
-1. o comportamento implementado e testado do jogo é a fonte operacional;
-2. `engine/heroes_config.json` é a fonte de dados dos heróis;
-3. `engine/HEROES_SCHEMA.md` define a estrutura técnica dessa configuração;
-4. `GAME_RULES.md` documenta as regras que o projeto pretende considerar atuais;
-5. `ROADMAP.md` documenta o que é futuro e ainda não implementado.
+Para **raciocínio transversal**, a autoridade é [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
 
-Não assumir que algo planeado já existe apenas porque aparece no roadmap.
+`DECISIONS/` é histórico; não se reescreve para alterar a narrativa posterior.

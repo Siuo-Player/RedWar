@@ -1,24 +1,48 @@
 # Como continuar o RedWar
 
-Este ficheiro é um atalho para novos contribuidores.
+O RedWar deve ser continuável sem depender da conversa que originou uma alteração.
 
-## Ordem recomendada
+## Ordem obrigatória de leitura
 
-1. `README.md`
-2. `docs/ARCHITECTURE.md`
-3. `docs/DEVELOPMENT_WORKFLOW.md`
-4. `docs/HANDOFF_2026-09-04_AUTONOMOUS_CONTINUATION.md`
-5. `docs/ROADMAP.md`
-6. `docs/DECISIONS/`
+1. [`README.md`](README.md)
+2. [`00_INDEX.md`](00_INDEX.md)
+3. [`PROJECT_REASONING.md`](PROJECT_REASONING.md)
+4. [`CURRENT_STATE.md`](CURRENT_STATE.md)
+5. [`ROADMAP.md`](ROADMAP.md)
+6. documento canónico do domínio da tarefa
+7. `DECISIONS/` apenas para recuperar a motivação histórica necessária
 
-O handoff de 2026-09-04 é o ponto de entrada para compreender o estado das últimas tranches A0/C3, o significado das regressões adicionadas, o estado das PRs recentes e os próximos gates.
-
-### Regra fundamental
-
-Não é necessário acesso à conversa que originou uma alteração. O objetivo deste conjunto de documentos é permitir reconstruir:
+## O que cada camada responde
 
 ```text
-problema → evidência → decisão → implementação → validação → resultado → próximo passo
+PROJECT_REASONING
+→ por que a sequência e as regras de evidência são estas?
+
+CURRENT_STATE
+→ qual é o baseline comprovado agora?
+
+ROADMAP
+→ qual é o próximo trabalho autorizado?
+
+documento canónico
+→ qual é o contrato técnico/design?
+
+DECISIONS
+→ por que uma decisão histórica foi tomada?
 ```
 
-Quando uma nova tarefa produzir conhecimento relevante, atualize primeiro a documentação/decision record correspondente e depois o roadmap ou handoff.
+## Regra de continuidade
+
+Toda PR que altere comportamento, contrato, metodologia ou prioridade deve atualizar os artefactos correspondentes no mesmo work package.
+
+```text
+código/testes
+   +
+contrato canónico afetado
+   +
+ROADMAP
+   +
+decisão, quando a política muda
+```
+
+Não criar outro “current state”, roadmap ou backlog para contornar o estado existente.
