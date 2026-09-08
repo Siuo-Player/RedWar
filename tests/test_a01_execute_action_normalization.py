@@ -12,7 +12,7 @@ def test_execute_action_uses_one_canonical_normalization_boundary():
     action = GameAction(ActionType.MOVE, (6, 0), (5, 0))
 
     with patch("engine.game_state.normalize_action", wraps=normalize_action) as normalizer:
-        with patch.object(state, "make_action") as make_action:
+        with patch.object(GameState, "make_action") as make_action:
             state.execute_action(action)
 
     normalizer.assert_called_once_with(action)
@@ -30,7 +30,7 @@ def test_execute_action_accepts_mapping_compatibility_input_through_same_boundar
     state = GameState()
     action = UserDict({"type": "MOVE", "start": [6, 0], "end": [5, 0]})
 
-    with patch.object(state, "make_action") as make_action:
+    with patch.object(GameState, "make_action") as make_action:
         state.execute_action(action)
 
     make_action.assert_called_once_with(
@@ -63,7 +63,7 @@ def test_execute_action_accepts_mapping_compatibility_input_through_same_boundar
 def test_execute_action_preserves_special_payloads(action, expected):
     state = GameState()
 
-    with patch.object(state, "make_action") as make_action:
+    with patch.object(GameState, "make_action") as make_action:
         state.execute_action(action)
 
     kwargs = make_action.call_args.kwargs
