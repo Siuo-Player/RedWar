@@ -22,31 +22,17 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
             piece = gs.board[r][c]
             if piece is None or piece.team != current_team or not piece.can_act():
                 continue
-
             for end in piece.get_valid_moves(r, c, gs.board, gs.tile_effects):
                 actions.add(GameAction(ActionType.MOVE, (r, c), tuple(end)))
-
             for end in piece.get_valid_attacks(r, c, gs.board, gs.tile_effects):
                 actions.add(GameAction(ActionType.ATTACK, (r, c), tuple(end)))
-
             for end, info in piece.get_valid_stuns(r, c, gs.board, gs.tile_effects).items():
                 if not info or not info.get("has_enemy"):
                     continue
                 area = tuple(tuple(position) for position in info.get("aoe", ()))
                 actions.add(GameAction(ActionType.STUN, (r, c), tuple(end), area=area))
-
-            for spawn_r, spawn_c, spawn_name in piece.get_valid_spawns(
-                r, c, gs.board, gs.tile_effects
-            ):
-                actions.add(
-                    GameAction(
-                        ActionType.SPAWN,
-                        (r, c),
-                        (int(spawn_r), int(spawn_c)),
-                        spawn_name=str(spawn_name),
-                    )
-                )
-
+            for spawn_r, spawn_c, spawn_name in piece.get_valid_spawns(r, c, gs.board, gs.tile_effects):
+                actions.add(GameAction(ActionType.SPAWN, (r, c), (int(spawn_r), int(spawn_c)), spawn_name=str(spawn_name)))
             for spell in piece.get_valid_spells(r, c, gs.board, gs.tile_effects):
                 if isinstance(spell, dict):
                     target = spell.get("target")
@@ -58,42 +44,45 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
                     )
                 if target is None or not spell_name:
                     continue
-                actions.add(
-                    GameAction(
-                        ActionType.SPELL,
-                        (r, c),
-                        tuple(target),
-                        spell_name=str(spell_name),
-                    )
-                )
-
+                actions.add(GameAction(ActionType.SPELL, (r, c), tuple(target), spell_name=str(spell_name)))
     return tuple(sorted(actions, key=_action_key))
 
 
+def _spell_candidates(gs: Any, action: GameAction) -> tuple[GameAction, ...]:
+    """Resolve a SPELL against the source piece's generator without duplicating rules."""
+    start_row, start_col = action.start
+    piece = gs.board[start_row][start_col]
+    current_team = "brancas" if gs.white_to_move else "pretas"
+    if piece is None or piece.team != current_team:
+        return ()
+    candidates: list[GameAction] = []
+    for spell in piece.get_valid_spells(start_row, start_col, gs.board, gs.tile_effects):
+        if isinstance(spell, dict):
+            target = spell.get("target")
+            spell_name = spell.get("spell_type")
+        else:
+            target = spell[0:2]
+            spell_name = spell[2] if len(spell) >= 3 else (
+                "jump" if piece.name == "Dragoon" and len(spell) == 2 else None
+            )
+        if target is None or not spell_name:
+            continue
+        candidate = GameAction(ActionType.SPELL, action.start, tuple(target), spell_name=str(spell_name))
+        if candidate.end == action.end and (candidate.spell_name or "").lower() == (action.spell_name or "").lower():
+            candidates.append(candidate)
+    return tuple(candidates)
+
+
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
-    """Resolve an input to a canonical execution representation.
-
-    Exact action-space members are returned unchanged. Legacy STUN payloads that
-    omit the derived AOE are expanded when they identify one canonical STUN.
-
-    STUN/SPAWN/SPELL have an explicit compatibility seam while the action-space
-    is not yet a complete projection of all historically accepted transition
-    fixtures. Those forms are admitted here only after normalization; the pure
-    transition validator remains the mutation gate and preserves domain errors.
-    MOVE/ATTACK continue to require action-space membership. This is an explicit
-    boundary, not a second copy of hero rules, and remains subject to A0.1 closure
-    once the action-space coverage gap is resolved.
-    """
+    """Resolve an input to a canonical execution representation."""
     normalized = normalize_action(action)
     available = legal_actions(gs)
-
     if normalized in available:
         return normalized
 
     if normalized.type is ActionType.STUN and not normalized.area:
         compatible = tuple(
-            candidate
-            for candidate in available
+            candidate for candidate in available
             if candidate.type is ActionType.STUN
             and candidate.start == normalized.start
             and candidate.end == normalized.end
@@ -102,6 +91,14 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
         )
         if len(compatible) == 1:
             return compatible[0]
+
+    if normalized.type is ActionType.SPELL:
+        spell_candidates = _spell_candidates(gs, normalized)
+        if len(spell_candidates) == 1:
+            return spell_candidates[0]
+        if not spell_candidates:
+            raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
+        raise ValueError(f"ambiguous spell action for current position: {normalized.to_dict()}")
 
     validator = getattr(gs, "_validate_transition", None)
     if validator is not None:
@@ -117,9 +114,8 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
         except ValueError:
             return normalized
 
-    if normalized.type in {ActionType.STUN, ActionType.SPAWN, ActionType.SPELL}:
+    if normalized.type in {ActionType.STUN, ActionType.SPAWN}:
         return normalized
-
     raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
 
 
@@ -144,11 +140,4 @@ def to_legacy_dicts(actions: tuple[GameAction, ...] | list[GameAction]) -> list[
 
 def _action_key(action: GameAction) -> tuple[Any, ...]:
     """Stable ordering key independent of object identity or hash randomization."""
-    return (
-        action.type.value,
-        action.start,
-        action.end,
-        action.spell_name or "",
-        action.spawn_name or "",
-        action.area,
-    )
+    return (action.type.value, action.start, action.end, action.spell_name or "", action.spawn_name or "", action.area)
