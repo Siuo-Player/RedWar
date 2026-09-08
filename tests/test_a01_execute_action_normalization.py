@@ -5,10 +5,17 @@ import pytest
 
 from engine.actions import ActionType, GameAction, normalize_action
 from engine.game_state import GameState
+from engine.pieces import criar_peca_por_nome
+
+
+def _move_state() -> GameState:
+    state = GameState()
+    state.board[6][0] = criar_peca_por_nome("Bone", "brancas")
+    return state
 
 
 def test_execute_action_uses_one_canonical_normalization_boundary():
-    state = GameState()
+    state = _move_state()
     action = GameAction(ActionType.MOVE, (6, 0), (5, 0))
 
     with patch("engine.game_state.normalize_action", wraps=normalize_action) as normalizer:
@@ -27,7 +34,7 @@ def test_execute_action_uses_one_canonical_normalization_boundary():
 
 
 def test_execute_action_accepts_mapping_compatibility_input_through_same_boundary():
-    state = GameState()
+    state = _move_state()
     action = UserDict({"type": "MOVE", "start": [6, 0], "end": [5, 0]})
 
     with patch.object(GameState, "make_action") as make_action:
@@ -44,24 +51,29 @@ def test_execute_action_accepts_mapping_compatibility_input_through_same_boundar
 
 
 @pytest.mark.parametrize(
-    "action, expected",
+    "action, expected, setup",
     [
         (
             GameAction(ActionType.STUN, (4, 4), (2, 4), area=((2, 4), (1, 4))),
             ((2, 4), (1, 4)),
+            ((4, 4, "FrostMage", "brancas"),),
         ),
         (
             GameAction(ActionType.SPAWN, (6, 0), (5, 0), spawn_name="Bone"),
             "Bone",
+            ((6, 0, "Lich", "brancas"),),
         ),
         (
             GameAction(ActionType.SPELL, (6, 0), (5, 0), spell_name="Nevada"),
             "Nevada",
+            ((6, 0, "FrostMage", "brancas"),),
         ),
     ],
 )
-def test_execute_action_preserves_special_payloads(action, expected):
+def test_execute_action_preserves_special_payloads(action, expected, setup):
     state = GameState()
+    for row, col, name, team in setup:
+        state.board[row][col] = criar_peca_por_nome(name, team)
 
     with patch.object(GameState, "make_action") as make_action:
         state.execute_action(action)

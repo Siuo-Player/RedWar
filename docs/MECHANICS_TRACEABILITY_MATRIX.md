@@ -31,6 +31,7 @@ Os contratos já explicitamente reforçados incluem:
 
 - special-spell legality (`#303`);
 - canonical action boundary (`#291`, `#306`, `#308`);
+- canonical action resolution seam (`#321`);
 - Inquisitor active-vs-stunned silence (`#292`);
 - terminal semantics / native alpha-beta (`#310`);
 - lifecycle/TWC/effects/spawn-cooldown/special transition coverage;
@@ -39,7 +40,10 @@ Os contratos já explicitamente reforçados incluem:
 Os pontos que não devem ser marcados como semanticamente fechados sem nova evidência são:
 
 - execute-time authority contra ações ilegais antes da mutação;
+- distinção completa entre action-space membership e transition-domain validation;
 - história/repetição nativa equivalente.
+
+A autoridade de `execute_action()` deve resolver a ação canónica e só depois validar as condições de transição específicas, sem clone especulativo. `GameState.make_action()` continua a autoridade da transição; `legal_actions()` não deve ser transformado num segundo `make_action()`.
 
 ## Completion rule
 

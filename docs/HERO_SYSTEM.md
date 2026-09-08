@@ -10,7 +10,7 @@ A regra transversal está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md). Mud
 
 A camada canónica de ações distingue `MOVE`, `ATTACK`, `STUN`, `SPAWN` e `SPELL`. Uma ofensiva implementada como spell não deve ser artificialmente duplicada como `ATTACK`.
 
-PR #291 consolidou a análise Python sobre o espaço de ação canónico; #306 tornou a fronteira explícita e #308 normaliza `execute_action()` através dela. **Isto não prova ainda que qualquer ação estruturalmente válida seja rejeitada por membership antes da mutação:** esse bloco continua aberto porque #309/#315 não foram merged.
+PR #291 consolidou a análise Python sobre o espaço de ação canónico; #306 tornou a fronteira explícita e #308 normaliza `execute_action()` através dela. PR #321 acrescentou `resolve_legal_action()` como seam de resolução canónica/legacy. **Isto não prova ainda que qualquer ação estruturalmente válida seja rejeitada por membership antes da mutação:** esse bloco continua aberto porque #317 documenta a diferença entre action-space e transition validation; #309/#315 não foram merged.
 
 ## Casos especiais já validados
 

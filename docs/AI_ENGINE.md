@@ -6,7 +6,7 @@ Este documento é o contrato técnico atual da Ares. [`CURRENT_STATE.md`](CURREN
 
 ## Current baseline
 
-**Baseline:** `main` @ `b1aadb8a26d8af0e80839e0149b693d6ca710f40`.
+**Baseline:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`.
 
 Ares usa C++ no hot path e mantém:
 
@@ -32,9 +32,21 @@ mesmas condições terminais
 mesma semântica de timers/efeitos/TWC
 ```
 
-No `main` atual, a fronteira `GameAction`/normalização está implementada e testada (#306/#308). Isto **não** prova ainda que o executor rejeite todas as ações ilegais antes da mutação: #309 e #315 não foram merged.
+No `main` atual, a fronteira `GameAction`/normalização está implementada e testada (#306/#308), e #321 acrescentou `resolve_legal_action()` como seam de resolução canónica/legacy.
 
-Terminal, special-spell legality e Inquisitor silence/stun têm regressões explícitas (#292/#303/#310). Estas são propriedades específicas TESTED/VALIDATED; não equivalem a “semantic closure completa”.
+Isto **não** prova ainda que o executor rejeite todas as ações ilegais antes da mutação. A0.1 continua aberto porque action-space e transition validity não são equivalentes no estado atual (#317; #315 não foi merged).
+
+A fronteira esperada é:
+
+```text
+input action
+→ normalize / resolve canonical action
+→ action-space membership
+→ transition-domain validation
+→ only then mutate
+```
+
+Ares não deve validar ações executando-as especulativamente numa cópia Python. `fast_clone()` não é componente do hot path C++ nem mecanismo aceite de preflight do executor. O código C++ corrente em `ai/cpp_engine/` não depende dessa função.
 
 ## Search
 

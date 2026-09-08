@@ -1,7 +1,7 @@
 # RedWar — A0.1 Semantic Closure
 
 **Status:** OPEN  
-**Current `main`:** `7f633de343d28dea3221c367aa2869bc9e5c79db`  
+**Current `main`:** `e17afcd54ad57635e222f3b3c9a5bb9966df9394`  
 **Data de reconciliação:** 2026-09-08
 
 Este documento continua a ser a auditoria/contrato de transição de A0.1. Não substitui `CURRENT_STATE.md` nem `ROADMAP.md`; estes apontam para a sequência operacional atual.
@@ -28,27 +28,31 @@ A0.1 não fecha por acumulação de testes isolados. Uma propriedade fechada é 
 | Python repetition observation | IMPLEMENTED / TESTED / CLOSED | #299 |
 | FrostMage unreachable legacy block | IMPLEMENTED / TESTED / CLOSED | #300 + AST regression |
 | fixed node-budget semantics | TESTED / CLOSED | cobertura dedicada do contrato |
-| canonical action resolution seam | IMPLEMENTED / TESTED | `resolve_legal_action()` centraliza a resolução exacta e a compatibilidade legacy STUN |
-| authoritative execute-time legal membership | DOCUMENTED / UNVERIFIED / OPEN | #309 e #315 estão fechadas sem merge |
+| canonical action resolution seam | IMPLEMENTED / TESTED | #321 — `resolve_legal_action()` centraliza resolução exacta e compatibilidade legacy STUN |
+| authoritative execute-time legal membership | DOCUMENTED / UNVERIFIED / OPEN | #317 aberta; #309/#315 não foram merged |
 | native repetition/history | DOCUMENTED / UNVERIFIED / OPEN | não existe contrato equivalente estabelecido no `BoardState` |
 
 ## Ainda aberto
 
 ### 1. Autoridade de execução
 
-A normalização e resolução canónica agora têm um seam explícito, mas a garantia forte desejada ainda não deve ser considerada fechada:
+A normalização e resolução canónica agora têm um seam explícito, mas a garantia forte desejada ainda não deve ser considerada fechada. A fronteira deve distinguir action-space de transition validity:
 
 ```text
 input action
    ↓
 canonical normalize / resolve
    ↓
-canonical legal-action membership
+action-space membership
+   ↓
+transition-domain validation
    ↓
 only then mutate state
 ```
 
-A próxima implementação deve usar este seam sem duplicar regras de heróis e deve preservar os erros de transição já definidos pelo contrato de `GameState`.
+`resolve_legal_action()` não substitui as validações específicas de `GameState.make_action()`. Essas validações devem ocorrer antes de `gerar_notacao()`, `last_move` e demais mutações observáveis quando uma transição for rejeitada.
+
+`fast_clone()` não é mecanismo de preflight nem autoridade de legalidade. Mantém-se apenas como ferramenta auxiliar em referência Python, replay, fixtures/property tests, tooling offline e comparação de estados; não entra no hot path C++ da Ares.
 
 ### 2. Repetition / threefold nativo
 

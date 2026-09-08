@@ -6,7 +6,7 @@ Este documento define o contrato da NNUE. [`ROADMAP.md`](ROADMAP.md) define a se
 
 ## Arquitetura atual
 
-**Baseline:** `main` @ `b1aadb8a26d8af0e80839e0149b693d6ca710f40`.
+**Baseline:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`.
 
 Ares possui uma NNUE opcional adaptada ao estado RPG. As features representam identidade/posição/equipa relativa, stun, lifespan, cooldown, efeitos, TWC e side-to-move. O formato binário é versionado.
 

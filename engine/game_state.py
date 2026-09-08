@@ -5,6 +5,7 @@ from typing import Any
 
 from engine.actions import GameAction, normalize_action
 from engine.config import COLUNAS, LINHAS
+from engine.legal_actions import resolve_legal_action
 
 ZOBRIST_TABLE = {}
 ZOBRIST_EFFECT_TABLE = {}
@@ -185,29 +186,30 @@ class GameState:
 
     def execute_action(self, acao_dict):
         action = normalize_action(acao_dict)
-        acao_dict = action.to_dict()
-
-        m_type = str(acao_dict.get("type", "move")).lower()
-        start_pos = tuple(acao_dict["start"])
-        end_pos = tuple(acao_dict["end"])
-        if len(start_pos) != 2 or len(end_pos) != 2:
-            raise ValueError("Action coordinates must contain row and column")
-
-        area_stun = acao_dict.get("area", [])
-        if m_type == "stun" and not area_stun:
-            attacker = self.board[start_pos[0]][start_pos[1]]
-            if attacker:
-                valid_stuns = attacker.get_valid_stuns(start_pos[0], start_pos[1], self.board, self.tile_effects)
-                if end_pos in valid_stuns:
-                    area_stun = valid_stuns[end_pos].get("aoe", [])
+        try:
+            resolved = resolve_legal_action(self, action)
+        except ValueError as resolution_error:
+            # The action-space is not a complete projection of every transition
+            # fixture historically accepted by GameState. Run the pure transition
+            # validator only to preserve a domain-specific rejection reason; it
+            # never mutates state and does not make an unlisted action executable.
+            self._validate_transition(
+                action.start,
+                action.end,
+                action.type.value,
+                affected_area=list(action.area),
+                spawn_name=action.spawn_name,
+                spell_name=action.spell_name,
+            )
+            raise resolution_error
 
         self.make_action(
-            start_pos,
-            end_pos,
-            m_type,
-            affected_area=area_stun,
-            spawn_name=acao_dict.get("spawn_name"),
-            spell_name=acao_dict.get("spell_name"),
+            resolved.start,
+            resolved.end,
+            resolved.type.value,
+            affected_area=list(resolved.area),
+            spawn_name=resolved.spawn_name,
+            spell_name=resolved.spell_name,
         )
 
     def _validate_action_coordinates(self, start_pos, end_pos):
@@ -231,6 +233,82 @@ class GameState:
                     return True
         return False
 
+    def _validate_transition(
+        self,
+        start_pos,
+        end_pos,
+        action_type="move",
+        affected_area=None,
+        spawn_name=None,
+        spell_name=None,
+    ):
+        """Validate transition-domain constraints without mutating state.
+
+        This deliberately does not enumerate the action-space. Piece-level legal
+        generation remains the source of action candidates; this method preserves
+        transition-specific compatibility and error contracts for direct callers.
+        """
+        self._validate_action_coordinates(start_pos, end_pos)
+        action_type = str(action_type).lower()
+        start_row, start_col = start_pos
+        end_row, end_col = end_pos
+        piece = self.board[start_row][start_col]
+        if piece is None:
+            raise ValueError(f"No piece at source square: {start_pos}")
+
+        if action_type == "stun":
+            if not affected_area:
+                raise ValueError("STUN action requires an affected area")
+            return
+
+        if action_type == "spawn":
+            if not spawn_name:
+                raise ValueError("SPAWN action requires spawn_name")
+            if self.board[end_row][end_col] is not None:
+                raise ValueError("SPAWN target square is occupied")
+            return
+
+        if action_type == "spell":
+            if not spell_name:
+                raise ValueError("SPELL action requires spell_name")
+            spell_name = str(spell_name).lower()
+            if self._is_silenced_piece(piece, start_row, start_col):
+                raise ValueError("SPELL is blocked by Inquisitor silence")
+
+            if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot"}:
+                target = self.board[end_row][end_col]
+                if not target or target.team == piece.team:
+                    raise ValueError("Special attack spell requires an enemy target")
+            elif spell_name == "purify":
+                target = self.board[end_row][end_col]
+                if not target or target.team != piece.team:
+                    raise ValueError("PURIFY requires an allied target")
+            elif spell_name == "swap":
+                target = self.board[end_row][end_col]
+                if not target or target.team != piece.team or target is piece:
+                    raise ValueError("SWAP requires a different allied target")
+            elif spell_name == "barricade":
+                if self.board[end_row][end_col] is not None:
+                    raise ValueError("BARRICADE target square is occupied")
+            elif spell_name in {"nevada", "ignite", "jump"}:
+                pass
+            else:
+                raise ValueError(f"Unknown spell: {spell_name}")
+            return
+
+        if action_type == "move":
+            if self.board[end_row][end_col] is not None:
+                raise ValueError("MOVE target square is occupied")
+            return
+
+        if action_type == "attack":
+            target_piece = self.board[end_row][end_col]
+            if not target_piece or target_piece.team == piece.team:
+                raise ValueError("ATTACK requires an enemy target")
+            return
+
+        raise ValueError(f"Unknown action type: {action_type}")
+
     def make_action(
         self,
         start_pos,
@@ -243,17 +321,23 @@ class GameState:
     ):
         if self.game_over:
             return
+
+        self._validate_transition(
+            start_pos,
+            end_pos,
+            action_type,
+            affected_area=affected_area,
+            spawn_name=spawn_name,
+            spell_name=spell_name,
+        )
+
         if not self._hash_valid:
             self.compute_initial_hash()
 
-        self._validate_action_coordinates(start_pos, end_pos)
         action_type = str(action_type).lower()
         start_row, start_col = start_pos
         end_row, end_col = end_pos
         piece = self.board[start_row][start_col]
-        if piece is None:
-            raise ValueError(f"No piece at source square: {start_pos}")
-
         captured_real_piece = False
 
         if not is_simulation:
@@ -262,8 +346,6 @@ class GameState:
         self.last_move = {"start": start_pos, "end": end_pos}
 
         if action_type == "stun":
-            if not affected_area:
-                raise ValueError("STUN action requires an affected area")
             for ar, ac in affected_area:
                 if not (0 <= ar < LINHAS and 0 <= ac < COLUNAS):
                     continue
@@ -280,10 +362,6 @@ class GameState:
                     self.add_piece_hash(ar, ac, target)
 
         elif action_type == "spawn":
-            if not spawn_name:
-                raise ValueError("SPAWN action requires spawn_name")
-            if self.board[end_row][end_col] is not None:
-                raise ValueError("SPAWN target square is occupied")
             from engine.pieces import criar_peca_por_nome
             new_piece = criar_peca_por_nome(spawn_name, piece.team)
             self.board[end_row][end_col] = new_piece
@@ -295,13 +373,9 @@ class GameState:
 
         elif action_type == "spell" and spell_name:
             spell_name = str(spell_name).lower()
-            if self._is_silenced_piece(piece, start_row, start_col):
-                raise ValueError("SPELL is blocked by Inquisitor silence")
 
             if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot"}:
                 target = self.board[end_row][end_col]
-                if not target or target.team == piece.team:
-                    raise ValueError("Special attack spell requires an enemy target")
                 captured_real_piece = target.lifespan is None
                 self.remove_piece_hash(end_row, end_col)
                 if spell_name == "bone_v":
@@ -312,8 +386,6 @@ class GameState:
                 else:
                     self.board[end_row][end_col] = None
             elif spell_name == "nevada":
-                # Nevada keeps the current cross AoE semantics. The center is also
-                # turned into ice; the spell itself applies stun/capture around it.
                 self.set_tile_effect(end_row, end_col, {"type": "ice", "timer": 3, "team": piece.team})
                 for dr, dc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
                     fr, fc = end_row + dr, end_col + dc
@@ -344,33 +416,23 @@ class GameState:
                         self.remove_piece_hash(fr, fc)
                         target.stun_timer = 2
                         self.add_piece_hash(fr, fc, target)
-
             elif spell_name == "purify":
                 target = self.board[end_row][end_col]
-                if not target or target.team != piece.team:
-                    raise ValueError("PURIFY requires an allied target")
                 self.remove_piece_hash(end_row, end_col)
                 target.stun_timer = 0
                 self.add_piece_hash(end_row, end_col, target)
-
             elif spell_name == "swap":
                 target = self.board[end_row][end_col]
-                if not target or target.team != piece.team or target is piece:
-                    raise ValueError("SWAP requires a different allied target")
                 self.remove_piece_hash(start_row, start_col)
                 self.remove_piece_hash(end_row, end_col)
                 self.board[start_row][start_col], self.board[end_row][end_col] = target, piece
                 self.add_piece_hash(start_row, start_col, self.board[start_row][start_col])
                 self.add_piece_hash(end_row, end_col, self.board[end_row][end_col])
-
             elif spell_name == "barricade":
-                if self.board[end_row][end_col] is not None:
-                    raise ValueError("BARRICADE target square is occupied")
                 from engine.pieces import StoneWall
                 barricade = StoneWall(piece.team)
                 self.board[end_row][end_col] = barricade
                 self.add_piece_hash(end_row, end_col, barricade)
-
             elif spell_name == "jump":
                 target_piece = self.board[end_row][end_col]
                 if target_piece:
@@ -380,12 +442,8 @@ class GameState:
                 self.board[start_row][start_col] = None
                 self.board[end_row][end_col] = piece
                 self.add_piece_hash(end_row, end_col, piece)
-            else:
-                raise ValueError(f"Unknown spell: {spell_name}")
 
         elif action_type == "move":
-            if self.board[end_row][end_col] is not None:
-                raise ValueError("MOVE target square is occupied")
             self.remove_piece_hash(start_row, start_col)
             self.board[start_row][start_col] = None
             self.board[end_row][end_col] = piece
@@ -393,8 +451,6 @@ class GameState:
 
         elif action_type == "attack":
             target_piece = self.board[end_row][end_col]
-            if not target_piece or target_piece.team == piece.team:
-                raise ValueError("ATTACK requires an enemy target")
             captured_real_piece |= target_piece.lifespan is None
 
             attacker_behavior = HERO_DEFS.get(piece.name, {}).get("behavior", {}) or {}
@@ -430,8 +486,6 @@ class GameState:
                             captured_real_piece |= target.lifespan is None
                             self.remove_piece_hash(ar, ac)
                             self.board[ar][ac] = None
-        else:
-            raise ValueError(f"Unknown action type: {action_type}")
 
         destination_effect = self.tile_effects[end_row][end_col]
         destination_piece = self.board[end_row][end_col]

@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `b1aadb8a26d8af0e80839e0149b693d6ca710f40`  
+**Baseline operacional:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`  
 **Data:** 2026-09-08
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -46,7 +46,7 @@ Uma fase só pode ser marcada `CLOSED` quando os critérios de aceitação dessa
 
 ### Pré-requisitos
 
-A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #292, #299, #300, #303, #306, #308 e #310.
+A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #292, #299, #300, #303, #306, #308, #310 e #321.
 
 ### Evidência base
 
@@ -56,8 +56,10 @@ A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #2
 - #306 — fronteira canónica `GameAction`.
 - #308 — `execute_action()` normaliza para `GameAction`, preservando a compatibilidade legacy.
 - #310 — terminal regression observa o `alpha_beta()` nativo real.
+- #321 — `resolve_legal_action()` centraliza a resolução exacta e a compatibilidade legacy STUN; merged no `main` atual `e17afcd…`.
 - #309 — não merged: contrato proposto para autoridade de legalidade no executor.
-- #315 — não merged: tentativa posterior do mesmo boundary; não deve ser tratada como implementação presente.
+- #315 — não merged: tentativa posterior do mesmo boundary; a CI expôs que action-space não cobre todo o contrato de transição/compatibilidade.
+- #317 — issue aberta que formaliza a lacuna entre action-space e transition validity.
 
 ### Documentos canónicos
 
@@ -66,8 +68,9 @@ A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #2
 - [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md)
 - [`AI_ENGINE.md`](AI_ENGINE.md)
 - [`A01_SEMANTIC_CLOSURE_2026-09-07.md`](A01_SEMANTIC_CLOSURE_2026-09-07.md)
+- [`DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md`](DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md)
 
-> `A01_SEMANTIC_CLOSURE_2026-09-07.md`: “Não considerar este ponto fechado apenas porque `execute_action()` aceita `GameAction`.”
+> `A01_SEMANTIC_CLOSURE_2026-09-07.md`: a normalização/resolução canónica não fecha por si só a autoridade de execução.
 
 ### Trabalho
 
@@ -79,15 +82,23 @@ A autoridade desejada é:
 ```text
 input action
 → normalize canonical action
-→ canonical legal-action membership
+→ action-space membership / canonical resolution
+→ transition-domain validation
 → only then mutate state
 ```
+
+`legal_actions()` continua a representar o action-space canónico produzido pelas primitivas de peças. `resolve_legal_action()` resolve uma entrada para a representação canónica/legacy quando ela pertence a esse espaço. Condições de transição existentes em `GameState.make_action()` continuam a ser autoridade para rejeições de domínio e não devem ser duplicadas em `legal_actions()`.
+
+O executor não deve usar `fast_clone()` para preflight. `fast_clone()` permanece ferramenta auxiliar de referência/replay/testes offline e não é parte da autoridade Ares.
 
 ### Aceitação A.1
 
 - uma ação estruturalmente válida mas ilegal é rejeitada **antes** de qualquer mutação observável;
 - a legalidade é derivada da autoridade canónica existente, sem duplicar regras por tipo de ação;
 - inputs legacy continuam compatíveis quando legalmente equivalentes;
+- ações fora do action-space que falhem numa condição de transição devem manter o erro de domínio específico existente, sem serem transformadas silenciosamente num erro genérico;
+- nenhuma validação de execução depende de clone especulativo;
+- rejeições deixam board, hash e metadata observável inalterados;
 - legal e illegal paths têm regressão executável;
 - differential relevante permanece verde.
 
@@ -170,7 +181,7 @@ A0.1 fechado. B com instrumento de medição operacional quando uma alegação d
 - [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md)
 - [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md)
 
-> `AI_BENCHMARK_PROTOCOL.md`: “Uma alteração de search que melhora apenas este benchmark fica classificada como `capability improved` até existir evidência de generalização e, para uma afirmação de força, Arena A/B.”
+> [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md): uma melhoria apenas no benchmark permanece capability evidence até haver generalização e, para força, Arena A/B.
 
 ### Aceitação por alteração
 

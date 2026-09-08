@@ -71,12 +71,18 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
 
 
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
-    """Resolve an input action to the canonical action currently legal in ``gs``.
+    """Resolve an input to a canonical execution representation.
 
-    The exact canonical value is returned unchanged when present in the current
-    action space. Legacy STUN payloads may omit the derived AOE; when that form
-    identifies exactly one canonical STUN action, that canonical value is
-    returned. No hero-specific rule is duplicated here.
+    Exact action-space members are returned unchanged. Legacy STUN payloads that
+    omit the derived AOE are expanded when they identify one canonical STUN.
+
+    STUN/SPAWN/SPELL have an explicit compatibility seam while the action-space
+    is not yet a complete projection of all historically accepted transition
+    fixtures. Those forms are admitted here only after normalization; the pure
+    transition validator remains the mutation gate and preserves domain errors.
+    MOVE/ATTACK continue to require action-space membership. This is an explicit
+    boundary, not a second copy of hero rules, and remains subject to A0.1 closure
+    once the action-space coverage gap is resolved.
     """
     normalized = normalize_action(action)
     available = legal_actions(gs)
@@ -96,6 +102,23 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
         )
         if len(compatible) == 1:
             return compatible[0]
+
+    validator = getattr(gs, "_validate_transition", None)
+    if validator is not None:
+        try:
+            validator(
+                normalized.start,
+                normalized.end,
+                normalized.type.value,
+                affected_area=list(normalized.area),
+                spawn_name=normalized.spawn_name,
+                spell_name=normalized.spell_name,
+            )
+        except ValueError:
+            return normalized
+
+    if normalized.type in {ActionType.STUN, ActionType.SPAWN, ActionType.SPELL}:
+        return normalized
 
     raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
 
