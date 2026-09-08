@@ -64,7 +64,6 @@ TERMINAL_SOURCES = [
     "board.cpp",
     "evaluate.cpp",
     "movegen.cpp",
-    "search.cpp",
     "nnue.cpp",
 ]
 
