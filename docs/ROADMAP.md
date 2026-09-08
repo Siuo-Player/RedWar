@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `71bc812d170a8556b9dfde98b4f95202f36190b9`  
+**Baseline operacional:** `main` @ `21cef6afb5556d991d9a0f111ca2de42874ffc09`  
 **Data:** 2026-09-08
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -15,80 +15,74 @@ Este é o **único documento que define a ordem operacional do trabalho**. Não 
 
 Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e melhoria de dataset ≠ melhoria de strength.
 
-## Estado 2 — verificação paralela independente
+## Estado 2 — verificação paralela independente: FECHADO
 
-Os lanes independentes foram executados a partir do baseline comum `1f65f65d6b4827f0d403d8e6d2bb0f735eda0c42` e merged apenas após CI da respetiva PR:
+Os seis lanes independentes foram executados a partir do baseline comum `1f65f65d6b4827f0d403d8e6d2bb0f735eda0c42` e merged apenas após as três gates do repositório:
 
-- **B #329** — regressão de determinismo para o audit emparelhado de strength; merged `29973ffb6e7d270ab8ccc9289307ab11e2f24506`.
-- **C #330** — regressão que impede `fast_clone` no código C++ da Ares; merged `d08a700864d8ed0fe9dc274f8495a01f81105641`.
-- **D #331** — regressão da codificação NNUE por perspetiva; merged `fdd1c3516e410b53608a95e554597a577ef6610e`.
-- **E #332** — regressão de isolamento replay/telemetria; merged `d07f52f981de0eb0606bef1823beabca61348ae1`.
+- **B #329** — determinismo do audit emparelhado; merged `29973ffb6e7d270ab8ccc9289307ab11e2f24506`.
+- **C #330** — ausência de `fast_clone` no C++ da Ares; merged `d08a700864d8ed0fe9dc274f8495a01f81105641`.
+- **D #331** — encoding NNUE por perspetiva; merged `fdd1c3516e410b53608a95e554597a577ef6610e`.
+- **E #332** — isolamento replay/telemetria; merged `d07f52f981de0eb0606bef1823beabca61348ae1`.
+- **F #333** — bounds do Auto-Pricer; primeiro fixture inválido corrigido de `100` para o limite existente `64`; rebaseado e merged `71bc812d170a8556b9dfde98b4f95202f36190b9`.
 - **G #334** — fundação de sessão autoritativa server-side; merged `845b00a500fff7b3aab2f0c35920bace5d198cc6`.
-- **F #333** — bounds do Auto-Pricer; o primeiro teste usava `100`, fora do contrato existente `0..64`; foi corrigido para `64`, rebaseado sobre o `main` atualizado e merged `71bc812d170a8556b9dfde98b4f95202f36190b9`.
 
-Todos os seis lanes foram submetidos às três gates do repositório (`AI Quality Gate`, `Test Suite`, `CodeQL`) e a validação da cabeça final de F terminou com as três em `success` antes do merge. Estes resultados demonstram os contratos/regressões específicos de cada lane; **não fecham as fases B–G como um todo**.
+As PRs acima tiveram `AI Quality Gate`, `Test Suite` e `CodeQL` verdes antes do respetivo merge. Isto fecha a tranche de infraestrutura/regressões, não as fases B–G completas.
 
-A lane A desta tranche não foi artificialmente marcada como concluída: continua bloqueadora por A0.1.
-
-# A — A0.1 Semantic Closure
-
-**ID:** A0.1  
-**Estado:** `OPEN — correctness/architecture blocker`.
+## Estado 3 — A0.1: FECHADO COMO FRONTEIRAS DELIBERADAS; BLOCKER DE COBERTURA REMANESCENTE
 
 ### A.1 — authoritative execute legality
 
-**Estado:** `OPEN / UNVERIFIED`.
+**Estado:** `PARTIAL — boundary hardened; full action-space closure still OPEN`.
 
-Autoridade desejada:
+PR #336 foi merged como `ecefc111a4068848373167d4e59e68ac9a002464`. A implementação passou a rejeitar SPELLs cujo nome não é declarado pelo herói de origem, usando o catálogo canónico `HERO_DEFS`; isto elimina um bypass sem copiar regras de alvo para o resolver. A validação de domínio de `GameState` continua a ser a autoridade para condições específicas de transição.
+
+A primeira versão de #336 falhou em três testes porque tratava a lista exata de targets de `get_valid_spells()` como única fonte de compatibilidade; isso quebrou o fixture legacy `aimed_shot` e a capitalização histórica `Nevada`. A versão final corrigiu ambos sem reintroduzir `fast_clone()` ou duplicação de regras e terminou com as três gates verdes.
+
+**Ainda aberto:** issue **#317** exige cobertura completa de todas as formas de execução intencionalmente aceites (`MOVE/ATTACK/STUN/SPAWN/SPELL`) e equivalência entre enumeração canónica e fixtures legacy. Enquanto essa matriz não estiver fechada, `execute_action()` não deve ser tratado como membership-only enforcement total.
+
+Autoridade pretendida:
 
 ```text
 input action
 → normalize canonical action
-→ action-space membership / canonical resolution
+→ action-space resolution / membership where complete
 → transition-domain validation
 → only then mutate
 ```
 
-`legal_actions()` continua a representar o action-space canónico; `resolve_legal_action()` resolve entradas canónicas/legacy. As condições de transição de `GameState.make_action()` continuam autoridade para rejeições de domínio e não devem ser duplicadas em `legal_actions()`.
-
-`fast_clone()` não é mecanismo de preflight nem autoridade de legalidade; continua permitido apenas em referência Python, replay, fixtures/property tests, tooling offline e comparação de estados, e não no hot path C++ da Ares.
-
-**Aceitação A.1:** cobertura de todas as formas de execução aceites e intended-to-remain-compatible; membership canónico sem duplicação de regras; preservação de erros de domínio específicos; rejeição sem mutação observável; regressões legal/illegal; differential relevante verde.
-
-A issue **#317** permanece a referência explícita para a lacuna entre action-space coverage e transition validity.
+`fast_clone()` continua fora de preflight e fora do hot path C++ da Ares.
 
 ### A.2 — native repetition/history contract
 
-**Estado:** `OPEN / ARCHITECTURAL DECISION REQUIRED`.
+**Estado:** `CLOSED AS ARCHITECTURAL BOUNDARY`.
 
-Definir explicitamente identidade de repetição, papel do TWC, ownership de history, interação com `make/unmake`, RWEN e search, e método de prova de equivalência.
+PR #338 foi merged como `21cef6afb5556d991d9a0f111ca2de42874ffc09`. A decisão canónica em `DECISIONS/2026-09-08-native-repetition-boundary.md` estabelece que `BoardState` não passa a possuir `state_history` mutável só para imitar a infraestrutura Python. A identidade/contagem de repetição pertence ao contexto de adjudicação que possui a sequência; `hash` representa a posição corrente e `twc` permanece distinto.
 
-**Gate de saída A:** A.1 e A.2 resolvidos, ou convertidos em fronteiras arquiteturais deliberadas, documentadas e testadas sem alegar uma equivalência inexistente.
+Isto fecha a necessidade de uma **decisão arquitetural**, mas **não** declara equivalência threefold Python↔C++.
 
-**Próximo bloco:** B.
+### Gate A0.1 atual
+
+A0.1 permanece **OPEN apenas por A.1/#317**. A.2 já não é uma decisão pendente; é uma fronteira deliberada e documentada/testada.
+
+**Próximo estado:** fechar a cobertura canónica de A.1 sem duplicar regras.
 
 # B — Medição de força e calibração da Arena
 
 **Estado:** `PARTIAL — infrastructure implemented; calibration not proven`.
 
-**Pré-requisito:** A0.1 fechado para alterações dependentes da semântica.  
-**Evidência relevante:** `STRENGTH_EVALUATION.md`, `ARENA_STATISTICAL_METHODOLOGY.md`, `ARENA_HOLDOUT_CI.md`, `ARENA_STRENGTH_DATASET.md`, mais #329 como regressão de determinismo do audit emparelhado.
-
-**Aceitação:** protocolo reproduzível de `accept / reject / continue` para o regime real do RedWar, com unidade de resampling, condição experimental, incerteza e população explicitamente definidas.
-
-**Não significa:** uma amostra dependente ou um run favorável torna-se automaticamente strength global.
+Pré-requisito operacional: remover o blocker A.1 quando a alteração depender da semântica de execução. A infraestrutura de Arena e o audit emparelhado têm regressões de determinismo, mas isso não transforma dataset/run em prova de strength global.
 
 # C — Ares: capability e eficiência de search
 
 **Estado:** `BLOCKED by A0.1; then OPEN`.
 
-Cada otimização precisa de regressão de correctness e benchmark controlado; alegações de strength exigem Arena A/B independente. #330 fixa uma fronteira arquitetural negativa importante: `fast_clone()` não pertence ao código C++ da Ares.
+Cada otimização exige regressão de correctness e benchmark controlado; qualquer alegação de strength exige Arena A/B independente. `fast_clone()` não pertence ao código C++ da Ares.
 
 # D — NNUE
 
 **Estado:** `INFRASTRUCTURE IMPLEMENTED; HOT-PATH INTEGRATION OPEN`.
 
-Manter `sync_board()` como oracle até a integração incremental demonstrar equivalência. #331 adiciona uma regressão mínima sobre a codificação por perspetiva, mas **não** prova integração incremental nem benefício competitivo.
+`sync_board()` continua oracle até integração incremental demonstrar equivalência. O teste #331 protege a codificação por perspetiva, não prova benefício competitivo.
 
 # E — Produto jogável: UI, replay e telemetria
 
