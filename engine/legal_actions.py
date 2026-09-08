@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from engine.actions import ActionType, GameAction
+from engine.actions import ActionType, GameAction, normalize_action
 from engine.config import COLUNAS, LINHAS
 
 
@@ -68,6 +68,36 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
                 )
 
     return tuple(sorted(actions, key=_action_key))
+
+
+def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
+    """Resolve an input action to the canonical action currently legal in ``gs``.
+
+    The exact canonical value is returned unchanged when present in the current
+    action space. Legacy STUN payloads may omit the derived AOE; when that form
+    identifies exactly one canonical STUN action, that canonical value is
+    returned. No hero-specific rule is duplicated here.
+    """
+    normalized = normalize_action(action)
+    available = legal_actions(gs)
+
+    if normalized in available:
+        return normalized
+
+    if normalized.type is ActionType.STUN and not normalized.area:
+        compatible = tuple(
+            candidate
+            for candidate in available
+            if candidate.type is ActionType.STUN
+            and candidate.start == normalized.start
+            and candidate.end == normalized.end
+            and candidate.spawn_name == normalized.spawn_name
+            and candidate.spell_name == normalized.spell_name
+        )
+        if len(compatible) == 1:
+            return compatible[0]
+
+    raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
 
 
 def is_legal_action(gs: Any, action: GameAction) -> bool:
