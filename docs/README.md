@@ -4,11 +4,23 @@ A documentação segue uma regra simples: **não há múltiplos roadmaps nem mú
 
 ## Entrada recomendada
 
-1. [`00_INDEX.md`](00_INDEX.md)
-2. [`PROJECT_REASONING.md`](PROJECT_REASONING.md)
-3. [`CURRENT_STATE.md`](CURRENT_STATE.md)
-4. [`ROADMAP.md`](ROADMAP.md)
-5. documento canónico do domínio da tarefa
+A entrada operacional deve seguir esta ordem:
+
+```text
+00_INDEX.md
+  ↓
+CURRENT_STATE.md
+  ↓
+ROADMAP.md
+  ↓
+documento canónico do domínio
+  ↓
+PROJECT_REASONING.md (rationale transversal, quando necessário)
+  ↓
+DECISIONS/ (rationale histórico, quando necessário)
+```
+
+`00_INDEX.md` é o mapa da autoridade; não é substituído por snapshots ou handoffs.
 
 ## Principais documentos
 
@@ -30,7 +42,7 @@ A documentação segue uma regra simples: **não há múltiplos roadmaps nem mú
 
 ## Autoridade
 
-Para comportamento existente, a prioridade é:
+Para **comportamento existente**, a prioridade é:
 
 ```text
 implementação + testes executáveis
@@ -38,10 +50,11 @@ implementação + testes executáveis
 → decisão histórica
 → research/audit
 → roadmap/proposta
+→ snapshot histórico
 ```
 
 Para **ordem de desenvolvimento**, a autoridade é exclusivamente [`ROADMAP.md`](ROADMAP.md).
 
-Para **raciocínio transversal**, a autoridade é [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
+Para **raciocínio transversal**, consultar [`PROJECT_REASONING.md`](PROJECT_REASONING.md), sem o tratar como segundo roadmap.
 
 `DECISIONS/` é histórico; não se reescreve para alterar a narrativa posterior.
