@@ -1,50 +1,70 @@
-# RedWar — A0.1 Semantic Closure — 2026-09-07
+# RedWar — A0.1 Semantic Closure
 
-## Purpose
+**Baseline verificado:** `main` @ `73cf14bc0861bd3d6fdb4a437fe9f433b7322a07`  
+**Data de reconciliação:** 2026-09-08
 
-A0 = PASS established a bounded correctness gate, but the adversarial architecture review identified semantic contracts that were not yet demonstrated as closed. A0.1 is the explicit follow-up gate before Strength calibration.
+A0.1 é o gate de correção/arquitetura que vem imediatamente depois do A0 histórico e **antes de tuning de strength/search** quando uma alteração depender da semântica destas fronteiras.
 
-## Current verified findings
+## Fechado
 
-### Inquisitor silence
+### Inquisitor silence/stun
 
-Three independently relevant layers agree on the intended contract:
-
-- The C3 oracle ignores an enemy Inquisitor when `stun_timer != 0`.
-- The Python runtime spell wrapper requires `source.can_act()` for the Inquisitor aura.
-- The native C++ move generator ignores stunned enemy silence sources.
-
-PR `#292` adds explicit engine-vs-oracle tests for both active and stunned Inquisitor sources so this contract is no longer only transitively covered.
-
-### Repetition / threefold
-
-Python `GameState` maintains `state_history` and terminates on the third occurrence of the current state hash. The native `BoardState` representation currently contains no equivalent game-history collection, and native search keys are derived from board state/TWC rather than a repetition-history context.
-
-This is therefore an unresolved architecture boundary, not a presumed parity fact. A later change must decide how history enters the native/search contract before claiming full repetition parity.
+O contrato foi explicitamente comparado entre o C3 oracle, Python e native move generation: um Inquisitor inimigo atordoado não fornece silêncio. PR #292 transformou esta descoberta numa regressão explícita.
 
 ### Terminal semantics
 
-The deterministic terminal matrix is now closed by PR `#310`. The regression compares the same RWEN fixtures across Python and the native backend for mutual annihilation, one-side annihilation, blocked side, TWC=50 and the TWC=49 non-terminal boundary. Native terminal scores for terminal classes are obtained from the actual `alpha_beta()` implementation rather than a duplicated test-side formula; the external root representation remains `bestmove 0000` for terminal positions.
+PR #310 faz a regressão observar o score do `alpha_beta()` real, cobrindo mutual annihilation, one-side annihilation, blocked side, TWC=50 e o controlo TWC=49. O contrato externo de root terminal continua `bestmove 0000`.
 
 ### Special-spell legality
 
-PR `#303` closed the discovered inherited-spell legality gap in the Python silence guard and established explicit special-spell legality coverage. The canonical action adapter and the C3/native comparisons therefore have a single documented action-space boundary for MOVE/ATTACK/STUN/SPAWN/SPELL.
+PR #303 fechou a paridade de legalidade das special spells sob a fronteira canónica. FrostMage `NEVADA` é `SPELL`, não um segundo mecanismo escondido de `STUN`.
 
 ### Canonical action boundary
 
-PR `#306` made `engine.legal_actions` an explicit engine-facing canonical action boundary, with explicit legacy conversion for compatibility consumers. PR `#308` then made `GameState.execute_action()` normalize accepted inputs through `normalize_action()` before crossing the existing `make_action()` transition seam.
+PR #291 consolidou a análise sobre MOVE/ATTACK/STUN/SPAWN/SPELL. PR #306 tornou `engine.legal_actions` a fronteira canónica e #308 passou `execute_action()` pela normalização canónica antes da transição existente.
 
-## Open gate checklist
+### Repetition observation
 
-- [ ] repetition / threefold parity or an explicitly documented backend boundary
-- [x] terminal-state differential parity
-- [x] silence/stun semantic contract explicitly tested against C3 oracle
-- [x] all special-spell legality parity under one canonical contract
-- [x] engine-facing canonical action adapter consolidated by PR #306
-- [ ] authoritative execute path rejects illegal canonical actions by contract (`#309` / follow-up `#311`)
-- [ ] differential coverage of every closed transition contract
-- [x] confirmed dead rule code removed only after replacement behavior is covered (PR `#300`)
+PR #299 corrigiu a observação repetida do mesmo hash em Python para que chamadas idempotentes de `check_game_over()` não fabriquem ocorrências.
 
-## Constraints
+### Legacy code
 
-This gate does not run datasets, statistical analyses or strength experiments. It does not authorize search tuning, PST tuning, NNUE tuning or balance claims.
+PR #300 removeu o bloco FrostMage inalcançável depois de a implementação ativa ter regressões suficientes.
+
+### Node budget
+
+PR #285 estabeleceu o teste dedicado da semântica `go nodes N`: o search bounded por nodes não deve exceder o budget e a execução repetida em processo novo permanece determinística sob o teste definido.
+
+## Ainda aberto
+
+### 1. Autoridade de execução
+
+A normalização canónica já existe, mas a garantia forte desejada é:
+
+```text
+input action
+   ↓
+canonical legal-action membership
+   ↓
+only then mutate state
+```
+
+Não considerar este ponto fechado apenas porque `execute_action()` aceita `GameAction`.
+
+### 2. Repetition / threefold nativo
+
+Python mantém história para repetição. O `BoardState` nativo não possui ainda um equivalente definido no mesmo nível de contrato. Antes de implementar uma solução é necessário decidir:
+
+- o que constitui identidade de repetição;
+- se TWC faz parte dessa identidade;
+- se a história faz parte do contexto da pesquisa;
+- como `make/unmake`, RWEN e search interagem com a história;
+- como provar paridade sem criar uma segunda semântica.
+
+## Regra de saída
+
+A0.1 só fecha quando os pontos abertos estiverem resolvidos **ou explicitamente transformados em uma fronteira contratual deliberada e testada**.
+
+A existência deste documento não autoriza search tuning, NNUE tuning, strength claims ou balance changes.
+
+Fonte de execução: [`ROADMAP.md`](ROADMAP.md). Linha de raciocínio transversal: [`PROJECT_REASONING.md`](PROJECT_REASONING.md).

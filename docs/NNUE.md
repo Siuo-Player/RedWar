@@ -1,83 +1,62 @@
-# Ares NNUE
+# RedWar — NNUE
 
-## Objetivo
+## Autoridade
 
-Ares suporta uma avaliação NNUE-style inspirada no desenvolvimento do Stockfish, mas adaptada ao RPG de RedWar. Não copiamos HalfKP porque RedWar não tem reis nem a mesma semântica de posição.
+Este documento define o contrato da NNUE. A sequência de implementação está em [`ROADMAP.md`](ROADMAP.md) e a lógica transversal em [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
 
-## Arquitetura
+## Arquitetura atual
 
-```text
-BoardState
-  -> sparse feature ids
-  -> 2 accumulators x 128
-  -> hidden 32 + clipped ReLU
-  -> score
-```
+Ares possui uma NNUE opcional adaptada ao estado RPG. As features representam identidade/posição/equipa relativa, stun, lifespan, cooldown, efeitos, TWC e side-to-move. O formato binário é versionado.
 
-As features representam peça/casa/equipa relativa, stun, lifespan, cooldown, efeitos, TWC e lado a jogar. O layout atual tem 12 469 features e existe em Python e C++.
+NNUE não é atualmente uma alegação de superioridade. A avaliação clássica continua disponível como baseline.
 
-### Estado de atualização
+## Baseline de correção
 
-A implementação atual mantém uma sincronização completa da posição como **baseline de correção**. O módulo NNUE já contém operações capazes de substituir features de uma casa/efeito e atualizar lado/TWC incrementalmente, mas essas operações ainda não estão integradas às mutações normais de `BoardState`.
+A infraestrutura mantém `sync_board()` como referência de ressincronização completa. Existem hooks incrementais para alterações de peça, efeito, lado e TWC.
 
-Portanto, a ordem correta é:
+A existência desses hooks não significa integração concluída.
 
-1. provar paridade/matemática com o baseline;
-2. ligar as transições reais do estado aos hooks incrementais;
-3. medir NPS/custo por avaliação;
-4. só então otimizar mais ou alterar a arquitetura.
-
-## Formato do modelo
-
-`RWNUE002`, versão 2. O header valida feature count, tamanhos e escalas. Pesos usam `int16`; biases usam `int32`.
-
-Sem modelo, a Ares continua na avaliação clássica.
-
-## Features
-
-As features são discretas e determinísticas. Isto permite que Python e C++ sejam testados contra a mesma representação:
+A conclusão exige:
 
 ```text
-PieceState -> feature ids
-EffectState -> feature ids
-Turn/TWC -> feature ids
+BoardState mutation
+→ incremental hook
+→ accumulator
+      ≡
+full sync_board()
 ```
 
-Qualquer mudança de `FEATURE_COUNT` ou do layout deve alterar simultaneamente Python e C++ e acrescentar uma regressão de paridade.
+após sequências, make/unmake e alterações dos estados persistentes relevantes.
 
-## Treino
+## Custo
 
-`tools/nnue/generate_teacher.py` gera teacher data usando explicitamente `eval classical`, evitando que o próprio NNUE contamine os targets.
+Só depois da equivalência incremental/full-resync se deve medir custo por avaliação e NPS. Uma redução do tempo de avaliação que introduza drift não é uma melhoria.
 
-`tools/nnue/train.py` usa PyTorch opcional e exporta para o formato RWNUE002.
+## Dataset / treino
 
-`tools/nnue/bootstrap_model.py` cria um modelo determinístico pequeno para verificar loading/inferência. **Não é uma prova de inteligência.**
-
-Fluxo:
+O pipeline conceptual é:
 
 ```text
-teacher data
-  -> features
-  -> treino
-  -> quantização
-  -> RWNUE002
-  -> C++ loading
-  -> benchmark
-  -> Arena
+positions
+→ RWEN + target/teacher
+→ features
+→ training
+→ quantization
+→ RWNUE model
+→ validation
+→ Arena
 ```
 
-## Validação antes de tornar NNUE default
+A pesquisa recente sobre datasets NNUE é uma motivação para auditar duplicação, leakage, diversidade e estabilidade das posições. **Não tratar propostas de split/filtro não integradas no `main` como implementação existente.**
 
-1. Paridade Python/C++.
-2. Loading/inferência determinísticos.
-3. Rede realmente treinada e carregada pelo C++.
-4. Custo por avaliação/NPS conhecido.
-5. `bestmove` e posições de referência comparados com a clássica.
-6. Testes específicos de FrostMage/stun.
-7. Arena contra a avaliação clássica sob condições equivalentes.
+## Promoção
 
-A meta é **Elo por CPU-segundo**, não complexidade por si só.
+NNUE só pode tornar-se default após:
 
-## Próximo bloco
-
-Depois de validar este pipeline, ligar os hooks incrementais às mutações reais do `BoardState`, remover o rescan do caminho quente e medir. Só depois experimentar redes maiores, SIMD/AVX2 ou outras otimizações.
+1. correção e paridade de features;
+2. determinismo;
+3. modelo treinado e reprodutível;
+4. custo/NPS comparado com baseline;
+5. ausência de regressões relevantes em referências;
+6. Arena A/B com evidência suficiente;
+7. cumprimento do contrato de observabilidade.

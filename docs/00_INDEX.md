@@ -1,70 +1,68 @@
 # RedWar Documentation Index
 
-This is the navigation entry point for `docs/`. It identifies the current source of truth for each domain without duplicating those documents.
+## Como reconstruir o projeto sem a conversa
 
-## Current state
+A ordem operacional é:
 
-- [CURRENT_STATE.md](CURRENT_STATE.md) — dated snapshot of the current engineering state. It is informative, not a replacement for canonical domain documents.
+1. [`README.md`](README.md)
+2. [`PROJECT_REASONING.md`](PROJECT_REASONING.md) — eixo de raciocínio transversal
+3. [`CURRENT_STATE.md`](CURRENT_STATE.md) — fotografia verificável do baseline
+4. [`ROADMAP.md`](ROADMAP.md) — única sequência de trabalho
+5. documento canónico do domínio da tarefa
+6. `DECISIONS/` apenas para recuperar a razão histórica relevante
 
-## Canonical project documents
+`PROJECT_REASONING.md` explica **por que** a ordem existe. `ROADMAP.md` diz **o que vem a seguir**. Os documentos de domínio dizem **qual é o contrato**.
 
-| Area | Current source of truth | Purpose |
-|---|---|---|
-| Architecture | [ARCHITECTURE.md](ARCHITECTURE.md) | System/component boundaries and invariants |
-| Game design | [GAME_DESIGN.md](GAME_DESIGN.md) | Design intent, identity and balancing philosophy |
-| Game rules | [GAME_RULES.md](GAME_RULES.md) | Operational game rules and terminal conditions |
-| Hero system | [HERO_SYSTEM.md](HERO_SYSTEM.md) | Hero mechanics and data/implementation contract |
-| AI engine / Ares | [AI_ENGINE.md](AI_ENGINE.md) | Ares architecture, evaluation and search contract |
-| NNUE | [NNUE.md](NNUE.md) | NNUE architecture, data and promotion criteria |
-| AI benchmarks | [AI_BENCHMARK_PROTOCOL.md](AI_BENCHMARK_PROTOCOL.md) | Capability/regression benchmark methodology |
-| Strength evaluation | [STRENGTH_EVALUATION.md](STRENGTH_EVALUATION.md) | Competitive-strength measurement and promotion evidence |
-| Arena statistics | [ARENA_STATISTICAL_METHODOLOGY.md](ARENA_STATISTICAL_METHODOLOGY.md) | Statistical treatment of Arena results |
-| Hold-out CI | [ARENA_HOLDOUT_CI.md](ARENA_HOLDOUT_CI.md) | Protected validation execution contract |
-| Balance | [BALANCE_METHODOLOGY.md](BALANCE_METHODOLOGY.md) | Interpretation of pricing, contextual balance and roster evidence |
-| Observability | [OBSERVABILITY_CONTRACT.md](OBSERVABILITY_CONTRACT.md) | Legal information visible to the agent in each game phase |
-| Mechanics traceability | [MECHANICS_TRACEABILITY_MATRIX.md](MECHANICS_TRACEABILITY_MATRIX.md) | Cross-backend mechanic/data coverage |
-| CI methodology | [CI_WORKFLOW_METHODOLOGY.md](CI_WORKFLOW_METHODOLOGY.md) | CI evidence and gate semantics |
-| Development workflow | [DEVELOPMENT_WORKFLOW.md](DEVELOPMENT_WORKFLOW.md) | Engineering workflow and branch/PR process |
-| Project methodology | [PROJECT_DEVELOPMENT_METHODOLOGY.md](PROJECT_DEVELOPMENT_METHODOLOGY.md) | Planning, dependencies and development blocks |
-| Engineering/research methodology | [ENGINEERING_METHODOLOGY_AND_RESEARCH.md](ENGINEERING_METHODOLOGY_AND_RESEARCH.md) | Cross-cutting engineering/research method |
-| Decisions/knowledge | [DECISION_AND_KNOWLEDGE_PROTOCOL.md](DECISION_AND_KNOWLEDGE_PROTOCOL.md) | How decisions, evidence and discoveries are recorded |
-| Roadmap | [ROADMAP.md](ROADMAP.md) | Current engineering sequence and priorities |
-| Tooling | [TOOLING.md](TOOLING.md) | Development and analysis tooling |
-| Multiplayer / online | [WEB_MULTIPLAYER.md](WEB_MULTIPLAYER.md) | Online product/protocol documentation |
-| Legal | [LEGAL_AND_LICENSES.md](LEGAL_AND_LICENSES.md) | Licensing and legal constraints |
-| Inspirations | [INSPIRATIONS_AND_HOMAGE.md](INSPIRATIONS_AND_HOMAGE.md) | External inspirations and homage record |
+## Documentos canónicos por domínio
 
-## Supporting, historical and transitional documents
+| Área | Fonte de verdade operacional |
+|---|---|
+| Arquitetura | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Regras | [`GAME_RULES.md`](GAME_RULES.md) |
+| Design | [`GAME_DESIGN.md`](GAME_DESIGN.md) |
+| Heróis | [`HERO_SYSTEM.md`](HERO_SYSTEM.md) + `engine/heroes_config.json` |
+| Ares | [`AI_ENGINE.md`](AI_ENGINE.md) |
+| NNUE | [`NNUE.md`](NNUE.md) |
+| Benchmarks | [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md) |
+| Strength | [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md) |
+| Arena estatística | [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md) |
+| Hold-out | [`ARENA_HOLDOUT_CI.md`](ARENA_HOLDOUT_CI.md) |
+| Balanceamento | [`BALANCE_METHODOLOGY.md`](BALANCE_METHODOLOGY.md) |
+| Observabilidade | [`OBSERVABILITY_CONTRACT.md`](OBSERVABILITY_CONTRACT.md) |
+| Traceability | [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md) |
+| CI | [`CI_WORKFLOW_METHODOLOGY.md`](CI_WORKFLOW_METHODOLOGY.md) |
+| Desenvolvimento | [`PROJECT_DEVELOPMENT_METHODOLOGY.md`](PROJECT_DEVELOPMENT_METHODOLOGY.md) + [`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md) |
+| Decisões | [`DECISION_AND_KNOWLEDGE_PROTOCOL.md`](DECISION_AND_KNOWLEDGE_PROTOCOL.md) + `DECISIONS/` |
+| UI | [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md) |
+| Online | [`WEB_MULTIPLAYER.md`](WEB_MULTIPLAYER.md) |
+| Licenças | [`LEGAL_AND_LICENSES.md`](LEGAL_AND_LICENSES.md) |
 
-- `DECISIONS/` contains dated engineering decisions. These are historical records; a later decision may supersede them but old rationale is not rewritten.
-- `FOUNDATION_BASELINE_2026-08-26.md` is a foundation snapshot, not a permanent source of truth.
-- Dated audit/research documents record evidence and recommendations; they do not silently override canonical contracts.
-- `Documento_Design_Jogo.md`, if retained, is transitional/legacy documentation and should not be treated as the authoritative source when `GAME_DESIGN.md` or `GAME_RULES.md` applies.
-
-## Evidence hierarchy
-
-For behaviour actually implemented, use:
+## Hierarquia de evidência
 
 ```text
-implementation + executable tests
+implementação atual + testes executáveis
         ↓
-current canonical contract
+contrato canónico atual
         ↓
-decision rationale
+decisão histórica
         ↓
-audit / research
+auditoria / investigação
         ↓
-proposal / backlog
+proposta / backlog
+        ↓
+snapshot histórico
 ```
 
-A research note or historical decision does not override current implementation or a current canonical contract unless the decision explicitly changes that contract and the canonical document is updated in the same development block.
+Nenhum documento histórico ou de investigação altera silenciosamente o contrato atual.
 
-## Synchronisation rule
+## Regra contra duplicação
 
-When implementation changes a documented contract, update the relevant canonical document in the same development block. When a decision changes the contract, update the decision record, canonical document and roadmap references together.
+Não criar outro roadmap, “current state”, backlog ou audit paralelo para o mesmo assunto. Melhorar o documento canónico existente e atualizar [`ROADMAP.md`](ROADMAP.md).
 
-Do not create a parallel document for an existing subject merely because the canonical document is long. Prefer improving its structure and adding cross-links.
+`DECISIONS/` é histórico. Não se reescreve para fingir que o passado dizia o que hoje sabemos.
 
-## Transitional migration rule
+## Baseline atual
 
-Existing paths are retained for compatibility in this phase. Physical directory moves are postponed until classification, inbound-link analysis and content reconciliation are complete.
+O `main` verificado em 2026-09-08 é `73cf14bc0861bd3d6fdb4a437fe9f433b7322a07`.
+
+Qualquer documento com um SHA anterior é evidência histórica e não pode ser usado para declarar o estado atual.

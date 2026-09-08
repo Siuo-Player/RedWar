@@ -1,80 +1,39 @@
 # RedWar — Battle Sidebar
 
-## Status
+## Estado atual
 
-Implemented in PR #184. The current implementation is the first functional slice of the sidebar architecture defined by the `PROJECT-STUDIES` research package. Responsive/visual validation remains pending.
+A primeira arquitetura funcional foi integrada no #184 e a camada Encyclopedia/contexto foi posteriormente consolidada (#278–#281). A geometria responsiva e tema semântico também foram integrados (#274–#277). O trabalho restante é **validação visual/UX**, não redesenho arbitrário da arquitetura.
 
-## Architecture
-
-The battle sidebar is a persistent contextual surface divided by semantic responsibility:
+## Contrato
 
 ```text
-RIGHT SIDEBAR
-├── Selected Hero
-│   persistent identity, state and relevant rules
-│
-├── Hovered Cell / Context
-│   transient cell, piece, effects and consequences
-│
-└── Actions
-    contextual decision surface; only expanded when a destination has
-    more than one legal action
+Selected Hero
+    = estado persistente
+
+Hovered Cell / Context
+    = estado transitório
+
+Actions
+    = superfície contextual de decisão
 ```
 
-The three states are intentionally distinct:
+Uma ação legal executa diretamente. Quando existem várias ações legais para o mesmo contexto, o painel expõe a escolha completa. `1..9` e `ESC` mantêm a interação navegável. O tabuleiro continua visível e o renderer não é autoridade de legalidade.
 
-- **Selected Hero** persists while the player works with that unit.
-- **Hovered Cell** changes with the cursor and never replaces the selected-hero state.
-- **Actions** is a decision surface, not an information dump; it becomes relevant when the destination is ambiguous.
+A legalidade pertence ao domínio de jogo e à fronteira canónica de ações documentada em [`HERO_SYSTEM.md`](HERO_SYSTEM.md) e [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
 
-## Current interaction contract
+## Encyclopedia
 
-- One legal action: execute directly.
-- Multiple legal actions: expose the complete legal action set in the sidebar.
-- Zero legal actions: keep the selection coherent and show the destination as invalid.
-- `1..9`: choose an action when the action panel is active.
-- `ESC`: cancel the pending action choice.
-- The board remains visible during action disambiguation.
-- The renderer does not decide legality; it consumes the existing interaction/game semantics.
+A informação do herói deve permanecer consultável durante a batalha através do contexto canónico usado pelo painel. Isso inclui regras relevantes, passivas e spells; não deve existir uma segunda fonte de regras apenas para a UI.
 
-## Draft interaction
+## Validação restante
 
-Draft hero selection is persistent and toggleable:
+- desktop largo/médio/estreito;
+- resize sem destruir a semântica dos estados;
+- keyboard/focus;
+- sinalização não dependente apenas de cor;
+- recuperação de destinos ilegais;
+- silêncio/stun/lifespan/cooldown e efeitos;
+- cenário visual de stress FrostMage/NEVADA;
+- captura determinística de cenas.
 
-1. click a shop hero to select it;
-2. click board cells to place repeated copies while budget and placement rules allow it;
-3. select another shop hero to replace the current selection;
-4. click the selected shop hero again to deselect it.
-
-This is a domain interaction rule, not merely a visual state.
-
-## Visual design constraints
-
-The immediate sidebar should already provide:
-
-- semantic visual roles rather than arbitrary decoration;
-- clear selected, hover and focus states;
-- neutral-dominant surfaces;
-- readable typography and useful target sizes;
-- redundant signalling for important states so colour is not the only cue;
-- restrained feedback and no fullscreen modal for normal action disambiguation;
-- useful use of the available right-side space without filling it with low-value text.
-
-The complete art/theme system is deliberately a later product layer.
-
-## Validation still required
-
-The next validation package should cover:
-
-- desktop wide, medium and narrow window sizes;
-- selected-hero persistence while hover changes;
-- ambiguous actions (`MOVE` vs `ATTACK`, `MOVE` vs `NEVADA`, etc.);
-- keyboard focus/action selection;
-- illegal-target recovery;
-- silence/stun/lifespan/cooldown visibility where relevant;
-- FrostMage/Nevada as the visual stress scenario;
-- automatic screenshots/scene captures for regression review.
-
-## Source of truth
-
-Operationally, tested game behaviour is authoritative. The sidebar is a presentation and interaction layer over those semantics. Research documents in `Siuo-Player-PROJECT-STUDIES/REDWAR` define the recommended UX architecture and visual constraints; they do not override implemented game rules.
+Fonte operacional da sequência: [`ROADMAP.md`](ROADMAP.md).

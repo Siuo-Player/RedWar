@@ -1,431 +1,255 @@
-# RedWar — Roadmap
+# RedWar — Roadmap Operacional
 
-## Prioridades de execução
+**Baseline verificado:** `main` @ `73cf14bc0861bd3d6fdb4a437fe9f433b7322a07`  
+**Data:** 2026-09-08
 
-1. **Ares / IA — prioridade máxima.** Cada ciclo deve tornar a IA mais forte ou mais rápida, com validação reproduzível.
-2. **Aplicação / UI / `main`.** Depois de melhorias relevantes da IA, melhorar o jogo jogável e validá-lo manualmente.
-3. **Web / multiplayer.** Avança incrementalmente, mas só fecha o projeto quando esta camada estiver utilizável.
-4. **Tooling e documentação.** Experiências, dados e estrutura devem ficar claros e reproduzíveis.
+Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas. A lógica que explica a ordem está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md); os contratos técnicos pertencem aos documentos canónicos referenciados em cada fase.
 
-A metodologia de decomposição e gestão do desenvolvimento está em [`PROJECT_DEVELOPMENT_METHODOLOGY.md`](PROJECT_DEVELOPMENT_METHODOLOGY.md). A metodologia transversal para engenharia e investigação está consolidada em [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md), as referências/inspirações estão em [`INSPIRATIONS_AND_HOMAGE.md`](INSPIRATIONS_AND_HOMAGE.md), o protocolo para evitar overfitting dos benchmarks está em [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md), e o modelo de medição de força está em [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md).
+## Regra de execução
 
-## Como o roadmap é dividido
-
-O RedWar é melhor descrito como um **projeto de pequena equipa com complexidade sistémica e múltiplos subsistemas**, não como um projecto "large-scale" no sentido organizacional de estudos com dezenas de equipas. Ainda assim, princípios de decomposição de trabalho, desenvolvimento incremental, modularidade e gestão explícita de dependências são aplicáveis.
-
-Cada bloco do roadmap deve funcionar como um work package coerente e, quando adequado, ser entregue por uma PR isolada:
+Uma fase só pode ser marcada como concluída quando a evidência indicada nessa própria fase existir no `main`.
 
 ```text
-objetivo do projeto
-    ↓
-área estratégica / subsistema
-    ↓
-bloco do roadmap
-    ↓
-PR / unidade de trabalho coerente
-    ↓
-implementação + testes + documentação
-    ↓
-validação
-    ↓
-merge / novo baseline
+problema
+→ contrato
+→ implementação mínima
+→ testes
+→ differential/property/benchmark
+→ validação apropriada
+→ documentação
+→ merge
+→ próxima fase
 ```
 
-O documento [`PROJECT_DEVELOPMENT_METHODOLOGY.md`](PROJECT_DEVELOPMENT_METHODOLOGY.md) explica a base académica e as regras de decomposição, dependências e conclusão.
+### Evidência não intercambiável
 
-## Metodologia da Ares
+`correctness ≠ capability ≠ performance ≠ generalisation ≠ strength ≠ balance ≠ UX`.
 
-Ares segue uma metodologia **Stockfish-like adaptada a RedWar**: separar estado/regras, pesquisa, avaliação e move ordering; manter o hot path pequeno; fazer alterações isoladas; exigir evidência estatística ou benchmark antes de aceitar uma melhoria funcional.
+CI verde é condição necessária para mudanças de código, mas não é prova de força global. Um benchmark táctico é prova de capacidade, não de strength. Uma loss de NNUE é uma métrica de treino, não de força.
 
-RedWar não é xadrez. Stun, lifespan, spells, summons, terreno e TWC entram na avaliação como características do RPG.
+---
 
-### Sanity check
+# Fase A — A0.1 Semantic Closure
 
-`FrostMage` custa atualmente **5 pontos**. A Ares deve reconhecer que uma unidade barata com stun pode ter valor tático muito superior ao material nominal.
+**Objetivo:** fechar as últimas fronteiras semânticas entre regras, ações, transições e backends antes de tuning de força.
 
-## Estado do projeto
+**Estado:** quase fechado; duas fronteiras arquiteturais continuam abertas.
 
-- **PR #52** integrou a continuação seletiva do segundo STUN no mesmo centro, apenas quando o primeiro STUN atingiu um adversário, e a estabilização necessária do trainer.
-- **PR #53** integrou as melhorias de CI e a separação entre gates de CI/tooling e gates de promoção da AI.
-- **PR #54** integrou o harness reutilizável de benchmarks táticos, com failure-threshold e traces opcionais.
-- **PR #61** integrou a equivalência Python/C++ da geração de ações e as regressões de compatibilidade associadas.
-- **PR #65** integrou a execução manual reproduzível da Arena mesmo sem alterações de AI/NNUE.
-- **PR #67** integrou a primeira propriedade metamórfica de simetria entre cores/lado a jogar.
-- **PR #68** integrou sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
-- **PR #119** integrou diagnóstico da primeira divergência e reprodução por prefixo mínimo sem apagar ações arbitrariamente.
-- **PR #121** integrou o perft/node-count differential Python/C++ com bridge nativa e execução automática no CI.
-- **PR #174** corrigiu o routing do workflow de calibração de strength.
-- **PR #177** integrou uma unidade de trabalho independente de infraestrutura/validação.
-- **PR #180** e **PR #182** integraram a correção e validação da semântica FrostMage/NEVADA entre Python e C++.
-- **PR #183** integrou o contrato explícito `EngineBridge` entre Python e Ares, mantendo subprocess como adapter de compatibilidade.
-- **PR #184** integrou a primeira implementação da Battle Sidebar, a seleção repetida de herói no draft e a escolha de ações sem modal fullscreen.
-- A auditoria de observabilidade (#83) confirmou que, no modo local atual, a informação é secreta apenas durante `DRAFT`; em `BATALHA` o estado completo é público e legal para Ares.
-- O requisito de replay local passou a ser **retenção durável de todas as partidas**, com as 10 mais recentes apenas como hot cache. A primeira implementação compacta usa um stream semântico, chunks JSONL e gzip, com índice por jogo e preservação de partidas antigas.
-- O bug de UI em que uma spell silenciada pelo Inquisitor podia chegar ao validador autoritativo foi tratado na geração de ações Python; regressões cobrem geração e rejeição autoritativa.
-- A `main` atual é a base para o desenvolvimento seguinte.
+## Evidência canónica
 
-### Blocos concluídos relevantes
+> `ARCHITECTURE.md`: “Mesma posição → mesmas ações legais.”
 
-- [x] Proteções numéricas do Auto-Pricer e da avaliação C++/Cython.
-- [x] Regressões de limites numéricos.
-- [x] Trainer com timeout, recuperação de processo e diagnósticos de falhas.
-- [x] Diagnóstico automático com RWEN, stdout/stderr e search trace.
-- [x] Extensão seletiva para a continuação do segundo STUN no mesmo centro, apenas quando o primeiro STUN atingiu um adversário.
-- [x] Benchmark FrostMage com failure-threshold e traces opcionais.
-- [x] Suite reutilizável de benchmarks táticos com validação de schema.
-- [x] CI distingue mudanças reais da AI de alterações apenas de tooling/workflows.
-- [x] Auto-Balancer usa timeout explícito e suite Python completa.
-- [x] Equivalência Python/C++ da geração de ações legais.
-- [x] Sequências diferenciais determinísticas Python/C++ por múltiplos plies.
-- [x] Sequências diferenciais pseudo-aleatórias com seeds fixas e maior profundidade.
-- [x] Propriedade metamórfica de simetria entre cores/lado a jogar.
-- [x] Documentação metodológica e de inspirações consolidada.
-- [x] Protocolo de validação contra overfitting dos benchmarks definido.
-- [x] Modelo/documentação inicial para medição geral de força definido.
-- [x] Arena headless com guardrail de 10.000 plies.
-- [x] Execução manual da Arena separada da promoção automática.
-- [x] Observability Contract do modo local: segredo no `DRAFT`, informação pública em `BATALHA`.
-- [x] Diagnóstico da primeira divergência e reprodução por prefixo mínimo.
-- [x] Differential perft/node-count Python/C++.
-- [x] Infraestrutura inicial de Strength Evaluation: resultados, provenance, população, rating Elo-compatible e incerteza proxy.
-- [x] Paired-game/pentanomial support e auditoria de cor/opening/seed.
-- [x] Separação de conjuntos regression/development/hold-out e hold-out protegido.
-- [x] SPRT implementado como biblioteca isolada; calibração e promoção automática continuam pendentes.
-- [x] Arquitetura local inicial de replay: stream semântico, hot-cache de 10 IDs, cold archive chunked/comprimido, integridade por hash e reconstrução determinística.
-- [x] Regra de seleção de herói no draft: selecionar, mudar a seleção e clicar novamente para desmarcar.
-- [x] Battle Sidebar inicial: Selected Hero, Hovered Cell/Context e contextual Actions.
-- [x] Escolha de ação ambígua integrada no painel lateral, sem modal fullscreen.
-- [x] Contrato inicial Python↔C++ através de `EngineBridge`.
+> `AI_ENGINE.md`: `S --make(M)--> S'` e `S' --unmake(M)--> S`.
 
-## Current execution sequence — sincronizada com PROJECT-STUDIES
+> `MECHANICS_TRACEABILITY_MATRIX.md`: `configuration → Python → C++ → action generation → state transition → serializer/RWEN → make → unmake → hash → differential → tests`.
 
-A investigação consolidada do `PROJECT-STUDIES/REDWAR` estabelece esta ordem imediata:
+> `A01_SEMANTIC_CLOSURE_2026-09-07.md`: repetição/threefold continua uma fronteira de arquitetura, enquanto terminal, silêncio/stun e special-spell legality já têm cobertura explícita.
+
+## Fechado no baseline atual
+
+- [x] `GameAction` tornou-se fronteira canónica para os consumidores principais (`#291`, `#306`, `#308`).
+- [x] Python analysis consome MOVE/ATTACK/STUN/SPAWN/SPELL (`#291`).
+- [x] Special-spell legality parity fechada (`#303`).
+- [x] Terminal contract comparado com o `alpha_beta()` nativo real (`#310`).
+- [x] Repetition observation Python tornou-se idempotente (`#299`).
+- [x] Código FrostMage inalcançável removido depois de cobertura (`#300`).
+- [x] `go nodes N` tem teste dedicado de semântica de node budget.
+
+## Ainda obrigatório
+
+- [ ] Tornar a legalidade de execução uma autoridade explícita **antes da mutação**, sem duplicar a semântica das regras.
+- [ ] Definir a identidade/histórico de repetição no backend nativo e provar a política escolhida. Não implementar uma “solução” sem primeiro decidir se o histórico faz parte da posição/search key e de que forma.
+- [ ] Manter differential coverage para qualquer contrato fechado que seja tocado por mudanças futuras.
+
+**Gate de saída:** execução ilegal não altera estado; repetição tem contrato explícito e não ambíguo; suite differential continua verde; roadmap atualizado.
+
+---
+
+# Fase B — Medição de força e calibração da Arena
+
+**Objetivo:** transformar a infraestrutura existente numa medição de strength realmente comparável antes de promover melhorias de Ares.
+
+**Estado:** infraestrutura existente; calibração empírica ainda não é uma autorização para tuning agressivo.
+
+## Evidência canónica
+
+> `AI_BENCHMARK_PROTOCOL.md`: “Regression / Development / Validation”.
+
+> `STRENGTH_EVALUATION.md`: “Uma alteração correta pode continuar a ser uma regressão global.”
+
+> `BALANCE_METHODOLOGY.md`: “pricing heuristic ≠ global power estimate ≠ design judgement”.
+
+## Trabalho
+
+- [ ] Consolidar runs reais em experiências deliberadamente replicadas, preservando commit, regras, budget, cor, seed/opening e validade.
+- [ ] Separar definitivamente unidades de resampling de condições experimentais independentes; o dataset de 100 jogos/50 pares não deve ser tratado como 50 condições independentes.
+- [ ] Medir estabilidade por população/contexto e detectar intransitividade.
+- [ ] Calibrar a incerteza do rating contra resultados reais.
+- [ ] Avaliar operating characteristics do SPRT isolado antes de o tornar gate automático.
+- [ ] Manter o hold-out protegido e rastreável.
+
+**Gate de saída:** existir uma metodologia empírica calibrada para o regime real do RedWar, com resultados reproduzíveis e regra explícita `accept / reject / continue`.
+
+---
+
+# Fase C — Ares: search capability e eficiência
+
+**Objetivo:** melhorar a pesquisa sem contaminar a semântica do jogo.
+
+**Pré-condição:** Fase A fechada e Fase B com instrumento de medição operacional.
+
+## Evidência canónica
+
+> `AI_ENGINE.md`: Ares usa alpha-beta/PVS, TT, Zobrist, iterative deepening, killer/history, move ordering e quiescence/tactical search.
+
+> `ENGINEERING_METHODOLOGY_AND_RESEARCH.md`: “Uma heurística deve ser justificada pelo fenómeno de RedWar que tenta explorar e pela evidência de custo/força obtida.”
+
+> `AI_BENCHMARK_PROTOCOL.md`: um benchmark é regression/capability evidence, não prova de força geral.
+
+## Trabalho, nesta ordem
+
+- [ ] Expandir benchmarks para segundo STUN, multi-stun, defesa, passivas/aura, lifespan/cooldown, spells condicionais e conflitos material/táctica.
+- [ ] Medir baseline de nodes, NPS, profundidade efetiva e TT hit-rate.
+- [ ] Testar move ordering refinements isoladamente.
+- [ ] Testar aspiration windows/pruning apenas com equivalência de correção fechada.
+- [ ] Melhorar quiescence especificamente para os fenómenos de RedWar antes de generalizar heurísticas.
+- [ ] Adicionar diagnostics de primeira divergência/move-quality para explicar alterações de comportamento.
+
+**Gate de saída:** cada otimização tem regressão de correção, benchmark de capability/eficiência e, quando alegada melhoria de força, Arena A/B independente.
+
+---
+
+# Fase D — NNUE
+
+**Objetivo:** tornar a avaliação NNUE competitiva e barata sem abandonar o baseline clássico nem a verificabilidade.
+
+**Estado:** infraestrutura existe; integração incremental ainda não é uma feature aceite de produção.
+
+## Evidência canónica
+
+> `NNUE.md`: “A implementação atual mantém uma sincronização completa da posição como baseline de correção.”
+
+> `NNUE.md`: “A existência desses hooks não significa integração concluída.”
+
+> `AI_ENGINE.md`: `sync_board()` permanece oracle de correção até existir paridade incremental provada.
+
+## Trabalho
+
+- [ ] Ligar `on_piece_change`/`on_effect_change`/`on_side_to_move_change`/`on_twc_change` às mutações reais do `BoardState`.
+- [ ] Testar `incremental accumulator == full resync` após sequências e make/unmake.
+- [ ] Manter `sync_board()` como oracle de correção/debug.
+- [ ] Medir custo por avaliação e NPS contra o baseline clássico/full-resync.
+- [ ] Auditar qualidade do teacher dataset antes de concluir que uma arquitetura NNUE é boa.
+- [ ] Só depois estudar rede maior, quantização/SIMD e outras otimizações.
+- [ ] Comparar força A/B com Arena sob condições controladas.
+
+**Nota metodológica:** a pesquisa recente sobre datasets NNUE justifica investigar duplicação/leakage e composição do dataset, mas não justifica declarar que um filtro ou split específico já está implementado no `main`. O trabalho de dataset que permaneceu fora do baseline deve ser tratado como proposta até ser integrado e validado.
+
+**Gate de saída:** paridade incremental/full-resync provada + benchmark de custo + rede treinada e reproduzível + evidência de força; só então avaliar tornar NNUE default.
+
+---
+
+# Fase E — Produto jogável: UI, replay e telemetria
+
+**Objetivo:** terminar a camada jogável sem reabrir arquitetura já implementada.
+
+## Evidência canónica
+
+> `BATTLE_UI_SIDEBAR.md`: “Selected Hero” é persistente; “Hovered Cell / Context” é transitório; “Actions” é a superfície de decisão contextual.
+
+> `BATTLE_UI_SIDEBAR.md`: “Uma ação legal executa diretamente. Quando existem várias ações legais para o mesmo contexto, o painel expõe a escolha completa.”
+
+> `CURRENT_STATE.md`: “A Battle Sidebar inicial e o contexto Encyclopedia já estão implementados; a validação visual/responsiva continua trabalho de produto.”
+
+## Trabalho
+
+- [ ] Validação visual/responsiva do Battle Sidebar nos tamanhos suportados.
+- [ ] Validar keyboard/focus e todos os estados de interação.
+- [ ] Fazer automatic scene captures para regressão visual.
+- [ ] Benchmark do replay com corpus real quando houver amostra suficiente.
+- [ ] Ferramenta de inspeção/exportação de replay.
+- [ ] Telemetria estruturada de jogos reais para alimentar análise de produto/balanceamento, respeitando observabilidade.
+
+**Gate de saída:** UI validada visualmente e por interação; replay reproduzível; telemetria tem contrato e provenance.
+
+---
+
+# Fase F — Balanceamento
+
+**Objetivo:** usar os dados reais para melhorar o sistema de jogo sem transformar uma heurística num oráculo.
+
+## Evidência canónica
+
+> `BALANCE_METHODOLOGY.md`: “pricing heuristic ≠ global power estimate ≠ design judgement”.
+
+> `BALANCE_METHODOLOGY.md`: a sequência de investigação começa na mecânica correta e só chega ao preço depois de contexto, matchup, composição e validade dos dados.
+
+## Trabalho
+
+- [ ] Gerar hipóteses a partir de partidas reais válidas.
+- [ ] Analisar hero × matchup × composition × color × engine/version.
+- [ ] Separar sinal do Auto-Pricer de decisão de design.
+- [ ] Validar propostas no hold-out e Arena quando aplicável.
+- [ ] Executar `BALANCE_STATE_OF_GAME_AUDIT.md` como pausa obrigatória quando a infraestrutura de dados estiver madura.
+- [ ] Depois do audit, parar tuning até existir decisão explícita.
+
+**Gate de saída:** decisões de balanceamento têm dados, contexto, incerteza e decisão documentada.
+
+---
+
+# Fase G — Online / multiplayer
+
+**Pré-condição:** núcleo semântico estável e contrato de ação/estado consolidado.
+
+## Evidência canónica
+
+> `WEB_MULTIPLAYER.md`: cliente envia intenção; servidor autoritativo valida/executa e produz novo estado/version.
+
+> `OBSERVABILITY_CONTRACT.md`: a fronteira de informação deve ser definida por modo; a representação completa de batalha local não deve ser exposta automaticamente numa variante online.
+
+## Trabalho
+
+- [ ] Protocolo de ações/estado.
+- [ ] Servidor autoritativo.
+- [ ] Transporte realtime.
+- [ ] Reconexão/timeout.
+- [ ] Matchmaking.
+- [ ] Rating com incerteza quando aplicável.
+- [ ] Histórico/espectadores/rematch.
+
+**Gate de saída:** servidor é autoridade sobre legalidade, estado, resultado e RNG relevante.
+
+---
+
+# Ordem global
 
 ```text
-Battle Sidebar implementation
+A0.1 Semantic Closure
         ↓
-responsive / visual validation + automatic scene captures
+Strength measurement / calibration
         ↓
-replay / player telemetry evidence
+Ares search capability + efficiency
         ↓
-Strength / balance / Ares sequence
+NNUE incremental + evaluation quality
         ↓
-search / move ordering / NNUE performance
+UI/replay/telemetry hardening
         ↓
-Web / App / Multiplayer presentation
+Balance / state-of-game audit
         ↓
-curated player-local themes / broader visual identity
+Server-authoritative online
 ```
 
-Esta sequência é uma priorização operacional do estado atual; não altera a prioridade estratégica de melhorar a Ares com evidência reproduzível. Um correctness blocker pode interromper a sequência em qualquer momento.
+As fases UI/replay podem avançar em paralelo quando não atravessarem um correctness blocker, mas **não substituem** a cadeia de evidência da Ares. Um blocker de semântica tem precedência sobre otimização, força e balanceamento.
 
-## Battle UI / Replay / Observability
+## Regra de referência para cada PR
 
-### Battle Sidebar — **implementação inicial concluída; validação pendente**
+A PR deve declarar explicitamente:
 
-A arquitetura está documentada em [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md).
+1. fase do roadmap;
+2. documento canónico que define o contrato;
+3. hipótese ou correção;
+4. evidência de correctness/capability/performance/generalisation/strength adequada;
+5. critério de saída;
+6. documentos canónicos atualizados no mesmo bloco.
 
-Princípios atuais:
-
-- **Selected Hero** é estado persistente.
-- **Hovered Cell / Context** é estado transitório e não substitui o herói selecionado.
-- **Actions** é uma superfície de decisão contextual e só ganha destaque quando há ambiguidade.
-- Uma ação legal executa diretamente; várias ações legais são apresentadas completas no painel.
-- `1..9` e `ESC` continuam a funcionar durante a escolha.
-- O tabuleiro permanece visível.
-- O renderer não decide legalidade nem altera regras.
-
-Próximo work package de UI:
-
-- [ ] validar desktop largo, médio e estreito;
-- [ ] verificar reflow/resize do painel sem perder a distinção semântica;
-- [ ] validar selected/hover/focus states e sinalização não dependente apenas de cor;
-- [ ] validar keyboard/focus interaction;
-- [ ] validar recuperação de destinos ilegais;
-- [ ] validar informação contextual de silêncio, stun, lifespan, cooldown e efeitos;
-- [ ] usar FrostMage/NEVADA como golden visual stress scenario;
-- [ ] adicionar automatic scene/screenshot capture para inspeção/regressão.
-
-### Replay
-
-- [x] Replay canónico sem snapshot de tabuleiro a cada ply.
-- [x] Persistência automática de partidas concluídas.
-- [x] Hot cache de 10 partidas através de índice, sem apagar as anteriores.
-- [x] Cold archive chunked + gzip.
-- [x] Índice por `game_id`, chunk, linha e hash.
-- [x] Reconstrução determinística a partir do estado inicial + ações.
-- [x] Marcador explícito para partidas importantes.
-- [x] Benchmark de representações JSON/compact/gzip/MessagePack.
-- [ ] Repetir benchmark com corpus real de partidas de jogadores quando houver amostra suficiente.
-- [ ] Ferramenta de inspeção/exportação de replay para análise externa.
-- [ ] Telemetria estruturada das partidas reais para gerar evidência de balanceamento e força, respeitando o contrato de observabilidade.
-- [ ] Migração para arquivo server-authoritative quando existir backend.
-
-### Legalidade e UX
-
-- [x] Legalidade de spells respeita silêncio do Inquisitor na geração de ações Python.
-- [x] Validador autoritativo continua a rejeitar chamadas diretas ilegais.
-- [x] Seleção de herói no draft é singular e alternável/desmarcável.
-- [x] Escolha de ação ambígua preserva todas as ações legais e não usa `MOVE` como fallback implícito.
-- [ ] Adicionar tratamento de observabilidade/exportação para análise automática de partidas do jogador.
-
-### Balanceamento
-
-- [ ] Usar partidas reais armazenadas para gerar hipóteses de balanceamento.
-- [ ] Fazer calibração controlada por contexto antes de alterar preços.
-- [ ] Validar qualquer alteração por Arena independente.
-- [ ] **Quando o balanceamento e a análise de dados estiverem suficientemente maduros e funcionais, executar o `BALANCE_STATE_OF_GAME_AUDIT.md` como gate obrigatório de pausa.**
-- [ ] O audit deve consolidar custo de draft, valor contextual da Ares, matchup, composição/sinergia, breakpoints, counterplay, geometria do roster, distribuição de custos, game-health e qualidade dos dados.
-- [ ] Após gerar o relatório consolidado, **parar o ciclo de tuning** e aguardar uma decisão manual, uma decisão automática explicitamente autorizada ou a decisão de recolher mais dados.
-
-## Ares — sequência atual
-
-### 1. Suite de benchmarks táticos — **concluído; expansão incremental continua**
-
-A infraestrutura determinística já existe em `tools/analytics/tactical_benchmark_suite.py`. As posições devem permanecer independentes do código de pesquisa.
-
-Para cada nova posição:
-
-- executar com orçamento alto até obter uma solução de referência estável;
-- testar orçamentos progressivamente menores, começando com progressão exponencial;
-- registar o **failure threshold**;
-- guardar um trace resumido quando necessário para explicar a pesquisa;
-- comparar cada alteração de IA contra exatamente as mesmas posições.
-
-**Importante:** os benchmarks dirigidos são regressões/capability probes. Não são, isoladamente, evidência de melhoria geral de força. Para promoção, deve ser respeitado [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md): regressões conhecidas + validação independente/hold-out + Arena + Strength Rating.
-
-Novas posições a validar e adicionar:
-
-- [ ] segundo STUN letal num único alvo;
-- [ ] multi-stun com menos alvos;
-- [ ] primeiro STUN sem atingir inimigos;
-- [ ] primeiro STUN com segundo STUN possível no mesmo centro;
-- [ ] primeiro STUN com alternativas em centros diferentes;
-- [ ] spells condicionais;
-- [ ] passivas/aura com ameaça tática sem alteração material imediata;
-- [ ] defesa e posições onde material contradiz a consequência tática;
-- [ ] lifespan/cooldown;
-- [ ] capturas de alto valor.
-
-### 2. Property / differential sequences — **base concluída; expansão semântica continua**
-
-A suite combina sequências determinísticas e pseudo-aleatórias com seeds fixas. Todas as transições importantes devem comparar Python/C++ após cada ply e verificar `make/unmake` contra a raiz.
-
-A cobertura dirigida de estados persistentes e categorias de ação evita depender apenas da probabilidade de uma sequência aleatória atingir casos raros.
-
-Concluído no bloco de infraestrutura/correctness:
-
-- [x] sequências pseudo-aleatórias com seeds fixas e maior profundidade;
-- [x] propriedades metamórficas de simetria de cores/lado a jogar;
-- [x] cobertura dirigida de categorias de ação e estado persistente;
-- [x] sequências longas com lifespan/cooldown/TWC/efeitos a mudar ao longo de vários plies;
-- [x] shrink/reprodução automática da primeira divergência;
-- [x] integração com perft/node-count differential.
-
-Expansão adicional de mecânicas raras pode continuar como trabalho dirigido; ela não reabre os blocos de infrastructure/correctness já concluídos.
-
-O objetivo continua a ser localizar a **primeira transição divergente**, e não apenas detetar que a posição final ficou diferente.
-
-### 3. Strength Evaluation Framework — **infraestrutura concluída; validação empírica em curso**
-
-O objetivo é definir operacionalmente o que significa **"Ares ficou mais forte"** sem depender de um pequeno conjunto de puzzles escolhidos para desenvolvimento.
-
-O desenho recomendado está em [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md) e deve separar:
-
-```text
-known regressions
-      ↓
-differential/property correctness
-      ↓
-development benchmarks
-      ↓
-independent hold-out
-      ↓
-A/B games
-      ↓
-Strength Rating + uncertainty
-      ↓
-sequential statistical test
-      ↓
-promotion / reject / continue
-```
-
-Infraestrutura já concluída:
-
-- [x] implementar armazenamento de jogos e resultados com identificação de commit/version;
-- [x] definir o primeiro Strength Rating baseado em comparação par-a-par (Bradley–Terry/Elo-compatible baseline);
-- [x] estimar rating + incerteza, com semântica explícita de `engineering_uncertainty_proxy_v1`;
-- [x] equilibrar explicitamente cor, seed, opening e node budget;
-- [x] separar conjuntos development/regression/hold-out;
-- [x] impedir que posições usadas para orientar uma alteração sejam a única evidência da promoção;
-- [x] implementar SPRT/teste sequencial como biblioteca isolada e testável.
-
-Validação empírica que permanece:
-
-- [ ] adicionar comparação de força por contexto para detetar intransitividade/matchup;
-- [ ] calibrar o Strength Rating/uncertainty com resultados reais da Arena;
-- [ ] validar o SPRT contra resultados reais da Arena;
-- [ ] substituir a margem heurística pelo teste sequencial, depois de validado;
-- [ ] estudar um segundo eixo de **intrinsic/move quality strength** baseado na perda de avaliação por decisão.
-
-Até esta validação empírica estar feita, o rating baseline é uma medida comparativa auxiliar e **não prova sozinho melhoria global de força**.
-
-### 3.1. Balance Cost Model / contextual pricing — **modelo metodológico; implementação pendente**
-
-O `draft cost` continua a ser a variável central de balanceamento e permanece fixo durante o draft e durante a partida. O valor da mesma peça para a Ares, porém, pode variar por estado e deve ser tratado como **valor contextual em combate**, não como alteração do preço de draft.
-
-O modelo V2 deve combinar, sem substituir o Auto-Pricer existente:
-
-```text
-intrinsic hero features
-        ↓
-interaction / synergy structure
-        ↓
-contextual Ares value
-        ↓
-empirical Arena calibration
-        ↓
-uncertainty
-        ↓
-estimated fair draft value
-```
-
-Features iniciais devem ser reais do RedWar, por exemplo:
-
-```text
-mobility
-attack geometry/reach
-area influence
-control
-utility
-board alteration
-action economy
-positional dependence
-restrictions
-persistent-effect capability
-```
-
-Não introduzir `damage`, `life/HP` ou cooldown geral de ataques no modelo: essas abstrações não existem no RedWar. Stun, morte, controlo e persistência permanecem mecânicas distintas.
-
-Regras de custo:
-
-```text
-estimated fair value < 5
-    → urgent balance
-
-estimated fair value > 200
-    → urgent balance
-
-5 ≤ estimated fair value ≤ 200
-    → diagnostic/manual balancing
-```
-
-Para valores dentro do domínio, a primeira banda de coerência é:
-
-```text
-max(10% of estimated value, 5 points)
-```
-
-Ou seja, fora dessa banda o custo é suspeito, mas não deve ser alterado automaticamente apenas por essa discrepância.
-
-A análise de sinergia deve permitir combos estratégicos, mas sinalizar pacotes desproporcionais. O primeiro teto diagnóstico para o **synergy premium** é `+15%` sobre o valor combinado independente; ultrapassá-lo é um gatilho de revisão, não um nerf automático. Combinações dominantes devem ter pelo menos um counter significativo com custo de draft menor ou igual ao custo relevante do pacote dominante, admitindo ciclos pedra-papel-tesoura em vez de exigir 50/50 global.
-
-### 3.2. State-of-the-game balance audit — **gate futuro obrigatório após maturidade dos dados**
-
-Depois de o sistema de balanceamento e análise de dados ter cobertura relevante e ferramentas funcionais, executar `docs/BALANCE_STATE_OF_GAME_AUDIT.md`.
-
-O audit deve ser uma fotografia abrangente do estado do jogo e não outra passagem automática de tuning. Deve produzir, pelo menos:
-
-- auditoria de todos os draft costs e fair-value estimates;
-- valor contextual de peças por momentos, lugares, aliados, inimigos e situações;
-- matchup matrix e counter cycles;
-- synergy/composition analysis;
-- breakpoint analysis;
-- counterplay analysis;
-- draft-efficiency analysis;
-- projeção PCA/clustering do espaço matemático do roster;
-- regiões densas, redundantes, isoladas e vazias do espaço de heróis;
-- distribuição de custo e de papéis estratégicos;
-- game-health telemetry quando disponível;
-- auditoria de validade, cobertura e incerteza dos dados.
-
-Visualização do roster:
-
-```text
-standardized feature vectors
-        ↓
-PCA 2D
-        ↓
-clustering k=3..6
-        ↓
-silhouette + interpretability
-        ↓
-plot heroes + draft cost + role
-```
-
-Esta análise serve para responder matematicamente **o que o jogo tem, o que está redundante e que espaço estratégico pode estar sub-representado**, sem concluir automaticamente que é necessário adicionar conteúdo.
-
-### 3.3. Balance decision freeze
-
-Quando o audit terminar:
-
-```text
-REPORT
-  ↓
-STOP
-  ↓
-manual adjustment
-OR
-explicitly authorized automatic adjustment
-OR
-collect more evidence
-```
-
-Não reutilizar o próprio relatório como dados de desenvolvimento e iniciar imediatamente outro ciclo de tuning sem uma nova decisão experimental. Isto protege contra loops auto-reforçados e sobreajuste do hold-out.
-
-### 4. Search / move ordering RPG — **próximo bloco de IA após a validação empírica mínima de Strength**
-
-A auditoria de observabilidade está resolvida para o modo local atual; full-state search é legal em `BATALHA`.
-
-O primeiro eixo de otimização não deve ser simplesmente aumentar os valores materiais.
-
-Situação atual:
-
-- [x] Continuação limitada de segundo STUN, apenas no mesmo centro e quando o primeiro STUN atingiu pelo menos um adversário.
-- [ ] Move ordering por número/valor de alvos afetados, sem conhecer posições concretas.
-- [ ] Selective extensions adicionais para ameaças táticas fortes, apenas depois da suite comprovar necessidade e a validação hold-out/strength não mostrar regressão geral.
-- [ ] Heurísticas de spells baseadas no impacto imediato e não apenas no nome do spell.
-- [ ] Sinais de passivas/aura como **heurísticas de pesquisa**, sem inflacionar automaticamente o material estático.
-- [ ] Melhor utilização de TT move/history para ações não-MOVE quando houver evidência.
-- [ ] Só depois investigar LMR/aspiration/PVS mais agressivos, mantendo regressão de força.
-
-### 5. Baseline incremental NNUE
-
-Depois de estabilizar a pesquisa-base e ter benchmarks independentes e medição geral de força suficientes:
-
-1. manter `sync_board()` como referência de correção;
-2. ligar mudanças de peça, stun, lifespan, cooldown, efeitos, TWC e lado a jogar ao accumulator;
-3. testar make/unmake do accumulator contra rescan completo;
-4. comparar NPS e custo por avaliação com o baseline;
-5. confirmar força com Strength Rating + Arena.
-
-### 6. Arena
-
-Cada melhoria que sobreviver aos benchmarks deve passar para A/B na Arena com o mesmo orçamento de nodes/regras.
-
-A Arena de promoção não é usada como gate de uma alteração apenas de CI/tooling; para esse caso usamos benchmarks determinísticos e testes de consistência. Execuções manuais podem produzir dados experimentais sem exigir a margem de promoção.
-
-A evolução da Arena deve privilegiar evidência estatística progressivamente mais forte, incluindo controlo de seeds/openings/cores, tratamento explícito de inválidos, estimativa de rating/incerteza e, quando a infraestrutura estiver madura, teste sequencial/intervalos de incerteza. Ver [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md) e [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md).
-
-#### Limite de duração das partidas
-
-- [x] Aumentar o limite de segurança da Arena headless de **200 para 10.000 plies**.
-- [x] Primeira Arena experimental com 20 partidas a 10.000 plies: **0 draws observados**.
-- [ ] Continuar a observar partidas sem vencedor em amostras futuras.
-- [ ] Se continuarem, localizar no `GameState` a origem de cada caso e garantir um desempate determinístico e simétrico entre as cores, sem transformar silenciosamente o limite de segurança num empate.
-
-## Futuro distribuído
-
-- [ ] Backend de arquivo durável.
-- [ ] Cache local pequena com sincronização server-authoritative.
-- [ ] Peer-assisted distribution apenas depois de definir integridade, disponibilidade, privacidade e deleção.
+Não criar outro roadmap para contornar esta sequência.

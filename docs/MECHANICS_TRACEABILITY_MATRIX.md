@@ -1,93 +1,48 @@
 # RedWar — Mechanics Traceability Matrix
 
-This matrix is a foundation gate for data-driven mechanics. A mechanic is not considered complete merely because its JSON representation parses successfully.
+Esta matriz é o gate de integração de mecânicas. O significado operacional e a ordem de uso estão em [`PROJECT_REASONING.md`](PROJECT_REASONING.md); a fila de trabalho está em [`ROADMAP.md`](ROADMAP.md).
 
-## Required trace
-
-Every state-changing mechanic should be traceable through:
+## Cadeia obrigatória
 
 ```text
 configuration
-→ Python implementation
-→ C++ implementation
-→ action generation
+→ Python rules
+→ C++ rules
+→ legal actions
 → state transition
-→ serializer/RWEN
+→ RWEN
 → make
 → unmake
 → hash
-→ legal-action differential
-→ regression/property test
+→ differential
+→ regression/property
 → tactical/semantic benchmark when applicable
 ```
 
-## Executable schema gate
+## Interpretação dos estados
 
-`tests/test_hero_schema_traceability.py` enforces the first part of this chain for the declarative hero contract:
+`✓` significa que existe caminho implementado e cobertura documentada. Não significa que qualquer combinação futura de estados esteja provada.
 
-```text
-heroes_config.json
-    ↓
-HEROES_SCHEMA.md vocabulary
-    ↓
-Python backend implementation tokens
-    ↓
-regression test
-```
+`targeted` significa que a mecânica necessita de fixtures dirigidos porque sequências aleatórias podem não atingir o caso raro.
 
-The gate currently verifies that:
+## Current A0.1 emphasis
 
-1. every declared spell has an implementation token in `engine/game_state.py`;
-2. every `attack_action: spell` points to a spell declared by that same hero;
-3. every top-level configuration field belongs to the documented schema vocabulary;
-4. every top-level `behavior` section belongs to the documented vocabulary.
+Os contratos já explicitamente reforçados incluem:
 
-This is deliberately a **completeness alarm**, not proof of semantic equivalence. Cross-backend action/state tests remain mandatory.
+- special-spell legality (`#303`);
+- canonical action boundary (`#291`, `#306`, `#308`);
+- Inquisitor active-vs-stunned silence (`#292`);
+- terminal semantics / native alpha-beta (`#310`);
+- lifecycle/TWC/effects/spawn-cooldown/special transition coverage;
+- explicit make/unmake root restoration.
 
-## Directed special-mechanic fixtures
+Os pontos que não devem ser marcados como semanticamente fechados sem nova evidência são:
 
-The generic action taxonomy is not sufficient to prove rare mechanics. `tests/test_per_mechanic_differential_coverage.py` therefore contains explicit Python/C++ round-trip fixtures for:
+- execute-time authority contra ações ilegais antes da mutação;
+- história/repetição nativa equivalente.
 
-- Dragoon `jump` spell;
-- BoneLord `on_kill → spawn_unit` passive;
-- Berserker `on_attack → aoe_damage` passive.
+## Completion rule
 
-These fixtures exercise the real state transition through the C++ bridge and require make/unmake to restore the exact root state. They complement, rather than replace, the broader differential/property suite.
+Uma nova mecânica só é `complete` quando a cobertura relevante demonstra geração, transição, reversibilidade, representação e paridade de backend; quando a mecânica altera decisões da Ares, acrescenta-se capability benchmark.
 
-## Initial matrix
-
-| Mechanic / state | Configuration | Python rules | C++ rules | Actions | Transition | Make | Unmake | Hash | Differential | Benchmark |
-|---|---|---|---|---|---|---|---|---|---|---|
-| Basic movement | heroes_config.json | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | regression |
-| Basic attack | heroes_config.json | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | regression |
-| STUN | hero data / behavior | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | tactical |
-| Spells | hero data / spells | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | tactical |
-| Lifespan | hero data | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | targeted | tactical |
-| Cooldown | hero data / state | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | targeted | tactical |
-| Tile effects / ice | hero data / behavior | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | targeted | tactical |
-| Passive effects | behavior.passives | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | targeted | semantic |
-| TWC / persistent effects | hero/state data | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | targeted | semantic |
-
-## Status semantics
-
-- `✓` means current project documentation/tests report an implemented path; it does not mean the path is independently proven for every mechanic variant.
-- `targeted` means the project must keep explicit directed coverage because random differential sequences are insufficient for rare persistent states.
-- Blank cells are not acceptable for a mechanic that changes legal actions or state.
-
-## Required completion rule
-
-For a new or migrated mechanic, mark the row complete only after:
-
-1. Python and C++ action generation agree;
-2. resulting state agrees after the action;
-3. make/unmake returns to the exact root state;
-4. serialization/RWEN remains stable and unambiguous;
-5. hashes agree where hashing is part of the engine contract;
-6. a regression/property case exists for the mechanic;
-7. a tactical benchmark exists when the mechanic changes search capability.
-
-This matrix is deliberately stricter than schema validation because the schema itself does not guarantee semantic completeness across backends.
-
-## Maintenance rule
-
-Update this matrix in the same development block in which a mechanic is discovered, changed or proven. Do not postpone the documentation until after implementation.
+Não usar esta matriz isoladamente para declarar força da engine.
