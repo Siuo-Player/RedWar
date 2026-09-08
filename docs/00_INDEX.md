@@ -63,7 +63,7 @@ Estas categorias são distintas e não devem ser usadas como sinónimos:
 ```text
 DOCUMENTED   = descrito num artefacto documental
 IMPLEMENTED  = presente no código alvo
-TESTED       = coberto por teste executável
+TESTED       = coberto por teste executável relevante
 VALIDATED    = submetido ao tipo de validação apropriado para a alegação
 PROVEN       = evidência suficiente para a alegação específica sob o protocolo vigente
 ```
@@ -96,8 +96,8 @@ No `ROADMAP.md`, toda dependência consequente deve apontar diretamente para os 
 
 O `main` verificado em **2026-09-08** é:
 
-`b1aadb8a26d8af0e80839e0149b693d6ca710f40`
+`e17afcd54ad57635e222f3b3c9a5bb9966df9394`
 
-Os commits imediatamente anteriores incluíram o baseline funcional `73cf14bc0861bd3d6fdb4a437fe9f433b7322a07` e, depois, uma sequência de consolidação documental. O baseline operacional atual é sempre o SHA de `main` acima.
+O PR #321 foi merged nesse SHA e introduziu/testou `engine.legal_actions.resolve_legal_action()` como seam de resolução canónica, mantendo A0.1 aberto para a autoridade de legalidade em tempo de execução.
 
 Um documento datado pode continuar válido como histórico. A data ou o nome do ficheiro nunca substituem a verificação do `main`.
