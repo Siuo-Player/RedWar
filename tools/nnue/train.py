@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
 import time
@@ -29,6 +30,57 @@ def _load_rows(path: str | Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _grouped_validation_split(
+    rows: list[dict[str, Any]], validation_fraction: float
+) -> tuple[list[int], list[int]]:
+    """Split by exact position identity so duplicate RWENs cannot cross the boundary."""
+    if not 0.0 < validation_fraction < 1.0:
+        raise DatasetError("validation_fraction must be between 0 and 1")
+
+    groups: dict[str, list[int]] = {}
+    for index, row in enumerate(rows):
+        key = str(row["rwen"]).strip()
+        groups.setdefault(key, []).append(index)
+
+    ranked_groups = sorted(
+        groups.items(),
+        key=lambda item: hashlib.sha256(item[0].encode("utf-8")).hexdigest(),
+    )
+    target = max(1, int(round(len(rows) * validation_fraction)))
+    target = min(target, len(rows) - 1) if len(rows) > 1 else target
+
+    validation: list[int] = []
+    validation_group_count = max(1, len(ranked_groups) // 100)
+    for group_index, (_key, indices) in enumerate(ranked_groups):
+        remaining_groups = len(ranked_groups) - group_index - 1
+        if not validation:
+            take_group = True
+        elif len(validation) < target and remaining_groups >= 1:
+            take_group = True
+        else:
+            take_group = len(validation) < target and group_index < validation_group_count
+
+        if take_group:
+            validation.extend(indices)
+        if len(validation) >= target and len(validation) < len(rows):
+            break
+
+    validation_set = set(validation)
+    train = [index for index in range(len(rows)) if index not in validation_set]
+    validation = sorted(validation_set)
+
+    if not train or not validation:
+        raise DatasetError("unable to construct non-empty grouped train/validation split")
+
+    overlap = {str(rows[i]["rwen"]).strip() for i in train} & {
+        str(rows[i]["rwen"]).strip() for i in validation
+    }
+    if overlap:
+        raise DatasetError("grouped validation split leaked duplicate RWEN positions")
+
+    return train, validation
+
+
 def _require_torch():
     try:
         import torch
@@ -48,6 +100,7 @@ def train(
     lr: float,
     seed: int,
     max_seconds: float | None = None,
+    validation_fraction: float = 0.1,
 ) -> None:
     torch, nn = _require_torch()
     torch.manual_seed(seed)
@@ -60,9 +113,12 @@ def train(
     if any(len(left) == 0 or len(right) == 0 for left, right in features):
         raise DatasetError("every position must produce features for both perspectives")
 
-    split = max(1, int(len(rows) * 0.9))
-    train_rows = list(range(split))
-    valid_rows = list(range(split, len(rows))) or train_rows[:1]
+    train_rows, valid_rows = _grouped_validation_split(rows, validation_fraction)
+    print(
+        f"dataset_rows={len(rows)} unique_positions={len({str(row['rwen']).strip() for row in rows})} "
+        f"train_rows={len(train_rows)} validation_rows={len(valid_rows)} "
+        f"validation_fraction={validation_fraction:.3f}"
+    )
 
     class NNUE(nn.Module):
         def __init__(self) -> None:
@@ -169,8 +225,18 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=20260823)
     parser.add_argument("--max-seconds", type=float, default=None)
+    parser.add_argument("--validation-fraction", type=float, default=0.1)
     args = parser.parse_args()
-    train(args.dataset, args.output, args.epochs, args.batch_size, args.lr, args.seed, args.max_seconds)
+    train(
+        args.dataset,
+        args.output,
+        args.epochs,
+        args.batch_size,
+        args.lr,
+        args.seed,
+        args.max_seconds,
+        args.validation_fraction,
+    )
 
 
 if __name__ == "__main__":
