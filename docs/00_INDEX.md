@@ -63,7 +63,7 @@ Estas categorias são distintas e não devem ser usadas como sinónimos:
 ```text
 DOCUMENTED   = descrito num artefacto documental
 IMPLEMENTED  = presente no código alvo
-TESTED       = coberto por teste executável relevante
+TESTED       = coberto por teste executável
 VALIDATED    = submetido ao tipo de validação apropriado para a alegação
 PROVEN       = evidência suficiente para a alegação específica sob o protocolo vigente
 ```
