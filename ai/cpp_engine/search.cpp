@@ -520,6 +520,8 @@ std::string search_best_move(int max_depth) {
 
     if (max_depth < 1 || board.twc >= 50) return "";
 
+    if (is_terminal_score(evaluate_board())) return "";
+
     for (int team = 0; team < 2; ++team)
         for (int sr = 0; sr < LINHAS; ++sr)
             for (int sc = 0; sc < COLUNAS; ++sc)
@@ -594,6 +596,7 @@ std::string search_best_move(int max_depth) {
             }
             unmake_move(move, undo);
             if (abort_search) break;
+            if (board.turn != root_turn) break;
 
             if (board.turn == 'W') {
                 if (value > best_value) {
@@ -615,11 +618,10 @@ std::string search_best_move(int max_depth) {
         if (abort_search) break;
         best_overall_move = best_move_this_depth;
         if (use_transposition_table && root_slot != nullptr) {
-            *root_slot = {key, depth, best_value, TT_EXACT, best_move_this_depth, true};
+            *root_slot = {key, depth, best_value, TT_EXACT, best_overall_move, true};
             ++tt_stores;
         }
-        if (is_terminal_score(best_value)) break;
     }
 
-    return best_overall_move.to_uci();
+    return best_overall_move.to_string();
 }
