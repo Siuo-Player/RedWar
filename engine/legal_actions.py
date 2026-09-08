@@ -77,6 +77,18 @@ def is_legal_action(gs: Any, action: GameAction) -> bool:
     return action in set(legal_actions(gs))
 
 
+def to_legacy_dict(action: GameAction) -> dict[str, Any]:
+    """Cross the canonical-to-legacy boundary explicitly at integration edges."""
+    if not isinstance(action, GameAction):
+        raise TypeError("action must be a GameAction")
+    return action.to_dict()
+
+
+def to_legacy_dicts(actions: tuple[GameAction, ...] | list[GameAction]) -> list[dict[str, Any]]:
+    """Convert a canonical action collection without changing its ordering."""
+    return [to_legacy_dict(action) for action in actions]
+
+
 def _action_key(action: GameAction) -> tuple[Any, ...]:
     """Stable ordering key independent of object identity or hash randomization."""
     return (
