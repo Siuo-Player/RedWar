@@ -90,7 +90,15 @@ balance decisions
 produto / online
 ```
 
-UI/replay/telemetria é transversal ao estado observado.
+UI/replay/telemetria é transversal ao estado observado:
+
+```text
+rules + state
+   ↓
+interaction / replay / telemetry
+   ↓
+product evidence
+```
 
 Por isso **correctness, capability, performance, strength, balance e UX** são alegações distintas.
 
@@ -175,7 +183,7 @@ Uma alegação superior não pode mascarar uma dúvida inferior.
 - **NNUE:** `NNUE.md` + `AI_ENGINE.md`; hooks ≠ integração concluída.
 - **Strength:** `STRENGTH_EVALUATION.md` + `ARENA_STATISTICAL_METHODOLOGY.md` + hold-out.
 - **Balance:** `BALANCE_METHODOLOGY.md`; Auto-Pricer é diagnóstico.
-- **UI:** `BATTLE_UI_SIDEBAR.md`.
+- **UI:** `BATTLE_UI_SIDEBAR.md`; arquitetura já implementada não deve ser reaberta por snapshots antigos.
 
 ## 9. Regra anti-ficção documental
 
