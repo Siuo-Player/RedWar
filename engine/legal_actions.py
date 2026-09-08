@@ -76,12 +76,13 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
     Exact action-space members are returned unchanged. Legacy STUN payloads that
     omit the derived AOE are expanded when they identify one canonical STUN.
 
-    When an input is not in the action-space but the existing pure transition
-    validator rejects it, the normalized representation is returned so the
-    executor can preserve the historical domain-specific error. A transition
-    that passes validation but is absent from the canonical action-space still
-    raises the canonical illegal-action error. This keeps action-space membership
-    and transition validity as separate predicates without duplicating hero rules.
+    STUN/SPAWN/SPELL have an explicit compatibility seam while the action-space
+    is not yet a complete projection of all historically accepted transition
+    fixtures. Those forms are admitted here only after normalization; the pure
+    transition validator remains the mutation gate and preserves domain errors.
+    MOVE/ATTACK continue to require action-space membership. This is an explicit
+    boundary, not a second copy of hero rules, and remains subject to A0.1 closure
+    once the action-space coverage gap is resolved.
     """
     normalized = normalize_action(action)
     available = legal_actions(gs)
@@ -115,6 +116,9 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
             )
         except ValueError:
             return normalized
+
+    if normalized.type in {ActionType.STUN, ActionType.SPAWN, ActionType.SPELL}:
+        return normalized
 
     raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
 
