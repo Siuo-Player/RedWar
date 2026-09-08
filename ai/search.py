@@ -1,11 +1,11 @@
 from ai.evaluator import avaliador_mestre
 
-from engine.legal_actions import legal_actions
+from engine.legal_actions import legal_actions, to_legacy_dicts
 
 
 def get_all_moves_for_analysis(gs):
     """Return the complete legal action space in the UI-compatible dict shape."""
-    return [action.to_dict() for action in legal_actions(gs)]
+    return to_legacy_dicts(legal_actions(gs))
 
 
 def _action_sort_key(action):
