@@ -1,27 +1,11 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`  
+**Baseline operacional:** `main` @ `71bc812d170a8556b9dfde98b4f95202f36190b9`  
 **Data:** 2026-09-08
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
 
-## Como usar esta fila
-
-Cada bloco segue a mesma estrutura:
-
-```text
-ID
-→ OBJECTIVO
-→ PORQUÊ
-→ ESTADO
-→ PRÉ-REQUISITOS
-→ EVIDÊNCIA BASE
-→ DOCUMENTOS CANÓNICOS
-→ ACEITAÇÃO
-→ PRÓXIMO BLOCO
-```
-
-### Vocabulário obrigatório
+## Vocabulário obrigatório
 
 `DOCUMENTED` = descrito.  
 `IMPLEMENTED` = existe no código alvo.  
@@ -29,270 +13,94 @@ ID
 `VALIDATED` = foi submetido à validação apropriada para a alegação.  
 `PROVEN` = a evidência é suficiente para a alegação específica sob o protocolo vigente.
 
-Não promover um estado para outro sem evidência.
+Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e melhoria de dataset ≠ melhoria de strength.
 
-### Regra de gate
+## Estado 2 — verificação paralela independente
 
-Uma fase só pode ser marcada `CLOSED` quando os critérios de aceitação dessa fase forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e melhoria de dataset ≠ melhoria de strength.
+Os lanes independentes foram executados a partir do baseline comum `1f65f65d6b4827f0d403d8e6d2bb0f735eda0c42` e merged apenas após CI da respetiva PR:
 
----
+- **B #329** — regressão de determinismo para o audit emparelhado de strength; merged `29973ffb6e7d270ab8ccc9289307ab11e2f24506`.
+- **C #330** — regressão que impede `fast_clone` no código C++ da Ares; merged `d08a700864d8ed0fe9dc274f8495a01f81105641`.
+- **D #331** — regressão da codificação NNUE por perspetiva; merged `fdd1c3516e410b53608a95e554597a577ef6610e`.
+- **E #332** — regressão de isolamento replay/telemetria; merged `d07f52f981de0eb0606bef1823beabca61348ae1`.
+- **G #334** — fundação de sessão autoritativa server-side; merged `845b00a500fff7b3aab2f0c35920bace5d198cc6`.
+- **F #333** — bounds do Auto-Pricer; o primeiro teste usava `100`, fora do contrato existente `0..64`; foi corrigido para `64`, rebaseado sobre o `main` atualizado e merged `71bc812d170a8556b9dfde98b4f95202f36190b9`.
+
+Todos os seis lanes foram submetidos às três gates do repositório (`AI Quality Gate`, `Test Suite`, `CodeQL`) e a validação da cabeça final de F terminou com as três em `success` antes do merge. Estes resultados demonstram os contratos/regressões específicos de cada lane; **não fecham as fases B–G como um todo**.
+
+A lane A desta tranche não foi artificialmente marcada como concluída: continua bloqueadora por A0.1.
 
 # A — A0.1 Semantic Closure
 
 **ID:** A0.1  
-**Objetivo:** fechar as últimas fronteiras de autoridade semântica entre ação, execução e histórico de repetição antes de aceitar trabalho dependente delas.  
-**Porquê:** a Ares usa regras/estado duplicados em Python e C++; qualquer ambiguidade residual pode produzir comportamento divergente ou invalidar medições posteriores.  
 **Estado:** `OPEN — correctness/architecture blocker`.
 
-### Pré-requisitos
+### A.1 — authoritative execute legality
 
-A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #292, #299, #300, #303, #306, #308, #310 e #321.
+**Estado:** `OPEN / UNVERIFIED`.
 
-### Evidência base
-
-- #299 — observação de repetição Python idempotente; o próprio PR preserva explicitamente o native history gap.
-- #300 — remoção do bloco FrostMage inalcançável, sem alteração da mecânica ativa.
-- #303 — special-spell legality parity.
-- #306 — fronteira canónica `GameAction`.
-- #308 — `execute_action()` normaliza para `GameAction`, preservando a compatibilidade legacy.
-- #310 — terminal regression observa o `alpha_beta()` nativo real.
-- #321 — `resolve_legal_action()` centraliza a resolução exacta e a compatibilidade legacy STUN; merged no `main` atual `e17afcd…`.
-- #309 — não merged: contrato proposto para autoridade de legalidade no executor.
-- #315 — não merged: tentativa posterior do mesmo boundary; a CI expôs que action-space não cobre todo o contrato de transição/compatibilidade.
-- #317 — issue aberta que formaliza a lacuna entre action-space e transition validity.
-
-### Documentos canónicos
-
-- [`ARCHITECTURE.md`](ARCHITECTURE.md)
-- [`HERO_SYSTEM.md`](HERO_SYSTEM.md)
-- [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md)
-- [`AI_ENGINE.md`](AI_ENGINE.md)
-- [`A01_SEMANTIC_CLOSURE_2026-09-07.md`](A01_SEMANTIC_CLOSURE_2026-09-07.md)
-- [`DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md`](DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md)
-
-> `A01_SEMANTIC_CLOSURE_2026-09-07.md`: a normalização/resolução canónica não fecha por si só a autoridade de execução.
-
-### Trabalho
-
-**A.1 — authoritative execute legality**  
-Estado: `OPEN / UNVERIFIED`.
-
-A autoridade desejada é:
+Autoridade desejada:
 
 ```text
 input action
 → normalize canonical action
 → action-space membership / canonical resolution
 → transition-domain validation
-→ only then mutate state
+→ only then mutate
 ```
 
-`legal_actions()` continua a representar o action-space canónico produzido pelas primitivas de peças. `resolve_legal_action()` resolve uma entrada para a representação canónica/legacy quando ela pertence a esse espaço. Condições de transição existentes em `GameState.make_action()` continuam a ser autoridade para rejeições de domínio e não devem ser duplicadas em `legal_actions()`.
+`legal_actions()` continua a representar o action-space canónico; `resolve_legal_action()` resolve entradas canónicas/legacy. As condições de transição de `GameState.make_action()` continuam autoridade para rejeições de domínio e não devem ser duplicadas em `legal_actions()`.
 
-O executor não deve usar `fast_clone()` para preflight. `fast_clone()` permanece ferramenta auxiliar de referência/replay/testes offline e não é parte da autoridade Ares.
+`fast_clone()` não é mecanismo de preflight nem autoridade de legalidade; continua permitido apenas em referência Python, replay, fixtures/property tests, tooling offline e comparação de estados, e não no hot path C++ da Ares.
 
-### Aceitação A.1
+**Aceitação A.1:** cobertura de todas as formas de execução aceites e intended-to-remain-compatible; membership canónico sem duplicação de regras; preservação de erros de domínio específicos; rejeição sem mutação observável; regressões legal/illegal; differential relevante verde.
 
-- uma ação estruturalmente válida mas ilegal é rejeitada **antes** de qualquer mutação observável;
-- a legalidade é derivada da autoridade canónica existente, sem duplicar regras por tipo de ação;
-- inputs legacy continuam compatíveis quando legalmente equivalentes;
-- ações fora do action-space que falhem numa condição de transição devem manter o erro de domínio específico existente, sem serem transformadas silenciosamente num erro genérico;
-- nenhuma validação de execução depende de clone especulativo;
-- rejeições deixam board, hash e metadata observável inalterados;
-- legal e illegal paths têm regressão executável;
-- differential relevante permanece verde.
+A issue **#317** permanece a referência explícita para a lacuna entre action-space coverage e transition validity.
 
-**Gate:** apenas fechar A.1 quando a alteração estiver merged e testada no `main`.
+### A.2 — native repetition/history contract
 
-**A.2 — native repetition/history contract**  
-Estado: `OPEN / ARCHITECTURAL DECISION REQUIRED`.
+**Estado:** `OPEN / ARCHITECTURAL DECISION REQUIRED`.
 
-Documentar e decidir explicitamente:
+Definir explicitamente identidade de repetição, papel do TWC, ownership de history, interação com `make/unmake`, RWEN e search, e método de prova de equivalência.
 
-- identidade de repetição;
-- papel do TWC nessa identidade;
-- se history pertence à posição, ao search context ou a uma camada de adjudicação;
-- interação de history com `make/unmake`, RWEN e search;
-- como a equivalência deve ser provada.
+**Gate de saída A:** A.1 e A.2 resolvidos, ou convertidos em fronteiras arquiteturais deliberadas, documentadas e testadas sem alegar uma equivalência inexistente.
 
-**Aceitação A.2:** decisão explícita + implementação, se necessária, + regressões + diferencial adequado. Uma implementação ad hoc não fecha o gate.
-
-**Gate de saída A:** A.1 e A.2 resolvidos, ou convertidos em fronteiras arquiteturais deliberadas, documentadas e testadas sem alegar uma paridade que não existe.
-
-**Próximo bloco:** B — Strength measurement/calibration.
-
----
+**Próximo bloco:** B.
 
 # B — Medição de força e calibração da Arena
 
-**ID:** B  
-**Objetivo:** tornar a medição competitiva suficientemente calibrada para suportar decisões de strength.  
-**Porquê:** a infraestrutura existente já mede; ainda falta demonstrar que o regime experimental, a incerteza e o contexto suportam decisões robustas.  
 **Estado:** `PARTIAL — infrastructure implemented; calibration not proven`.
 
-### Pré-requisitos
+**Pré-requisito:** A0.1 fechado para alterações dependentes da semântica.  
+**Evidência relevante:** `STRENGTH_EVALUATION.md`, `ARENA_STATISTICAL_METHODOLOGY.md`, `ARENA_HOLDOUT_CI.md`, `ARENA_STRENGTH_DATASET.md`, mais #329 como regressão de determinismo do audit emparelhado.
 
-A0.1 fechado para alterações que dependam da semântica de jogo. Instrumento de Arena/hold-out utilizável.
+**Aceitação:** protocolo reproduzível de `accept / reject / continue` para o regime real do RedWar, com unidade de resampling, condição experimental, incerteza e população explicitamente definidas.
 
-### Evidência base
-
-- [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md)
-- [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md)
-- [`ARENA_HOLDOUT_CI.md`](ARENA_HOLDOUT_CI.md)
-- [`ARENA_STRENGTH_DATASET.md`](ARENA_STRENGTH_DATASET.md)
-
-> `STRENGTH_EVALUATION.md`: “Um benchmark, uma métrica de treino ou um run isolado não substituem Arena.”
-
-> `ARENA_STATISTICAL_METHODOLOGY.md`: `50 paired game units ≠ 50 independent experimental conditions`.
-
-### Trabalho
-
-- replicar experiências preservando commit, regras, budget, cor, opening/seed e validade;
-- separar unidade de resampling de condição experimental independente;
-- medir estabilidade por população/contexto e procurar intransitividade sem tratá-la como facto estratégico;
-- calibrar incerteza do rating;
-- validar operating characteristics do SPRT com draws, invalidez e dependência real;
-- manter hold-out protegido e raw Arena provenance.
-
-### Aceitação
-
-Existe protocolo reproduzível de `accept / reject / continue` para o regime real do RedWar, com incerteza e população explicitamente definidas.
-
-**Não significa:** um resultado favorável numa amostra dependente torna-se automaticamente strength global.
-
-**Próximo bloco:** C — Ares capability/efficiency.
-
----
+**Não significa:** uma amostra dependente ou um run favorável torna-se automaticamente strength global.
 
 # C — Ares: capability e eficiência de search
 
-**ID:** C  
-**Objetivo:** melhorar a pesquisa sem alterar silenciosamente a semântica do jogo.  
-**Porquê:** depois de correctness e instrumentação de força, search pode ser otimizado com hipóteses mensuráveis.  
 **Estado:** `BLOCKED by A0.1; then OPEN`.
 
-### Pré-requisitos
-
-A0.1 fechado. B com instrumento de medição operacional quando uma alegação de strength for feita.
-
-### Evidência base / documentos
-
-- [`AI_ENGINE.md`](AI_ENGINE.md)
-- [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md)
-- [`ENGINEERING_METHODOLOGY_AND_RESEARCH.md`](ENGINEERING_METHODOLOGY_AND_RESEARCH.md)
-
-> [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md): uma melhoria apenas no benchmark permanece capability evidence até haver generalização e, para força, Arena A/B.
-
-### Aceitação por alteração
-
-Cada otimização precisa de:
-
-- regressão de correctness;
-- benchmark de capability/performance controlado;
-- Arena A/B independente quando a afirmação for de strength.
-
-**Próximo bloco:** D — NNUE incremental/evaluation quality.
-
----
+Cada otimização precisa de regressão de correctness e benchmark controlado; alegações de strength exigem Arena A/B independente. #330 fixa uma fronteira arquitetural negativa importante: `fast_clone()` não pertence ao código C++ da Ares.
 
 # D — NNUE
 
-**ID:** D  
-**Objetivo:** integrar e avaliar NNUE no hot path sem perder uma referência de correção verificável.  
-**Porquê:** os hooks existem, mas a existência da infraestrutura não prova integração incremental correta nem benefício competitivo.  
 **Estado:** `INFRASTRUCTURE IMPLEMENTED; HOT-PATH INTEGRATION OPEN`.
 
-### Documentos canónicos
-
-- [`NNUE.md`](NNUE.md)
-- [`AI_ENGINE.md`](AI_ENGINE.md)
-- [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md)
-
-> `NNUE.md`: “A existência desses hooks não significa integração concluída.”
-
-### Trabalho
-
-- ligar hooks às mutações reais de `BoardState`;
-- provar `incremental accumulator == full resync` após sequências e make/unmake;
-- manter `sync_board()` como oracle;
-- medir custo/evaluation/NPS;
-- auditar dataset teacher, leakage e duplicação antes de conclusões de treino;
-- comparar força em Arena.
-
-### Nota sobre #314 / #316
-
-#314 (`research: harden NNUE dataset validation...`) não foi merged: as alterações de split/auditoria aí propostas não são implementação atual do `main`. #316 foi merged e **apenas** classifica a estreita classe de metodologia de dataset na CI separadamente da promoção de strength.
-
-> #316: “The deterministic build/diagnostic steps remain available; only the strength-promotion requirement is disabled for this narrowly defined maintenance class.”
-
-**Aceitação:** paridade incremental/full-resync provada + benchmark de custo + treino reproduzível + evidência competitiva suficiente para a alegação feita.
-
-**Próximo bloco:** E — produto jogável/replay/telemetria.
-
----
+Manter `sync_board()` como oracle até a integração incremental demonstrar equivalência. #331 adiciona uma regressão mínima sobre a codificação por perspetiva, mas **não** prova integração incremental nem benefício competitivo.
 
 # E — Produto jogável: UI, replay e telemetria
 
-**ID:** E  
-**Objetivo:** validar e endurecer a camada jogável já implementada.  
 **Estado:** `ARCHITECTURE IMPLEMENTED; VALIDATION OPEN`.
-
-### Documentos canónicos
-
-- [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md)
-- `REPLAY_STORAGE.md`
-- documentação de telemetria
-
-> `BATTLE_UI_SIDEBAR.md`: “O trabalho restante é **validação visual/UX**, não redesenho arbitrário da arquitetura.”
-
-### Aceitação
-
-UI validada nos tamanhos suportados e estados de interação; keyboard/focus verificados; cenas determinísticas cobertas; replay reproduzível e telemetria com provenance.
-
-**Próximo bloco:** F — Balance/state-of-game.
-
----
 
 # F — Balanceamento
 
-**ID:** F  
-**Objetivo:** converter dados válidos em decisões de balanceamento contextual sem tratar heurísticas como oráculos.  
 **Estado:** `DEPENDENT ON B AND RELEVANT DATA QUALITY`.
-
-### Documentos canónicos
-
-- [`BALANCE_METHODOLOGY.md`](BALANCE_METHODOLOGY.md)
-- `BALANCE_STATE_OF_GAME_AUDIT.md`
-- [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md)
-
-> `BALANCE_METHODOLOGY.md`: “pricing heuristic ≠ global power estimate ≠ design judgement”.
-
-### Aceitação
-
-Uma alteração de balanceamento tem correctness, evidência de desenvolvimento controlada, validação protegida quando aplicável, análise contextual e decisão de design explícita.
-
-**Não significa:** Auto-Pricer output ≠ causal hero power.
-
-**Próximo bloco:** G — online/server-authoritative.
-
----
 
 # G — Online / multiplayer
 
-**ID:** G  
-**Objetivo:** evoluir para multiplayer com servidor autoritativo sem reabrir ambiguidades do núcleo.  
-**Estado:** `FUTURE / DEPENDS ON STABLE ACTION-STATE CONTRACT`.
-
-### Documento canónico
-
-- `WEB_MULTIPLAYER.md`
-- [`OBSERVABILITY_CONTRACT.md`](OBSERVABILITY_CONTRACT.md)
-
-### Aceitação
-
-Servidor autoritativo sobre legalidade, estado, resultado e RNG relevante; reconexão, timeout, rematch e histórico definidos por contrato.
-
----
+**Estado:** `FOUNDATION IMPLEMENTED; FULL CONTRACT OPEN`.
 
 # Ordem global
 
@@ -316,7 +124,7 @@ UI/replay pode avançar em paralelo quando não atravessar um correctness blocke
 
 ## Regra de referência para cada PR
 
-A PR deve declarar:
+Toda PR deve declarar:
 
 1. ID/fase do roadmap;
 2. documento canónico que define o contrato;
