@@ -77,14 +77,14 @@ A0 histórico passou. Os seguintes blocos já estão merged e servem de base: #2
 **A.1 — authoritative execute legality**  
 Estado: `OPEN / UNVERIFIED`.
 
-A fronteira deve distinguir explicitamente dois predicados:
+A autoridade desejada é:
 
 ```text
-canonical action-space resolution
-        ↓
-transition-domain validation
-        ↓
-only then mutate state
+input action
+→ normalize canonical action
+→ action-space membership / canonical resolution
+→ transition-domain validation
+→ only then mutate state
 ```
 
 `legal_actions()` continua a representar o action-space canónico produzido pelas primitivas de peças. `resolve_legal_action()` resolve uma entrada para a representação canónica/legacy quando ela pertence a esse espaço. Condições de transição existentes em `GameState.make_action()` continuam a ser autoridade para rejeições de domínio e não devem ser duplicadas em `legal_actions()`.
@@ -93,14 +93,14 @@ O executor não deve usar `fast_clone()` para preflight. `fast_clone()` permanec
 
 ### Aceitação A.1
 
-- uma ação fora do action-space é rejeitada antes de qualquer mutação observável;
-- ações canónicas e inputs legacy equivalentes resolvem através de `resolve_legal_action()`;
-- uma ação no action-space que falhe uma condição específica de transição é rejeitada pelo contrato de `GameState`, preservando o erro de domínio;
+- uma ação estruturalmente válida mas ilegal é rejeitada **antes** de qualquer mutação observável;
+- a legalidade é derivada da autoridade canónica existente, sem duplicar regras por tipo de ação;
+- inputs legacy continuam compatíveis quando legalmente equivalentes;
+- ações fora do action-space que falhem numa condição de transição devem manter o erro de domínio específico existente, sem serem transformadas silenciosamente num erro genérico;
 - nenhuma validação de execução depende de clone especulativo;
 - rejeições deixam board, hash e metadata observável inalterados;
 - legal e illegal paths têm regressão executável;
-- differential relevante permanece verde;
-- nenhum novo hardcoding por herói é introduzido no adapter de ações.
+- differential relevante permanece verde.
 
 **Gate:** apenas fechar A.1 quando a alteração estiver merged e testada no `main`.
 
@@ -111,7 +111,7 @@ Documentar e decidir explicitamente:
 
 - identidade de repetição;
 - papel do TWC nessa identidade;
-- se history pertence à posição, ao search context ou à adjudicação;
+- se history pertence à posição, ao search context ou a uma camada de adjudicação;
 - interação de history com `make/unmake`, RWEN e search;
 - como a equivalência deve ser provada.
 
@@ -208,6 +208,8 @@ Cada otimização precisa de:
 - [`AI_ENGINE.md`](AI_ENGINE.md)
 - [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md)
 
+> `NNUE.md`: “A existência desses hooks não significa integração concluída.”
+
 ### Trabalho
 
 - ligar hooks às mutações reais de `BoardState`;
@@ -219,7 +221,9 @@ Cada otimização precisa de:
 
 ### Nota sobre #314 / #316
 
-#314 não foi merged: as alterações aí propostas não são implementação atual do `main`. #316 foi merged e apenas classifica a estreita classe de metodologia de dataset NNUE na CI separadamente da promoção de strength.
+#314 (`research: harden NNUE dataset validation...`) não foi merged: as alterações de split/auditoria aí propostas não são implementação atual do `main`. #316 foi merged e **apenas** classifica a estreita classe de metodologia de dataset na CI separadamente da promoção de strength.
+
+> #316: “The deterministic build/diagnostic steps remain available; only the strength-promotion requirement is disabled for this narrowly defined maintenance class.”
 
 **Aceitação:** paridade incremental/full-resync provada + benchmark de custo + treino reproduzível + evidência competitiva suficiente para a alegação feita.
 
@@ -238,6 +242,8 @@ Cada otimização precisa de:
 - [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md)
 - `REPLAY_STORAGE.md`
 - documentação de telemetria
+
+> `BATTLE_UI_SIDEBAR.md`: “O trabalho restante é **validação visual/UX**, não redesenho arbitrário da arquitetura.”
 
 ### Aceitação
 
@@ -258,6 +264,14 @@ UI validada nos tamanhos suportados e estados de interação; keyboard/focus ver
 - [`BALANCE_METHODOLOGY.md`](BALANCE_METHODOLOGY.md)
 - `BALANCE_STATE_OF_GAME_AUDIT.md`
 - [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md)
+
+> `BALANCE_METHODOLOGY.md`: “pricing heuristic ≠ global power estimate ≠ design judgement”.
+
+### Aceitação
+
+Uma alteração de balanceamento tem correctness, evidência de desenvolvimento controlada, validação protegida quando aplicável, análise contextual e decisão de design explícita.
+
+**Não significa:** Auto-Pricer output ≠ causal hero power.
 
 **Próximo bloco:** G — online/server-authoritative.
 
