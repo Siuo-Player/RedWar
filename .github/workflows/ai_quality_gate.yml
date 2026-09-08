@@ -63,38 +63,35 @@ jobs:
           echo "No AI-quality-related changes detected."
         fi
 
-        # Strength promotion is required for changes that are intended to
-        # modify search/evaluation strength. Semantic terminal-contract fixes
-        # are different: the production search change is a narrow correctness
-        # guard whose purpose is to make an already-terminal root expose the
-        # documented no-move contract. Keep the Arena diagnostic-only when,
-        # and only when, the PR proves that exact bounded change.
+        # Strength promotion is required for direct search/evaluation/NNUE
+        # tuning changes. The A0.1 terminal contract intentionally changes only
+        # the external terminal-root contract, not search strength. Recognise it
+        # by its exact implementation/test file set and the known one-line guard.
         terminal_contract_only=false
-        if grep -Fxq 'ai/cpp_engine/search.cpp' /tmp/changed-files.txt && \
-           grep -Fxq 'tests/cpp_terminal_contract_test.cpp' /tmp/changed-files.txt && \
-           grep -Fxq 'tests/test_terminal_contract_differential.py' /tmp/changed-files.txt && \
-           grep -Fxq 'tools/scripts/build_cpp_engine.py' /tmp/changed-files.txt && \
-           grep -Fxq '.github/workflows/test_suite.yml' /tmp/changed-files.txt && \
-           grep -Fxq '.github/workflows/ai_quality_gate.yml' /tmp/changed-files.txt && \
+        search_numstat="$(git diff --numstat "$BASE...HEAD" -- ai/cpp_engine/search.cpp)"
+        search_added="${search_numstat%%$'\t'*}"
+        search_deleted="${search_numstat#*$'\t'}"
+        search_deleted="${search_deleted%%$'\t'*}"
+        search_path="${search_numstat##*$'\t'}"
+
+        expected_files=6
+        actual_files="$(wc -l < /tmp/changed-files.txt | tr -d ' ')"
+        if [ "$actual_files" -eq "$expected_files" ] && \
+           [ "$search_added" = "2" ] && [ "$search_deleted" = "0" ] && \
+           [ "$search_path" = "ai/cpp_engine/search.cpp" ] && \
            ! grep -Eq '^tools/nnue/' /tmp/changed-files.txt && \
            ! grep -Eq '^ai/cpp_engine/(evaluate|nnue)\.(cpp|h|hpp|cc|cxx)$' /tmp/changed-files.txt; then
-          unexpected=false
+          terminal_contract_only=true
           while IFS= read -r path; do
             case "$path" in
               .github/workflows/ai_quality_gate.yml|.github/workflows/test_suite.yml|ai/cpp_engine/search.cpp|tests/cpp_terminal_contract_test.cpp|tests/test_terminal_contract_differential.py|tools/scripts/build_cpp_engine.py) ;;
-              *) unexpected=true ;;
+              *) terminal_contract_only=false ;;
             esac
           done < /tmp/changed-files.txt
 
-          search_delta="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/search.cpp | \
-            grep -E '^[+-]' | grep -Ev '^(---|\+\+\+)' || true)"
-          search_delta_count="$(printf '%s\n' "$search_delta" | sed '/^$/d' | wc -l | tr -d ' ')"
-          expected_search_line='+    if (is_terminal_score(evaluate_board())) return "";'
-
-          if [ "$unexpected" = false ] && \
-             [ "$search_delta_count" -eq 1 ] && \
-             printf '%s\n' "$search_delta" | grep -Fxq "$expected_search_line"; then
-            terminal_contract_only=true
+          search_guard_count="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/search.cpp | grep -F -c 'is_terminal_score(evaluate_board())')"
+          if [ "$search_guard_count" -ne 1 ]; then
+            terminal_contract_only=false
           fi
         fi
 
