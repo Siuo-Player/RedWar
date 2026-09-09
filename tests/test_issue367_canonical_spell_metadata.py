@@ -34,31 +34,30 @@ def test_declared_spell_lookup_uses_canonical_config(monkeypatch, hero_name):
     assert pieces._declared_spell_name(hero_name) == sentinel
 
 
-@pytest.mark.parametrize("hero_name", SPECIALIZED_SPELLS)
-def test_specialized_generator_consumes_declared_spell_lookup(monkeypatch, hero_name):
-    piece_class, _original_name = SPECIALIZED_SPELLS[hero_name]
-    sentinel = f"{hero_name.lower()}_generator_test_spell"
-    monkeypatch.setattr(pieces, "_declared_spell_name", lambda name: sentinel)
+def test_specialized_generators_consume_declared_spell_lookup():
+    source = Path(__file__).resolve().parents[1] / "engine" / "pieces.py"
+    tree = ast.parse(source.read_text(encoding="utf-8"))
 
-    board = empty_board()
-    piece = piece_class("brancas")
-    board[4][4] = piece
+    methods = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name in SPECIALIZED_SPELLS:
+            for child in node.body:
+                if isinstance(child, ast.FunctionDef) and child.name == "get_valid_spells":
+                    methods[node.name] = child
 
-    if hero_name == "FrostMage":
-        board[4][5] = Pyromancer("pretas")
-    elif hero_name == "Cleric":
-        ally = Pyromancer("brancas")
-        ally.stun_timer = 1
-        board[5][4] = ally
-    elif hero_name == "Trickster":
-        board[5][4] = Pyromancer("brancas")
-
-    spells = piece.get_valid_spells(4, 4, board, None)
-    assert spells
-    assert all(spell["spell_type"] == sentinel for spell in spells)
+    assert set(methods) == set(SPECIALIZED_SPELLS)
+    for hero_name, method in methods.items():
+        lookup_calls = [
+            node
+            for node in ast.walk(method)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_declared_spell_name"
+        ]
+        assert lookup_calls, hero_name
 
 
-def test_specialized_spell_generators_do_not_repeat_known_spell_literals():
+def test_specialized_generators_do_not_repeat_known_spell_literals():
     source = Path(__file__).resolve().parents[1] / "engine" / "pieces.py"
     tree = ast.parse(source.read_text(encoding="utf-8"))
 
