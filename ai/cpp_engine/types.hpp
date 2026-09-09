@@ -112,15 +112,41 @@ struct BoardState{
 
 extern BoardState board;
 
-inline void notify_piece_assignment(Piece* destination, const Piece& old_piece, const Piece& new_piece) {
+inline bool board_piece_index(const Piece* destination, int& r, int& c) {
     const auto destination_address = reinterpret_cast<std::uintptr_t>(destination);
     const auto first_address = reinterpret_cast<std::uintptr_t>(&board.pieces[0][0]);
     const auto last_address = first_address + sizeof(Piece) * LINHAS * COLUNAS;
-    if (destination_address < first_address || destination_address >= last_address) return;
+    if (destination_address < first_address || destination_address >= last_address) return false;
     const auto offset = destination_address - first_address;
-    if (offset % sizeof(Piece) != 0) return;
+    if (offset % sizeof(Piece) != 0) return false;
     const auto index = static_cast<std::size_t>(offset / sizeof(Piece));
-    redwar::nnue::on_piece_change(static_cast<int>(index / COLUNAS), static_cast<int>(index % COLUNAS), old_piece, new_piece);
+    r = static_cast<int>(index / COLUNAS);
+    c = static_cast<int>(index % COLUNAS);
+    return true;
+}
+
+inline Piece (&observed_board_pieces())[LINHAS][COLUNAS] {
+    static Piece observed[LINHAS][COLUNAS]{};
+    return observed;
+}
+
+inline void remember_board_piece(int r, int c, const Piece& piece) {
+    observed_board_pieces()[r][c].is_empty = piece.is_empty;
+    observed_board_pieces()[r][c].team = piece.team;
+    observed_board_pieces()[r][c].name = piece.name;
+    observed_board_pieces()[r][c].stun_timer = piece.stun_timer;
+    observed_board_pieces()[r][c].lifespan = piece.lifespan;
+    observed_board_pieces()[r][c].spawn_cooldown = piece.spawn_cooldown;
+    observed_board_pieces()[r][c].cost = piece.cost;
+    observed_board_pieces()[r][c].id = piece.id;
+}
+
+inline void notify_piece_assignment(Piece* destination, const Piece& old_piece, const Piece& new_piece) {
+    int r = 0;
+    int c = 0;
+    if (!board_piece_index(destination, r, c)) return;
+    redwar::nnue::on_piece_change(r, c, old_piece, new_piece);
+    remember_board_piece(r, c, new_piece);
 }
 
 inline void notify_effect_assignment(TileEffect* destination, const TileEffect& old_effect, const TileEffect& new_effect) {
@@ -143,7 +169,17 @@ inline void notify_twc_assignment(ObservedTwc* destination, int old_twc, int new
 }
 
 inline Piece& Piece::operator=(const Piece& other) {
-    if (this == &other) return *this;
+    int r = 0;
+    int c = 0;
+    if (this == &other) {
+        if (board_piece_index(this, r, c)) {
+            const Piece previous = observed_board_pieces()[r][c];
+            const Piece current = *this;
+            redwar::nnue::on_piece_change(r, c, previous, current);
+            remember_board_piece(r, c, current);
+        }
+        return *this;
+    }
     const Piece previous = *this;
     is_empty = other.is_empty;
     team = other.team;
