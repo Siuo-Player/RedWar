@@ -17,7 +17,7 @@ def test_cpp_nnue_incremental_matches_full_sync_across_real_mutations(tmp_path: 
 
     model_path = tmp_path / "ares-bootstrap.nnue"
     bootstrap = subprocess.run(
-        [sys.executable, "tools/nnue/bootstrap_model.py", "--output", str(model_path)],
+        [sys.executable, "-m", "tools.nnue.bootstrap_model", "--output", str(model_path)],
         cwd=ROOT,
         text=True,
         capture_output=True,
