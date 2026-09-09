@@ -101,7 +101,7 @@ struct Move {
     bool operator==(const Move&o)const{return sr==o.sr&&sc==o.sc&&er==o.er&&ec==o.ec&&type==o.type&&spell_name==o.spell_name&&spawn_name==o.spawn_name;}
 };
 
-struct BoardState {
+struct BoardState{ 
     Piece pieces[LINHAS][COLUNAS]{};
     TileEffect effects[LINHAS][COLUNAS]{};
     ObservedTurn turn{};
