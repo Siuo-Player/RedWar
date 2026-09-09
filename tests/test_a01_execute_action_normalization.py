@@ -20,7 +20,8 @@ def test_execute_action_uses_one_canonical_normalization_boundary():
 
     with patch("engine.game_state.normalize_action", wraps=normalize_action) as normalizer:
         with patch.object(GameState, "make_action") as make_action:
-            state.execute_action(action)
+            with patch("engine.game_state.resolve_legal_action", return_value=action):
+                state.execute_action(action)
 
     normalizer.assert_called_once_with(action)
     make_action.assert_called_once_with(
@@ -36,9 +37,11 @@ def test_execute_action_uses_one_canonical_normalization_boundary():
 def test_execute_action_accepts_mapping_compatibility_input_through_same_boundary():
     state = _move_state()
     action = UserDict({"type": "MOVE", "start": [6, 0], "end": [5, 0]})
+    canonical = GameAction(ActionType.MOVE, (6, 0), (5, 0))
 
     with patch.object(GameState, "make_action") as make_action:
-        state.execute_action(action)
+        with patch("engine.game_state.resolve_legal_action", return_value=canonical):
+            state.execute_action(action)
 
     make_action.assert_called_once_with(
         (6, 0),
@@ -51,32 +54,28 @@ def test_execute_action_accepts_mapping_compatibility_input_through_same_boundar
 
 
 @pytest.mark.parametrize(
-    "action, expected, setup",
+    "action, expected",
     [
         (
             GameAction(ActionType.STUN, (4, 4), (2, 4), area=((2, 4), (1, 4))),
             ((2, 4), (1, 4)),
-            ((4, 4, "FrostMage", "brancas"),),
         ),
         (
             GameAction(ActionType.SPAWN, (6, 0), (5, 0), spawn_name="Bone"),
             "Bone",
-            ((6, 0, "Lich", "brancas"),),
         ),
         (
             GameAction(ActionType.SPELL, (6, 0), (5, 0), spell_name="Nevada"),
             "Nevada",
-            ((6, 0, "FrostMage", "brancas"),),
         ),
     ],
 )
-def test_execute_action_preserves_special_payloads(action, expected, setup):
+def test_execute_action_preserves_special_payloads(action, expected):
     state = GameState()
-    for row, col, name, team in setup:
-        state.board[row][col] = criar_peca_por_nome(name, team)
 
     with patch.object(GameState, "make_action") as make_action:
-        state.execute_action(action)
+        with patch("engine.game_state.resolve_legal_action", return_value=action):
+            state.execute_action(action)
 
     kwargs = make_action.call_args.kwargs
     if action.type is ActionType.STUN:
