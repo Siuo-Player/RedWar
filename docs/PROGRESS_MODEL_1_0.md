@@ -1,0 +1,1 @@
+# RedWar — Modelo de progresso do produto 1.0
