@@ -1,9 +1,7 @@
 """Headless A/B Arena for two explicit RedWar C++ engines.
 
 The Arena is both the primary strength-measurement path for Ares and a source of
-reproducible training/debugging material. Every game can optionally be saved as
-JSONL with its opening state, exact action sequence, result and aggregate tactical
-counters. Statistical summaries are derived from those raw game records.
+reproducible training/debugging material. Every game can optionally be saved as JSONL with its opening state, exact action sequence, result and aggregate tactical counters. Statistical summaries are derived from those raw game records.
 """
 
 import argparse
@@ -18,6 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ai.bot import CppEngineBot
+from ai.engine_bridge import EngineBridgeError, EngineBridgeProcessExit, EngineBridgeProtocolError, EngineBridgeTimeout
 from engine.game_state import GameState
 from tools.analytics.arena_pairs import GameOutcome, aggregate_pentanomial, incomplete_pairs, make_pair_id, validate_pair_structure
 from tools.analytics.opening_book import OPENING_SEEDS, carregar_abertura_do_book, gerar_abertura
@@ -201,6 +200,23 @@ def _normalizar_acao(acao: dict) -> dict:
     return result
 
 
+def _classify_arena_failure(exc: Exception) -> str:
+    """Map an execution exception to a persisted, semantic experiment provenance class."""
+    if isinstance(exc, EngineBridgeTimeout):
+        return "timeout"
+    if isinstance(exc, EngineBridgeProcessExit):
+        return "process_engine_failure"
+    if isinstance(exc, EngineBridgeProtocolError):
+        return "malformed_result_schema"
+    if isinstance(exc, EngineBridgeError):
+        return "process_engine_failure"
+    if isinstance(exc, ValueError):
+        return "invalid_action"
+    if isinstance(exc, RuntimeError):
+        return "malformed_result_schema"
+    return "diagnostic_failure"
+
+
 def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_seed: int | None = None):
     gs = GameState(time_limit_seconds=99999)
     if opening_seed is None:
@@ -213,24 +229,37 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_
     action_types = Counter()
     turnos = 0
     termination_reason = None
-    while not gs.game_over and turnos < ARENA_MAX_PLIES:
-        turnos += 1
-        white_to_move = gs.white_to_move
-        bot = bot_brancas if white_to_move else bot_pretas
-        best_move = bot.play(gs)
-        if best_move:
-            action = _normalizar_acao(best_move)
-            actions.append({"ply": turnos, "side": "white" if white_to_move else "black", "action": action})
-            action_types[action["type"]] += 1
-            gs.execute_action(best_move)
-        else:
-            gs.check_game_over()
-            if gs.game_over:
-                termination_reason = "game_over"
+    failure_detail: str | None = None
+    failure_exception_type: str | None = None
+
+    try:
+        while not gs.game_over and turnos < ARENA_MAX_PLIES:
+            turnos += 1
+            white_to_move = gs.white_to_move
+            bot = bot_brancas if white_to_move else bot_pretas
+            best_move = bot.play(gs)
+            if best_move:
+                action = _normalizar_acao(best_move)
+                actions.append({"ply": turnos, "side": "white" if white_to_move else "black", "action": action})
+                action_types[action["type"]] += 1
+                gs.execute_action(best_move)
             else:
-                gs.game_over, gs.winner = True, "Bloqueio"
-                termination_reason = "blocked_without_game_over"
-            break
+                gs.check_game_over()
+                if gs.game_over:
+                    termination_reason = "game_over"
+                else:
+                    gs.game_over, gs.winner = True, "Bloqueio"
+                    termination_reason = "blocked_without_game_over"
+                break
+    except Exception as exc:
+        termination_reason = _classify_arena_failure(exc)
+        failure_detail = str(exc)
+        failure_exception_type = type(exc).__name__
+        print(
+            f"\n⚠️ Arena game aborted: {termination_reason} "
+            f"({failure_exception_type}: {failure_detail})"
+        )
+
     if termination_reason is None:
         if gs.game_over:
             termination_reason = "game_over"
@@ -254,6 +283,8 @@ def run_headless_match(bot_brancas, bot_pretas, opening_index: int = 0, opening_
         "termination_reason": termination_reason,
         "valid": valid,
         "failure_reason": failure_reason,
+        "failure_exception_type": failure_exception_type,
+        "failure_detail": failure_detail,
     }
 
 
