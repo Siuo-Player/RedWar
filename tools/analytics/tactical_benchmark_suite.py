@@ -20,6 +20,7 @@ from tools.analytics.frostmage_benchmark import FROST_CLUSTER
 DEFAULT_ENGINE = ROOT / "ai" / "cpp_engine" / ("engine.exe" if sys.platform == "win32" else "engine")
 DEFAULT_NODES = [10, 100, 1_000, 10_000, 100_000, 1_000_000]
 REAL_GAME_ROOT = ROOT / "data" / "arena" / "strength"
+REAL_GAME_FIXTURE = ROOT / "tests" / "fixtures" / "foundation-real-game-initial-rwen.txt"
 
 
 @dataclass(frozen=True)
@@ -159,15 +160,26 @@ def _iter_strings(value: Any):
 
 
 def find_complete_game_rwen() -> str | None:
-    if not REAL_GAME_ROOT.is_dir():
-        return None
-    for path in sorted(REAL_GAME_ROOT.rglob("*.json")):
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            continue
-        for candidate in _iter_strings(payload):
-            return candidate
+    """Return a real-game-derived RWEN preserved as a deterministic test fixture.
+
+    The committed 100-game strength JSON contains result metadata but intentionally
+    omits raw game trajectories; the fixture is an extracted initial state from the
+    preserved complete-game artifact and records that artifact identity in comments.
+    """
+    if REAL_GAME_ROOT.is_dir():
+        for path in sorted(REAL_GAME_ROOT.rglob("*.json")):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            for candidate in _iter_strings(payload):
+                return candidate
+
+    if REAL_GAME_FIXTURE.is_file():
+        for line in REAL_GAME_FIXTURE.read_text(encoding="utf-8").splitlines():
+            candidate = line.strip()
+            if candidate and not candidate.startswith("#") and _looks_like_rwen(candidate):
+                return candidate
     return None
 
 
@@ -236,7 +248,7 @@ def run_complete_game_probe(engine: Path, nodes: int, trace: bool) -> int:
     rwen = find_complete_game_rwen()
     if rwen is None:
         raise RuntimeError(
-            "No valid RWEN state was found in data/arena/strength; a complete-game corpus probe is required by SPRINT 20"
+            "No valid RWEN state was found in data/arena/strength or its preserved real-game fixture"
         )
     trace_path = ROOT / "logs" / "benchmarks" / "tactical" / "complete-game-corpus" / f"trace_{nodes}.log" if trace else None
     bestmove, elapsed = query(engine, rwen, nodes, trace_path)
