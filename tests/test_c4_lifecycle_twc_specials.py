@@ -56,7 +56,7 @@ def test_attack_capture_of_temporary_piece_preserves_twc():
 
     action = {"type": "attack", "start": (4, 4), "end": (4, 5)}
     after = state.fast_clone()
-    after.execute_action(action)
+    after.make_action((4, 4), (4, 5), "attack", affected_area=[])
 
     assert after.turns_without_capture == 8
     assert after.board[4][5] is not None and after.board[4][5].name == "Templar"
@@ -81,7 +81,7 @@ def test_stun_capture_of_temporary_piece_preserves_twc():
     }
 
     after = state.fast_clone()
-    after.execute_action(action)
+    after.make_action((4, 4), (3, 4), "stun", affected_area=[(3, 4)])
     assert after.turns_without_capture == 8
     assert after.board[3][4] is None
 
@@ -101,7 +101,7 @@ def test_timer_lifecycle_and_effect_expiry_match():
 
     action = {"type": "move", "start": (6, 0), "end": (5, 0)}
     after = state.fast_clone()
-    after.execute_action(action)
+    after.make_action((6, 0), (5, 0), "move", affected_area=[])
 
     ranger = after.board[1][7]
     assert ranger is not None
@@ -124,7 +124,7 @@ def test_lifespan_expiry_can_create_python_terminal_state_and_matches_cpp_state(
 
     action = {"type": "move", "start": (6, 0), "end": (5, 0)}
     after = state.fast_clone()
-    after.execute_action(action)
+    after.make_action((6, 0), (5, 0), "move", affected_area=[])
 
     assert all(piece is None or piece.team != "pretas" for row in after.board for piece in row)
     assert after.game_over
@@ -151,7 +151,7 @@ def test_special_attack_spells_round_trip():
 
         action = {"type": "spell", "start": (4, 4), "end": target, "spell_name": spell_name}
         after = state.fast_clone()
-        after.execute_action(action)
+        after.make_action((4, 4), target, "spell", affected_area=[], spell_name=spell_name)
 
         assert after.board[target[0]][target[1]] is None
         actual, restored = run_bridge(state.to_rwen(), move_text(action))
