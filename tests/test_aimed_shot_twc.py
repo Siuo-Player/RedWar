@@ -45,13 +45,12 @@ def _cpp_after(state: GameState) -> str:
 
 def _python_after(state: GameState) -> str:
     after = state.fast_clone()
-    after.execute_action(
-        {
-            "type": "spell",
-            "start": (6, 0),
-            "end": (7, 0),
-            "spell_name": "aimed_shot",
-        }
+    after.make_action(
+        (6, 0),
+        (7, 0),
+        "spell",
+        affected_area=[],
+        spell_name="aimed_shot",
     )
     return after.to_rwen()
 

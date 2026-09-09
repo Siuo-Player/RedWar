@@ -85,7 +85,6 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
         spell_name = (normalized.spell_name or "").lower()
         if piece is None or piece.team != current_team or spell_name not in _declared_spell_names(gs, piece):
             raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
-        return normalized
 
     validator = getattr(gs, "_validate_transition", None)
     if validator is not None:
@@ -101,8 +100,6 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
         except ValueError:
             return normalized
 
-    if normalized.type in {ActionType.STUN, ActionType.SPAWN}:
-        return normalized
     raise ValueError(f"illegal action for current position: {normalized.to_dict()}")
 
 
