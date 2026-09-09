@@ -1,44 +1,44 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `010b14b6251ce131409e660df95c6d920c76af58`  
-**Data:** 2026-09-09
+> Documento operacional canónico. Esta fila define a sequência principal até ao produto 1.0. O progresso é ponderado por importância real do produto; não representa ficheiros, linhas de código, número de PRs ou percentagem de funcionalidades isoladas.
 
-Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
+## Modelo de progresso até 1.0
 
-## Vocabulário obrigatório
+A evolução do RedWar passa pelas dimensões abaixo, nesta ordem operacional:
 
-`DOCUMENTED` = descrito.  
-`IMPLEMENTED` = existe no código alvo.  
-`TESTED` = existe teste executável relevante.  
-`VALIDATED` = foi submetido à validação apropriada para a alegação.  
-`PROVEN` = a evidência é suficiente para a alegação específica sob o protocolo vigente.
+1. **Fundação** — fechar definitivamente as fronteiras de regras, estado, execução e infraestrutura que impedem evolução segura.
+2. **Gameplay** — fechar a experiência de jogo local e as regras que definem uma partida RedWar.
+3. **Ares** — transformar a IA num adversário/analista suficientemente forte, rápido, reproduzível e mensurável.
+4. **Produto** — transformar engine + Ares numa aplicação utilizável, com UI, replays, análise e fluxos completos.
+5. **Online** — tornar a experiência multiplayer autoritativa, persistente e competitiva.
+6. **Release** — consolidar conteúdo, QA, segurança, licenciamento, operação e lançamento público.
 
-Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e melhoria de dataset ≠ melhoria de strength.
+A ordem é deliberada. Trabalho posterior pode avançar em paralelo quando não depender de uma decisão ainda instável, mas não pode ser usado para declarar o bloco anterior concluído sem a respectiva evidência.
 
-## Estado 2 — verificação paralela independente: FECHADO
+### Estado de referência
 
-Os seis lanes independentes foram executados a partir do baseline comum `1f65f65d6b4827f0d403d8e6d2bb0f735eda0c42` e merged apenas após as três gates do repositório:
+**Estimativa global actual: ~38%.**
 
-- **B #329** — determinismo do audit emparelhado; merged `29973ffb6e7d270ab8ccc9289307ab11e2f24506`.
-- **C #330** — ausência de `fast_clone` no C++ da Ares; merged `d08a700864d8ed0fe9dc274f8495a01f81105641`.
-- **D #331** — encoding NNUE por perspetiva; merged `fdd1c3516e410b53608a95e554597a577ef6610e`.
-- **E #332** — isolamento replay/telemetria; merged `d07f52f981de0eb0606bef1823beabca61348ae1`.
-- **F #333** — bounds do Auto-Pricer; primeiro fixture inválido corrigido de `100` para o limite existente `64`; rebaseado e merged `71bc812d170a8556b9dfde98b4f95202f36190b9`.
-- **G #334** — fundação de sessão autoritativa server-side; merged `845b00a500fff7b3aab2f0c35920bace5d198cc6`.
+| Dimensão | Peso conceptual | Estado estimado | Regra de avanço |
+|---|---:|---:|---|
+| Fundação | 15% | **~70%** | fechar contratos centrais e eliminar blockers estruturais conhecidos |
+| Gameplay | 20% | **~85%** | regras e experiência local suficientemente estáveis para servirem de referência |
+| Ares | 20% | **~60%** | correctness primeiro, depois capability/efficiency e strength demonstrada |
+| Produto | 20% | **~30%** | aplicação local, UI, replay, análise e UX integrados |
+| Online | 15% | **~5%** | servidor autoritativo + multiplayer + contas/matchmaking/rating |
+| Release | 10% | **~10%** | QA, conteúdo, segurança, licenciamento e distribuição pública |
 
-As PRs acima tiveram `AI Quality Gate`, `Test Suite` e `CodeQL` verdes antes do respetivo merge. Isto fecha a tranche de infraestrutura/regressões, não as fases B–G completas.
+As percentagens são um **baseline de produto**. Só mudam materialmente quando uma meta ponderada muda de estado. CI verde é necessária para alterações de código, mas CI verde não prova por si correctness total; benchmark não é strength; dataset maior não é automaticamente melhor IA.
 
-## Estado 3 — A0.1: FECHADO COMO FRONTEIRAS DELIBERADAS; BLOCKER DE COBERTURA REMANESCENTE
+---
 
-### A.1 — authoritative execute legality
+# 1. Fundação — FECHAR A 100%
 
-**Estado histórico:** `PARTIAL` no início da tranche; **agora CLOSED**.
+### Meta verdadeira
 
-PR #336 eliminou o bypass de SPELL estruturalmente válido mas não declarado pelo herói. PR #350 fechou os bypasses equivalentes de STUN/SPAWN e consolidou a regra de que ações especiais não enumeradas pelo action-space não atravessam a resolução canónica para execução. PR #351 fez a cobertura de action-space sobre todos os heróis configurados em variantes de estado determinísticas: as ações produzidas diretamente pelos geradores das peças têm de aparecer no `legal_actions()`, ser reproduzíveis pela normalização legacy e executar através de `execute_action()` num clone isolado de teste. PR #352 fechou o contrato de erros de domínio e a garantia de não-mutação em rejeição.
+A fundação deve deixar de conter blockers estruturais conhecidos para a evolução do jogo e da Ares. O objectivo é que exista uma autoridade inequívoca para regras, acções, estado, transições, histórico e sessões.
 
-**Estado final:** `IMPLEMENTED / TESTED / VALIDATED / CLOSED` para a fronteira `execute_action()` + action-space canónico e os contratos legacy cobertos. A geração continua na implementação das peças; não foi criada uma segunda fonte de regras no resolver.
-
-Autoridade consolidada:
+A base actual já estabeleceu uma fronteira forte de execução autoritativa:
 
 ```text
 input action
@@ -48,104 +48,361 @@ input action
 → only then mutate
 ```
 
-`fast_clone()` não é mecanismo de preflight nem autoridade de legalidade e continua fora do hot path C++ da Ares.
+A action-space canónica deve continuar a ser coerente com `engine.legal_actions()` e com a execução, sem criar um segundo sistema de regras dentro do resolver.
 
-### A.2 — native repetition/history contract
+### Estado actual
 
-**Estado:** `CLOSED AS ARCHITECTURAL BOUNDARY`.
+**~70%.** A0.1 foi efectivamente fechada nas fronteiras deliberadas: legality/execution, action-space, contratos de erro e não-mutação. A tranche independente B–G também deixou regressões importantes cobertas.
 
-PR #338 foi merged como `21cef6afb5556d991d9a0f111ca2de42874ffc09`. `BoardState` permanece a representação da posição/search state; a sequência necessária para repetição pertence ao contexto que realmente possui a história. Isto não constitui uma alegação de equivalência threefold Python↔C++.
+Isso não significa que toda a fundação histórica esteja matematicamente fechada. O objectivo de 100% é fechar os contratos que ainda condicionam Gameplay, Ares, replay, balanceamento e online.
 
-## Estado 4 — A0.1 / A.1: EVIDÊNCIA REFORÇADA
+### O que pertence à Fundação
 
-PR #343 consolidou os erros específicos de transição e a segurança de não-mutação. PR #344 adicionou paridade representativa entre `engine.legal_actions()` e um oracle independente em 11 heróis.
+- estado e transições do jogo;
+- legalidade autoritativa;
+- action-space;
+- normalização de acções;
+- contratos de erro e não-mutação;
+- histórico necessário para regras de repetição;
+- invariantes de serialização/replay que sejam pré-requisitos das camadas superiores;
+- contratos mínimos do runtime que Ares e servidor precisam de partilhar;
+- boundaries entre Python/C++ quando uma garantia depende de ambas as implementações.
 
-Estas eram evidências parciais quando #317 ainda estava aberto. Foram posteriormente complementadas por #351 e #352, pelo que os seus limites já não constituem o estado operacional atual de A0.1.
+### Critério de 100%
 
-## Estado 7 — A0.1 / A.1: ACTION-SPACE CLOSURE — FECHADO
+A fundação fecha quando:
 
-**PR #351**, branch `state7/A01-actionspace-completeness-2026-09-09`, foi merged em `385a5bdcb53adb93a0477ef98f82ebd7596c6879` após `RedWar AI Quality Gate #668`, `RedWar CodeQL #637` e `RedWar Test Suite #1835` verdes.
+1. qualquer acção executável passa pela autoridade canónica;
+2. rejeições preservam o estado observável;
+3. as regras de histórico/repetição têm um dono claro;
+4. não existe uma segunda fonte informal de legalidade;
+5. contratos usados pelo Ares, replay e servidor estão explícitos;
+6. os blockers classificados como estruturais deixam de impedir o avanço de Gameplay/Ares/Produto;
+7. todas as alegações correspondentes têm testes/evidência apropriados no `main`.
 
-A evidência cobre:
+**Não significa congelar o código.** Significa que alterações futuras devem ser extensões justificadas por necessidades do produto.
 
-- catálogo completo de heróis configurados;
-- estados empty/enemy-pressure/ally-pressure/mixed-pressure;
-- geradores de MOVE/ATTACK/STUN/SPAWN/SPELL como fonte independente do teste;
-- projeção desses resultados para o action-space canónico;
-- resolução legacy equivalente;
-- execução pela fronteira autoritativa `execute_action()`;
-- STUN legacy sem AOE explícita;
-- projeção apenas do herói sob teste quando existem outras peças com ações legítimas no tabuleiro.
+---
 
-## Estado 8 — A0.1 / A.1: DOMAIN ERROR CONTRACT — FECHADO
+# 2. Gameplay — FECHAR A 100%
 
-**PR #352**, branch `state8/A01-legacy-error-contract-2026-09-09`, foi merged em `010b14b6251ce131409e660df95c6d920c76af58` após `RedWar AI Quality Gate #669`, `RedWar CodeQL #639` e `RedWar Test Suite #1838` verdes.
+### Meta verdadeira
 
-A matriz de rejeição cobre SPAWN ocupado, SPELL desconhecida, silêncio de Inquisitor, ação não enumerada e origem sem peça, assegurando os erros específicos do domínio e a não-mutação observável.
+RedWar deve ser um jogo local completo antes de se tratar a plataforma online como prioridade. O jogador tem de conseguir construir a sua composição, iniciar uma partida, executar todas as regras oficiais e terminar por uma condição de vitória válida.
 
-### Gate A0.1 atual
+A experiência 1.0 inclui, no mínimo, as regras actualmente definidas:
 
-**A0.1 — CLOSED.**
+- tabuleiro normal 8×8;
+- orçamento inicial normal de 200 pontos por cor;
+- uma acção por jogador em cada turno;
+- draft e posicionamento antes da partida, secretos para o adversário;
+- sem compra durante a partida;
+- peças configuradas sem limites artificiais de quantidade além do espaço e regras do jogo;
+- peças invocáveis/temporárias fora do draft quando a regra assim determinar;
+- movimento, ataque, stun, morte, spells, passivas e restantes habilidades activas suportadas pelo jogo;
+- sistema sem HP/força/defesa numéricos tradicionais;
+- estado de sobrevivência `Normal → Stunned → Dead`, segundo a regra de dois stuns dentro da janela de atordoamento;
+- condições de vitória por eliminação, ausência de acções legais ou desistência;
+- mecanismo de desempate sem depender de empates indefinidos;
+- contador de turnos sem captura segundo a regra oficial actualmente definida;
+- efeitos de terreno como fogo/gelo e extensibilidade para novos efeitos sem duplicar a autoridade das regras.
 
-A fundação semântica necessária para prosseguir para B está agora fechada nos contratos deliberados acima. Isto não prova correctness matemático de cada estado possível nem strength competitivo; significa que o blocker estrutural que impedia trabalho dependente foi encerrado com evidência executável e merged em `main`.
+### Heróis
 
-# B — Medição de força e calibração da Arena
+A configuração oficial permanece `engine/heroes_config.json`, com o schema em `engine/HEROES_SCHEMA.md`.
 
-**Estado:** `PARTIAL — infrastructure implemented; calibration not proven`.
+A meta não é apenas “ter muitos heróis”. É que a criação de um herói novo seja previsível e concentrada, reduzindo lógica especial espalhada pelo engine. Onde passivas especiais ainda exigem código fora da configuração, isso deve ser tratado como dívida conhecida até ser justificadamente absorvido pela arquitectura.
 
-É o próximo bloco operacional autorizado. A infraestrutura de Arena e os audits existentes permanecem sujeitos aos respetivos protocolos de população, provenance, incerteza e hold-out.
+### Critério de fecho
 
-# C — Ares: capability e eficiência de search
+- regras essenciais não estão em estado contraditório;
+- todos os heróis configurados têm comportamento testável;
+- efeitos e estados críticos têm casos de regressão;
+- uma partida local completa pode ser jogada de início a fim;
+- condições de vitória/desistência/desempate são determinísticas;
+- novas regras não exigem alterações silenciosas em várias fontes de verdade.
 
-**Estado:** `OPEN after A0.1; correctness first`. Cada otimização exige regressão de correctness e benchmark controlado; qualquer alegação de strength exige Arena A/B independente. `fast_clone()` não pertence ao código C++ da Ares.
+**Depois deste gate, Ares e Produto podem tomar o gameplay como contrato estável.**
 
-# D — NNUE
+---
 
-**Estado:** `INFRASTRUCTURE IMPLEMENTED; HOT-PATH INTEGRATION OPEN`.
+# 3. Ares — FECHAR CORRECTNESS, CAPABILITY E STRENGTH
 
-`sync_board()` continua oracle até integração incremental demonstrar equivalência. O teste #331 protege a codificação por perspetiva, não prova benefício competitivo.
+### Meta verdadeira
 
-# E — Produto jogável: UI, replay e telemetria
+Ares não é apenas “uma IA que faz movimentos”. É a engine de pesquisa especializada de RedWar e deve fornecer:
 
-**Estado:** `ARCHITECTURE IMPLEMENTED; VALIDATION OPEN`.
+- adversário contra o jogador;
+- níveis diferentes de força;
+- análise de posições;
+- análise pós-partida;
+- benchmarking entre versões;
+- base para Arena e eventualmente contribuições abertas.
 
-# F — Balanceamento
+A metodologia mantém-se inspirada no modelo Stockfish, mas adaptada ao RedWar: estado, pesquisa, avaliação, move ordering e hot path devem permanecer claramente separados.
 
-**Estado:** `DEPENDENT ON B AND RELEVANT DATA QUALITY`.
-
-# G — Online / multiplayer
-
-**Estado:** `FOUNDATION IMPLEMENTED; FULL CONTRACT OPEN`.
-
-# Ordem global
+### Ordem interna obrigatória
 
 ```text
-A0.1 Semantic Closure  [CLOSED]
-        ↓
-B — Strength measurement / calibration
-        ↓
-C — Ares search capability + efficiency
-        ↓
-D — NNUE incremental + evaluation quality
-        ↓
-E — UI / replay / telemetry validation
-        ↓
-F — Balance / state-of-game audit
-        ↓
-G — Server-authoritative online
+correctness
+    ↓
+capability
+    ↓
+efficiency
+    ↓
+strength measurement
+    ↓
+default promotion
 ```
 
-UI/replay pode avançar em paralelo quando não atravessar um correctness blocker. A ordem acima é a sequência operacional; um gate de correctness bloqueia trabalho dependente mesmo que outro benchmark ou feature tenha evoluído.
+Não promover uma optimização porque parece mais sofisticada. Uma alteração só sobrevive como melhoria da Ares quando a evidência adequada mostra que não quebrou correctness e, quando a alegação é de força, demonstra melhoria sob condições comparáveis.
 
-## Regra de referência para cada PR
+### Estado actual
+
+**~60%.** Ares já possui avaliação clássica, caminho NNUE opcional, C++ em evolução, Arena e workflows especializados. `fast_clone()` continua deliberadamente fora do hot path C++.
+
+O que falta é consolidar capability e eficiência de search, validar integração incremental da avaliação e produzir evidência de strength suficientemente robusta para escolhas default.
+
+### Arena
+
+O protocolo deve comparar:
+
+```text
+Ares base
+    VS
+Ares proposta
+```
+
+com condições equivalentes, cores alternadas e provenance suficiente para reproduzir a comparação. O benchmark determinístico mede custo/comportamento; a Arena mede força relativa.
+
+Sempre que possível, resultados devem guardar:
+
+- versão da IA;
+- cores;
+- resultado de cada jogo;
+- tempo/nodes;
+- composição das peças;
+- posição inicial;
+- métricas relevantes.
+
+### NNUE
+
+NNUE permanece experimental até existir demonstração de ganho real por CPU-segundo nas condições definidas. O caminho incremental deve provar equivalência com o oracle `sync_board()` antes de ser tratado como autoridade.
+
+### Critérios de fecho
+
+- correctness coberta pelos contratos do engine;
+- search capability validada em posições/fixtures relevantes;
+- optimizações comparadas em benchmark controlado;
+- qualquer alegação de strength apoiada por Arena A/B e não por benchmark isolado;
+- NNUE incremental demonstrada equivalente ao oracle e avaliada por força/custo;
+- a escolha default da Ares é suportada por evidência, não por preferência de implementação.
+
+---
+
+# 4. Produto — TRANSFORMAR ENGINE + ARES NUM JOGO COMPLETO
+
+### Meta verdadeira
+
+O jogador deve poder usar RedWar sem conhecer `engine/`, scripts, fixtures ou detalhes do Ares.
+
+O objectivo de produto local é:
+
+```text
+abrir
+→ escolher modo / bot
+→ construir ou carregar composição
+→ jogar
+→ receber feedback claro
+→ rever partida
+→ analisar posição/decisão
+→ guardar histórico
+→ voltar a jogar
+```
+
+### 4.1 Battle UI e interacção
+
+A UI deve seguir a arquitectura já definida para a Battle UI:
+
+- herói seleccionado persiste mesmo quando o hover muda;
+- célula sob hover tem informação própria;
+- regras completas do herói aparecem através da fonte canónica da Enciclopédia, não de texto duplicado;
+- Action Choice permanece na sidebar, não em modal fullscreen;
+- 1–9 seleccionam acções quando aplicável e `Esc` cancela;
+- quando existem várias acções legais (por exemplo MOVE/ATTACK/NEVADA), a UI torna essa escolha explícita;
+- destino inválido não muda silenciosamente de herói;
+- estados de interacção incluem IDLE/SELECTED/HOVER/ACTION e as transições relevantes;
+- layouts suportam 4:3, 16:9, 16:10 e 21:9, de 720p a 4K;
+- FrostMage permanece um stress test visual;
+- cores semânticas não podem ser o único canal de informação;
+- efeitos, partículas e ícones têm função informativa além de ornamentação.
+
+### 4.2 Replay e telemetria
+
+Replays devem representar partidas reproduzíveis e não apenas screenshots/eventos incompletos. Telemetria deve preservar informação suficiente para análise sem criar dependências artificiais entre sistemas.
+
+### 4.3 Análise e histórico
+
+A aplicação deve permitir ao jogador consultar uma partida terminada e, progressivamente, analisar posições e decisões. O histórico precisa de um formato estável para posterior integração com contas/online.
+
+### Critério de fecho
+
+- UI de batalha completa e responsiva;
+- regras apresentadas de forma coerente com a fonte canónica;
+- jogo local contra Ares utilizável;
+- replay reproduzível;
+- histórico guardável e reaberto;
+- análise pós-partida funcional dentro do escopo 1.0;
+- menus/definições e fluxos principais deixam de depender de tooling de desenvolvimento.
+
+---
+
+# 5. Online — CONSTRUIR O ECOSSISTEMA MULTIPLAYER
+
+### Meta verdadeira
+
+O online não é simplesmente “ligar dois clientes”. Deve existir um servidor autoritativo que impede um cliente de declarar directamente um estado impossível.
+
+O produto final pretende incluir:
+
+- partidas públicas;
+- partidas privadas/por convite ou link;
+- 1v1;
+- matchmaking;
+- contas;
+- login Google quando tecnicamente/operacionalmente adequado;
+- ELO/MMR associado ao matchmaking;
+- vários controlos de tempo inspirados em Chess.com;
+- reconnect;
+- derrota por abandono/timeout;
+- rematch;
+- espectadores;
+- histórico online;
+- ranking.
+
+### Arquitectura desejada
+
+```text
+cliente
+   ↓ acção
+servidor autoritativo
+   ↓ validação
+estado oficial
+   ↓ broadcast
+outros clientes
+```
+
+O servidor deve validar as acções recebidas contra as regras oficiais. O cliente pode apresentar previsões/UX, mas não é a autoridade final.
+
+### Ordem interna
+
+```text
+server session
+→ authoritative action validation
+→ 1v1 live match
+→ reconnect / timeout / resignation
+→ persistence
+→ matchmaking
+→ rating
+→ spectators / rematch / public history
+```
+
+### Critério de fecho
+
+- dois clientes conseguem completar uma partida real;
+- o servidor é autoritativo sobre estado e legalidade;
+- desconexões não corrompem a partida;
+- tempo/abandono são determinados no servidor;
+- histórico online é consistente com o replay;
+- matchmaking não permite estados incompatíveis;
+- rating é calculado a partir dos resultados oficiais;
+- segurança e abuso têm uma superfície minimamente tratada antes de abertura pública.
+
+---
+
+# 6. Release — 1.0 PÚBLICO
+
+### Meta verdadeira
+
+RedWar 1.0 é o momento em que o jogo deixa de ser apenas um repositório de engine + investigação e passa a ser um produto que terceiros conseguem utilizar de forma suportada.
+
+### Conteúdo e qualidade
+
+Antes do release devem estar estabilizados:
+
+- regras oficiais;
+- catálogo de heróis e respectivas descrições;
+- balanceamento dentro do escopo decidido;
+- Ares default suportada por evidência;
+- Arena e datasets reproduzíveis;
+- replays;
+- UI;
+- efeitos/áudio;
+- documentação;
+- licenças e atribuições de assets/código/conteúdo externo.
+
+### Release engineering
+
+- builds reproduzíveis;
+- testes de regressão;
+- smoke tests de instalação e execução;
+- validação de caminhos offline e online relevantes;
+- segurança mínima do cliente/servidor;
+- observabilidade e logs suficientes para incidentes;
+- estratégia de compatibilidade de replay/estado;
+- versão claramente identificada.
+
+### Critério de fecho
+
+Só declarar 1.0 quando:
+
+```text
+rules stable
+→ gameplay complete
+→ Ares accepted
+→ local product complete
+→ online functional
+→ history/replay reliable
+→ QA/release gates green
+→ licensing/security reviewed
+→ public release
+```
+
+---
+
+# Ordem operacional definitiva
+
+```text
+1. Fundação   [~70%] → FECHAR 100%
+        ↓
+2. Gameplay   [~85%] → FECHAR 100%
+        ↓
+3. Ares       [~60%] → CORRECTNESS → CAPABILITY → STRENGTH
+        ↓
+4. Produto    [~30%] → UI + REPLAY + ANÁLISE + UX
+        ↓
+5. Online     [~5%]  → SERVIDOR → MULTIPLAYER → ECOSSISTEMA
+        ↓
+6. Release    [~10%] → QA + SEGURANÇA + LICENÇAS + LANÇAMENTO
+```
+
+### Paralelismo permitido
+
+UI/replay podem avançar enquanto Ares ou Gameplay fecham, desde que usem contratos já definidos e não criem uma implementação paralela das regras. Tooling da Arena pode evoluir antes de Ares estar finalizada, mas não deve ser tratado como prova de strength. Infraestrutura inicial de servidor pode existir antes do multiplayer completo, mas o gate online só fecha com partidas reais e servidor autoritativo.
+
+### Regra de percentagem
+
+A percentagem de uma dimensão sobe quando uma **meta de produto ponderada** passa de protótipo/infraestrutura para implementação testada, validada e utilizável. Um refactor isolado ou uma pequena feature interna pode aumentar qualidade sem aumentar materialmente o global.
+
+### Regra de evidência
 
 Toda PR deve declarar:
 
-1. ID/fase do roadmap;
+1. fase do roadmap;
 2. documento canónico que define o contrato;
-3. hipótese ou correção;
-4. tipo de evidência esperada;
+3. hipótese/correcção;
+4. evidência esperada;
 5. critério de saída;
-6. documentos canónicos atualizados no mesmo work package.
+6. documentos canónicos actualizados no mesmo pacote.
 
-Não criar outro roadmap para contornar esta sequência.
+Nenhuma alegação de força, balanceamento, equivalência, segurança ou qualidade de produto deve ser inferida apenas porque “o código funciona” ou porque CI ficou verde.
