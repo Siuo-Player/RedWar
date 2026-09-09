@@ -1,36 +1,15 @@
 # RedWar — Current State
 
 **Snapshot:** 2026-09-09  
-**Verified `main`:** `010b14b6251ce131409e660df95c6d920c76af58`
+**Verified `main`:** `f2e7155d150b4cc0be79d4b86beb5005941ef180`
 
 Este ficheiro é a fotografia operacional mínima do baseline atual. Os contratos pertencem aos documentos canónicos; a sequência pertence a [`ROADMAP.md`](ROADMAP.md); a explicação causal transversal está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
 
 ## 1. Fase atual
 
-**A0 histórico: CLOSED. A0.1 Semantic Closure: CLOSED.**
+**A0 histórico: CLOSED. A0.1 Semantic Closure: CLOSED. Foundation: OPEN.**
 
-O `main` atual contém a fundação de action-space/execução resultante das tranches A0.1. `legal_actions()` fornece a enumeração canónica derivada dos geradores das peças; `resolve_legal_action()` é o seam de resolução canónica/legacy; `GameState._validate_transition()` mantém as restrições específicas de transição; `execute_action()` só entrega uma ação resolvida à mutação depois dessas fronteiras.
-
-### Matriz A0.1
-
-| Fronteira | Estado | Evidência atual |
-|---|---|---|
-| Inquisitor silence/stun | TESTED / CLOSED | #292 + regressão C3/Python/native |
-| terminal differential | TESTED / CLOSED | #310 observa o `alpha_beta()` real |
-| special-spell legality | TESTED / CLOSED | #303 cobre as special actions atuais |
-| canonical `GameAction` boundary | IMPLEMENTED / TESTED / CLOSED | #306 + #308 |
-| canonical action resolution seam | IMPLEMENTED / TESTED / CLOSED | #321 + #351 |
-| generator → canonical action-space coverage | TESTED / VALIDATED / CLOSED | #351 cobre todos os heróis configurados em variantes determinísticas |
-| canonical ↔ legacy execution compatibility | TESTED / VALIDATED / CLOSED | #348 + #349 + #351 |
-| execute-time domain-error contract | TESTED / VALIDATED / CLOSED | #350 + #352 |
-| Python repetition observation | IMPLEMENTED / TESTED / CLOSED | #299 tornou observação idempotente |
-| FrostMage unreachable block | IMPLEMENTED / TESTED / CLOSED | #300 + AST regression |
-| fixed node-budget semantics | TESTED / CLOSED | cobertura dedicada existente |
-| native repetition/history contract | ARCHITECTURAL DECISION / TESTED BOUNDARY / CLOSED | #338 define `BoardState` como posição/search state e não como owner da sequência de repetição |
-
-**Importante:** “closed” acima significa fechado para a afirmação específica sustentada pela evidência indicada. Não significa correctness total do projeto, nem paridade total em todos os estados matematicamente possíveis.
-
-A fronteira de execução consolidada é:
+A fronteira de legalidade consolidada continua a ser:
 
 ```text
 input action
@@ -44,60 +23,52 @@ transition-domain validation
 only then mutate
 ```
 
-A cobertura de #351 exerceu todos os heróis configurados em estados determinísticos e verificou que as ações produzidas diretamente pelos geradores aparecem no action-space canónico, sobrevivem à resolução legacy e executam através de `execute_action()`. #352 fixa os erros específicos do domínio e a não-mutação em rejeições. Assim, a alegação de A.1 é agora sobre a fronteira `execute_action()` + action-space canónico, não sobre transformar `make_action()` numa segunda implementação da legalidade.
+`legal_actions()` é a autoridade canónica da action-space; `resolve_legal_action()` é o seam de resolução canónica/legacy; `_validate_transition()` mantém as restrições de transição; `execute_action()` só entrega uma ação resolvida à mutação depois dessas fronteiras. `fast_clone()` não é preflight nem autoridade de legalidade e permanece fora do hot path C++ da Ares.
 
-`fast_clone()` não é mecanismo de preflight nem autoridade de legalidade. Continua permitido apenas em contextos auxiliares de referência Python, replay, fixtures/property tests, tooling offline e comparação de estados; não entra no hot path C++ da Ares.
-
-Fonte: [`A01_SEMANTIC_CLOSURE_2026-09-07.md`](A01_SEMANTIC_CLOSURE_2026-09-07.md).
+A0.1 permanece fechado apenas para as afirmações específicas já validadas por #351/#352/#338; não representa prova exaustiva de todos os estados possíveis.
 
 ## 2. Ares
 
 Ares mantém C++ no hot path com alpha-beta/PVS, TT, Zobrist, iterative deepening, move ordering, killer/history, quiescence/tactical search e limites de nodes/tempo.
 
-**Estado do conhecimento:** IMPLEMENTED para a arquitetura documentada; TESTED para os contratos cobertos pela suite; não há aqui uma alegação de STRENGTH improvement.
+**Estado do conhecimento:** arquitetura IMPLEMENTED e contratos principais TESTED; não há alegação de melhoria de STRENGTH nesta tranche.
 
-A avaliação clássica permanece baseline. NNUE é opcional e `sync_board()` continua oracle de correção até que a integração incremental real demonstre equivalência.
+## 3. NNUE
 
-Fontes: [`AI_ENGINE.md`](AI_ENGINE.md), [`NNUE.md`](NNUE.md), [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md), [`DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md`](DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md).
+**P0 fechado em #356.** A integração incremental passou a demonstrar equivalência entre o estado incremental e `sync_board()` nos caminhos reais de `make_move()`/`unmake_move()`, incluindo alterações de temporizadores e os estados persistentes cobertos pela suíte.
 
-## 3. Strength / Arena
+`sync_board()` continua permitido como oracle/recovery/test support. Isto fecha correctness da integração incremental sob a cobertura validada; não demonstra superioridade competitiva, melhor NPS ou strength.
 
-A infraestrutura de Arena, provenance, população, Elo-compatible rating, uncertainty, paired-game/pentanomial analysis, hold-out e SPRT isolado existe.
+A metodologia de dataset NNUE continua separada da afirmação de strength. #314 não foi merged.
 
-O primeiro dataset real persistido contém 100 jogos organizados em 50 pares de inversão de cor. Os pares são unidades de resampling/observação pareada; **não são 50 condições experimentais independentes**, porque parte das combinações de opening/seed é reutilizada.
+## 4. Tactical validation
 
-**Estado do conhecimento:** infraestrutura IMPLEMENTED; metodologia DOCUMENTED; calibração de strength global ainda UNVERIFIED.
+**P1/P0 em progresso — PR #359.** A tranche foi reconstruída sobre o `main` pós-#356 porque o #358 estava baseado no baseline antigo e falhava com RWEN malformado.
 
-A existência de um run, intervalo bootstrap, Elo delta ou SPRT isolado não autoriza por si só uma promoção de força.
+O #359 cobre explicitamente STUN, SPELL, DEFENSE, LIFESPAN_COOLDOWN, TWC e HIGH_VALUE_CAPTURE, e usa apenas estados RWEN preservados/legítimos para o probe de corpus real. O harness também passou a impor um timeout real de leitura para não ficar bloqueado num `readline()` indefinido.
 
-Fontes: [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md), [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md), [`ARENA_STRENGTH_DATASET.md`](ARENA_STRENGTH_DATASET.md).
-
-## 4. NNUE
-
-As features, formato versionado, `sync_board()` e hooks incrementais existem. **A integração hot-path incremental não está concluída/provada.**
-
-O PR #316 foi merged e separa na CI a classe estreita de alterações metodológicas de dataset NNUE da promoção de strength. O PR #314, que propunha endurecer split/deduplicação/auditoria de dataset, não foi merged e portanto não é implementação corrente.
-
-**Não inferir:** dataset methodology improvement ≠ strength improvement; lower training loss ≠ stronger Ares.
-
-Fonte: [`NNUE.md`](NNUE.md).
+Estado: IMPLEMENTED; VALIDATION aguardando conclusão de CI.
 
 ## 5. Heróis / regras
 
 O sistema continua híbrido: `engine/heroes_config.json` fornece estrutura declarativa e código especializado cobre mecânicas ainda não expressas integralmente no schema.
 
-Ações canónicas da fronteira atual: `MOVE`, `ATTACK`, `STUN`, `SPAWN`, `SPELL`. A relação entre geradores de peça, action-space canónico, resolução legacy e validação de transição está agora coberta como contrato de execução; isso não duplica as regras de herói.
+Os testes de traceability cobrem schema, spells declaradas, referências de comportamento e paridade representativa entre Python e C++. Isto é evidência de cobertura contratual representativa, não prova de exaustividade matemática.
 
-Fontes: [`HERO_SYSTEM.md`](HERO_SYSTEM.md), [`GAME_RULES.md`](GAME_RULES.md), [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md).
+## 6. Strength / Arena / provenance
 
-## 6. UI / replay / telemetria
+A infraestrutura de Arena, provenance, população, Elo-compatible rating, uncertainty, paired-game/pentanomial analysis, hold-out e SPRT isolado existe.
 
-A arquitetura funcional da Battle Sidebar, contexto Encyclopedia, geometria responsiva e tema semântico estão integrados. O trabalho restante documentado é validação visual/UX, teclado/foco e captura determinística, além de replay/telemetria quando os respetivos corpus e contratos o justificarem.
+Os resultados competitivos continuam sujeitos à validade do protocolo. Correctness, capability, performance, competitive strength e balance permanecem classes distintas de evidência.
 
-Isto é **IMPLEMENTED architecture + remaining VALIDATION work**, não uma declaração de UX totalmente validada.
+Foi identificado o **P1 #360**: exceções reais de transporte/engine/transição ainda podem sair de `start_tournament()` antes de serem persistidas como observações inválidas por jogo. Os testes existentes asseguram que observações já marcadas como inválidas são excluídas das agregações, mas não cobrem ainda esta fronteira de exceção real.
 
-Fonte: [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md).
+## 7. UI / replay / telemetria
 
-## 7. Próximo bloco operacional
+A arquitetura funcional da Battle Sidebar, contexto Encyclopedia, geometria responsiva e tema semântico está integrada. A validação visual/UX e replay/telemetria continuam fora do gate de foundation correctness atual.
 
-Com A0.1 fechado, o próximo bloco da sequência é [`ROADMAP.md`](ROADMAP.md) → **B: strength measurement / calibration**, sem saltar os critérios de evidência. C, D, E, F e G continuam condicionados pelos respetivos gates.
+## 8. Estado operacional
+
+A fundação **não está fechada** enquanto #359 não tiver validação CI completa e enquanto os blockers estruturais P1 relevantes, incluindo provenance #360, não estiverem resolvidos ou formalmente reclassificados.
+
+Não avançar para strength/balance tuning como substituto destes gates.
