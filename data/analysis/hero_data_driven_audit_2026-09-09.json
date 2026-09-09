@@ -1,0 +1,57 @@
+{
+  "audit_id": "hero-data-driven-2026-09-09",
+  "audit_epoch": "2026-09-09",
+  "rules_config_source": "engine/heroes_config.json",
+  "rules_config_sha": "5c0b42d9661afc0493b76a4709845c91435063f2",
+  "python_rules_source": "engine/pieces.py",
+  "python_rules_sha": "77656f607ba57399fa82fe0c6e1f1c18f5b12c78",
+  "a_res_revision": null,
+  "gameplay_evidence": null,
+  "note": "Design-space audit only; no balance or strength claim.",
+  "classification_vocabulary": [
+    "DATA_DRIVEN_OK",
+    "DUPLICATED_DESIGN_DATA",
+    "HARDCODED_DESIGN_PARAMETER",
+    "SPECIALIZED_ALGORITHM_JUSTIFIED",
+    "CONFIG_DECLARED_BUT_UNCONSUMED",
+    "ANALYSIS_GAP"
+  ],
+  "consumers": {
+    "python": ["engine/pieces.py"],
+    "cpp": ["ai/cpp_engine/movegen.cpp"],
+    "ui": ["ui/hero_encyclopedia_panel.py", "tools/replay/interaction.py"],
+    "analysis": ["tools/balance/auto_pricer.py", "tools/nnue/features.py", "tools/nnue/bootstrap_model.py"]
+  },
+  "heroes": [
+    {"name":"Bone","draftable":false,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece uses compiled movement/attack; lifespan comes from config; no hero-specific override observed."},
+    {"name":"Ghoul","draftable":false,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece uses compiled forward-cone movement/attack; forward orientation is declared in config."},
+    {"name":"Obelisk","draftable":true,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece uses config-declared immobile movement and orthogonal attack."},
+    {"name":"Phantom","draftable":true,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece uses config-declared knight geometry and spell classification; no Python override."},
+    {"name":"Sentry","draftable":true,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece uses config-declared ray geometry and spell classification; no Python override."},
+    {"name":"FrostMage","draftable":true,"classification":"HARDCODED_DESIGN_PARAMETER","secondary_classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Unique Nevada targeting/effect algorithm is specialized, but range=3, cross footprint and spell name are duplicated in Python while also declared in config."},
+    {"name":"Lich","draftable":true,"classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Spawn validation is unique lifecycle logic; spawn_cooldown is read from config. Spawn direction and Ghoul result are rule-specific algorithmic semantics."},
+    {"name":"BoneLord","draftable":true,"classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"on_kill spawn-unit behavior is represented in config but requires specialized state-transition handling."},
+    {"name":"Ranger","draftable":true,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece consumes config ray geometry, minimum range and spell classification."},
+    {"name":"Nightshade","draftable":true,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece consumes config orthogonal range and ghost movement flag."},
+    {"name":"Templar","draftable":true,"classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Reflect/redirect-damage passive is a state-transition mechanic; the passive metadata and cooldown are declared in config but resolution is specialized."},
+    {"name":"Berserker","draftable":true,"classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"on_attack area-damage passive is state-transition logic; config describes it but generic DataPiece movement does not implement the event effect."},
+    {"name":"Pyromancer","draftable":true,"classification":"HARDCODED_DESIGN_PARAMETER","secondary_classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Ignite is unique spell resolution; Python hardcodes a 3-square neighborhood and spell name instead of reading equivalent geometry from config."},
+    {"name":"Dragoon","draftable":true,"classification":"HARDCODED_DESIGN_PARAMETER","secondary_classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Jump is unique and specialized, but Python hardcodes the direction set and two-step midpoint semantics; jump_max is read from config."},
+    {"name":"Cleric","draftable":true,"classification":"HARDCODED_DESIGN_PARAMETER","secondary_classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Purify is unique state-dependent spell logic; Python hardcodes a radius-2 scan and spell name although the active spell is declared in config."},
+    {"name":"Trickster","draftable":true,"classification":"HARDCODED_DESIGN_PARAMETER","secondary_classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Swap is unique state-transition logic; Python hardcodes a radius-3 scan and spell name rather than consuming configurable range metadata."},
+    {"name":"Geomancer","draftable":true,"classification":"HARDCODED_DESIGN_PARAMETER","secondary_classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Barricade is unique board-alteration logic; Python hardcodes the eight adjacent offsets and spell name while config only declares the spell."},
+    {"name":"Inquisitor","draftable":true,"classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","evidence":"Aura is unique area/passive logic; aura_radius is correctly read from config, while the square-radius algorithm remains specialized."},
+    {"name":"StoneWall","draftable":false,"classification":"DATA_DRIVEN_OK","evidence":"DataPiece consumes config immobile/no-attack behavior and lifespan."}
+  ],
+  "cross_cutting_findings": [
+    {"id":"C1","classification":"DUPLICATED_DESIGN_DATA","scope":["FrostMage","Pyromancer","Cleric","Trickster","Geomancer"],"finding":"Specialized Python spell generators duplicate spell names and geometric ranges/patterns instead of deriving all reusable parameters from the declarative model."},
+    {"id":"C2","classification":"SPECIALIZED_ALGORITHM_JUSTIFIED","scope":["FrostMage","Lich","BoneLord","Templar","Berserker","Dragoon","Inquisitor","Pyromancer","Cleric","Trickster","Geomancer"],"finding":"The schema currently describes data but not the complete state-transition semantics for unique event-driven or board-altering mechanics; forcing these algorithms into JSON would be inappropriate without an expressive DSL contract."},
+    {"id":"C3","classification":"ANALYSIS_GAP","scope":["all draftable heroes"],"finding":"A complete gameplay-vector audit requires valid reconstructed replay states and a versioned sampling protocol; the present artifact is intentionally design-vector only."}
+  ],
+  "recommended_next_actions": [
+    "Add generic schema fields only for repeated parameters proven across multiple specialized spell implementations.",
+    "Add regression tests before moving any duplicated parameter from Python into config.",
+    "Do not refactor unique algorithms into JSON solely to satisfy data-driven goals.",
+    "Implement gameplay-vector extraction as a separate evidence block after replay/state sampling contracts are frozen."
+  ]
+}
