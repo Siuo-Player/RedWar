@@ -1,0 +1,4 @@
+# Extracted from the preserved real-arena complete-game artifact:
+# 2026-08-27-control-replication-games.jsonl, game_index=0
+# workflow artifact: 9673256631
+.:.,B_Ranger_0_N_0:.,.:.,B_Phantom_0_N_0:.,.:.,B_Trickster_0_N_0:.,.:.,.:./.:.,.:.,B_Cleric_0_N_0:.,.:.,B_Berserker_0_N_0:.,.:.,B_Nightshade_0_N_0:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./.:.,W_Ranger_0_N_0:.,.:.,W_Geomancer_0_N_0:.,.:.,W_Sentry_0_N_0:.,.:.,.:./.:.,.:.,W_BoneLord_0_N_0:.,.:.,W_Berserker_0_N_0:.,.:.,W_Lich_0_N_0:.,.:. W 0
