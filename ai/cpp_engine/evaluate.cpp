@@ -229,10 +229,9 @@ int evaluate_board() {
     if (board.black_pieces == 0) return INFINITO - 100;
 
     if (redwar::nnue::available()) {
-        // Baseline implementation: explicitly resynchronise before inference.
-        // A later hot-path PR can replace this scan with BoardState hooks and
-        // should prove its NPS benefit against this correctness baseline.
-        redwar::nnue::sync_board();
+        // The NNUE accumulator is kept current by the BoardState mutation
+        // observers. Full resynchronisation remains an explicit parser/test
+        // oracle, never a per-evaluation hot-path operation.
         if (const auto nnue_score = redwar::nnue::evaluate(); nnue_score.has_value()) {
             return *nnue_score;
         }
