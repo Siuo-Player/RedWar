@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 
+import engine.pieces as pieces
 from engine.pieces import (
     Cleric,
     FrostMage,
@@ -27,10 +28,17 @@ def empty_board(size=8):
 
 
 @pytest.mark.parametrize("hero_name", SPECIALIZED_SPELLS)
-def test_specialized_generator_reads_declared_spell_name(monkeypatch, hero_name):
-    piece_class, _original_name = SPECIALIZED_SPELLS[hero_name]
+def test_declared_spell_lookup_uses_canonical_config(monkeypatch, hero_name):
     sentinel = f"{hero_name.lower()}_canonical_test_spell"
     monkeypatch.setitem(HERO_DEFS[hero_name], "spells", [sentinel])
+    assert pieces._declared_spell_name(hero_name) == sentinel
+
+
+@pytest.mark.parametrize("hero_name", SPECIALIZED_SPELLS)
+def test_specialized_generator_consumes_declared_spell_lookup(monkeypatch, hero_name):
+    piece_class, _original_name = SPECIALIZED_SPELLS[hero_name]
+    sentinel = f"{hero_name.lower()}_generator_test_spell"
+    monkeypatch.setattr(pieces, "_declared_spell_name", lambda name: sentinel)
 
     board = empty_board()
     piece = piece_class("brancas")
