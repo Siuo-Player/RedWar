@@ -79,13 +79,13 @@ int main() {
         const auto swapped = redwar::nnue::evaluate();
         require(swapped.has_value(), "NNUE did not evaluate mirrored position");
 
-        set_position("W_Pyromancer_0_N_0,.,.,.,.,.,.,./.,B_Bone_1_5_3,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. W 7");
+        set_position("W_Pyromancer_0_N_0,W_Bone_1_5_3,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. W 7");
         assert_make_unmake_incremental_equivalence(
             "MOVE with timers/twc/side updates",
             Move(0, 0, 1, 0, "MOVE")
         );
 
-        set_position("W_Pyromancer_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,B_Bone_0_N_0,.,./.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. W 7");
+        set_position("W_Pyromancer_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B_Bone_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. W 7");
         assert_make_unmake_incremental_equivalence(
             "SPELL ignite effect/stun/twc/side updates",
             Move(0, 0, 3, 4, "SPELL", "ignite")
