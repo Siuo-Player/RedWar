@@ -47,7 +47,7 @@ CASES = {
     "high-value-capture": TacticalCase(
         "high-value-capture",
         "A Templar has an immediate high-value capture opportunity.",
-        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY}",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
         "ATTACK E4 E5",
         "HIGH_VALUE_CAPTURE",
     ),
