@@ -52,6 +52,21 @@ def _validate_hero_defs():
 _validate_hero_defs()
 
 
+def _declared_spell_name(hero_name: str, index: int = 0) -> str:
+    """Return the canonical spell name declared for a hero in ``heroes_config.json``."""
+    spells = HERO_DEFS.get(hero_name, {}).get("spells", [])
+    if not isinstance(spells, list) or index < 0 or index >= len(spells):
+        raise RuntimeError(
+            f"Hero {hero_name!r} has no declared spell at index {index}"
+        )
+    spell_name = spells[index]
+    if not isinstance(spell_name, str) or not spell_name:
+        raise RuntimeError(
+            f"Hero {hero_name!r} has an invalid declared spell at index {index}"
+        )
+    return spell_name
+
+
 class Piece:
     __slots__ = (
         "team", "name", "cost", "acronym", "stun_timer", "lifespan",
@@ -466,6 +481,7 @@ class Pyromancer(DataPiece):
     def get_valid_spells(self, r, c, board, tile_effects=None):
         if not self.can_act():
             return []
+        spell_name = _declared_spell_name(self.name)
         targets = []
         for dr in range(-3, 4):
             for dc in range(-3, 4):
@@ -476,7 +492,7 @@ class Pyromancer(DataPiece):
                     continue
                 target = board[nr][nc]
                 if target is None or target.team != self.team:
-                    targets.append({"target": (nr, nc), "spell_type": "ignite"})
+                    targets.append({"target": (nr, nc), "spell_type": spell_name})
         return targets
 
 
@@ -522,6 +538,7 @@ class Cleric(DataPiece):
     def get_valid_spells(self, r, c, board, tile_effects=None):
         if not self.can_act():
             return []
+        spell_name = _declared_spell_name(self.name)
         targets = []
         for dr in range(-2, 3):
             for dc in range(-2, 3):
@@ -532,7 +549,7 @@ class Cleric(DataPiece):
                     continue
                 target = board[nr][nc]
                 if target and target.team == self.team and target.stun_timer > 0:
-                    targets.append({"target": (nr, nc), "spell_type": "purify"})
+                    targets.append({"target": (nr, nc), "spell_type": spell_name})
         return targets
 
 
@@ -543,6 +560,7 @@ class Trickster(DataPiece):
     def get_valid_spells(self, r, c, board, tile_effects=None):
         if not self.can_act():
             return []
+        spell_name = _declared_spell_name(self.name)
         swaps = []
         for dr in range(-3, 4):
             for dc in range(-3, 4):
@@ -553,7 +571,7 @@ class Trickster(DataPiece):
                     continue
                 target = board[nr][nc]
                 if target and target.team == self.team:
-                    swaps.append({"target": (nr, nc), "spell_type": "swap"})
+                    swaps.append({"target": (nr, nc), "spell_type": spell_name})
         return swaps
 
 
@@ -564,11 +582,12 @@ class Geomancer(DataPiece):
     def get_valid_spells(self, r, c, board, tile_effects=None):
         if not self.can_act():
             return []
+        spell_name = _declared_spell_name(self.name)
         walls = []
         for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
             nr, nc = r + dr, c + dc
             if 0 <= nr < LINHAS and 0 <= nc < COLUNAS and board[nr][nc] is None:
-                walls.append({"target": (nr, nc), "spell_type": "barricade"})
+                walls.append({"target": (nr, nc), "spell_type": spell_name})
         return walls
 
 
@@ -584,6 +603,7 @@ class FrostMage(DataPiece):
     def get_valid_spells(self, r, c, board, tile_effects=None):
         if not self.can_act():
             return []
+        spell_name = _declared_spell_name(self.name)
         spells = []
         for dr in range(-3, 4):
             for dc in range(-3, 4):
@@ -606,7 +626,7 @@ class FrostMage(DataPiece):
                         has_enemy = True
                         break
                 if has_enemy:
-                    spells.append({"target": (focus_r, focus_c), "spell_type": "nevada"})
+                    spells.append({"target": (focus_r, focus_c), "spell_type": spell_name})
         return spells
 
 
