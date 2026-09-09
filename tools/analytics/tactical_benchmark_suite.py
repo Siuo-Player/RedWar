@@ -4,8 +4,10 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import queue
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -197,26 +199,45 @@ def query(engine: Path, rwen: str, nodes: int, trace_path: Path | None) -> tuple
         stderr=subprocess.DEVNULL, text=True, cwd=ROOT, env=env,
     )
     start = time.perf_counter()
+    responses: queue.Queue[str | None] = queue.Queue()
+
+    def _read_stdout() -> None:
+        assert proc.stdout is not None
+        try:
+            for raw_line in proc.stdout:
+                responses.put(raw_line.strip())
+        finally:
+            responses.put(None)
+
+    reader = threading.Thread(target=_read_stdout, name="tactical-engine-reader", daemon=True)
+    reader.start()
     try:
-        assert proc.stdin is not None and proc.stdout is not None
+        assert proc.stdin is not None
         proc.stdin.write("isready\n")
         proc.stdin.write(f"position rwen {rwen}\n")
         proc.stdin.write(f"go nodes {nodes}\n")
         proc.stdin.flush()
         deadline = time.monotonic() + 30.0
-        while time.monotonic() < deadline:
-            line = proc.stdout.readline()
-            if not line:
-                break
-            line = line.strip()
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("engine did not return bestmove within 30 seconds")
+            try:
+                line = responses.get(timeout=min(remaining, 0.25))
+            except queue.Empty:
+                if proc.poll() is not None:
+                    raise RuntimeError(f"engine exited before bestmove (returncode={proc.returncode})")
+                continue
+            if line is None:
+                returncode = proc.poll()
+                raise RuntimeError(f"engine stdout closed before bestmove (returncode={returncode})")
             if line.startswith("bestmove"):
                 return (line.split(" ", 1)[1] if " " in line else "0000", time.perf_counter() - start)
-        raise TimeoutError("engine did not return bestmove within 30 seconds")
     finally:
         try:
-            assert proc.stdin is not None
-            proc.stdin.write("quit\n")
-            proc.stdin.flush()
+            if proc.stdin is not None and proc.poll() is None:
+                proc.stdin.write("quit\n")
+                proc.stdin.flush()
         except Exception:
             pass
         proc.terminate()
