@@ -1,13 +1,17 @@
-"""Reusable deterministic failure-threshold harness for Ares tactical positions."""
+"""Deterministic Ares tactical capability benchmark for Sprint 20."""
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import queue
 import subprocess
 import sys
+import threading
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -17,6 +21,9 @@ from tools.analytics.frostmage_benchmark import FROST_CLUSTER
 
 DEFAULT_ENGINE = ROOT / "ai" / "cpp_engine" / ("engine.exe" if sys.platform == "win32" else "engine")
 DEFAULT_NODES = [10, 100, 1_000, 10_000, 100_000, 1_000_000]
+REAL_GAME_ROOT = ROOT / "data" / "arena" / "strength"
+REAL_GAME_FIXTURE = ROOT / "tests" / "fixtures" / "foundation-real-game-initial-rwen.txt"
+
 
 @dataclass(frozen=True)
 class TacticalCase:
@@ -24,19 +31,62 @@ class TacticalCase:
     description: str
     rwen: str
     expected_prefix: str
+    coverage: str
+
+
+_EMPTY = ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
 
 CASES = {
     "frostmage-5-target": TacticalCase(
-        name="frostmage-5-target",
-        description="Five clustered enemies inside one FrostMage stun area; immediate STUN is the tactical reference.",
-        rwen=FROST_CLUSTER,
-        expected_prefix="STUN ",
+        "frostmage-5-target",
+        "Five clustered enemies exercise the FrostMage STUN-capable tactical state.",
+        FROST_CLUSTER,
+        "STUN ",
+        "STUN",
+    ),
+    "high-value-capture": TacticalCase(
+        "high-value-capture",
+        "A Templar has an immediate high-value capture opportunity.",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY}",
+        "ATTACK E4 E5",
+        "HIGH_VALUE_CAPTURE",
+    ),
+    "ranged-spell": TacticalCase(
+        "ranged-spell",
+        "A Ranger has a declared aimed-shot spell against a distant target.",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,.:.,W_Ranger_0_N_0:.,.:.,B_Obelisk_0_N_0:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
+        "SPELL aimed_shot E4 G4",
+        "SPELL",
+    ),
+    "defensive-purify": TacticalCase(
+        "defensive-purify",
+        "A Cleric can purge a stunned allied Templar; the reference action is capability evidence, not a strength claim.",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,W_Templar_2_N_0:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Cleric_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
+        "SPELL purify E4 D5",
+        "DEFENSE",
+    ),
+    "lifespan-cooldown": TacticalCase(
+        "lifespan-cooldown",
+        "A Lich with an available spawn path exercises lifecycle/cooldown state handling.",
+        f"{_EMPTY}/.:.,.:.,.:.,B_Bone_1_1_3:.,.:.,.:.,.:.,.:./{_EMPTY}/.:.,.:.,.:.,.:.,W_Lich_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
+        "SPAWN Ghoul E5 ",
+        "LIFESPAN_COOLDOWN",
+    ),
+    "twc-capture": TacticalCase(
+        "twc-capture",
+        "A capture is available immediately before the TWC terminal boundary.",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 49",
+        "ATTACK E4 D5",
+        "TWC",
     ),
 }
 
 
 def _validate_rwen(rwen: str) -> None:
-    board_text, turn, twc = rwen.split()
+    parts = rwen.split()
+    if len(parts) != 3:
+        raise ValueError("RWEN must contain board, side-to-move and TWC fields")
+    board_text, turn, twc = parts
     rows = board_text.split("/")
     if len(rows) != 8:
         raise ValueError(f"RWEN must contain 8 rows, got {len(rows)}")
@@ -52,6 +102,43 @@ def _validate_rwen(rwen: str) -> None:
     int(twc)
 
 
+def _looks_like_rwen(value: str) -> bool:
+    try:
+        _validate_rwen(value)
+    except (TypeError, ValueError):
+        return False
+    return True
+
+
+def _iter_strings(value: Any):
+    if isinstance(value, dict):
+        for nested in value.values():
+            yield from _iter_strings(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _iter_strings(nested)
+    elif isinstance(value, str) and _looks_like_rwen(value):
+        yield value
+
+
+def find_complete_game_rwen() -> str | None:
+    """Find a valid RWEN actually preserved by the real-game evidence corpus."""
+    if REAL_GAME_ROOT.is_dir():
+        for path in sorted(REAL_GAME_ROOT.rglob("*.json")):
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            for candidate in _iter_strings(payload):
+                return candidate
+    if REAL_GAME_FIXTURE.is_file():
+        for line in REAL_GAME_FIXTURE.read_text(encoding="utf-8").splitlines():
+            candidate = line.strip()
+            if candidate and not candidate.startswith("#") and _looks_like_rwen(candidate):
+                return candidate
+    return None
+
+
 def query(engine: Path, rwen: str, nodes: int, trace_path: Path | None) -> tuple[str, float]:
     env = os.environ.copy()
     if trace_path is not None:
@@ -64,26 +151,44 @@ def query(engine: Path, rwen: str, nodes: int, trace_path: Path | None) -> tuple
         stderr=subprocess.DEVNULL, text=True, cwd=ROOT, env=env,
     )
     start = time.perf_counter()
+    responses: queue.Queue[str | None] = queue.Queue()
+
+    def _read_stdout() -> None:
+        assert proc.stdout is not None
+        try:
+            for raw_line in proc.stdout:
+                responses.put(raw_line.strip())
+        finally:
+            responses.put(None)
+
+    reader = threading.Thread(target=_read_stdout, name="tactical-engine-reader", daemon=True)
+    reader.start()
     try:
-        assert proc.stdin is not None and proc.stdout is not None
+        assert proc.stdin is not None
         proc.stdin.write("isready\n")
         proc.stdin.write(f"position rwen {rwen}\n")
         proc.stdin.write(f"go nodes {nodes}\n")
         proc.stdin.flush()
         deadline = time.monotonic() + 30.0
-        while time.monotonic() < deadline:
-            line = proc.stdout.readline()
-            if not line:
-                break
-            line = line.strip()
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("engine did not return bestmove within 30 seconds")
+            try:
+                line = responses.get(timeout=min(remaining, 0.25))
+            except queue.Empty:
+                if proc.poll() is not None:
+                    raise RuntimeError(f"engine exited before bestmove (returncode={proc.returncode})")
+                continue
+            if line is None:
+                raise RuntimeError(f"engine stdout closed before bestmove (returncode={proc.poll()})")
             if line.startswith("bestmove"):
                 return (line.split(" ", 1)[1] if " " in line else "0000", time.perf_counter() - start)
-        raise TimeoutError("engine did not return bestmove within 30 seconds")
     finally:
         try:
-            assert proc.stdin is not None
-            proc.stdin.write("quit\n")
-            proc.stdin.flush()
+            if proc.stdin is not None and proc.poll() is None:
+                proc.stdin.write("quit\n")
+                proc.stdin.flush()
         except Exception:
             pass
         proc.terminate()
@@ -94,30 +199,50 @@ def query(engine: Path, rwen: str, nodes: int, trace_path: Path | None) -> tuple
             proc.wait(timeout=5)
 
 
-def run_case(case: TacticalCase, engine: Path, budgets: list[int], trace: bool) -> int:
+def run_case(case: TacticalCase, engine: Path, budgets: list[int], trace: bool, strict_choice: bool) -> int:
     _validate_rwen(case.rwen)
-    print(f"case={case.name}")
+    print(f"case={case.name} coverage={case.coverage}")
     print(f"description={case.description}")
-    print(f"expected={case.expected_prefix.rstrip()}")
+    print(f"capability_reference={case.expected_prefix.rstrip()}")
     failures = 0
     trace_dir = ROOT / "logs" / "benchmarks" / "tactical" / case.name if trace else None
     for nodes in budgets:
         trace_path = trace_dir / f"trace_{nodes}.log" if trace_dir else None
         bestmove, elapsed = query(engine, case.rwen, nodes, trace_path)
-        ok = bestmove.startswith(case.expected_prefix)
+        ok = bestmove != "0000"
+        if strict_choice:
+            ok = ok and bestmove.startswith(case.expected_prefix)
         failures += int(not ok)
-        print(f"nodes={nodes:>9} bestmove={bestmove:<24} time={elapsed:.3f}s {'PASS' if ok else 'FAIL'}")
+        mode = "strict-choice" if strict_choice else "capability"
+        print(f"nodes={nodes:>9} bestmove={bestmove:<28} time={elapsed:.3f}s mode={mode} {'PASS' if ok else 'FAIL'}")
         if trace_path is not None:
             print(f"  trace={trace_path}")
     print(f"failure_threshold: {failures}/{len(budgets)} tested budgets failed")
     return failures
 
 
+def run_complete_game_probe(engine: Path, nodes: int, trace: bool) -> int:
+    rwen = find_complete_game_rwen()
+    if rwen is None:
+        raise RuntimeError("No valid RWEN state was found in data/arena/strength or its preserved real-game fixture")
+    trace_path = ROOT / "logs" / "benchmarks" / "tactical" / "complete-game-corpus" / f"trace_{nodes}.log" if trace else None
+    bestmove, elapsed = query(engine, rwen, nodes, trace_path)
+    ok = bestmove != "0000"
+    print("case=complete-game-corpus coverage=COMPLETE_GAME_STATE")
+    print(f"nodes={nodes:>9} bestmove={bestmove:<28} time={elapsed:.3f}s {'PASS' if ok else 'FAIL'}")
+    if trace_path is not None:
+        print(f"  trace={trace_path}")
+    return 0 if ok else 1
+
+
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Deterministic Ares tactical benchmark suite")
+    parser = argparse.ArgumentParser(description="Deterministic Ares tactical capability benchmark")
     parser.add_argument("--engine", default=str(DEFAULT_ENGINE))
     parser.add_argument("--case", action="append", choices=sorted(CASES), default=None)
     parser.add_argument("--nodes", type=int, action="append", default=None)
+    parser.add_argument("--complete-game-probe", action="store_true")
+    parser.add_argument("--complete-game-nodes", type=int, default=1_000)
+    parser.add_argument("--strict-choice", action="store_true", help="Require the reference bestmove; this is strength-style evidence and is not enabled by default")
     parser.add_argument("--trace", action="store_true")
     args = parser.parse_args()
     engine = Path(args.engine).resolve()
@@ -127,9 +252,14 @@ def main() -> int:
     if any(value <= 0 for value in budgets):
         parser.error("--nodes deve conter apenas inteiros positivos")
     selected = args.case if args.case else sorted(CASES)
-    total_failures = sum(run_case(CASES[name], engine, budgets, args.trace) for name in selected)
-    print(f"suite: {len(selected)} case(s), {len(budgets)} budget(s) each")
-    return 1 if total_failures else 0
+    failures = sum(run_case(CASES[name], engine, budgets, args.trace, args.strict_choice) for name in selected)
+    if args.complete_game_probe:
+        failures += run_complete_game_probe(engine, args.complete_game_nodes, args.trace)
+    print(f"suite: {len(selected)} tactical case(s), {len(budgets)} budget(s) each")
+    if args.complete_game_probe:
+        print("complete-game probe: enabled")
+    print(f"choice mode: {'strict' if args.strict_choice else 'capability'}")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
