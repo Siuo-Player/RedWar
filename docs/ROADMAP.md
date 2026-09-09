@@ -1,7 +1,7 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `c93a6c659451b86d9d32d73b5f5a1ba66a879f2f`  
-**Data:** 2026-09-08
+**Baseline operacional:** `main` @ `010b14b6251ce131409e660df95c6d920c76af58`  
+**Data:** 2026-09-09
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
 
@@ -32,60 +32,72 @@ As PRs acima tiveram `AI Quality Gate`, `Test Suite` e `CodeQL` verdes antes do 
 
 ### A.1 — authoritative execute legality
 
-**Estado:** `PARTIAL — boundary hardened; full action-space closure still OPEN`.
+**Estado histórico:** `PARTIAL` no início da tranche; **agora CLOSED**.
 
-PR #336 foi merged como `ecefc111a4068848373167d4e59e68ac9a002464`. A implementação passou a rejeitar SPELLs cujo nome não é declarado pelo herói de origem, usando o catálogo canónico `HERO_DEFS`; isto elimina um bypass sem copiar regras de alvo para o resolver. A validação de domínio de `GameState` continua a ser a autoridade para condições específicas de transição.
+PR #336 eliminou o bypass de SPELL estruturalmente válido mas não declarado pelo herói. PR #350 fechou os bypasses equivalentes de STUN/SPAWN e consolidou a regra de que ações especiais não enumeradas pelo action-space não atravessam a resolução canónica para execução. PR #351 fez a cobertura de action-space sobre todos os heróis configurados em variantes de estado determinísticas: as ações produzidas diretamente pelos geradores das peças têm de aparecer no `legal_actions()`, ser reproduzíveis pela normalização legacy e executar através de `execute_action()` num clone isolado de teste. PR #352 fechou o contrato de erros de domínio e a garantia de não-mutação em rejeição.
 
-A primeira versão de #336 falhou em três testes porque tratava a lista exata de targets de `get_valid_spells()` como única fonte de compatibilidade; isso quebrou o fixture legacy `aimed_shot` e a capitalização histórica `Nevada`. A versão final corrigiu ambos sem reintroduzir `fast_clone()` ou duplicação de regras e terminou com as três gates verdes.
+**Estado final:** `IMPLEMENTED / TESTED / VALIDATED / CLOSED` para a fronteira `execute_action()` + action-space canónico e os contratos legacy cobertos. A geração continua na implementação das peças; não foi criada uma segunda fonte de regras no resolver.
 
-**Ainda aberto:** issue **#317** exige cobertura completa de todas as formas de execução intencionalmente aceites (`MOVE/ATTACK/STUN/SPAWN/SPELL`) e equivalência entre enumeração canónica e fixtures legacy. Enquanto essa matriz não estiver fechada, `execute_action()` não deve ser tratado como membership-only enforcement total.
-
-Autoridade pretendida:
+Autoridade consolidada:
 
 ```text
 input action
 → normalize canonical action
-→ action-space resolution / membership where complete
+→ canonical resolution / membership
 → transition-domain validation
 → only then mutate
 ```
 
-`fast_clone()` continua fora de preflight e fora do hot path C++ da Ares.
+`fast_clone()` não é mecanismo de preflight nem autoridade de legalidade e continua fora do hot path C++ da Ares.
 
 ### A.2 — native repetition/history contract
 
 **Estado:** `CLOSED AS ARCHITECTURAL BOUNDARY`.
 
-PR #338 foi merged como `21cef6afb5556d991d9a0f111ca2de42874ffc09`. A decisão canónica em `DECISIONS/2026-09-08-native-repetition-boundary.md` estabelece que `BoardState` não passa a possuir `state_history` mutável só para imitar a infraestrutura Python. A identidade/contagem de repetição pertence ao contexto de adjudicação que possui a sequência; `hash` representa a posição corrente e `twc` permanece distinto.
+PR #338 foi merged como `21cef6afb5556d991d9a0f111ca2de42874ffc09`. `BoardState` permanece a representação da posição/search state; a sequência necessária para repetição pertence ao contexto que realmente possui a história. Isto não constitui uma alegação de equivalência threefold Python↔C++.
 
-Isto fecha a necessidade de uma **decisão arquitetural**, mas **não** declara equivalência threefold Python↔C++.
+## Estado 4 — A0.1 / A.1: EVIDÊNCIA REFORÇADA
 
-## Estado 4 — A0.1 / A.1: EVIDÊNCIA REFORÇADA; BLOCKER #317 AINDA ABERTO
+PR #343 consolidou os erros específicos de transição e a segurança de não-mutação. PR #344 adicionou paridade representativa entre `engine.legal_actions()` e um oracle independente em 11 heróis.
 
-O baseline de Estado 4 começou em `21cef6afb5556d991d9a0f111ca2de42874ffc09` e terminou no `main` `c93a6c659451b86d9d32d73b5f5a1ba66a879f2f`.
+Estas eram evidências parciais quando #317 ainda estava aberto. Foram posteriormente complementadas por #351 e #352, pelo que os seus limites já não constituem o estado operacional atual de A0.1.
 
-- **PR #343** — contrato de rejeição de transições + segurança de não-mutação em erro. A cobertura verifica, entre outros casos, SPAWN em casa ocupada, SPELL bloqueado por silêncio de Inquisitor e SPELL desconhecido; os erros específicos do domínio são preservados e o estado RWEN não é alterado. Merged em `20b7022f88ae49deceaaeac5b0a94aee730e99ee` após as três gates verdes.
-- **PR #344** — paridade representativa entre `engine.legal_actions(state)` e um oracle independente em `tools/analytics/legal_action_oracle.py`, cobrindo MOVE/ATTACK/SPELL/SPAWN em 11 heróis representativos e sem usar geradores de `Piece` como oracle. Merged em `c93a6c659451b86d9d32d73b5f5a1ba66a879f2f` após `RedWar AI Quality Gate #655`, `RedWar Test Suite #1791` e `RedWar CodeQL #615` verdes.
+## Estado 7 — A0.1 / A.1: ACTION-SPACE CLOSURE — FECHADO
 
-**Interpretação da evidência:** Estado 4 demonstra paridade representativa e preservação dos contratos de erro/mutação, mas **não fecha #317**. O oracle ainda é uma cobertura independente representativa, não uma enumeração provada de toda a superfície historicamente aceite; permanecem necessárias a matriz exaustiva de `MOVE/ATTACK/STUN/SPAWN/SPELL`, as variantes especiais/legacy e a reconciliação completa entre ações canónicas e fixtures aceites.
+**PR #351**, branch `state7/A01-actionspace-completeness-2026-09-09`, foi merged em `385a5bdcb53adb93a0477ef98f82ebd7596c6879` após `RedWar AI Quality Gate #668`, `RedWar CodeQL #637` e `RedWar Test Suite #1835` verdes.
+
+A evidência cobre:
+
+- catálogo completo de heróis configurados;
+- estados empty/enemy-pressure/ally-pressure/mixed-pressure;
+- geradores de MOVE/ATTACK/STUN/SPAWN/SPELL como fonte independente do teste;
+- projeção desses resultados para o action-space canónico;
+- resolução legacy equivalente;
+- execução pela fronteira autoritativa `execute_action()`;
+- STUN legacy sem AOE explícita;
+- projeção apenas do herói sob teste quando existem outras peças com ações legítimas no tabuleiro.
+
+## Estado 8 — A0.1 / A.1: DOMAIN ERROR CONTRACT — FECHADO
+
+**PR #352**, branch `state8/A01-legacy-error-contract-2026-09-09`, foi merged em `010b14b6251ce131409e660df95c6d920c76af58` após `RedWar AI Quality Gate #669`, `RedWar CodeQL #639` e `RedWar Test Suite #1838` verdes.
+
+A matriz de rejeição cobre SPAWN ocupado, SPELL desconhecida, silêncio de Inquisitor, ação não enumerada e origem sem peça, assegurando os erros específicos do domínio e a não-mutação observável.
 
 ### Gate A0.1 atual
 
-A0.1 permanece **OPEN apenas por A.1/#317**. A.2 continua **CLOSED AS ARCHITECTURAL BOUNDARY**.
+**A0.1 — CLOSED.**
 
-**Próximo estado:** fechar a cobertura canónica/executável de A.1 sem duplicar regras, começando pela matriz completa de ações/variantes que `execute_action()` deve aceitar ou rejeitar explicitamente.
+A fundação semântica necessária para prosseguir para B está agora fechada nos contratos deliberados acima. Isto não prova correctness matemático de cada estado possível nem strength competitivo; significa que o blocker estrutural que impedia trabalho dependente foi encerrado com evidência executável e merged em `main`.
 
 # B — Medição de força e calibração da Arena
 
 **Estado:** `PARTIAL — infrastructure implemented; calibration not proven`.
 
-Pré-requisito operacional: remover o blocker A.1 quando a alteração depender da semântica de execução. A infraestrutura de Arena e o audit emparelhado têm regressões de determinismo, mas isso não transforma dataset/run em prova de strength global.
+É o próximo bloco operacional autorizado. A infraestrutura de Arena e os audits existentes permanecem sujeitos aos respetivos protocolos de população, provenance, incerteza e hold-out.
 
 # C — Ares: capability e eficiência de search
 
-**Estado:** `BLOCKED by A0.1; then OPEN`.
-
-Cada otimização exige regressão de correctness e benchmark controlado; qualquer alegação de strength exige Arena A/B independente. `fast_clone()` não pertence ao código C++ da Ares.
+**Estado:** `OPEN after A0.1; correctness first`. Cada otimização exige regressão de correctness e benchmark controlado; qualquer alegação de strength exige Arena A/B independente. `fast_clone()` não pertence ao código C++ da Ares.
 
 # D — NNUE
 
@@ -108,7 +120,7 @@ Cada otimização exige regressão de correctness e benchmark controlado; qualqu
 # Ordem global
 
 ```text
-A0.1 Semantic Closure
+A0.1 Semantic Closure  [CLOSED]
         ↓
 B — Strength measurement / calibration
         ↓
