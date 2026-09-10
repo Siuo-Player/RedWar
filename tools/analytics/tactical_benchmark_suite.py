@@ -45,16 +45,16 @@ _SECOND_STUN_ROW = "W_FrostMage_0_N_0:.,.:.,.:.,B_Bone_1_N_0:.,.:.,.:.,.:."
 CASES = {
     "frostmage-5-target": TacticalCase(
         "frostmage-5-target",
-        "Five clustered enemies exercise the FrostMage STUN-capable tactical state; the frozen high-budget reference is the engine's legal Nevada response.",
+        "Five clustered enemies exercise FrostMage's Nevada spell area; the frozen high-budget reference is the engine's legal Nevada response.",
         FROST_CLUSTER,
         "SPELL nevada ",
-        "STUN",
+        "SPELL",
     ),
     "second-stun-lethal": TacticalCase(
         "second-stun-lethal",
-        "A stunned enemy occupies FrostMage's D5 target square, making the next STUN lethal under the two-stun rule.",
+        "A stunned enemy occupies FrostMage's D5 target square, making the next Nevada cast lethal under the two-stun rule.",
         f"{_EMPTY}/{_EMPTY}/{_EMPTY}/{_EMPTY}/{_SECOND_STUN_ROW}/{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
-        "STUN A5 D5",
+        "SPELL nevada A5 D5",
         "SECOND_STUN_LETHAL",
     ),
     "high-value-capture": TacticalCase(
