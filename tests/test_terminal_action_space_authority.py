@@ -1,23 +1,19 @@
-import copy
-
-import pytest
-
 from engine.game_state import GameState
 from engine.legal_actions import legal_actions
-from engine.pieces import HERO_DEFS, criar_peca_por_nome
+from engine.pieces import criar_peca_por_nome
 
 
-def test_no_legal_action_termination_uses_canonical_action_space(monkeypatch):
-    original = copy.deepcopy(HERO_DEFS["Ranger"])
-    patched = copy.deepcopy(original)
-    patched["spells"] = []
-    monkeypatch.setitem(HERO_DEFS, "Ranger", patched)
-
+def test_no_legal_action_termination_delegates_to_canonical_action_space(monkeypatch):
     gs = GameState()
     gs.board[4][4] = criar_peca_por_nome("Ranger", "brancas")
     gs.board[4][6] = criar_peca_por_nome("Bone", "pretas")
 
-    assert legal_actions(gs) == ()
+    # The position has ordinary Ranger movement options. Force the canonical
+    # action-space to report none so this test specifically proves that
+    # check_game_over() consumes that authority instead of re-scanning pieces.
+    assert legal_actions(gs)
+    monkeypatch.setattr("engine.legal_actions.legal_actions", lambda _gs: ())
+
     gs.check_game_over()
     assert gs.game_over is True
     assert "Oponente Bloqueado" in gs.winner
