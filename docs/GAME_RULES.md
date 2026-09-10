@@ -39,6 +39,8 @@ Exemplos:
 
 Uma passiva verdadeira não precisa necessariamente de consumir um turno.
 
+**Desistência (`surrender`) é uma ação canónica não associada a casas do tabuleiro.** Não possui origem/destino e termina imediatamente a partida, atribuindo a vitória ao adversário. A ação de surrender não faz parte da enumeração normal de ações de tabuleiro.
+
 ## 4. Combate
 
 Existem dois resultados fundamentais de ataque:
@@ -132,7 +134,9 @@ A partida termina quando um jogador:
 
 - fica sem peças;
 - fica sem qualquer ação legal;
-- desiste.
+- desiste através da ação canónica `surrender`.
+
+Uma desistência é terminal e não altera o tabuleiro, os efeitos ou o contador de turnos sem captura; apenas regista a ação e atribui a vitória ao adversário.
 
 Não existe uma condição de vitória baseada num “rei” específico.
 

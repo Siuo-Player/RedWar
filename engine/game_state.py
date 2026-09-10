@@ -3,7 +3,7 @@ import json
 import os
 from typing import Any
 
-from engine.actions import GameAction, normalize_action
+from engine.actions import ActionType, GameAction, normalize_action
 from engine.config import COLUNAS, LINHAS
 from engine.legal_actions import resolve_legal_action
 
@@ -196,6 +196,10 @@ class GameState:
 
     def execute_action(self, acao_dict):
         action = normalize_action(acao_dict)
+        if action.type is ActionType.SURRENDER:
+            self._execute_surrender(action.actor_team)
+            return
+
         try:
             resolved = resolve_legal_action(self, action)
         except ValueError as resolution_error:
@@ -221,6 +225,36 @@ class GameState:
             spawn_name=resolved.spawn_name,
             spell_name=resolved.spell_name,
         )
+
+    def _execute_surrender(self, actor_team: str | None = None):
+        """Apply the non-board surrender command atomically."""
+        if self.game_over:
+            raise ValueError("Cannot surrender a terminal game")
+
+        current_team = "brancas" if self.white_to_move else "pretas"
+        if actor_team is not None and actor_team != current_team:
+            raise ValueError(
+                f"surrender actor does not match side to move: {actor_team} != {current_team}"
+            )
+
+        actor = actor_team or current_team
+        opponent = "pretas" if actor == "brancas" else "brancas"
+        snapshot = self.fast_clone()
+        actor_label = "Brancas" if actor == "brancas" else "Pretas"
+        opponent_label = "Brancas" if opponent == "brancas" else "Pretas"
+        self.move_log.append({
+            "short": f"{actor_label} desiste",
+            "team": actor,
+            "estado_anterior": snapshot,
+            "acao_escolhida": {
+                "type": "surrender",
+                "actor_team": actor,
+            },
+        })
+        self.last_move = {"type": "surrender", "team": actor}
+        self.game_over = True
+        self.winner = f"Desistência ({actor_label}) - {opponent_label} Vencem"
+        self.current_score = None
 
     def _validate_action_coordinates(self, start_pos, end_pos):
         for position in (start_pos, end_pos):
