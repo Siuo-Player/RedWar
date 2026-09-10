@@ -18,6 +18,7 @@ class ActionType(str, Enum):
     STUN = "stun"
     SPAWN = "spawn"
     SPELL = "spell"
+    SURRENDER = "surrender"
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,25 +27,43 @@ class GameAction:
 
     ``area`` is only meaningful for STUN actions. ``spawn_name`` is only
     meaningful for SPAWN actions. ``spell_name`` is only meaningful for SPELL
-    actions. Coordinates are always ``(row, column)`` board coordinates.
+    actions. ``start``/``end`` are board coordinates for board actions and are
+    deliberately absent for SURRENDER, which is a non-board terminal command.
+    ``actor_team`` may identify the surrendering side explicitly; otherwise the
+    current side to move is the actor.
     """
 
     type: ActionType
-    start: tuple[int, int]
-    end: tuple[int, int]
+    start: tuple[int, int] | None
+    end: tuple[int, int] | None
     area: tuple[tuple[int, int], ...] = ()
     spawn_name: str | None = None
     spell_name: str | None = None
+    actor_team: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.type, ActionType):
             raise TypeError("type must be an ActionType")
+
+        if self.type is ActionType.SURRENDER:
+            if self.start is not None or self.end is not None:
+                raise ValueError("SURRENDER actions must not contain board coordinates")
+            if self.area:
+                raise ValueError("area is not valid for SURRENDER actions")
+            if self.spawn_name is not None:
+                raise ValueError("spawn_name is not valid for SURRENDER actions")
+            if self.spell_name is not None:
+                raise ValueError("spell_name is not valid for SURRENDER actions")
+            if self.actor_team not in (None, "brancas", "pretas"):
+                raise ValueError("actor_team must be brancas, pretas, or None")
+            return
+
         object.__setattr__(self, "start", _coordinate(self.start, "start"))
         object.__setattr__(self, "end", _coordinate(self.end, "end"))
         object.__setattr__(self, "area", tuple(_coordinate(p, "area") for p in self.area))
 
-        if self.type is ActionType.STUN and not isinstance(self.area, tuple):
-            raise TypeError("area must be a tuple of coordinates")
+        if self.actor_team is not None:
+            raise ValueError("actor_team is only valid for SURRENDER actions")
         if self.spawn_name is not None and not isinstance(self.spawn_name, str):
             raise TypeError("spawn_name must be a string or None")
         if self.spell_name is not None and not isinstance(self.spell_name, str):
@@ -74,6 +93,14 @@ class GameAction:
         except ValueError as exc:
             raise ValueError(f"Unknown action type: {raw_type!r}") from exc
 
+        if action_type is ActionType.SURRENDER:
+            return cls(
+                type=action_type,
+                start=None,
+                end=None,
+                actor_team=action.get("actor_team"),
+            )
+
         if "start" not in action or "end" not in action:
             raise ValueError("action requires start and end coordinates")
 
@@ -92,7 +119,13 @@ class GameAction:
 
     def to_dict(self) -> dict[str, Any]:
         """Return the legacy-compatible dictionary representation."""
-        result: dict[str, Any] = {
+        if self.type is ActionType.SURRENDER:
+            result: dict[str, Any] = {"type": self.type.value}
+            if self.actor_team is not None:
+                result["actor_team"] = self.actor_team
+            return result
+
+        result = {
             "type": self.type.value,
             "start": self.start,
             "end": self.end,
@@ -116,7 +149,7 @@ def normalize_action(action: GameAction | Mapping[str, Any]) -> GameAction:
 
 
 def _coordinate(value: Any, field: str) -> tuple[int, int]:
-    if isinstance(value, (str, bytes)):
+    if isinstance(value, (str, bytes)) or value is None:
         raise TypeError(f"{field} coordinate must be a two-item sequence")
     try:
         coordinate = tuple(value)
