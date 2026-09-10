@@ -44,6 +44,13 @@ CASES = {
         "STUN ",
         "STUN",
     ),
+    "second-stun-lethal": TacticalCase(
+        "second-stun-lethal",
+        "A stunned enemy occupies FrostMage's D5 target square, making the next STUN lethal under the two-stun rule.",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/W_FrostMage_0_N_0:.,.:.,.:.,B_Bone_1_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
+        "STUN A5 D5",
+        "SECOND_STUN_LETHAL",
+    ),
     "high-value-capture": TacticalCase(
         "high-value-capture",
         "A Templar has an immediate high-value capture opportunity.",
