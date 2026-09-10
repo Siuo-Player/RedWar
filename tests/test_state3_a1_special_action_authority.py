@@ -38,7 +38,7 @@ def test_unauthorized_spell_cannot_execute_via_execute_action() -> None:
     action = GameAction(ActionType.SPELL, (6, 0), (5, 0), spell_name="nevada")
     before = state.to_rwen()
 
-    with pytest.raises(ValueError, match="illegal action"):
+    with pytest.raises(ValueError, match=r"Unknown or undeclared spell for Bone: nevada"):
         state.execute_action(action)
 
     assert state.to_rwen() == before
