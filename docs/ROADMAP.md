@@ -23,12 +23,6 @@ Este é o **único documento que define a ordem operacional do trabalho**.
 
 #370 e **#371 Gameplay estão fechados em 2026-09-10**. O trabalho principal autorizado é agora **#372 Ares**. Preparação anterior de Ares não constitui promoção nem fecho de #372.
 
-## Vocabulário obrigatório
-
-`DOCUMENTED` = descrito. `IMPLEMENTED` = existe no código alvo. `TESTED` = existe teste executável relevante. `VALIDATED` = foi submetido à validação apropriada. `PROVEN` = a evidência é suficiente para a alegação específica.
-
-Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e crescimento de dataset ≠ melhoria de strength.
-
 ## #370 — Foundation
 
 **Estado: CLOSED — 2026-09-10.**
@@ -72,46 +66,6 @@ correctness
 → independent Arena strength
 → promotion
 ```
-
-### Lane A — correctness/state
-
-Revalidar make/unmake, state identity/hash, side-to-move, repetition observation, TWC, stun/lifespan/spawn cooldown, terrain effects e terminal behavior contra a semântica de Gameplay fechada. Toda otimização deve preservar post-state e reversibilidade.
-
-### Lane B — tactical capability
-
-Construir/validar corpus determinístico de capturas, stun/segundo-stun, spells/áreas, passivas, temporários, fogo/gelo, TWC, bloqueios e quiet positions. Capability não é strength global.
-
-### Lane C — search
-
-Isolar move ordering, quiescence/tactical extensions, pruning/reductions semanticamente seguros, TT policy, node/time budget, killer/history e tratamento dos diferentes tipos de ação. Não promover por NPS, profundidade ou nodes isoladamente.
-
-### Lane D — classical evaluation
-
-Congelar o evaluator clássico como baseline e alterar um termo de cada vez, separando material, posição, stun, temporários, efeitos, TWC e termos estratégicos.
-
-### Lane E — NNUE
-
-```text
-full-sync oracle
-→ incremental make/unmake parity
-→ feature/update regressions
-→ CPU cost
-→ Arena
-```
-
-NNUE só passa a default se demonstrar benefício competitivo/eficiência pelo protocolo aceite.
-
-### Lane F — controlled performance
-
-Comparar com recursos equivalentes e registar orçamento, runner, versão/configuração e inputs de reprodução. Performance isolada não é strength.
-
-### Lane G — Arena
-
-Comparar baseline/candidato com cores alternadas, provenance explícita, orçamento comparável, pairing de openings/seeds quando exigido e incerteza apropriada. Dataset maior ou SPRT isolado não autoriza promoção fora do protocolo.
-
-### Lane H — accepted configuration
-
-Registar commit exato, configuração search/eval/NNUE, corpus/versões, condições de benchmark/Arena e limitações antes de selecionar a configuração para Product.
 
 `fast_clone()` não pertence ao C++ hot path nem ao preflight de legalidade.
 
