@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `661420f2fdd7cb25df7a9b05a53d23f8de7f7256`  
+**Baseline operacional:** `main` @ `10bad4f1e3823ce31b2cb2f458519e8ce73fc07e`  
 **Data:** 2026-09-10
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -33,7 +33,7 @@ A execução corrente segue a cadeia de issues canónica:
 #375 Release
 ```
 
-#370 foi o primeiro gate. A auditoria #379 e os seus dois corrective follow-ups (#381 e #380) estão agora concluídos/merged. O próximo trabalho autorizado é #371; fases posteriores não podem ser usadas para contornar um blocker de correctness.
+#370 foi o primeiro gate. A auditoria #379 e os seus dois corrective follow-ups (#381 e #380) estão agora concluídos/merged. O trabalho de produto continua subordinado à cadeia; a preparação documental e a investigação de Ares podem decorrer em paralelo quando não alteram nem contornam um gate de correctness.
 
 ## #370 — Foundation
 
@@ -86,7 +86,7 @@ Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma 
 ### Progresso atual
 
 - **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
-- **Concluído, parcialmente:** **#396** criou a autoridade de validação canónica de pre-match draft/placement e regressões para orçamento, home rows, unidades não-draftable, equipas e cópias duplicadas. O PR foi merged em `661420f2fdd7cb25df7a9b05a53d23f8de7f7256`; Test Suite #2022, CodeQL #720 e AI Quality Gate #729 passaram.
+- **Concluído:** **#396** criou a autoridade de validação canónica de pre-match draft/placement e regressões para orçamento, home rows, unidades não-draftable, equipas e cópias duplicadas. O PR foi merged antes do baseline atual; #397 é agora o follow-up de integração.
 - **Aberto: #397** — ligar a nova autoridade aos chamadores existentes (Pygame draft/start e treino). #395 permanece aberto até esta integração estar efetivamente concluída.
 - **Concluído no contrato:** timing de efeitos foi explicitado: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato está em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e há regressão explícita para a posse temporal.
 
@@ -94,9 +94,35 @@ Critério de saída: cada regra declarada tem uma implementação/especificaçã
 
 ## #372 — Ares
 
-**Estado: BLOCKED UNTIL #371 CLOSES.**
+**Estado: BLOCKED UNTIL #371 CLOSES — research/preparation may proceed in parallel.**
 
 Objetivo: correctness primeiro, depois capability/search/eval/classical baseline, optional NNUE, controlled benchmarks e Arena A/B com provenance. Benchmark ≠ strength; mais nodes ≠ strength; NNUE existente ≠ superioridade; dataset maior ≠ strength maior.
+
+A pesquisa de 2026-09-10, com prioridade em Stockfish e artigos clássicos de search/NNUE, está documentada em `docs/ARES_STOCKFISH_RESEARCH.md`. Ela não promove #372 nem autoriza otimização a entrar em `main` antes do fecho de #371.
+
+Ordem preparada para a entrada em #372:
+
+```text
+Ares correctness baseline
+      ↓
+NNUE incremental/full-sync equivalence + economics
+      ↓
+LMR experiment
+      ↓
+aspiration windows
+      ↓
+richer history / continuation information
+      ↓
+TT replacement/aging
+      ↓
+carefully scoped null-move / pruning studies
+      ↓
+independent Arena strength evidence
+```
+
+Há uma oportunidade de alto retorno já identificada: o hot path NNUE possui hooks incrementais, mas `evaluate_board()` ainda força `sync_board()` antes de cada inferência. A primeira hipótese de performance pós-#371 deve medir a eliminação desse scan por nó mantendo `sync_board()` como oracle de referência.
+
+O princípio Stockfish a importar é metodológico: alterações funcionais de search devem ser pequenas, isoladas e aceites apenas após testes controlados; as técnicas não devem ser copiadas sem demonstrar adequação às semânticas específicas de RedWar.
 
 `fast_clone()` não pertence ao C++ hot path. Qualquer otimização exige regressão de correctness + benchmark controlado; qualquer alegação de strength exige avaliação Arena independente.
 
