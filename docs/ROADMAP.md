@@ -51,7 +51,7 @@ Os contratos críticos auditados estão classificados como `CANONICAL_AND_TESTED
 
 ### Julgamento da gate
 
-A aceitação do #371 está satisfeita para o ruleset atualmente declarado: regras críticas com autoridade única ou especialização justificada, cenários críticos na fronteira canónica, regressões para effects/victory/turns/terminal e nenhuma ambiguidade conhecida que bloqueie o jogo local. Parâmetros de balance continuam separados de alegações de strength.
+A aceitação do #371 está satisfeita para o ruleset atualmente declarado: regras críticas com autoridade única ou especialização justificada, cenários críticos na fronteira canónica, regressões para effects/victory/turns/terminal e nenhuma ambiguidade conhecida que bloqueie o jogo local. Parâmetros de balance permanecem separados de alegações de strength.
 
 ## #372 — Ares
 
