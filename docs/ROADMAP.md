@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `3e8bbe9417b584b5a4208d18852070f578bb8b77`  
+**Baseline operacional:** `main` @ `44da940f9291ebb3116df97365903eec02b0591e`  
 **Data:** 2026-09-10
 
 ## Estado atual — 1.0 gate chain
@@ -60,6 +60,15 @@ correctness
 → independent Arena strength
 → promotion
 ```
+
+### Evidência Ares integrada
+
+- #418 CLOSED / PR #421 merged em `44da940f9291ebb3116df97365903eec02b0591e`.
+- Test Suite #2122 passou incluindo o contrato nativo de `make/unmake`.
+- CodeQL #762 passou.
+- AI Quality Gate #764 passou.
+- O helper de reversibilidade verifica identidade de estado incluindo turno, TWC, hash, material/contagens, peças, efeitos e lifecycle fields em posições representativas.
+- O harness determinístico `tools/analytics/tactical_benchmark_suite.py` já contém seis casos de capability: `frostmage-5-target`, `high-value-capture`, `ranged-spell`, `defensive-purify`, `lifespan-cooldown` e `twc-capture`. A estabilidade das referências de alto orçamento continua por validar antes de promover esses casos a hard regressions (#431).
 
 `fast_clone()` não pertence ao C++ hot path nem ao preflight de legalidade. Benchmark/NPS/dataset growth não são prova de strength.
 
