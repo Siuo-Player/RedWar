@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `8534b2f59392b9e9779bb9ac8e55d7a8b3e53613`  
+**Baseline operacional:** `main` @ `2ea747c15c389640a77a8bb3aea6cf03b69c7424`  
 **Data:** 2026-09-10
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -44,8 +44,9 @@ A execução corrente segue a cadeia de issues canónica:
 - **#386** — matriz de autoridade machine-readable + Markdown, merged em `b83e1b851911a295052802572b9fbb7369a462ff` com Test Suite #1964, CodeQL #692 e AI Quality Gate #707 verdes.
 - **#381** — sincronização de `docs/CURRENT_STATE.md` e `docs/NNUE.md` com a evidência real de `main`, merged em `612221b88381cf740bab6d2ab9e31acfb98c6324` com Test Suite #1948, CodeQL #685 e AI Quality Gate #701 verdes.
 - **#380** — eliminação da duplicação de vocabulário de spells em `_validate_transition()`, merged em `8534b2f59392b9e9779bb9ac8e55d7a8b3e53613` a partir do head `1d204482e118790f7fbd138e8fb1d6f8a40fbc15`, com Test Suite #1974, CodeQL #698 e AI Quality Gate #712 verdes.
+- **#391 / #392** — surrender canónico + hardening do contrato, e segundo-STUN do Ignite com paridade Python/C++, merged em `1e137e6ae09a931ea5cef73771e7d753b3c75d53` e `2ea747c15c389640a77a8bb3aea6cf03b69c7424`, respetivamente, com as três gates relevantes verdes nos heads validados.
 
-A matriz final classifica os contratos críticos auditados como `CANONICAL_AND_TESTED` ou `JUSTIFIED_SPECIALIZATION`; não há um `DUPLICATED_AUTHORITY`, `DOCUMENTATION_DRIFT` ou `UNPROTECTED_GAP` remanescente identificado no inventário. A matriz não constitui alegação de balance, strength ou superioridade de search.
+A matriz final classifica os contratos críticos auditados como `CANONICAL_AND_TESTED` ou `JUSTIFIED_SPECIALIZATION`; não há um `DUPLICATED_AUTHORITY`, `DOCUMENTATION_DRIFT` ou `UNPROTECTED_GAP` remanescente identificado no inventário fundacional. A matriz não constitui alegação de balance, strength ou superioridade de search.
 
 A fronteira fundacional agora consolidada é:
 
@@ -76,11 +77,17 @@ A tranche fecha infraestrutura/regressões específicas; não equivale a declara
 
 ## #371 — Gameplay
 
-**Estado: OPEN — próximo gate autorizado.**
+**Estado: OPEN — em execução.**
 
 Objetivo: tornar o ruleset 1.0 efetivamente jogável e estável sobre a fundação fechada.
 
 Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma ação por turno; draft/placement secreto antes do match e sem compras durante o match; movimento, ataques, passivas, spells e invocações dos heróis; sequência STUN → segundo STUN enquanto stunned → morte; vitória/derrota/surrender; terminação sem ação legal; parâmetro de 50 turnos sem captura permanente; timing fire/ice/terrain; geração e execução determinísticas e sem autoridades duplicadas.
+
+### Progresso atual
+
+- **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
+- **Em execução: #395** — validação canónica de pre-match draft/placement. Auditoria encontrou que orçamento, home rows e `draftable` estavam impostos pelos chamadores (controlador/treino), enquanto `GameState` não tinha uma seam de setup de engine. PR **#396** adiciona a autoridade de validação e regressões para orçamento, home rows, unidades não-draftable, equipas e cópias duplicadas.
+- **Em execução:** explicitar e testar timing dos efeitos. A semântica atual é por dono do efeito: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato ficou registado em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e há regressão explícita para a posse temporal.
 
 Critério de saída: cada regra declarada tem uma implementação/especificação autorizada; cenários críticos passam pela ação canónica; efeitos, vitória e edges de turnos têm regressões executáveis; não existe ambiguidade conhecida que impeça jogo local; parâmetros de balance são explícitos.
 
