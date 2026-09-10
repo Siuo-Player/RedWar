@@ -33,7 +33,7 @@ A execução corrente segue a cadeia de issues canónica:
 #375 Release
 ```
 
-#370 está fechado. O gate principal ativo é **#371 Gameplay**. O hardening técnico #404 foi integrado em `main` pelo PR #405. Em paralelo, **#406** prepara as lanes de evidência de Ares sem alterar a ordem dos gates.
+#370 e **#371 Gameplay estão fechados em 2026-09-10**. O trabalho atual pode avançar para a gate #372 Ares. A preparação de Ares feita antes do fecho de #371 não constitui, por si só, promoção nem fecho de #372.
 
 ## #370 — Foundation
 
@@ -59,32 +59,91 @@ Os lanes independentes anteriores B–G foram executados a partir do baseline co
 
 ## #371 — Gameplay
 
-**Estado: OPEN — em execução.**
+**Estado: CLOSED — 2026-09-10.**
 
 Objetivo: tornar o ruleset 1.0 efetivamente jogável e estável sobre a fundação fechada.
 
 Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma ação por turno; draft/placement secreto antes do match e sem compras durante o match; movimento, ataques, passivas, spells e invocações dos heróis; sequência STUN → segundo STUN enquanto stunned → morte; vitória/derrota/surrender; terminação sem ação legal; parâmetro de 50 turnos sem captura permanente; timing fire/ice/terrain; geração e execução determinísticas e sem autoridades duplicadas.
 
-### Progresso atual
+### Evidência de saída
 
-- **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
-- **Concluído:** **#396/#397** — autoridade de validação canónica de pre-match draft/placement e integração nos chamadores existentes (Pygame draft/start e treino); #397 foi merged em `7095258388ef71e4dad2dd178c5be6f95e061337`.
-- **Concluído:** **#404 / PR #405** — `GameState.check_game_over()` passou a consumir `engine.legal_actions.legal_actions()` para determinar ausência de ações, preservando a precedência de aniquilação, TWC de 50 e repetição. O PR adicionou regressões para a delegação à autoridade canónica e para uma posição realmente bloqueada; merge `3e8bbe9417b584b5a4208d18852070f578bb8b77`.
-- **Concluído no contrato:** timing de efeitos foi explicitado: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato está em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md`.
+- **Surrender:** #390/#391 introduziram e endureceram `ActionType.SURRENDER` como comando terminal não-board, resolvido canonicamente e sem mistura no action-space de board; merged em `af908888ef1096cde327c63c34ec5bc02e02235b` e `1e137e6ae09a931ea5cef73771e7d753b3c75d53`.
+- **STUN:** #392/#394 fecharam `stun → segundo stun enquanto stunned → morte`, incluindo TWC e paridade Python/C++; merged em `2ea747c15c389640a77a8bb3aea6cf03b69c7424`.
+- **Spell authority:** #399/#400 eliminaram a segunda fonte de capacidade de spell e tornaram `hero.spells` a autoridade de capability; Test Suite #2031, CodeQL #725 e AI Quality Gate #732 verdes.
+- **Pre-match:** #395/#396 criaram a autoridade canónica para orçamento, home rows, `draftable`, equipas e cópias; #397 ligou-a ao Pygame draft/start e trainer; PR #401 merged em `7095258388ef71e4dad2dd178c5be6f95e061337` com Test Suite #2036, CodeQL #727 e AI Quality Gate verde.
+- **Terminal/action-space:** #404/#405 eliminaram a segunda definição de “há ação legal?” em `check_game_over()` e passaram a consumir `engine.legal_actions.legal_actions()`; PR #405 merged em `3e8bbe9417b584b5a4208d18852070f578bb8b77` com Test Suite #2056, CodeQL #735 e AI Quality Gate #740 verdes após correção do fixture.
+- **Effects/timing:** o contrato de timers e fire/ice/terrain está documentado em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e protegido por regressões dedicadas.
+- **Core regression suite:** a execução validada que fechou #405 terminou com **692 passed**, cobrindo action execution/resolution, legal-action oracle, hero schema traceability, lifecycle/TWC/specials, differential Python/C++, NNUE integration, pre-match, terminal conditions, surrender, effects, trainer e entrypoint manual.
 
-Critério de saída: cada regra declarada tem uma implementação/especificação autorizada; cenários críticos passam pela ação canónica; efeitos, vitória e edges de turnos têm regressões executáveis; não existe ambiguidade conhecida que impeça jogo local; parâmetros de balance são explícitos.
+### Julgamento da gate
+
+A aceitação do #371 está satisfeita para o ruleset atualmente declarado: cada regra crítica possui uma autoridade de implementação/especificação única ou especialização justificada; os cenários críticos passam pela fronteira canónica; efeitos, vitória, turnos e condições terminais possuem regressões executáveis; e não permanece uma ambiguidade conhecida que bloqueie o jogo local. Parâmetros de balance permanecem explicitamente separados de alegações de strength.
 
 ## #372 — Ares
 
-**Estado: BLOCKED UNTIL #371 CLOSES; PREPARATORY WORK ALLOWED.**
+**Estado: OPEN — ativo após fecho de #371.**
 
-Objetivo: correctness primeiro, depois capability/search/eval/classical baseline, optional NNUE, controlled benchmarks e Arena A/B com provenance. Benchmark ≠ strength; mais nodes ≠ strength; NNUE existente ≠ superioridade; dataset maior ≠ strength.
+Objetivo: tornar Ares forte, eficiente e confiável para uso no produto, com correctness primeiro e evidência independente para capability, performance e strength.
 
-**#406** é o child preparatório atual. As lanes independentes são: correctness/invariantes, tactical capability corpus, search hypotheses, evaluator baseline, NNUE parity/cost, matched-resource benchmarks e Arena strength evidence. Promoção continua serializada depois de #371.
+### Preparação já existente
 
-O plano operacional está em `docs/ARES_EXECUTION_PLAN.md`.
+**#406** é o child preparatório que organiza correctness/state invariants, tactical capability corpus, search hypotheses, classical evaluator, NNUE parity/cost, matched-resource benchmarks, Arena strength e configuração aceite.
 
-Critério de promoção: apenas depois de #371 fechar e de cada alteração relevante passar correctness/regression → capability/performance → independent Arena evidence.
+**#409 / `docs/ARES_EXECUTION_PLAN.md`** documenta a sequência e os limites das lanes. Nenhuma dessas preparações equivale a uma alegação de strength ou fecha #372.
+
+### Ordem obrigatória
+
+```text
+correctness
+→ deterministic capability
+→ controlled performance
+→ independent Arena strength
+→ promotion
+```
+
+### Lane A — correctness/state
+
+Revalidar make/unmake, state identity/hash, side-to-move, repetition observation, TWC, stun/lifespan/spawn cooldown, terrain effects e terminal behavior contra a semântica de Gameplay já fechada. Toda otimização deve preservar o post-state e a reversibilidade.
+
+### Lane B — tactical capability
+
+Construir/validar corpus determinístico de fenómenos específicos: capturas, stun/segundo-stun, spells/áreas, passivas, temporários, fogo/gelo, TWC, bloqueios e quiet positions. Isto mede competência em cenários, não strength global.
+
+### Lane C — search
+
+Isolar hipóteses de move ordering, quiescence/tactical extensions, pruning/reductions semanticamente seguros, transposition table, node/time budgets, killer/history e tratamento dos diferentes tipos de ação. Nenhuma promoção por mais NPS, profundidade ou nodes sem orçamento comparável.
+
+### Lane D — classical evaluation
+
+Congelar o evaluator clássico como baseline. Medir mudanças de um termo de cada vez e separar material, posicionamento, stun, temporários, efeitos, TWC e termos estratégicos.
+
+### Lane E — NNUE
+
+Sequência obrigatória:
+
+```text
+full-sync oracle
+→ incremental make/unmake parity
+→ feature/update regressions
+→ CPU cost
+→ Arena
+```
+
+NNUE funcional ou com menor training loss não implica maior strength. Só passa a default se o protocolo competitivo/económico mostrar benefício sobre o baseline.
+
+### Lane F — controlled performance
+
+Comparar sob recursos equivalentes, registando nodes/tempo, NPS como métrica secundária, versão de código/configuração, runner e inputs de reprodução. Performance isolada não é strength.
+
+### Lane G — Arena
+
+Comparar baseline e candidato com cores alternadas, provenance explícita, orçamento comparável, pairing de openings/seeds quando exigido e incerteza apropriada. Dataset maior, point estimate positivo ou SPRT isolado não autoriza promoção fora do protocolo definido.
+
+### Lane H — accepted configuration
+
+Registar commit exato, configuração de search/eval/NNUE, corpus e versões, condições de benchmark/Arena e limitações. Só depois selecionar a configuração Ares para a fase Product.
+
+`fast_clone()` não pertence ao C++ hot path nem ao preflight de legalidade.
 
 ## #373 — Product
 
