@@ -6,7 +6,7 @@ Este documento é o contrato técnico atual da Ares. [`CURRENT_STATE.md`](CURREN
 
 ## Current baseline
 
-**Baseline:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`.
+**Baseline:** `main` @ `10bad4f1e3823ce31b2cb2f458519e8ce73fc07e` (2026-09-10).
 
 Ares usa C++ no hot path e mantém:
 
@@ -34,8 +34,6 @@ mesma semântica de timers/efeitos/TWC
 
 No `main` atual, a fronteira `GameAction`/normalização está implementada e testada (#306/#308), e #321 acrescentou `resolve_legal_action()` como seam de resolução canónica/legacy.
 
-Isto **não** prova ainda que o executor rejeite todas as ações ilegais antes da mutação. A0.1 continua aberto porque action-space e transition validity não são equivalentes no estado atual (#317; #315 não foi merged).
-
 A fronteira esperada é:
 
 ```text
@@ -46,13 +44,32 @@ input action
 → only then mutate
 ```
 
-Ares não deve validar ações executando-as especulativamente numa cópia Python. `fast_clone()` não é componente do hot path C++ nem mecanismo aceite de preflight do executor. O código C++ corrente em `ai/cpp_engine/` não depende dessa função.
+Ares não deve validar ações executando-as especulativamente numa cópia Python. `fast_clone()` não é componente do hot path C++ nem mecanismo aceite de preflight do executor.
 
 ## Search
 
 A pesquisa permanece separada do evaluator. Move ordering e pruning devem explorar fenómenos reais de RedWar — capturas, stun, spells forçantes, passivas, lifespan/cooldown e TWC — e cada alteração deve ser estudada como hipótese isolada.
 
 Não copiar heurísticas de outras engines apenas por existirem. O critério é ganho demonstrável no fenómeno pretendido, sem regressão semântica e com o nível de evidência adequado ao claim.
+
+### Stockfish-guided priority
+
+A auditoria de 2026-09-10 identificou uma diferença relevante entre a maturidade do search actual e um engine moderno como Stockfish. O Ares já tem PVS, TT, history/killer e quiescence, mas ainda não tem um conjunto equivalente de técnicas modernas de selectividade, como LMR e várias formas de pruning/context-aware history. Isto não implica que devam ser portadas cegamente.
+
+A sequência de investigação após o fecho de #371 é:
+
+```text
+1. NNUE incremental evaluation economics
+2. Late Move Reductions (LMR)
+3. aspiration windows
+4. richer history / continuation information
+5. transposition-table replacement/aging
+6. carefully scoped null-move pruning
+7. futility / late-move pruning
+8. quiescence frontier refinement
+```
+
+A documentação completa, a evidência bibliográfica e os riscos de adaptação encontram-se em [`ARES_STOCKFISH_RESEARCH.md`](ARES_STOCKFISH_RESEARCH.md).
 
 ## Evaluation
 
@@ -64,21 +81,33 @@ Uma limitação conhecida do evaluator é uma **hipótese de investigação**, n
 
 NNUE é opcional. As features atuais representam peça+quadrado+equipa relativa, stun, lifespan, cooldown, efeitos, TWC e side-to-move.
 
-O caminho de integração continua:
+O caminho de integração pretendido é:
 
 ```text
-full resync
-   ↓
+full-sync reference/oracle
+        ↓
 incremental accumulator
-   ↓
+        ↓
 paridade make/unmake
-   ↓
+        ↓
 benchmark de custo/NPS
-   ↓
+        ↓
 Arena
 ```
 
-Os hooks incrementais existem, mas a integração não é considerada concluída até a igualdade com `sync_board()` ser testada no caminho real de mutação.
+### Precondição de performance identificada
+
+Os hooks incrementais já existem para mudanças de peças, efeitos, side-to-move e TWC. Contudo, o `evaluate_board()` corrente chama `redwar::nnue::sync_board()` antes de cada inferência NNUE. Isso preserva um oracle forte, mas reintroduz uma sincronização/scan do tabuleiro no hot path.
+
+O primeiro experimento de performance depois de #371 deve determinar se podemos manter a paridade exacta utilizando os hooks/acumuladores incrementais e deixar `sync_board()` como caminho de referência para parsers/testes, em vez de reconstruir a posição em cada avaliação.
+
+A mudança só é aceitável depois de provar:
+
+```text
+incremental == full-sync
+```
+
+nos estados protegidos e após sequências de make/unmake relevantes.
 
 ## Benchmarks
 
