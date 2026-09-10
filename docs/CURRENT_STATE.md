@@ -1,7 +1,7 @@
 # RedWar — Current State
 
 **Snapshot:** 2026-09-10  
-**Verified `main` baseline used by this documentation branch:** `10bad4f1e3823ce31b2cb2f458519e8ce73fc07e`
+**Verified `main` baseline:** `6aa5827a650cd623e9a74e9d4910cea2a5effcd9`
 
 Este ficheiro é a fotografia operacional mínima do baseline atual. Os contratos pertencem aos documentos canónicos; a sequência pertence a [`ROADMAP.md`](ROADMAP.md); a explicação causal transversal está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
 
@@ -27,17 +27,17 @@ A execução 1.0 segue a cadeia contratual **#370 Foundation → #371 Gameplay �
 | FrostMage unreachable block | IMPLEMENTED / TESTED / CLOSED | #300 + AST regression |
 | fixed node-budget semantics | TESTED / CLOSED | cobertura dedicada existente |
 | native repetition/history contract | ARCHITECTURAL DECISION / TESTED BOUNDARY / CLOSED | #338 define `BoardState` como posição/search state e não como owner da sequência de repetição |
-| incremental NNUE mutation path | IMPLEMENTED / TESTED | PR #356, merge `f2e7155d150b4cc0be79d4b86beb5005941ef180` |
+| incremental NNUE mutation path | IMPLEMENTED / TESTED | PR #356, merge `4ef04f8bf98bb380f773bebdb225cd16787c6c29` |
 | canonical spell-name metadata in specialized Python generators | IMPLEMENTED / TESTED / MERGED | PR #367, merge `218fd115864629a79c82c72c729fa0faff831664` |
-| canonical pre-match setup validator | IMPLEMENTED / TESTED / MERGED | #396; caller integration tracked by #397 |
+| canonical pre-match setup validator | IMPLEMENTED / TESTED / MERGED | #396 + #397 |
 
 **Importante:** “closed” acima significa fechado para a afirmação específica sustentada pela evidência indicada. Não significa correctness total do projeto, nem paridade total em todos os estados matematicamente possíveis.
 
 ## 2. Gameplay — #371
 
-#371 é o gate ativo. O child corrente é **#397**, que liga a autoridade canónica de pre-match aos chamadores existentes do Pygame e do trainer.
+#371 é o gate ativo. **#397 está concluído**; o próximo child de correctness em execução é o #404/#405, que consolida a terminação sem ação através do action-space canónico.
 
-A aceitação de #371 exige, além desse wiring:
+A aceitação de #371 exige:
 
 ```text
 rules declared in 1.0
@@ -99,9 +99,9 @@ A ordem operacional agora é orientada por dependências:
 ```text
 #371 Gameplay gate
       │
-      ├── #397 integration
+      ├── #404/#405 terminal action-space
       ├── gameplay corpus
-      ├── Ares research/preparation
+      ├── Ares research/preparation (#402)
       ├── Arena tooling
       ├── Product validation
       ├── Online preparation
