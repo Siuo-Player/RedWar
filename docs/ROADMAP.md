@@ -3,7 +3,7 @@
 **Baseline operacional:** `main` @ `3e8bbe9417b584b5a4208d18852070f578bb8b77`  
 **Data:** 2026-09-10
 
-Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
+Este é o **único documento que define a ordem operacional do trabalho**.
 
 ## Estado atual — 1.0 gate chain
 
@@ -27,7 +27,7 @@ Este é o **único documento que define a ordem operacional do trabalho**. Não 
 
 `DOCUMENTED` = descrito. `IMPLEMENTED` = existe no código alvo. `TESTED` = existe teste executável relevante. `VALIDATED` = foi submetido à validação apropriada. `PROVEN` = a evidência é suficiente para a alegação específica.
 
-Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e melhoria de dataset ≠ melhoria de strength.
+Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e crescimento de dataset ≠ melhoria de strength.
 
 ## #370 — Foundation
 
@@ -39,10 +39,6 @@ Os contratos críticos auditados estão classificados como `CANONICAL_AND_TESTED
 
 **Estado: CLOSED — 2026-09-10.**
 
-Objetivo: tornar o ruleset 1.0 efetivamente jogável e estável sobre a fundação fechada.
-
-Escopo: board 8×8; draft 200 por cor; uma ação por turno; setup pré-match; ações dos heróis; STUN → segundo STUN → morte; vitória/derrota/surrender; no-legal-action termination; TWC de 50; fire/ice/terrain; geração/execução determinísticas e sem autoridades duplicadas.
-
 ### Evidência de saída
 
 - **Surrender:** #390/#391 estabeleceram `ActionType.SURRENDER` como comando terminal não-board, com resolução e execução canónicas.
@@ -50,12 +46,12 @@ Escopo: board 8×8; draft 200 por cor; uma ação por turno; setup pré-match; a
 - **Spell authority:** #399/#400 tornaram `hero.spells` a autoridade única de capability; Test Suite #2031, CodeQL #725 e AI Quality Gate #732 verdes.
 - **Pre-match:** #395/#396 criaram a autoridade canónica de orçamento/home rows/`draftable`/equipas/cópias; #397 ligou-a ao Pygame e treino; PR #401 merged em `7095258388ef71e4dad2dd178c5be6f95e061337`.
 - **Terminal/action-space:** #404/#405 fizeram `check_game_over()` consumir `engine.legal_actions.legal_actions()`; PR #405 merged em `3e8bbe9417b584b5a4208d18852070f578bb8b77`, com Test Suite #2056, CodeQL #735 e AI Quality Gate #740 verdes.
-- **Effects/timing:** contrato documentado em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e coberto por regressões dedicadas.
+- **Effects/timing:** contrato documentado em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e protegido por regressões dedicadas.
 - **Core regression suite:** a execução validada do #405 terminou com **692 passed** e cobriu execution/resolution, legal-action oracle, schema traceability, lifecycle/TWC/specials, differential Python/C++, NNUE, pre-match, terminal, surrender, effects, trainer e entrypoint manual.
 
 ### Julgamento da gate
 
-A aceitação do #371 está satisfeita para o ruleset atualmente declarado: as regras críticas têm autoridade única ou especialização justificada; os cenários críticos usam a fronteira canónica; efeitos, vitória, turnos e terminal têm regressões; e não permanece ambiguidade conhecida que bloqueie o jogo local. Parâmetros de balance permanecem separados de alegações de strength.
+A aceitação do #371 está satisfeita para o ruleset atualmente declarado: regras críticas com autoridade única ou especialização justificada, cenários críticos na fronteira canónica, regressões para effects/victory/turns/terminal e nenhuma ambiguidade conhecida que bloqueie o jogo local. Parâmetros de balance continuam separados de alegações de strength.
 
 ## #372 — Ares
 
@@ -65,7 +61,7 @@ Objetivo: tornar Ares forte, eficiente e confiável para uso no produto, com cor
 
 **#406** organiza as lanes de correctness/state, tactical capability, search, classical evaluator, NNUE parity/cost, matched-resource benchmarks, Arena strength e accepted configuration.
 
-**#409** prepara `docs/ARES_EXECUTION_PLAN.md` e sincroniza a fotografia operacional com o handoff para Ares. É documentação preparatória, não prova de strength.
+**#409** prepara `docs/ARES_EXECUTION_PLAN.md` e a fotografia operacional. A preparação não substitui a aceitação de #372.
 
 ### Ordem obrigatória
 
@@ -133,4 +129,4 @@ Registar commit exato, configuração search/eval/NNUE, corpus/versões, condiç
 
 ## Regras operacionais
 
-Todo work package deve partir do `main` verificado, usar branch dedicada, referenciar Issue canónico, implementar/testar, passar as gates aplicáveis, sincronizar documentação quando o estado muda e fechar Issue apenas após integração e evidência. Gate futura pode preparar-se em paralelo quando os contratos estão estáveis, mas não pode contornar blocker anterior nem converter capability/benchmark em prova de strength.
+Todo work package deve partir do `main` verificado, usar branch dedicada, referenciar o Issue canónico, implementar/testar, passar as gates aplicáveis, sincronizar documentação quando o estado muda e fechar o Issue apenas após integração e evidência. Gates futuras podem preparar-se em paralelo quando os contratos estão estáveis, mas não podem contornar blockers anteriores nem converter capability/benchmark em prova de strength.
