@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `2ea747c15c389640a77a8bb3aea6cf03b69c7424`  
+**Baseline operacional:** `main` @ `661420f2fdd7cb25df7a9b05a53d23f8de7f7256`  
 **Data:** 2026-09-10
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -86,8 +86,9 @@ Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma 
 ### Progresso atual
 
 - **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
-- **Em execução: #395** — validação canónica de pre-match draft/placement. Auditoria encontrou que orçamento, home rows e `draftable` estavam impostos pelos chamadores (controlador/treino), enquanto `GameState` não tinha uma seam de setup de engine. PR **#396** adiciona a autoridade de validação e regressões para orçamento, home rows, unidades não-draftable, equipas e cópias duplicadas.
-- **Em execução:** explicitar e testar timing dos efeitos. A semântica atual é por dono do efeito: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato ficou registado em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e há regressão explícita para a posse temporal.
+- **Concluído, parcialmente:** **#396** criou a autoridade de validação canónica de pre-match draft/placement e regressões para orçamento, home rows, unidades não-draftable, equipas e cópias duplicadas. O PR foi merged em `661420f2fdd7cb25df7a9b05a53d23f8de7f7256`; Test Suite #2022, CodeQL #720 e AI Quality Gate #729 passaram.
+- **Aberto: #397** — ligar a nova autoridade aos chamadores existentes (Pygame draft/start e treino). #395 permanece aberto até esta integração estar efetivamente concluída.
+- **Concluído no contrato:** timing de efeitos foi explicitado: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato está em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e há regressão explícita para a posse temporal.
 
 Critério de saída: cada regra declarada tem uma implementação/especificação autorizada; cenários críticos passam pela ação canónica; efeitos, vitória e edges de turnos têm regressões executáveis; não existe ambiguidade conhecida que impeça jogo local; parâmetros de balance são explícitos.
 
