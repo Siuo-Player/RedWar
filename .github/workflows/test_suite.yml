@@ -43,9 +43,20 @@ jobs:
           python tools/scripts/build_cpp_engine.py --perft-test
           python tools/scripts/build_cpp_engine.py --terminal-test
           python tools/scripts/build_cpp_engine.py --reversibility-test
+          python tools/scripts/build_cpp_engine.py
 
       - name: Run native reversibility contract
         run: ./cpp_reversibility_test
+
+      - name: Run deterministic tactical reference audit
+        shell: bash
+        run: |
+          for run in 1 2 3; do
+            echo "=== tactical reference audit run ${run}/3 ==="
+            python tools/analytics/tactical_benchmark_suite.py \
+              --nodes 100000 \
+              --strict-choice
+          done
 
       - name: Run Python test suite
         run: python -m pytest tests/
