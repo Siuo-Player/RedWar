@@ -1,7 +1,7 @@
 # RedWar — Current State
 
 **Snapshot:** 2026-09-10  
-**Verified `main`:** `6aa5827a650cd623e9a74e9d4910cea2a5effcd9`
+**Verified `main`:** `3e8bbe9417b584b5a4208d18852070f578bb8b77`
 
 Este ficheiro é a fotografia operacional mínima do baseline atual. Os contratos pertencem aos documentos canónicos; a sequência pertence a [`ROADMAP.md`](ROADMAP.md); a cadeia causal transversal está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
 
@@ -33,7 +33,7 @@ O escopo de #371 é o ruleset 1.0 jogável: board 8×8, draft de 200 por cor, um
 
 **Integrado:** #397 ligou a validação canónica de pre-match aos chamadores Pygame e treino.
 
-**Ativo:** #404 / PR #405 elimina o segundo cálculo independente de legalidade em `GameState.check_game_over()`, fazendo a terminação por bloqueio consumir `engine.legal_actions.legal_actions()`.
+**Integrado:** #404 / PR #405 eliminou o segundo cálculo independente de legalidade em `GameState.check_game_over()`, fazendo a terminação por bloqueio consumir `engine.legal_actions.legal_actions()`.
 
 ## 4. Ares
 
@@ -64,7 +64,7 @@ A arquitetura funcional da Battle Sidebar, Encyclopedia, geometria responsiva e 
 ```text
 #371 Gameplay
      │
-     ├─ #404 terminal/action-space hardening
+     ├─ #404 ✅ canonical terminal action-space
      │
      └─ #372 / #406 Ares preparation
             ├─ capability corpus
