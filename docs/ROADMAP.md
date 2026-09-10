@@ -33,7 +33,7 @@ A execução corrente segue a cadeia de issues canónica:
 #375 Release
 ```
 
-#370 e **#371 Gameplay estão fechados em 2026-09-10**. O trabalho principal autorizado é agora **#372 Ares**. A preparação de Ares anterior ao fecho de Gameplay não constitui promoção nem fecho de #372.
+#370 e **#371 Gameplay estão fechados em 2026-09-10**. O trabalho principal autorizado é agora **#372 Ares**. Preparação anterior de Ares não constitui promoção nem fecho de #372.
 
 ## #370 — Foundation
 
