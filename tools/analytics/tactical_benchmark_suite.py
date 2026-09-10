@@ -40,6 +40,7 @@ class TacticalCase:
 
 
 _EMPTY = ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
+_SECOND_STUN_ROW = "W_FrostMage_0_N_0:.,.:.,.:.,B_Bone_1_N_0:.,.:.,.:.,.:."
 
 CASES = {
     "frostmage-5-target": TacticalCase(
@@ -52,7 +53,7 @@ CASES = {
     "second-stun-lethal": TacticalCase(
         "second-stun-lethal",
         "A stunned enemy occupies FrostMage's D5 target square, making the next STUN lethal under the two-stun rule.",
-        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/W_FrostMage_0_N_0:.,.:.,.:.,B_Bone_1_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/{_EMPTY}/{_SECOND_STUN_ROW}/{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
         "STUN A5 D5",
         "SECOND_STUN_LETHAL",
     ),
@@ -87,7 +88,7 @@ CASES = {
     "twc-capture": TacticalCase(
         "twc-capture",
         "A capture is available immediately before the TWC terminal boundary.",
-        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 49",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,:.,:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 49",
         "ATTACK E4 D5",
         "TWC",
     ),
@@ -152,13 +153,11 @@ def find_complete_game_rwen() -> str | None:
 
 
 def _game_state_from_rwen(rwen: str) -> GameState:
-    """Reconstruct enough Python state to validate an engine bestmove canonically."""
     _validate_rwen(rwen)
     board_text, turn, twc_text = rwen.split()
     state = GameState()
     state.white_to_move = turn == "W"
     state.turns_without_capture = int(twc_text)
-
     for row, row_text in enumerate(board_text.split("/")):
         for col, cell in enumerate(row_text.split(",")):
             token, _, effect_text = cell.partition(":")
@@ -173,7 +172,6 @@ def _game_state_from_rwen(rwen: str) -> GameState:
                 piece.lifespan = 999 if lifespan_text == "N" else int(lifespan_text)
                 piece.spawn_cooldown = int(cooldown_text)
                 state.board[row][col] = piece
-
             if effect_text and effect_text != ".":
                 effect_fields = effect_text.split("_")
                 if len(effect_fields) != 3:
@@ -184,7 +182,6 @@ def _game_state_from_rwen(rwen: str) -> GameState:
                     "type": effect_fields[1],
                     "timer": int(effect_fields[2]),
                 }
-
     state.compute_initial_hash()
     return state
 
@@ -193,7 +190,6 @@ def _canonical_bestmove(rwen: str, bestmove: str) -> GameAction:
     parsed = ActionParser.parse(bestmove)
     if parsed is None:
         raise ValueError(f"engine returned unparseable bestmove {bestmove!r}")
-
     state = _game_state_from_rwen(rwen)
     action_data: dict[str, Any] = {
         "type": parsed["action"].lower(),
@@ -204,9 +200,7 @@ def _canonical_bestmove(rwen: str, bestmove: str) -> GameAction:
         action_data["spell_name"] = parsed["spell"]
     if "hero" in parsed:
         action_data["spawn_name"] = parsed["hero"]
-
-    action = GameAction.from_dict(action_data)
-    return resolve_legal_action(state, action)
+    return resolve_legal_action(state, GameAction.from_dict(action_data))
 
 
 def query(engine: Path, rwen: str, nodes: int, trace_path: Path | None) -> tuple[str, float]:
@@ -283,8 +277,7 @@ def run_case(case: TacticalCase, engine: Path, budgets: list[int], trace: bool, 
         legality = "not-tested"
         if ok:
             try:
-                canonical = _canonical_bestmove(case.rwen, bestmove)
-                legality = canonical.type.value
+                legality = _canonical_bestmove(case.rwen, bestmove).type.value
             except (TypeError, ValueError) as exc:
                 ok = False
                 legality = f"invalid: {exc}"
@@ -312,8 +305,7 @@ def run_complete_game_probe(engine: Path, nodes: int, trace: bool) -> int:
     legality = "not-tested"
     if ok:
         try:
-            canonical = _canonical_bestmove(rwen, bestmove)
-            legality = canonical.type.value
+            legality = _canonical_bestmove(rwen, bestmove).type.value
         except (TypeError, ValueError) as exc:
             ok = False
             legality = f"invalid: {exc}"
