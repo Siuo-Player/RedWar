@@ -26,7 +26,7 @@ The machine-readable source is `data/analysis/foundation_authority_matrix_2026-0
 | Native NNUE incremental mutation | native `Board::make_move/unmake_move` | `CANONICAL_AND_TESTED` | PR #356 and current NNUE documentation |
 | NNUE full reconstruction oracle | native `sync_board()` | `CANONICAL_AND_TESTED` | explicit oracle/recovery boundary in #356 evidence |
 | Python `fast_clone()` | `GameState.fast_clone` | `JUSTIFIED_SPECIALIZATION` | reference/fixture/replay tooling only; prohibited in native hot path |
-| Terminal conditions | `GameState.check_game_over()` | `UNPROTECTED_GAP` | authority is centralized, but the complete 1.0 terminal matrix still needs focused regression coverage |
+| Terminal conditions | `GameState.check_game_over()` | `CANONICAL_AND_TESTED` | Arena no-move decision, terminal differential/AI tests, and foundation regression coverage |
 | Effects/timers | `set_tile_effect`, `update_timers`, specialized effect branches | `CANONICAL_AND_TESTED` | incremental/hash regression scenarios |
 | Current-state/NNUE documentation | `docs/CURRENT_STATE.md`, `docs/NNUE.md` | `CANONICAL_AND_TESTED` | PR #381 merged as `612221b...` |
 
@@ -34,11 +34,11 @@ The machine-readable source is `data/analysis/foundation_authority_matrix_2026-0
 
 The audit found two concrete issues rather than a broad rewrite requirement.
 
-1. **Spell vocabulary duplication** was corrected by #380: the transition validator now checks whether the acting hero declares the spell in canonical configuration. Python still owns the unique transition semantics that the current schema does not express as a generic DSL.
+1. **Spell vocabulary duplication** is being corrected by #380: the transition validator now checks whether the acting hero declares the spell in canonical configuration. Python still owns the unique transition semantics that the current schema does not express as a generic DSL.
 2. **Documentation drift** was corrected by #381: current-state and NNUE baseline/status now match verified `main` and merged native NNUE evidence.
 
 ## Remaining foundation debt
 
-The material correctness item still visible in this audit is the **terminal-condition regression gap**. `GameState.check_game_over()` is the centralized authority, but #370 should not close until the 1.0 termination rules have an explicit executable regression matrix covering at least annihilation, 50-turn no-capture resolution, repetition, and no-legal-action termination.
+The authority matrix itself is now complete for the audited critical contracts. Any remaining #370 work should be driven by concrete uncovered transition/invariant evidence rather than another documentation inventory. The current active implementation blocker is #380 until its required CI gates pass.
 
 This matrix intentionally does **not** infer gameplay balance, engine strength, or search superiority.
