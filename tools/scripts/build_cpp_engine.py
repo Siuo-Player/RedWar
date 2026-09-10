@@ -66,6 +66,13 @@ TERMINAL_SOURCES = [
     "movegen.cpp",
     "nnue.cpp",
 ]
+REVERSIBILITY_SOURCES = [
+    "board.cpp",
+    "evaluate.cpp",
+    "movegen.cpp",
+    "search.cpp",
+    "nnue.cpp",
+]
 
 
 def get_vcvars_path() -> Path | None:
@@ -178,11 +185,19 @@ def compile_cpp_project(mode: str = "engine") -> Path:
         sources = [*sources, str(test_path)]
         suffix = ".exe" if platform.system() == "Windows" else ""
         output = ROOT / f"cpp_terminal_contract_test{suffix}"
+    elif mode == "reversibility":
+        sources = REVERSIBILITY_SOURCES
+        test_path = TESTS_DIR / "cpp_reversibility_test.cpp"
+        if not test_path.is_file():
+            raise FileNotFoundError(f"Teste C++ em falta: {test_path}")
+        sources = [*sources, str(test_path)]
+        suffix = ".exe" if platform.system() == "Windows" else ""
+        output = ROOT / f"cpp_reversibility_test{suffix}"
     else:
         raise ValueError(f"Modo desconhecido: {mode}")
 
     missing = [name for name in sources if not (CPP_DIR / name).is_file()]
-    if mode in {"numeric", "bridge", "movegen", "perft", "terminal"}:
+    if mode in {"numeric", "bridge", "movegen", "perft", "terminal", "reversibility"}:
         missing = [name for name in missing if not Path(name).is_file()]
     if missing:
         raise FileNotFoundError(f"Fontes C++ em falta: {', '.join(missing)}")
@@ -214,6 +229,7 @@ def main() -> int:
     group.add_argument("--movegen-test", action="store_true", help="Compila o helper de equivalência da geração de ações")
     group.add_argument("--perft-test", action="store_true", help="Compila o helper de perft/node-count differential")
     group.add_argument("--terminal-test", action="store_true", help="Compila o helper do contrato terminal Python/C++")
+    group.add_argument("--reversibility-test", action="store_true", help="Compila o helper nativo de make/unmake reversibility")
     args = parser.parse_args()
 
     if args.numeric_test:
@@ -226,6 +242,8 @@ def main() -> int:
         compile_cpp_project("perft")
     elif args.terminal_test:
         compile_cpp_project("terminal")
+    elif args.reversibility_test:
+        compile_cpp_project("reversibility")
     elif args.smoke:
         compile_cpp_project("smoke")
     else:
