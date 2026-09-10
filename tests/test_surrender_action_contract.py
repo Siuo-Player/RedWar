@@ -78,7 +78,7 @@ def test_terminal_game_cannot_be_surrendered_again():
     state.execute_action({"type": "surrender"})
     after_first = (state.to_rwen(), state.winner, len(state.move_log))
 
-    with pytest.raises(ValueError, match="terminal game"):
+    with pytest.raises(ValueError, match="illegal action for terminal position"):
         state.execute_action({"type": "surrender"})
 
     assert (state.to_rwen(), state.winner, len(state.move_log)) == after_first

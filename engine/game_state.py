@@ -196,10 +196,6 @@ class GameState:
 
     def execute_action(self, acao_dict):
         action = normalize_action(acao_dict)
-        if action.type is ActionType.SURRENDER:
-            self._execute_surrender(action.actor_team)
-            return
-
         try:
             resolved = resolve_legal_action(self, action)
         except ValueError as resolution_error:
@@ -207,6 +203,8 @@ class GameState:
             # fixture historically accepted by GameState. Run the pure transition
             # validator only to preserve a domain-specific rejection reason; it
             # never mutates state and does not make an unlisted action executable.
+            if action.type is ActionType.SURRENDER:
+                raise resolution_error
             self._validate_transition(
                 action.start,
                 action.end,
@@ -216,6 +214,10 @@ class GameState:
                 spell_name=action.spell_name,
             )
             raise resolution_error
+
+        if resolved.type is ActionType.SURRENDER:
+            self._execute_surrender(resolved.actor_team)
+            return
 
         self.make_action(
             resolved.start,
