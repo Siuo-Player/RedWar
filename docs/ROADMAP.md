@@ -86,7 +86,7 @@ Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma 
 ### Progresso atual
 
 - **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
-- **Concluído:** **#396/#397** — autoridade de validação canónica de pre-match draft/placement e integração nos chamadores existentes (Pygame draft/start e treino). O #397 foi merged em `7095258388ef71e4dad2dd178c5be6f95e061337`; Test Suite #2036, CodeQL #727 e AI Quality Gate passaram. O #395 foi encerrado como concluído porque o seu acceptance está integrado através de #396/#397.
+- **Concluído:** **#396/#397** — autoridade de validação canónica de pre-match draft/placement e integração nos chamadores existentes (Pygame draft/start e treino). O #397 foi merged em `7095258388ef71e4dad2dd178c5be6f95e061337`; Test Suite #2036, CodeQL #727 e AI Quality Gate passaram.
 - **Concluído no contrato:** timing de efeitos foi explicitado: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato está em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e há regressão explícita para a posse temporal.
 
 Critério de saída: cada regra declarada tem uma implementação/especificação autorizada; cenários críticos passam pela ação canónica; efeitos, vitória e edges de turnos têm regressões executáveis; não existe ambiguidade conhecida que impeça jogo local; parâmetros de balance são explícitos.
