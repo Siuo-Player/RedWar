@@ -94,6 +94,10 @@ class GameAction:
             raise ValueError(f"Unknown action type: {raw_type!r}") from exc
 
         if action_type is ActionType.SURRENDER:
+            if "start" in action or "end" in action:
+                raise ValueError("SURRENDER actions must not contain board coordinates")
+            if any(key in action for key in ("area", "spawn_name", "spell_name")):
+                raise ValueError("SURRENDER actions may only contain type and optional actor_team")
             return cls(
                 type=action_type,
                 start=None,
