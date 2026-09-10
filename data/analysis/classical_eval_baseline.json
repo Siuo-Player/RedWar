@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "kind": "classical_evaluator_baseline",
+  "governing_issue": 411,
+  "parent_issue": 406,
+  "evaluator_source": "ai/cpp_engine/evaluate.cpp",
+  "evaluator_source_blob": "5fbad5fd9ae97f683628411febcffa477409261b",
+  "implementation": "evaluate_classical_board",
+  "terms": [
+    "safe_piece_cost",
+    "lifespan_scaling",
+    "hero_specific_pst",
+    "stun_value_and_threat",
+    "frostmage_pressure",
+    "twc_directional_adjustment"
+  ],
+  "terminal_values": {
+    "white_zero": "-INFINITO + 100",
+    "black_zero": "INFINITO - 100"
+  },
+  "nnue_policy": "not part of this baseline",
+  "strength_claim": false,
+  "arena_dataset": "not used",
+  "notes": "Future evaluator candidates must identify their changed term(s) and compare against this implementation under matched search budgets."
+}
