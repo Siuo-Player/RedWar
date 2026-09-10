@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `6aa5827a650cd623e9a74e9d4910cea2a5effcd9`  
+**Baseline operacional:** `main` @ `3e8bbe9417b584b5a4208d18852070f578bb8b77`  
 **Data:** 2026-09-10
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -33,7 +33,7 @@ A execução corrente segue a cadeia de issues canónica:
 #375 Release
 ```
 
-#370 está fechado. O gate principal ativo é **#371 Gameplay**. O child técnico atual é **#404**, e o seu PR #405 elimina a segunda autoridade de legalidade na terminação por bloqueio. Em paralelo, **#406** prepara as lanes de evidência de Ares sem alterar a ordem dos gates.
+#370 está fechado. O gate principal ativo é **#371 Gameplay**. O hardening técnico #404 foi integrado em `main` pelo PR #405. Em paralelo, **#406** prepara as lanes de evidência de Ares sem alterar a ordem dos gates.
 
 ## #370 — Foundation
 
@@ -68,8 +68,8 @@ Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma 
 ### Progresso atual
 
 - **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
-- **Concluído:** **#396/#397** — autoridade de validação canónica de pre-match draft/placement e integração nos chamadores existentes (Pygame draft/start e treino). O #397 foi merged em `7095258388ef71e4dad2dd178c5be6f95e061337`.
-- **Ativo:** **#404 / PR #405** — `GameState.check_game_over()` passa a consumir `engine.legal_actions.legal_actions()` para determinar ausência de ações, preservando a precedência de aniquilação, TWC de 50 e repetição. O PR contém regressões para delegação à autoridade canónica e para um estado realmente bloqueado.
+- **Concluído:** **#396/#397** — autoridade de validação canónica de pre-match draft/placement e integração nos chamadores existentes (Pygame draft/start e treino); #397 foi merged em `7095258388ef71e4dad2dd178c5be6f95e061337`.
+- **Concluído:** **#404 / PR #405** — `GameState.check_game_over()` passou a consumir `engine.legal_actions.legal_actions()` para determinar ausência de ações, preservando a precedência de aniquilação, TWC de 50 e repetição. O PR adicionou regressões para a delegação à autoridade canónica e para uma posição realmente bloqueada; merge `3e8bbe9417b584b5a4208d18852070f578bb8b77`.
 - **Concluído no contrato:** timing de efeitos foi explicitado: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato está em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md`.
 
 Critério de saída: cada regra declarada tem uma implementação/especificação autorizada; cenários críticos passam pela ação canónica; efeitos, vitória e edges de turnos têm regressões executáveis; não existe ambiguidade conhecida que impeça jogo local; parâmetros de balance são explícitos.
@@ -81,6 +81,8 @@ Critério de saída: cada regra declarada tem uma implementação/especificaçã
 Objetivo: correctness primeiro, depois capability/search/eval/classical baseline, optional NNUE, controlled benchmarks e Arena A/B com provenance. Benchmark ≠ strength; mais nodes ≠ strength; NNUE existente ≠ superioridade; dataset maior ≠ strength.
 
 **#406** é o child preparatório atual. As lanes independentes são: correctness/invariantes, tactical capability corpus, search hypotheses, evaluator baseline, NNUE parity/cost, matched-resource benchmarks e Arena strength evidence. Promoção continua serializada depois de #371.
+
+O plano operacional está em `docs/ARES_EXECUTION_PLAN.md`.
 
 Critério de promoção: apenas depois de #371 fechar e de cada alteração relevante passar correctness/regression → capability/performance → independent Arena evidence.
 
