@@ -464,8 +464,13 @@ class GameState:
                         continue
                     self.set_tile_effect(fr, fc, {"type": "fire", "timer": 3, "team": piece.team})
                     target = self.board[fr][fc]
-                    if target and target.stun_timer < 2:
-                        self.remove_piece_hash(fr, fc)
+                    if not target:
+                        continue
+                    self.remove_piece_hash(fr, fc)
+                    if target.stun_timer > 0:
+                        captured_real_piece |= target.lifespan is None
+                        self.board[fr][fc] = None
+                    else:
                         target.stun_timer = 2
                         self.add_piece_hash(fr, fc, target)
             elif spell_name == "purify":
