@@ -52,15 +52,11 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
 
 
 def _declared_spell_names(gs: Any, piece: Any) -> set[str]:
-    """Return spells owned by a hero from the canonical hero configuration."""
+    """Return spell capabilities from the canonical hero declaration only."""
     from engine.pieces import HERO_DEFS
 
     definition = HERO_DEFS.get(piece.name, {}) or {}
-    names = {str(name).lower() for name in definition.get("spells", []) if name}
-    attack = (definition.get("behavior") or {}).get("attack") or {}
-    if attack.get("attack_action") == "spell" and attack.get("spell_name"):
-        names.add(str(attack["spell_name"]).lower())
-    return names
+    return {str(name).strip().lower() for name in definition.get("spells", []) if name}
 
 
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
