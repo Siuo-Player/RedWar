@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `10bad4f1e3823ce31b2cb2f458519e8ce73fc07e`  
+**Baseline operacional:** `main` @ `6aa5827a650cd623e9a74e9d4910cea2a5effcd9`  
 **Data:** 2026-09-10
 
 Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
@@ -123,8 +123,8 @@ Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma 
 ### Progresso atual
 
 - **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
-- **Concluído:** **#396** criou a autoridade de validação canónica de pre-match draft/placement e regressões para orçamento, home rows, unidades não-draftable, equipas e cópias duplicadas. O PR foi merged antes do baseline atual; #397 é agora o follow-up de integração.
-- **Aberto: #397** — ligar a nova autoridade aos chamadores existentes (Pygame draft/start e treino). #395 permanece aberto até esta integração estar efetivamente concluída.
+- **Concluído:** **#396** criou a autoridade de validação canónica de pre-match draft/placement e regressões para orçamento, home rows, unidades não-draftable, equipas e cópias duplicadas. O PR foi merged; **#397 também está concluído**, incluindo a integração nos chamadores Pygame e treino.
+- **Em execução:** **#404/#405** — fazer a terminação sem ação consumir exclusivamente o action-space canónico, preservando surrender como comando não-board e a precedência das demais condições terminais.
 - **Concluído no contrato:** timing de efeitos foi explicitado: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato está em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e há regressão explícita para a posse temporal.
 
 Critério de saída: cada regra declarada tem uma implementação/especificação autorizada; cenários críticos passam pela ação canónica; efeitos, vitória e edges de turnos têm regressões executáveis; não existe ambiguidade conhecida que impeça jogo local; parâmetros de balance são explícitos.
@@ -167,7 +167,7 @@ Esta ordem é uma **ordem de dependência e promoção**, não uma fila que obri
 
 A primeira hipótese de implementação continua a ser o caminho NNUE incremental: o hot path atual ainda faz `sync_board()` antes de cada inferência. O objetivo é medir e, apenas se a paridade permanecer exata, eliminar o scan por nó mantendo `sync_board()` como oracle.
 
-O princípio Stockfish aplicado é: patches pequenos, uma ideia por teste, benchmarks de custo separados de strength e promoção baseada em evidência estatística. Stockfish documenta explicitamente esta abordagem em Fishtest e no desenho atual do search. citeturn283942search1turn402592search0
+O princípio Stockfish aplicado é: patches pequenos, uma ideia por teste, benchmarks de custo separados de strength e promoção baseada em evidência estatística.
 
 `fast_clone()` não pertence ao C++ hot path. Qualquer otimização exige regressão de correctness + benchmark controlado; qualquer alegação de strength exige avaliação Arena independente.
 
@@ -184,7 +184,7 @@ Preparação pode decorrer em paralelo:
 - stress scenes FrostMage/NEVADA;
 - replay/telemetry corpus e reconstrução determinística.
 
-A arquitetura funcional já existe; o objetivo agora é validar, não reabrir o desenho estrutural sem evidência. fileciteturn131file0
+A arquitetura funcional já existe; o objetivo agora é validar, não reabrir o desenho estrutural sem evidência.
 
 A promoção de Product começa quando Ares atingir o seu critério de saída.
 
@@ -203,7 +203,7 @@ Preparação pode decorrer em paralelo:
 - observability;
 - security boundary.
 
-O cliente nunca passa a ser autoridade de legalidade/final state. O contrato de observabilidade atual distingue DRAFT, onde o setup adversário é oculto, de BATALHA, onde o estado do combate é público e utilizável pela Ares. fileciteturn132file0
+O cliente nunca passa a ser autoridade de legalidade/final state. O contrato de observabilidade atual distingue DRAFT, onde o setup adversário é oculto, de BATALHA, onde o estado do combate é público e utilizável pela Ares.
 
 ## #375 — Release
 
@@ -249,6 +249,6 @@ same baseline
 → revalidate the composition
 ```
 
-Não fazer “mega-PRs” que misturam search, evaluator, gameplay e produto. A metodologia do Stockfish também privilegia patches focados e testes de uma ideia por vez. citeturn283942search1
+Não fazer “mega-PRs” que misturam search, evaluator, gameplay e produto. A metodologia aplicada aqui privilegia patches focados e testes de uma ideia por vez.
 
 Não criar outro roadmap para contornar esta sequência.
