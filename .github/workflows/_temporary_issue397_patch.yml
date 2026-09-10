@@ -1,0 +1,60 @@
+name: temporary issue397 patch
+
+on:
+  push:
+    branches:
+      - state21/issue397-wire-pre-match-validation-2026-09-10
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply issue397 changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          main = Path("main.py")
+          text = main.read_text(encoding="utf-8")
+          old = "from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS\n"
+          new = old + "from engine.setup import validate_complete_pre_match_setup\n"
+          assert old in text, "main import anchor missing"
+          text = text.replace(old, new, 1)
+
+          old = '''            if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < ORCAMENTO_BRANCAS:\n                self.auto_draft_inimigo(ORCAMENTO_PRETAS)\n                self.fase_atual = \"BATALHA\"\n                self.peca_loja = None\n'''
+          new = '''            if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < ORCAMENTO_BRANCAS:\n                try:\n                    validate_complete_pre_match_setup(self.gs.board)\n                    self.auto_draft_inimigo(ORCAMENTO_PRETAS)\n                    validate_complete_pre_match_setup(self.gs.board)\n                except ValueError as exc:\n                    print(f\"\u26a0\ufe0f Setup de pr\u00e9-match inv\u00e1lido: {exc}\")\n                    for row in range(2):\n                        for col in range(COLUNAS):\n                            piece = self.gs.board[row][col]\n                            if piece is not None and piece.team == \"pretas\":\n                                self.gs.board[row][col] = None\n                    return\n                self.fase_atual = \"BATALHA\"\n                self.peca_loja = None\n'''
+          assert old in text, "main ready anchor missing"
+          text = text.replace(old, new, 1)
+          main.write_text(text, encoding="utf-8")
+
+          trainer = Path("tools/analytics/trainer.py")
+          text = trainer.read_text(encoding="utf-8")
+          old = "from engine.pieces import obter_catalogo_pecas\n"
+          new = old + "from engine.setup import validate_complete_pre_match_setup\n"
+          assert old in text, "trainer import anchor missing"
+          text = text.replace(old, new, 1)
+
+          old = '''    comp_brancas = preencher_draft_aleatorio(\n        gs, \"brancas\", [LINHAS - 2, LINHAS - 1], ORCAMENTO_BRANCAS, rng\n    )\n\n    turnos = 0\n'''
+          new = '''    comp_brancas = preencher_draft_aleatorio(\n        gs, \"brancas\", [LINHAS - 2, LINHAS - 1], ORCAMENTO_BRANCAS, rng\n    )\n    validate_complete_pre_match_setup(gs.board)\n\n    turnos = 0\n'''
+          assert old in text, "trainer draft anchor missing"
+          text = text.replace(old, new, 1)
+          trainer.write_text(text, encoding="utf-8")
+
+          test = Path("tests/test_pre_match_setup_integration.py")
+          test.write_text('''from engine.game_state import GameState\nfrom engine.pieces import criar_peca_por_nome\nfrom engine.setup import validate_complete_pre_match_setup\nfrom tools.analytics.trainer import preencher_draft_aleatorio\n\n\ndef test_trainer_random_draft_uses_canonical_pre_match_validator():\n    gs = GameState()\n    preencher_draft_aleatorio(gs, \"pretas\", [0, 1], 200, __import__(\"random\").Random(1))\n    preencher_draft_aleatorio(gs, \"brancas\", [6, 7], 200, __import__(\"random\").Random(2))\n    costs = validate_complete_pre_match_setup(gs.board)\n    assert costs[\"brancas\"] <= 200\n    assert costs[\"pretas\"] <= 200\n\n\ndef test_pre_match_validator_rejects_non_draftable_runtime_piece():\n    gs = GameState()\n    gs.board[0][0] = criar_peca_por_nome(\"Ghoul\", \"pretas\")\n    try:\n        validate_complete_pre_match_setup(gs.board)\n    except ValueError as exc:\n        assert \"Non-draftable\" in str(exc)\n    else:\n        raise AssertionError(\"non-draftable piece must be rejected by pre-match validator\")\n''', encoding="utf-8")
+
+      - name: Remove temporary workflow and commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm .github/workflows/_temporary_issue397_patch.yml
+          git add main.py tools/analytics/trainer.py tests/test_pre_match_setup_integration.py .github/workflows/_temporary_issue397_patch.yml
+          git diff --cached --check
+          git commit -m "fix: wire canonical pre-match validation into callers" 
+          git push origin HEAD:state21/issue397-wire-pre-match-validation-2026-09-10
