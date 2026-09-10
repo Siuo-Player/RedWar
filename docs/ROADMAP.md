@@ -33,7 +33,7 @@ A execução corrente segue a cadeia de issues canónica:
 #375 Release
 ```
 
-#370 e **#371 Gameplay estão fechados em 2026-09-10**. O trabalho atual pode avançar para a gate #372 Ares. A preparação de Ares feita antes do fecho de #371 não constitui, por si só, promoção nem fecho de #372.
+#370 e **#371 Gameplay estão fechados em 2026-09-10**. O trabalho principal autorizado é agora **#372 Ares**. A preparação de Ares anterior ao fecho de Gameplay não constitui promoção nem fecho de #372.
 
 ## #370 — Foundation
 
@@ -67,13 +67,13 @@ Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma 
 
 ### Evidência de saída
 
-- **Surrender:** #390/#391 introduziram e endureceram `ActionType.SURRENDER` como comando terminal não-board, resolvido canonicamente e sem mistura no action-space de board; merged em `af908888ef1096cde327c63c34ec5bc02e02235b` e `1e137e6ae09a931ea5cef73771e7d753b3c75d53`.
-- **STUN:** #392/#394 fecharam `stun → segundo stun enquanto stunned → morte`, incluindo TWC e paridade Python/C++; merged em `2ea747c15c389640a77a8bb3aea6cf03b69c7424`.
+- **Surrender:** #390/#391 introduziram e endureceram `ActionType.SURRENDER` como comando terminal não-board, resolvido canonicamente e sem mistura no action-space de board.
+- **STUN:** #392/#394 fecharam `stun → segundo stun enquanto stunned → morte`, incluindo TWC e paridade Python/C++.
 - **Spell authority:** #399/#400 eliminaram a segunda fonte de capacidade de spell e tornaram `hero.spells` a autoridade de capability; Test Suite #2031, CodeQL #725 e AI Quality Gate #732 verdes.
-- **Pre-match:** #395/#396 criaram a autoridade canónica para orçamento, home rows, `draftable`, equipas e cópias; #397 ligou-a ao Pygame draft/start e trainer; PR #401 merged em `7095258388ef71e4dad2dd178c5be6f95e061337` com Test Suite #2036, CodeQL #727 e AI Quality Gate verde.
-- **Terminal/action-space:** #404/#405 eliminaram a segunda definição de “há ação legal?” em `check_game_over()` e passaram a consumir `engine.legal_actions.legal_actions()`; PR #405 merged em `3e8bbe9417b584b5a4208d18852070f578bb8b77` com Test Suite #2056, CodeQL #735 e AI Quality Gate #740 verdes após correção do fixture.
+- **Pre-match:** #395/#396 criaram a autoridade canónica para orçamento, home rows, `draftable`, equipas e cópias; #397 ligou-a ao Pygame draft/start e trainer; PR #401 merged em `7095258388ef71e4dad2dd178c5be6f95e061337`.
+- **Terminal/action-space:** #404/#405 eliminaram a segunda definição de “há ação legal?” em `check_game_over()` e passaram a consumir `engine.legal_actions.legal_actions()`; PR #405 merged em `3e8bbe9417b584b5a4208d18852070f578bb8b77`, com Test Suite #2056, CodeQL #735 e AI Quality Gate #740 verdes após correção do fixture.
 - **Effects/timing:** o contrato de timers e fire/ice/terrain está documentado em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e protegido por regressões dedicadas.
-- **Core regression suite:** a execução validada que fechou #405 terminou com **692 passed**, cobrindo action execution/resolution, legal-action oracle, hero schema traceability, lifecycle/TWC/specials, differential Python/C++, NNUE integration, pre-match, terminal conditions, surrender, effects, trainer e entrypoint manual.
+- **Core regression suite:** a execução validada do #405 terminou com **692 passed**, cobrindo action execution/resolution, legal-action oracle, hero schema traceability, lifecycle/TWC/specials, differential Python/C++, NNUE integration, pre-match, terminal conditions, surrender, effects, trainer e entrypoint manual.
 
 ### Julgamento da gate
 
@@ -81,15 +81,13 @@ A aceitação do #371 está satisfeita para o ruleset atualmente declarado: cada
 
 ## #372 — Ares
 
-**Estado: OPEN — ativo após fecho de #371.**
+**Estado: OPEN — gate ativa.**
 
 Objetivo: tornar Ares forte, eficiente e confiável para uso no produto, com correctness primeiro e evidência independente para capability, performance e strength.
 
-### Preparação já existente
+**#406** é o child preparatório atual, organizando as lanes de correctness/state, tactical capability, search hypotheses, classical evaluator, NNUE parity/cost, matched-resource benchmarks, Arena strength e configuração aceite.
 
-**#406** é o child preparatório que organiza correctness/state invariants, tactical capability corpus, search hypotheses, classical evaluator, NNUE parity/cost, matched-resource benchmarks, Arena strength e configuração aceite.
-
-**#409 / `docs/ARES_EXECUTION_PLAN.md`** documenta a sequência e os limites das lanes. Nenhuma dessas preparações equivale a uma alegação de strength ou fecha #372.
+**#409** prepara `docs/ARES_EXECUTION_PLAN.md` e sincroniza a fotografia operacional. Esta preparação não substitui a aceitação de #372.
 
 ### Ordem obrigatória
 
