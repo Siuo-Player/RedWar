@@ -13,7 +13,11 @@ from engine.config import COLUNAS, LINHAS
 
 
 def legal_actions(gs: Any) -> tuple[GameAction, ...]:
-    """Return all legal actions for the side to move in deterministic order."""
+    """Return all legal board actions for the side to move in deterministic order.
+
+    Surrender is intentionally not enumerated here: it is a canonical non-board
+    terminal command and is resolved explicitly by ``resolve_legal_action``.
+    """
     current_team = "brancas" if gs.white_to_move else "pretas"
     actions: set[GameAction] = set()
     for r in range(LINHAS):
@@ -62,6 +66,17 @@ def _declared_spell_names(gs: Any, piece: Any) -> set[str]:
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
     """Resolve an input to a canonical execution representation."""
     normalized = normalize_action(action)
+
+    if normalized.type is ActionType.SURRENDER:
+        if gs.game_over:
+            raise ValueError(f"illegal action for terminal position: {normalized.to_dict()}")
+        current_team = "brancas" if gs.white_to_move else "pretas"
+        if normalized.actor_team is not None and normalized.actor_team != current_team:
+            raise ValueError(
+                f"surrender actor does not match side to move: {normalized.actor_team} != {current_team}"
+            )
+        return normalized
+
     available = legal_actions(gs)
     if normalized in available:
         return normalized
@@ -104,7 +119,7 @@ def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
 
 
 def is_legal_action(gs: Any, action: GameAction) -> bool:
-    """Return whether ``action`` is present in the authoritative action space."""
+    """Return whether ``action`` is present in the authoritative board action space."""
     if not isinstance(action, GameAction):
         raise TypeError("action must be a GameAction")
     return action in set(legal_actions(gs))
