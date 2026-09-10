@@ -88,7 +88,7 @@ CASES = {
     "twc-capture": TacticalCase(
         "twc-capture",
         "A capture is available immediately before the TWC terminal boundary.",
-        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,:.,:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 49",
+        f"{_EMPTY}/{_EMPTY}/{_EMPTY}/.:.,.:.,.:.,B_Lich_0_N_0:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Templar_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 49",
         "ATTACK E4 D5",
         "TWC",
     ),
@@ -135,7 +135,6 @@ def _iter_strings(value: Any):
 
 
 def find_complete_game_rwen() -> str | None:
-    """Find a valid RWEN actually preserved by the real-game evidence corpus."""
     if REAL_GAME_ROOT.is_dir():
         for path in sorted(REAL_GAME_ROOT.rglob("*.json")):
             try:
