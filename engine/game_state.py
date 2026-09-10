@@ -66,6 +66,16 @@ def coords_para_notacao(r, c):
     return f"{letras[c]}{LINHAS - r}"
 
 
+def _declared_spell_names(piece_name: str) -> set[str]:
+    """Return the canonical spell capabilities declared for a hero."""
+    spells = HERO_DEFS.get(piece_name, {}).get("spells", []) or []
+    return {
+        str(spell).strip().lower()
+        for spell in spells
+        if isinstance(spell, str) and spell.strip()
+    }
+
+
 class GameState:
     __slots__ = (
         "board", "tile_effects", "white_to_move", "game_over", "winner",
@@ -271,10 +281,16 @@ class GameState:
         if action_type == "spell":
             if not spell_name:
                 raise ValueError("SPELL action requires spell_name")
-            spell_name = str(spell_name).lower()
+            spell_name = str(spell_name).strip().lower()
+            if spell_name not in _declared_spell_names(piece.name):
+                raise ValueError(
+                    f"Unknown or undeclared spell for {piece.name}: {spell_name}"
+                )
             if self._is_silenced_piece(piece, start_row, start_col):
                 raise ValueError("SPELL is blocked by Inquisitor silence")
 
+            # These branches are transition semantics, not a capability whitelist:
+            # the spell identity above always comes from heroes_config.json.
             if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot"}:
                 target = self.board[end_row][end_col]
                 if not target or target.team == piece.team:
@@ -293,7 +309,7 @@ class GameState:
             elif spell_name in {"nevada", "ignite", "jump"}:
                 pass
             else:
-                raise ValueError(f"Unknown spell: {spell_name}")
+                raise ValueError(f"No transition semantics registered for declared spell: {spell_name}")
             return
 
         if action_type == "move":

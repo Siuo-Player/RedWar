@@ -18,7 +18,7 @@ def test_invalid_spell_does_not_get_silently_accepted():
     gs = GameState()
     gs.board[0][0] = criar_peca_por_nome("Sentry", "brancas")
 
-    with pytest.raises(ValueError, match=r"Unknown spell: unknown"):
+    with pytest.raises(ValueError, match=r"Unknown or undeclared spell for Sentry: unknown"):
         executar_acao_treino(
             gs,
             {

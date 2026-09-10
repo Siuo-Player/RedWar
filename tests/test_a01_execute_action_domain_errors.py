@@ -46,7 +46,7 @@ def _snapshot(state: GameState) -> tuple:
         ),
         (
             GameAction(ActionType.SPELL, (4, 4), (4, 4), spell_name="not_a_spell"),
-            "Unknown spell: not_a_spell",
+            r"Unknown or undeclared spell for BoneLord: not_a_spell",
         ),
     ],
 )

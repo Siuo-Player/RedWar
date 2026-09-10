@@ -50,5 +50,5 @@ def test_unknown_spell_keeps_specific_domain_error_and_does_not_mutate() -> None
     _assert_rejected_without_mutation(
         state,
         {"type": "spell", "start": (4, 4), "end": (4, 5), "spell_name": "not_a_spell"},
-        "Unknown spell: not_a_spell",
+        r"Unknown or undeclared spell for FrostMage: not_a_spell",
     )
