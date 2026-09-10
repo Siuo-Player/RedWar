@@ -1,32 +1,34 @@
 # RedWar — Current State
 
-**Snapshot:** 2026-09-09  
-**Verified `main`:** `010b14b6251ce131409e660df95c6d920c76af58`
+**Snapshot:** 2026-09-10  
+**Verified `main`:** `218fd115864629a79c82c72c729fa0faff831664`
 
 Este ficheiro é a fotografia operacional mínima do baseline atual. Os contratos pertencem aos documentos canónicos; a sequência pertence a [`ROADMAP.md`](ROADMAP.md); a explicação causal transversal está em [`PROJECT_REASONING.md`](PROJECT_REASONING.md).
 
-## 1. Fase atual
+## 1. Gate de produto atual
 
-**A0 histórico: CLOSED. A0.1 Semantic Closure: CLOSED.**
+**Gate ativo: #370 Foundation.**
 
-O `main` atual contém a fundação de action-space/execução resultante das tranches A0.1. `legal_actions()` fornece a enumeração canónica derivada dos geradores das peças; `resolve_legal_action()` é o seam de resolução canónica/legacy; `GameState._validate_transition()` mantém as restrições específicas de transição; `execute_action()` só entrega uma ação resolvida à mutação depois dessas fronteiras.
+A execução 1.0 segue a cadeia contratual **#370 Foundation → #371 Gameplay → #372 Ares → #373 Product → #374 Online → #375 Release**. O gate atual não declara o produto 1.0 completo: fecha primeiro a fundação necessária para que regras, estado, legalidade, transições e infraestruturas tenham autoridade única e evidência executável.
 
-### Matriz A0.1
+### Estado da fundação já consolidada
 
 | Fronteira | Estado | Evidência atual |
 |---|---|---|
-| Inquisitor silence/stun | TESTED / CLOSED | #292 + regressão C3/Python/native |
-| terminal differential | TESTED / CLOSED | #310 observa o `alpha_beta()` real |
-| special-spell legality | TESTED / CLOSED | #303 cobre as special actions atuais |
+| Inquisitor silence/stun | TESTED / CLOSED para a afirmação específica | #292 + regressão C3/Python/native |
+| terminal differential | TESTED / CLOSED para a afirmação específica | #310 observa o `alpha_beta()` real |
+| special-spell legality | TESTED / CLOSED para a afirmação específica | #303 cobre as special actions atuais |
 | canonical `GameAction` boundary | IMPLEMENTED / TESTED / CLOSED | #306 + #308 |
 | canonical action resolution seam | IMPLEMENTED / TESTED / CLOSED | #321 + #351 |
-| generator → canonical action-space coverage | TESTED / VALIDATED / CLOSED | #351 cobre todos os heróis configurados em variantes determinísticas |
+| generator → canonical action-space coverage | TESTED / VALIDATED / CLOSED | #351 cobre os heróis configurados em variantes determinísticas |
 | canonical ↔ legacy execution compatibility | TESTED / VALIDATED / CLOSED | #348 + #349 + #351 |
 | execute-time domain-error contract | TESTED / VALIDATED / CLOSED | #350 + #352 |
 | Python repetition observation | IMPLEMENTED / TESTED / CLOSED | #299 tornou observação idempotente |
 | FrostMage unreachable block | IMPLEMENTED / TESTED / CLOSED | #300 + AST regression |
 | fixed node-budget semantics | TESTED / CLOSED | cobertura dedicada existente |
 | native repetition/history contract | ARCHITECTURAL DECISION / TESTED BOUNDARY / CLOSED | #338 define `BoardState` como posição/search state e não como owner da sequência de repetição |
+| incremental NNUE mutation path | IMPLEMENTED / TESTED | PR #356, merge `f2e7155d150b4cc0be79d4b86beb5005941ef180` |
+| canonical spell-name metadata in specialized Python generators | IMPLEMENTED / TESTED / MERGED | PR #367, merge `218fd115864629a79c82c72c729fa0faff831664` |
 
 **Importante:** “closed” acima significa fechado para a afirmação específica sustentada pela evidência indicada. Não significa correctness total do projeto, nem paridade total em todos os estados matematicamente possíveis.
 
@@ -44,7 +46,7 @@ transition-domain validation
 only then mutate
 ```
 
-A cobertura de #351 exerceu todos os heróis configurados em estados determinísticos e verificou que as ações produzidas diretamente pelos geradores aparecem no action-space canónico, sobrevivem à resolução legacy e executam através de `execute_action()`. #352 fixa os erros específicos do domínio e a não-mutação em rejeições. Assim, a alegação de A.1 é agora sobre a fronteira `execute_action()` + action-space canónico, não sobre transformar `make_action()` numa segunda implementação da legalidade.
+A cobertura de #351 exerceu os heróis configurados em estados determinísticos e verificou que as ações produzidas diretamente pelos geradores aparecem no action-space canónico, sobrevivem à resolução legacy e executam através de `execute_action()`. #352 fixa os erros específicos do domínio e a não-mutação em rejeições. A existência de #367 acrescenta a primeira correção controlada de metadado duplicado: os cinco geradores especializados passaram a consumir a declaração canónica de `spells`.
 
 `fast_clone()` não é mecanismo de preflight nem autoridade de legalidade. Continua permitido apenas em contextos auxiliares de referência Python, replay, fixtures/property tests, tooling offline e comparação de estados; não entra no hot path C++ da Ares.
 
@@ -56,7 +58,7 @@ Ares mantém C++ no hot path com alpha-beta/PVS, TT, Zobrist, iterative deepenin
 
 **Estado do conhecimento:** IMPLEMENTED para a arquitetura documentada; TESTED para os contratos cobertos pela suite; não há aqui uma alegação de STRENGTH improvement.
 
-A avaliação clássica permanece baseline. NNUE é opcional e `sync_board()` continua oracle de correção até que a integração incremental real demonstre equivalência.
+A avaliação clássica permanece baseline. NNUE é opcional. A integração incremental do caminho nativo foi ligada ao caminho real de mutação e validada pelo PR #356 contra a referência de full resync; `sync_board()` permanece explícito como oracle/recovery path. A aceitação desta correção não implica superioridade competitiva da NNUE.
 
 Fontes: [`AI_ENGINE.md`](AI_ENGINE.md), [`NNUE.md`](NNUE.md), [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md), [`DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md`](DECISIONS/2026-09-08-execution-boundary-no-fast-clone.md).
 
@@ -74,19 +76,21 @@ Fontes: [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md), [`ARENA_STATISTICAL_
 
 ## 4. NNUE
 
-As features, formato versionado, `sync_board()` e hooks incrementais existem. **A integração hot-path incremental não está concluída/provada.**
+As features, formato versionado, `sync_board()` e hooks incrementais existem. **O caminho incremental nativo foi integrado e testado no caminho real de `make_move()` / `unmake_move()` pelo PR #356.**
 
-O PR #316 foi merged e separa na CI a classe estreita de alterações metodológicas de dataset NNUE da promoção de strength. O PR #314, que propunha endurecer split/deduplicação/auditoria de dataset, não foi merged e portanto não é implementação corrente.
+`sync_board()` continua como referência de ressincronização completa e oracle de correção. A equivalência incremental/full-sync foi exercida em alterações de movimento, turno/TWC, stun/lifespan/spawn-cooldown e efeitos, sem promover a NNUE a alegação de strength.
 
-**Não inferir:** dataset methodology improvement ≠ strength improvement; lower training loss ≠ stronger Ares.
+**Não inferir:** dataset methodology improvement ≠ strength improvement; lower training loss ≠ stronger Ares; correctness parity ≠ competitive superiority.
 
-Fonte: [`NNUE.md`](NNUE.md).
+Fontes: [`NNUE.md`](NNUE.md), PR #356.
 
 ## 5. Heróis / regras
 
 O sistema continua híbrido: `engine/heroes_config.json` fornece estrutura declarativa e código especializado cobre mecânicas ainda não expressas integralmente no schema.
 
-Ações canónicas da fronteira atual: `MOVE`, `ATTACK`, `STUN`, `SPAWN`, `SPELL`. A relação entre geradores de peça, action-space canónico, resolução legacy e validação de transição está agora coberta como contrato de execução; isso não duplica as regras de herói.
+Ações canónicas da fronteira atual: `MOVE`, `ATTACK`, `STUN`, `SPAWN`, `SPELL`. A relação entre geradores de peça, action-space canónico, resolução legacy e validação de transição está coberta como contrato de execução, mas a auditoria #379 identificou uma dívida restante: parte da validação de spells em `GameState` mantém vocabulário/dispatch textual separado da configuração. Essa dívida está rastreada no #380 e continua aberta.
+
+A auditoria #318 permanece também aberta para a análise hero-by-hero e para refatorações data-driven que demonstrem contrato reutilizável. PR #367 fechou apenas a primeira tranche de nomes de spells duplicados nos cinco geradores especializados.
 
 Fontes: [`HERO_SYSTEM.md`](HERO_SYSTEM.md), [`GAME_RULES.md`](GAME_RULES.md), [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md).
 
@@ -100,4 +104,4 @@ Fonte: [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md).
 
 ## 7. Próximo bloco operacional
 
-Com A0.1 fechado, o próximo bloco da sequência é [`ROADMAP.md`](ROADMAP.md) → **B: strength measurement / calibration**, sem saltar os critérios de evidência. C, D, E, F e G continuam condicionados pelos respetivos gates.
+A execução corrente segue **#370 Foundation**. O child ativo para a próxima correção de runtime é **#380**, precedido pelo audit #379. O trabalho de documentação de baseline é o **#381**. A passagem para #371 Gameplay só ocorre depois de #370 satisfazer a sua aceitação integral; #372 Ares continua depois da gate de Gameplay.
