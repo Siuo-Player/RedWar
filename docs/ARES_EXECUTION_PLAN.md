@@ -3,8 +3,9 @@
 **Governing issue:** #372  
 **Preparatory child:** #406  
 **Governance:** #365  
+**Verified baseline at plan update:** `main` @ `3a06d2edf1dc4f32b8719eb3d0da8167613424eb` (2026-09-10)
 
-Este documento prepara a gate Ares em paralelo com #371 sem alterar o ruleset e sem permitir a sua promoção antes do fecho de Gameplay.
+Este documento define a sequência operacional de Ares sem bloquear trabalho independente. As outras lanes podem evoluir continuamente; esta planificação deve ser reconciliada com o `main` antes de cada promoção.
 
 ## Cadeia obrigatória por candidato
 
@@ -13,51 +14,80 @@ correctness
 → deterministic capability
 → controlled performance
 → independent Arena strength
-→ promotion
+→ accepted configuration
 ```
 
 Uma métrica de um estágio não substitui a seguinte.
 
+## Estado das lanes no baseline atual
+
+- **A — correctness/state:** native make/unmake reversibility já está ligado à CI pelo #421. Isto prova o helper existente sob CI; não equivale a prova matemática de todos os estados possíveis.
+- **B — tactical capability:** o corpus foi expandido pelo #410 e a validação canónica de bestmoves foi reforçada pelo #417.
+- **C — search experiments:** preparação em andamento. #434 torna o baseline de move-ordering reproduzível e machine-readable; não altera o search.
+- **D — classical evaluator:** #411 congelou o baseline clássico, incluindo registo machine-readable. Não deve existir um segundo baseline concorrente para o mesmo contrato.
+- **E — NNUE:** #420 acrescentou benchmark controlado de custo incremental vs full-sync e exige equivalência entre caminhos. Não prova superioridade competitiva.
+- **F — controlled performance:** deve usar o mesmo corpus e orçamento entre candidatos; NPS é apenas métrica auxiliar.
+- **G — Arena strength:** permanece o único mecanismo para claims de strength global. Deve usar condições comparáveis, cores alternadas, provenance e separação tuning/hold-out/Arena.
+- **H — accepted configuration:** só depois de A–G fechadas conforme o claim é que um candidato pode substituir o baseline de Product.
+
 ## Lane A — correctness / state contract
 
-Antes de otimizar search, verificar a invariância da posição que Ares realmente pesquisa:
+A invariância que importa à pesquisa é:
 
 ```text
-position
-→ canonical legal action-space
-→ validated transition
+position import
+→ canonical action-space / native action representation
 → make
 → search state
 → unmake
-→ same relevant state
+→ same relevant state and identity
 ```
 
-Cobrir side-to-move, terminal conditions, repetition observation, TWC, stun/lifespan/spawn cooldown, terrain effects e state hash. `fast_clone()` não é hot-path C++ nem preflight de legalidade.
+Cobrir side-to-move, terminal/no-action conditions, TWC, stun/lifespan/spawn cooldown, terrain/effects e state hash. `fast_clone()` não é hot-path C++ nem mecanismo de preflight de legalidade.
+
+O #421 passou a executar `tests/cpp_reversibility_test.cpp` no workflow nativo. Qualquer alteração de regras ou de representação deve reabrir esta validação e o differential correspondente.
 
 ## Lane B — tactical capability corpus
 
-Criar um corpus pequeno, versionado e determinístico que cubra fenómenos específicos de RedWar: stun/segundo-stun, kills, spells/áreas, passivas, lifespan/cooldown, fogo/gelo, TWC, posições bloqueadas e posições quiet.
+Usar casos pequenos, versionados e determinísticos para fenómenos específicos de RedWar: segundo-STUN letal, capturas, spells/áreas, defesa, lifespan/cooldown e TWC.
 
-Saída: capability/regression scores reproduzíveis. Isto mede competência em cenários, não strength global.
+A capability normal deve exigir:
+
+```text
+bestmove exists
++ parses
++ belongs to canonical legal action-space
+```
+
+`--strict-choice` continua a ser evidência mais forte, com interpretação separada de strength/capability.
 
 ## Lane C — search hypotheses
 
-Avaliar isoladamente:
+Trabalhar uma hipótese por vez:
 
 1. move ordering;
 2. quiescence/tactical extensions;
-3. pruning/reductions apenas quando semanticamente seguros;
+3. reductions/pruning apenas quando semanticamente seguros;
 4. transposition-table policy;
-5. node/time budgeting;
-6. killer/history adaptados aos tipos de ação.
+5. killer/history;
+6. node-budget efficiency.
 
-Nenhuma alteração é promovida por simplesmente aumentar nodes, profundidade ou complexidade.
+O baseline de move-ordering deve ser tomado de `tools/analytics/move_ordering_baseline.py` com o corpus e budgets explicitamente registados. Um ganho de NPS ou de nodes por si só não é promoção.
 
 ## Lane D — classical evaluator
 
-Fixar a avaliação clássica atual como baseline. Alterar um termo por hipótese e medir separadamente material, posição, stun, unidades temporárias, efeitos, TWC e termos estratégicos futuros.
+O baseline é o definido por #411. Futuras alterações devem modificar termos isolados e manter:
 
-Saída: candidatos de evaluator com diffs e orçamento controlado.
+```text
+same position/state
++ same search budget
+→ baseline score / candidate score
+→ capability
+→ matched-budget search
+→ Arena, quando houver claim competitivo
+```
+
+Não criar outro documento “canónico” para o mesmo baseline sem integração explícita.
 
 ## Lane E — NNUE
 
@@ -67,42 +97,68 @@ A sequência é:
 full-sync oracle
 → incremental make/unmake parity
 → feature/update regressions
-→ CPU cost
+→ controlled cost
+→ matched-budget search
 → Arena
 ```
 
-Training loss menor ou integração funcional não provam strength. NNUE só passa a default se superar o baseline clássico pelo protocolo competitivo/eficiência aceite.
+O #420 mede o custo de incremental vs full-sync e exige equivalência. A integração atual continua opcional. Antes de remover `sync_board()` do caminho quente, a hipótese de performance deve ser confirmada por medição e acompanhada por regressões de paridade.
 
 ## Lane F — controlled performance
 
-Comparar sob recursos equivalentes e registar orçamento de nodes/tempo, NPS como métrica secundária, inputs de reproducibilidade e variação do runner. Performance isolada não é strength.
+Comparar candidatos com recursos equivalentes. Registar commit, compilador/runner quando relevante, orçamento de nodes/tempo, corpus e configuração. Não misturar alterações de evaluator/search/NNUE no mesmo experimento quando isso destruir a atribuição causal.
 
 ## Lane G — Arena strength
 
-Comparar candidato e baseline com cores alternadas, provenance explícita, orçamento comparável, emparelhamento de openings/seeds quando exigido pelo protocolo, incerteza e critérios de decisão pré-definidos.
+Comparar baseline e candidato com orçamento comparável, alternância de cores, openings/seeds emparelhados quando o protocolo o exigir, provenance explícita e incerteza reportada.
 
-Dataset maior, point estimate positivo ou um resultado SPRT isolado não autorizam promoção fora do protocolo.
+```text
+capability ≠ performance ≠ strength
+```
+
+Dataset maior, melhor NPS, training loss menor ou um resultado isolado não autorizam promoção.
 
 ## Lane H — accepted configuration
 
-Registar commit, configuração de search/eval/NNUE, versões dos corpus, condições de benchmark/Arena e limitações conhecidas. Só então o Ares selecionado passa a baseline para Product.
+Registar a configuração vencedora ou a decisão de manter o baseline:
 
-## Paralelização
+- commit;
+- search settings;
+- evaluator;
+- NNUE on/off e modelo/hash;
+- corpus/versionamento;
+- orçamento competitivo;
+- protocolo Arena;
+- limitações conhecidas.
 
-Enquanto #371 estiver ativo, as lanes B, D, E, F e partes de G podem trabalhar com o baseline atual. A lane A deve ser revalidada se Gameplay alterar semântica de legalidade/estado. Nenhuma lane pode declarar #372 fechado antes de #371.
+Só então atualizar o baseline de Product.
+
+## Paralelização segura
+
+As lanes podem avançar em paralelo desde que cada uma declare a base exata utilizada. Quando o `main` avançar, qualquer PR antigo deve ser reavaliado contra o novo baseline antes do merge.
+
+A regra prática é:
 
 ```text
-                   ┌─ tactical corpus
-                   ├─ evaluator baseline
-#371 Gameplay ─────┼─ NNUE parity/cost
-                   ├─ benchmark harness
-                   └─ Arena/provenance
-                              ↓
-                    candidate validation
-                              ↓
-                       Ares promotion
+new main
+→ re-check changed contracts
+→ keep independent work
+→ discard/rebase duplicated work
+→ rerun evidence on final head
 ```
+
+Isto é especialmente importante para trabalho concorrente: a existência de dois PRs verdes não implica que a combinação dos dois seja verde.
 
 ## Definition of done — #372
 
-Ares só está pronto para Product quando correctness/regressions estiverem verdes, o candidato selecionado tiver evidência controlada de capability/performance, strength independente pela Arena e uma configuração reproduzível e documentada. NNUE deve estar explicitamente justificada como default ou mantida opcional.
+Ares só pode avançar para Product quando:
+
+```text
+correctness/regressions green
+→ deterministic capability established
+→ controlled performance evidence
+→ independent Arena strength evidence for any strength claim
+→ reproducible accepted configuration
+```
+
+NNUE deve estar explicitamente justificada como default ou permanecer opcional. Nenhuma lane pode transformar o seu próprio benchmark num claim global de strength.
