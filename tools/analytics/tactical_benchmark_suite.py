@@ -17,6 +17,11 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from engine.action_parser import ActionParser
+from engine.actions import GameAction
+from engine.game_state import GameState
+from engine.legal_actions import resolve_legal_action
+from engine.pieces import criar_peca_por_nome
 from tools.analytics.frostmage_benchmark import FROST_CLUSTER
 
 DEFAULT_ENGINE = ROOT / "ai" / "cpp_engine" / ("engine.exe" if sys.platform == "win32" else "engine")
@@ -139,6 +144,64 @@ def find_complete_game_rwen() -> str | None:
     return None
 
 
+def _game_state_from_rwen(rwen: str) -> GameState:
+    """Reconstruct enough Python state to validate an engine bestmove canonically."""
+    _validate_rwen(rwen)
+    board_text, turn, twc_text = rwen.split()
+    state = GameState()
+    state.white_to_move = turn == "W"
+    state.turns_without_capture = int(twc_text)
+
+    for row, row_text in enumerate(board_text.split("/")):
+        for col, cell in enumerate(row_text.split(",")):
+            token, _, effect_text = cell.partition(":")
+            if token != ".":
+                fields = token.split("_")
+                if len(fields) != 5:
+                    raise ValueError(f"Invalid piece token at {(row, col)}: {token!r}")
+                team_code, hero_name, stun_text, lifespan_text, cooldown_text = fields
+                team = "brancas" if team_code == "W" else "pretas"
+                piece = criar_peca_por_nome(hero_name, team)
+                piece.stun_timer = int(stun_text)
+                piece.lifespan = 999 if lifespan_text == "N" else int(lifespan_text)
+                piece.spawn_cooldown = int(cooldown_text)
+                state.board[row][col] = piece
+
+            if effect_text and effect_text != ".":
+                effect_fields = effect_text.split("_")
+                if len(effect_fields) != 3:
+                    raise ValueError(f"Invalid effect token at {(row, col)}: {effect_text!r}")
+                effect_team = "brancas" if effect_fields[0] == "W" else "pretas"
+                state.tile_effects[row][col] = {
+                    "team": effect_team,
+                    "type": effect_fields[1],
+                    "timer": int(effect_fields[2]),
+                }
+
+    state.compute_initial_hash()
+    return state
+
+
+def _canonical_bestmove(rwen: str, bestmove: str) -> GameAction:
+    parsed = ActionParser.parse(bestmove)
+    if parsed is None:
+        raise ValueError(f"engine returned unparseable bestmove {bestmove!r}")
+
+    state = _game_state_from_rwen(rwen)
+    action_data: dict[str, Any] = {
+        "type": parsed["action"].lower(),
+        "start": ActionParser.alg_to_coords(parsed["origin"], 8),
+        "end": ActionParser.alg_to_coords(parsed["target"], 8),
+    }
+    if "spell" in parsed:
+        action_data["spell_name"] = parsed["spell"]
+    if "hero" in parsed:
+        action_data["spawn_name"] = parsed["hero"]
+
+    action = GameAction.from_dict(action_data)
+    return resolve_legal_action(state, action)
+
+
 def query(engine: Path, rwen: str, nodes: int, trace_path: Path | None) -> tuple[str, float]:
     env = os.environ.copy()
     if trace_path is not None:
@@ -210,11 +273,22 @@ def run_case(case: TacticalCase, engine: Path, budgets: list[int], trace: bool, 
         trace_path = trace_dir / f"trace_{nodes}.log" if trace_dir else None
         bestmove, elapsed = query(engine, case.rwen, nodes, trace_path)
         ok = bestmove != "0000"
+        legality = "not-tested"
+        if ok:
+            try:
+                canonical = _canonical_bestmove(case.rwen, bestmove)
+                legality = canonical.type.value
+            except (TypeError, ValueError) as exc:
+                ok = False
+                legality = f"invalid: {exc}"
         if strict_choice:
             ok = ok and bestmove.startswith(case.expected_prefix)
         failures += int(not ok)
         mode = "strict-choice" if strict_choice else "capability"
-        print(f"nodes={nodes:>9} bestmove={bestmove:<28} time={elapsed:.3f}s mode={mode} {'PASS' if ok else 'FAIL'}")
+        print(
+            f"nodes={nodes:>9} bestmove={bestmove:<28} time={elapsed:.3f}s "
+            f"legal={legality} mode={mode} {'PASS' if ok else 'FAIL'}"
+        )
         if trace_path is not None:
             print(f"  trace={trace_path}")
     print(f"failure_threshold: {failures}/{len(budgets)} tested budgets failed")
@@ -228,8 +302,16 @@ def run_complete_game_probe(engine: Path, nodes: int, trace: bool) -> int:
     trace_path = ROOT / "logs" / "benchmarks" / "tactical" / "complete-game-corpus" / f"trace_{nodes}.log" if trace else None
     bestmove, elapsed = query(engine, rwen, nodes, trace_path)
     ok = bestmove != "0000"
+    legality = "not-tested"
+    if ok:
+        try:
+            canonical = _canonical_bestmove(rwen, bestmove)
+            legality = canonical.type.value
+        except (TypeError, ValueError) as exc:
+            ok = False
+            legality = f"invalid: {exc}"
     print("case=complete-game-corpus coverage=COMPLETE_GAME_STATE")
-    print(f"nodes={nodes:>9} bestmove={bestmove:<28} time={elapsed:.3f}s {'PASS' if ok else 'FAIL'}")
+    print(f"nodes={nodes:>9} bestmove={bestmove:<28} time={elapsed:.3f}s legal={legality} {'PASS' if ok else 'FAIL'}")
     if trace_path is not None:
         print(f"  trace={trace_path}")
     return 0 if ok else 1
