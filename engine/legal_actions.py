@@ -12,6 +12,14 @@ from engine.actions import ActionType, GameAction, normalize_action
 from engine.config import COLUNAS, LINHAS
 
 
+def _declared_spell_names(gs: Any, piece: Any) -> set[str]:
+    """Return spell capabilities from the canonical hero declaration only."""
+    from engine.pieces import HERO_DEFS
+
+    definition = HERO_DEFS.get(piece.name, {}) or {}
+    return {str(name).strip().lower() for name in definition.get("spells", []) if name}
+
+
 def legal_actions(gs: Any) -> tuple[GameAction, ...]:
     """Return all legal board actions for the side to move in deterministic order.
 
@@ -36,6 +44,7 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
                 actions.add(GameAction(ActionType.STUN, (r, c), tuple(end), area=area))
             for spawn_r, spawn_c, spawn_name in piece.get_valid_spawns(r, c, gs.board, gs.tile_effects):
                 actions.add(GameAction(ActionType.SPAWN, (r, c), (int(spawn_r), int(spawn_c)), spawn_name=str(spawn_name)))
+            declared_spells = _declared_spell_names(gs, piece)
             for spell in piece.get_valid_spells(r, c, gs.board, gs.tile_effects):
                 if isinstance(spell, dict):
                     target = spell.get("target")
@@ -47,20 +56,18 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
                     )
                 if target is None or not spell_name:
                     continue
-                actions.add(GameAction(ActionType.SPELL, (r, c), tuple(target), spell_name=str(spell_name)))
+                normalized_spell_name = str(spell_name).strip().lower()
+                if normalized_spell_name not in declared_spells:
+                    continue
+                actions.add(
+                    GameAction(
+                        ActionType.SPELL,
+                        (r, c),
+                        tuple(target),
+                        spell_name=normalized_spell_name,
+                    )
+                )
     return tuple(sorted(actions, key=_action_key))
-
-
-def _declared_spell_names(gs: Any, piece: Any) -> set[str]:
-    """Return spells owned by a hero from the canonical hero configuration."""
-    from engine.pieces import HERO_DEFS
-
-    definition = HERO_DEFS.get(piece.name, {}) or {}
-    names = {str(name).lower() for name in definition.get("spells", []) if name}
-    attack = (definition.get("behavior") or {}).get("attack") or {}
-    if attack.get("attack_action") == "spell" and attack.get("spell_name"):
-        names.add(str(attack["spell_name"]).lower())
-    return names
 
 
 def resolve_legal_action(gs: Any, action: GameAction) -> GameAction:
