@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `3e8bbe9417b584b5a4208d18852070f578bb8b77`  
+**Baseline operacional:** `main` @ `3a06d2edf1dc4f32b8719eb3d0da8167613424eb`  
 **Data:** 2026-09-10
 
 ## Estado atual — 1.0 gate chain
@@ -19,7 +19,7 @@
 #375 Release
 ```
 
-#370 e #371 Gameplay estão fechados em 2026-09-10. O trabalho principal autorizado é agora #372 Ares. Preparação anterior de Ares não constitui promoção nem fecho de #372.
+#370 e #371 Gameplay estão fechados em 2026-09-10. O trabalho principal autorizado é agora #372 Ares.
 
 ## #370 — Foundation
 
@@ -61,7 +61,15 @@ correctness
 → promotion
 ```
 
-`fast_clone()` não pertence ao C++ hot path nem ao preflight de legalidade. Benchmark/NPS/dataset growth não são prova de strength.
+### Evidência integrada
+
+- #418 CLOSED / PR #421 merged em `44da940f9291ebb3116df97365903eec02b0591e`.
+- O main atual inclui esse merge como ancestral e avançou depois com PR #420, que adicionou o benchmark controlado de custo NNUE incremental vs `sync_board()`; o merge do #420 é `3a06d2edf1dc4f32b8719eb3d0da8167613424eb`.
+- Test Suite #2122, CodeQL #762 e AI Quality Gate #764 passaram na integração da reversibilidade nativa.
+- O harness determinístico `tools/analytics/tactical_benchmark_suite.py` já contém seis casos de capability: `frostmage-5-target`, `high-value-capture`, `ranged-spell`, `defensive-purify`, `lifespan-cooldown` e `twc-capture`.
+- #431 é o próximo lane: validar a estabilidade das referências de alto orçamento antes de transformar esses casos em hard regressions.
+
+`fast_clone()` não pertence ao C++ hot path nem ao preflight de legalidade. Benchmark/NPS/dataset growth/training loss não são prova de strength.
 
 #373 Product, #374 Online e #375 Release permanecem bloqueados até #372 cumprir a sua aceitação.
 
