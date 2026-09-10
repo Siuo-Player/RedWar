@@ -1,6 +1,6 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `3e8bbe9417b584b5a4208d18852070f578bb8b77`  
+**Baseline operacional:** `main` @ `5c5b09f32fad3769764ea449a673790a02ab552c`  
 **Data:** 2026-09-10
 
 ## Estado atual — 1.0 gate chain
