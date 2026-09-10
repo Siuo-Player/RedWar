@@ -33,7 +33,44 @@ A execução corrente segue a cadeia de issues canónica:
 #375 Release
 ```
 
-#370 foi o primeiro gate. A auditoria #379 e os seus dois corrective follow-ups (#381 e #380) estão agora concluídos/merged. O trabalho de produto continua subordinado à cadeia; a preparação documental e a investigação de Ares podem decorrer em paralelo quando não alteram nem contornam um gate de correctness.
+#370 foi o primeiro gate. A auditoria #379 e os seus dois corrective follow-ups (#381 e #380) estão agora concluídos/merged. O trabalho de produto continua subordinado à cadeia; a preparação documental, investigação, testes e tooling dos gates seguintes podem decorrer em paralelo quando não alteram nem contornam um gate de correctness.
+
+## Modelo de execução paralela
+
+A cadeia acima continua a ser a **ordem dos gates de promoção**. Ela não significa que todo o trabalho tenha de ser executado serialmente.
+
+Usar a seguinte regra:
+
+```text
+GATE DEPENDENCY
+→ controla quando uma funcionalidade pode ser promovida
+
+WORK DEPENDENCY
+→ controla quando uma alteração precisa de outra alteração
+```
+
+Quando não existe work dependency real, trabalhar em paralelo.
+
+Exemplo durante #371:
+
+```text
+#371 Gameplay
+   │
+   ├── gameplay fixes / regressions
+   ├── gameplay corpus
+   ├── Ares correctness harness preparation
+   ├── NNUE differential/performance harness
+   ├── Stockfish search experiments/design
+   ├── Arena/statistical tooling
+   ├── Product/UI validation
+   ├── replay/telemetry preparation
+   ├── Online architecture preparation
+   └── Release/security/license preparation
+```
+
+Só a **promoção** permanece bloqueada pelo gate correspondente.
+
+Plano detalhado: [`ROADMAP_1.0_PARALLEL_EXECUTION.md`](ROADMAP_1.0_PARALLEL_EXECUTION.md).
 
 ## #370 — Foundation
 
@@ -98,31 +135,39 @@ Critério de saída: cada regra declarada tem uma implementação/especificaçã
 
 Objetivo: correctness primeiro, depois capability/search/eval/classical baseline, optional NNUE, controlled benchmarks e Arena A/B com provenance. Benchmark ≠ strength; mais nodes ≠ strength; NNUE existente ≠ superioridade; dataset maior ≠ strength maior.
 
-A pesquisa de 2026-09-10, com prioridade em Stockfish e artigos clássicos de search/NNUE, está documentada em `docs/ARES_STOCKFISH_RESEARCH.md`. Ela não promove #372 nem autoriza otimização a entrar em `main` antes do fecho de #371.
+A pesquisa de 2026-09-10, com prioridade em Stockfish e artigos clássicos de search/NNUE, está documentada em `docs/ARES_STOCKFISH_RESEARCH.md`. O plano operacional detalhado e a matriz de trabalho paralelo estão em `docs/ROADMAP_1.0_PARALLEL_EXECUTION.md`.
 
-Ordem preparada para a entrada em #372:
+### Ordem de promoção do Ares
 
 ```text
-Ares correctness baseline
-      ↓
-NNUE incremental/full-sync equivalence + economics
-      ↓
-LMR experiment
-      ↓
-aspiration windows
-      ↓
-richer history / continuation information
-      ↓
-TT replacement/aging
-      ↓
-carefully scoped null-move / pruning studies
-      ↓
-independent Arena strength evidence
+A0  correctness baseline
+ ↓
+A1  NNUE incremental/full-sync equivalence + economics
+ ↓
+A2  move ordering/history experiments
+ ↓
+A3  LMR
+ ↓
+A4  aspiration / iterative-deepening economics
+ ↓
+A5  TT replacement/aging
+ ↓
+A6  carefully scoped pruning / NMP / LMP
+ ↓
+A7  quiescence frontier
+ ↓
+A8  time management
+ ↓
+A9  evaluator improvements / NNUE training
+ ↓
+A10 independent Arena strength evidence
 ```
 
-Há uma oportunidade de alto retorno já identificada: o hot path NNUE possui hooks incrementais, mas `evaluate_board()` ainda força `sync_board()` antes de cada inferência. A primeira hipótese de performance pós-#371 deve medir a eliminação desse scan por nó mantendo `sync_board()` como oracle de referência.
+Esta ordem é uma **ordem de dependência e promoção**, não uma fila que obrigue todas as investigações a esperar umas pelas outras. Por exemplo, A2/A3/A4/A5 podem ser investigados em paralelo a partir do mesmo baseline; após cada resultado individual, os vencedores são integrados e a composição final é novamente validada.
 
-O princípio Stockfish a importar é metodológico: alterações funcionais de search devem ser pequenas, isoladas e aceites apenas após testes controlados; as técnicas não devem ser copiadas sem demonstrar adequação às semânticas específicas de RedWar.
+A primeira hipótese de implementação continua a ser o caminho NNUE incremental: o hot path atual ainda faz `sync_board()` antes de cada inferência. O objetivo é medir e, apenas se a paridade permanecer exata, eliminar o scan por nó mantendo `sync_board()` como oracle.
+
+O princípio Stockfish aplicado é: patches pequenos, uma ideia por teste, benchmarks de custo separados de strength e promoção baseada em evidência estatística. Stockfish documenta explicitamente esta abordagem em Fishtest e no desenho atual do search. citeturn283942search1turn402592search0
 
 `fast_clone()` não pertence ao C++ hot path. Qualquer otimização exige regressão de correctness + benchmark controlado; qualquer alegação de strength exige avaliação Arena independente.
 
@@ -130,19 +175,50 @@ O princípio Stockfish a importar é metodológico: alterações funcionais de s
 
 **Estado: BLOCKED UNTIL #372 CLOSES.**
 
-Abrange aplicação local, replay/telemetria e UX. UI sofisticada e polish ficam subordinados à estabilidade das regras e do núcleo de execução.
+Preparação pode decorrer em paralelo:
+
+- validação visual/UX da Battle Sidebar;
+- keyboard/focus;
+- responsive layouts;
+- Encyclopedia/contexto;
+- stress scenes FrostMage/NEVADA;
+- replay/telemetry corpus e reconstrução determinística.
+
+A arquitetura funcional já existe; o objetivo agora é validar, não reabrir o desenho estrutural sem evidência. fileciteturn131file0
+
+A promoção de Product começa quando Ares atingir o seu critério de saída.
 
 ## #374 — Online
 
 **Estado: BLOCKED UNTIL #373 CLOSES.**
 
-Servidor authoritative, multiplayer, matchmaking, contas e contratos de sessão/rede.
+Preparação pode decorrer em paralelo:
+
+- servidor authoritative e command validation;
+- session lifecycle;
+- reconnect/recovery por replay/state reconstruction;
+- time controls;
+- matchmaking;
+- rating/Elo separation;
+- observability;
+- security boundary.
+
+O cliente nunca passa a ser autoridade de legalidade/final state. O contrato de observabilidade atual distingue DRAFT, onde o setup adversário é oculto, de BATALHA, onde o estado do combate é público e utilizável pela Ares. fileciteturn132file0
 
 ## #375 — Release
 
 **Estado: BLOCKED UNTIL #374 CLOSES.**
 
-QA final, segurança, operação, documentação e critérios de release.
+Preparação pode decorrer em paralelo:
+
+- reproducible builds;
+- dependency/security audit;
+- licensing/provenance;
+- failure/recovery QA;
+- telemetry/logging;
+- release candidate corpus.
+
+Só a promoção final continua bloqueada por #374.
 
 ## Regras operacionais
 
@@ -155,5 +231,24 @@ Todo work package deve:
 5. passar as gates aplicáveis do repositório;
 6. atualizar a documentação canónica no mesmo pacote quando o estado mudou;
 7. atualizar o issue com evidência concreta e fechar apenas após o resultado estar integrado em `main`.
+
+### Paralelismo seguro
+
+Quando existirem N work packages independentes:
+
+```text
+same baseline
+├── package A
+├── package B
+├── package C
+└── package D
+
+→ test each independently
+→ reject/accept independently
+→ compose only accepted winners
+→ revalidate the composition
+```
+
+Não fazer “mega-PRs” que misturam search, evaluator, gameplay e produto. A metodologia do Stockfish também privilegia patches focados e testes de uma ideia por vez. citeturn283942search1
 
 Não criar outro roadmap para contornar esta sequência.
