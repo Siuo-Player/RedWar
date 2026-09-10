@@ -18,13 +18,15 @@ This is a measurement baseline only. It does not change Ares search behavior and
 
 The suite currently contains the original capability families plus the validated `second-stun-lethal` case:
 
-- FrostMage five-target STUN;
-- second-STUN lethal;
+- FrostMage five-target Nevada spell;
+- second-stun lethal via `SPELL nevada A5 D5`;
 - high-value capture;
 - declared ranged spell;
 - defensive purify;
 - lifespan/spawn cooldown;
 - TWC-adjacent capture.
+
+FrostMage's historical `STUN` action reference is obsolete: the current rules/API expose the effect through the Nevada spell, so strict-choice baselines must use the current spell action rather than the retired action form.
 
 ## Baseline runner
 
