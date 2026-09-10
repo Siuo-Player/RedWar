@@ -20,6 +20,7 @@ from ai.bot import BOT_ALEATORIO, TREINO_AVANCADO, TREINO_INICIANTE, TREINO_INTE
 from engine.config import COLUNAS, LINHAS, ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS
 from engine.game_state import GameState
 from engine.pieces import obter_catalogo_pecas
+from engine.setup import validate_complete_pre_match_setup
 
 POOL_BOTS = [
     (BOT_ALEATORIO, 100),
@@ -282,6 +283,7 @@ def simular_jogo_treino(seed: int, bot_move_timeout_seconds: float = DEFAULT_BOT
     comp_brancas = preencher_draft_aleatorio(
         gs, "brancas", [LINHAS - 2, LINHAS - 1], ORCAMENTO_BRANCAS, rng
     )
+    validate_complete_pre_match_setup(gs.board)
 
     turnos = 0
     invalid_action = None

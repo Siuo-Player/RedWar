@@ -7,6 +7,7 @@ from collections import Counter
 from engine.game_state import GameState, coords_para_notacao
 from engine.pieces import obter_catalogo_pecas, criar_peca_por_nome
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
+from engine.setup import validate_complete_pre_match_setup
 
 # Imports alinhados com o novo renderer.py
 from ui.renderer import (
@@ -308,7 +309,18 @@ class JogoController:
                     self.peca_loja = None if self.peca_loja == nome else nome
                     return
             if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < ORCAMENTO_BRANCAS:
-                self.auto_draft_inimigo(ORCAMENTO_PRETAS)
+                try:
+                    validate_complete_pre_match_setup(self.gs.board)
+                    self.auto_draft_inimigo(ORCAMENTO_PRETAS)
+                    validate_complete_pre_match_setup(self.gs.board)
+                except ValueError as exc:
+                    print(f"⚠️ Setup de pré-match inválido: {exc}")
+                    for row in range(2):
+                        for col in range(COLUNAS):
+                            piece = self.gs.board[row][col]
+                            if piece is not None and piece.team == "pretas":
+                                self.gs.board[row][col] = None
+                    return
                 self.fase_atual = "BATALHA"
                 self.peca_loja = None
             elif self.peca_loja and self.hover_pos:
