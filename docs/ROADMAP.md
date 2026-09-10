@@ -23,6 +23,12 @@ Este é o **único documento que define a ordem operacional do trabalho**.
 
 #370 e **#371 Gameplay estão fechados em 2026-09-10**. O trabalho principal autorizado é agora **#372 Ares**. Preparação anterior de Ares não constitui promoção nem fecho de #372.
 
+## Vocabulário obrigatório
+
+`DOCUMENTED` = descrito. `IMPLEMENTED` = existe no código alvo. `TESTED` = existe teste executável relevante. `VALIDATED` = foi submetido à validação apropriada. `PROVEN` = a evidência é suficiente para a alegação específica.
+
+Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e crescimento de dataset ≠ melhoria de strength.
+
 ## #370 — Foundation
 
 **Estado: CLOSED — 2026-09-10.**
