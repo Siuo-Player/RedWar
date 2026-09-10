@@ -34,7 +34,6 @@ def test_check_game_over_third_repetition_uses_material():
     _put(state, 7, 7, "pretas")
     state.compute_initial_hash()
     state.state_history[state.current_hash] = 2
-    state._last_history_hash = state.current_hash
 
     state.check_game_over()
 
