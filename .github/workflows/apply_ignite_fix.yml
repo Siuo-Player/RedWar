@@ -1,8 +1,7 @@
 name: Apply Ignite Fix
 on:
-  push:
-    branches:
-      - state21/issue392-ignite-second-stun-2026-09-10
+  pull_request:
+    types: [opened, synchronize]
 jobs:
   patch:
     if: github.actor != 'github-actions[bot]'
@@ -10,32 +9,31 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout
+      - name: Checkout head branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
-      - name: Patch source and tests
+      - name: Apply source patch and tests
         run: |
           python - <<'PY'
           from pathlib import Path
 
-          replacements = {
-              Path('engine/game_state.py'): (
-                  '''                    target = self.board[fr][fc]\n                    if target and target.stun_timer < 2:\n                        self.remove_piece_hash(fr, fc)\n                        target.stun_timer = 2\n                        self.add_piece_hash(fr, fc, target)\n''',
-                  '''                    target = self.board[fr][fc]\n                    if not target:\n                        continue\n                    self.remove_piece_hash(fr, fc)\n                    if target.stun_timer > 0:\n                        captured_real_piece |= target.lifespan is None\n                        self.board[fr][fc] = None\n                    else:\n                        target.stun_timer = 2\n                        self.add_piece_hash(fr, fc, target)\n'''
-              ),
-              Path('ai/cpp_engine/board.cpp'): (
-                  '''                    Piece target = board.pieces[fr][fc];\n                    if (!target.is_empty && target.stun_timer < 2) {\n                        if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");\n                        undo.aoe_victims[undo.num_victims++] = {fr, fc, target};\n                        target.stun_timer = 2;\n                        update_piece(fr, fc, target);\n                    }\n''',
-                  '''                    Piece target = board.pieces[fr][fc];\n                    if (target.is_empty) continue;\n                    if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");\n                    undo.aoe_victims[undo.num_victims++] = {fr, fc, target};\n                    if (target.stun_timer > 0) {\n                        update_piece(fr, fc, Piece{});\n                        if (target.lifespan >= 999) board.twc = 0;\n                    } else {\n                        target.stun_timer = 2;\n                        update_piece(fr, fc, target);\n                    }\n'''
-              ),
-          }
+          py = Path('engine/game_state.py')
+          text = py.read_text(encoding='utf-8-sig')
+          old = '''                    target = self.board[fr][fc]\n                    if target and target.stun_timer < 2:\n                        self.remove_piece_hash(fr, fc)\n                        target.stun_timer = 2\n                        self.add_piece_hash(fr, fc, target)\n'''
+          new = '''                    target = self.board[fr][fc]\n                    if not target:\n                        continue\n                    self.remove_piece_hash(fr, fc)\n                    if target.stun_timer > 0:\n                        captured_real_piece |= target.lifespan is None\n                        self.board[fr][fc] = None\n                    else:\n                        target.stun_timer = 2\n                        self.add_piece_hash(fr, fc, target)\n'''
+          if text.count(old) != 1:
+              raise SystemExit(f'game_state.py: expected one ignite block, found {text.count(old)}')
+          py.write_text(text.replace(old, new), encoding='utf-8')
 
-          for path, (old, new) in replacements.items():
-              text = path.read_text(encoding='utf-8-sig')
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected one ignite block, found {count}')
-              path.write_text(text.replace(old, new), encoding='utf-8')
+          cpp = Path('ai/cpp_engine/board.cpp')
+          text = cpp.read_text(encoding='utf-8-sig')
+          old = '''                    Piece target = board.pieces[fr][fc];\n                    if (!target.is_empty && target.stun_timer < 2) {\n                        if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");\n                        undo.aoe_victims[undo.num_victims++] = {fr, fc, target};\n                        target.stun_timer = 2;\n                        update_piece(fr, fc, target);\n                    }\n'''
+          new = '''                    Piece target = board.pieces[fr][fc];\n                    if (target.is_empty) continue;\n                    if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");\n                    undo.aoe_victims[undo.num_victims++] = {fr, fc, target};\n                    if (target.stun_timer > 0) {\n                        update_piece(fr, fc, Piece{});\n                        if (target.lifespan >= 999) board.twc = 0;\n                    } else {\n                        target.stun_timer = 2;\n                        update_piece(fr, fc, target);\n                    }\n'''
+          if text.count(old) != 1:
+              raise SystemExit(f'board.cpp: expected one ignite block, found {text.count(old)}')
+          cpp.write_text(text.replace(old, new), encoding='utf-8')
 
           Path('tests/test_ignite_second_stun_contract.py').write_text(r'''from __future__ import annotations
 
@@ -62,18 +60,17 @@ def ignite(gs: GameState) -> None:
     gs.execute_action({"type": "spell", "start": (4, 4), "end": (4, 5), "spell_name": "ignite"})
 
 
-def test_python_ignite_first_stun_applies_timer_and_preserves_piece() -> None:
+def test_python_ignite_first_stun_preserves_piece() -> None:
     state = GameState()
     put(state, 4, 4, "Pyromancer", "brancas")
     put(state, 4, 5, "Templar", "pretas")
     ignite(state)
-    target = state.board[4][5]
-    assert target is not None
-    assert target.stun_timer == 1
+    assert state.board[4][5] is not None
+    assert state.board[4][5].stun_timer == 1
     assert state.turns_without_capture == 1
 
 
-def test_python_ignite_second_stun_kills_and_counts_permanent_capture() -> None:
+def test_python_ignite_second_stun_kills_permanent_target() -> None:
     state = GameState()
     put(state, 4, 4, "Pyromancer", "brancas")
     put(state, 4, 5, "Templar", "pretas", stun=2)
@@ -82,7 +79,7 @@ def test_python_ignite_second_stun_kills_and_counts_permanent_capture() -> None:
     assert state.turns_without_capture == 0
 
 
-def test_python_ignite_second_stun_destroys_temporary_piece_without_capture() -> None:
+def test_python_ignite_second_stun_destroys_temporary_target_without_capture() -> None:
     state = GameState()
     put(state, 4, 4, "Pyromancer", "brancas")
     put(state, 4, 5, "Ghoul", "pretas", stun=2, lifespan=3)
@@ -93,9 +90,8 @@ def test_python_ignite_second_stun_destroys_temporary_piece_without_capture() ->
     assert state.turns_without_capture == 12
 
 
-def test_cpp_ignite_first_second_and_make_unmake_round_trip() -> None:
+def test_cpp_ignite_matches_python_and_unmakes() -> None:
     assert BRIDGE.exists(), f"C++ bridge binary missing: {BRIDGE}. Run build_cpp_engine.py --bridge-test."
-
     cases = []
     for label, stun, name, lifespan, twc in (
         ("first", 0, "Templar", None, 0),
@@ -121,13 +117,14 @@ def test_cpp_ignite_first_second_and_make_unmake_round_trip() -> None:
         assert lines[2 * i].removeprefix("AFTER ") == expected_after, f"{label}: Python/C++ mismatch"
         assert lines[2 * i + 1].removeprefix("RESTORED ") == before, f"{label}: C++ unmake mismatch"
 ''', encoding='utf-8')
+
           Path('.github/workflows/_apply_ignite_fix.yml').unlink(missing_ok=True)
           Path('.github/workflows/apply_ignite_fix.yml').unlink(missing_ok=True)
           PY
-      - name: Commit final changes
+      - name: Commit final patch
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add engine/game_state.py ai/cpp_engine/board.cpp tests/test_ignite_second_stun_contract.py .github/workflows/_apply_ignite_fix.yml .github/workflows/apply_ignite_fix.yml
           git commit -m 'fix: enforce ignite second-stun death across engines'
-          git push
+          git push origin HEAD:${{ github.head_ref }}
