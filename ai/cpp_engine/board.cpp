@@ -528,9 +528,13 @@ UndoInfo make_move(const Move& m) {
                     update_effect(fr, fc, TileEffect{false, undo.actor_piece.team, "fire", 3});
 
                     Piece target = board.pieces[fr][fc];
-                    if (!target.is_empty && target.stun_timer < 2) {
-                        if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
-                        undo.aoe_victims[undo.num_victims++] = {fr, fc, target};
+                    if (target.is_empty) continue;
+                    if (undo.num_victims >= MAX_UNDO_VICTIMS) throw std::runtime_error("UndoInfo victim capacity exceeded");
+                    undo.aoe_victims[undo.num_victims++] = {fr, fc, target};
+                    if (target.stun_timer > 0) {
+                        update_piece(fr, fc, empty);
+                        if (target.lifespan >= 999) board.twc = 0;
+                    } else {
                         target.stun_timer = 2;
                         update_piece(fr, fc, target);
                     }
