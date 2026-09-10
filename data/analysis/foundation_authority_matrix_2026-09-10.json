@@ -91,10 +91,10 @@
     {
       "contract": "terminal conditions",
       "authority": "GameState.check_game_over",
-      "consumers": ["runtime turn progression", "game result consumers"],
-      "status": "UNPROTECTED_GAP",
-      "evidence": ["engine/game_state.py"],
-      "note": "Authority is centralized, but the complete 1.0 terminal-condition contract still needs an explicit focused regression matrix before #370 can close."
+      "consumers": ["runtime turn progression", "game result consumers", "Arena terminal contract"],
+      "status": "CANONICAL_AND_TESTED",
+      "evidence": ["docs/DECISIONS/2026-08-28-arena-terminal-no-move-contract.md", "tests/test_terminal_contract_differential.py", "tests/test_ai_bot.py", "tests/test_foundation_terminal_conditions.py"],
+      "note": "The no-legal-action rule is intentionally a blocked terminal in the current rules contract; active-side blockage is reported as the opponent being blocked in the established regression contract."
     },
     {
       "contract": "effects and timer progression",
