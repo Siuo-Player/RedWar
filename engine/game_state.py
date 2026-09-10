@@ -676,8 +676,29 @@ class GameState:
             self.winner = resolver_por_material()
             return
 
-        from engine.legal_actions import legal_actions
-        has_move = bool(legal_actions(self))
+        has_move = False
+        active_team = "brancas" if self.white_to_move else "pretas"
+        for r in range(LINHAS):
+            for c in range(COLUNAS):
+                piece = self.board[r][c]
+                if not piece or piece.team != active_team or not piece.can_act():
+                    continue
+                if (
+                    piece.get_valid_moves(r, c, self.board, self.tile_effects)
+                    or piece.get_valid_attacks(r, c, self.board, self.tile_effects)
+                    or piece.get_valid_spawns(r, c, self.board, self.tile_effects)
+                ):
+                    has_move = True
+                    break
+                stuns = piece.get_valid_stuns(r, c, self.board, self.tile_effects)
+                if stuns and any(info and info.get("has_enemy") for info in stuns.values()):
+                    has_move = True
+                    break
+                if piece.get_valid_spells(r, c, self.board, self.tile_effects):
+                    has_move = True
+                    break
+            if has_move:
+                break
 
         if not has_move:
             self.game_over = True

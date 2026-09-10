@@ -1,23 +1,9 @@
 # RedWar — Roadmap Operacional
 
-**Baseline operacional:** `main` @ `7095258388ef71e4dad2dd178c5be6f95e061337`  
+**Baseline operacional:** `main` @ `3e8bbe9417b584b5a4208d18852070f578bb8b77`  
 **Data:** 2026-09-10
 
-Este é o **único documento que define a ordem operacional do trabalho**. Não duplicar esta fila em snapshots, branches, backlogs ou conversas.
-
-## Vocabulário obrigatório
-
-`DOCUMENTED` = descrito.  
-`IMPLEMENTED` = existe no código alvo.  
-`TESTED` = existe teste executável relevante.  
-`VALIDATED` = foi submetido à validação apropriada para a alegação.  
-`PROVEN` = a evidência é suficiente para a alegação específica sob o protocolo vigente.
-
-Uma fase só pode ser `CLOSED` quando os critérios de aceitação forem satisfeitos no `main` e a evidência relevante estiver ligada aqui. CI verde é necessária para mudanças de código, mas **CI verde ≠ correctness total**, benchmark ≠ strength e melhoria de dataset ≠ melhoria de strength.
-
 ## Estado atual — 1.0 gate chain
-
-A execução corrente segue a cadeia de issues canónica:
 
 ```text
 #370 Foundation
@@ -33,100 +19,52 @@ A execução corrente segue a cadeia de issues canónica:
 #375 Release
 ```
 
-#370 foi o primeiro gate. A auditoria #379 e os seus corrective follow-ups (#381 e #380) estão concluídos/merged. O trabalho corrente continua em #371; fases posteriores não podem ser usadas para contornar um blocker de correctness.
+#370 e #371 Gameplay estão fechados em 2026-09-10. O trabalho principal autorizado é agora #372 Ares. Preparação anterior de Ares não constitui promoção nem fecho de #372.
 
 ## #370 — Foundation
 
 **Estado: CLOSED — 2026-09-10.**
 
-### Evidência de saída
-
-- **#386** — matriz de autoridade machine-readable + Markdown, merged em `b83e1b851911a295052802572b9fbb7369a462ff` com Test Suite #1964, CodeQL #692 e AI Quality Gate #707 verdes.
-- **#381** — sincronização de `docs/CURRENT_STATE.md` e `docs/NNUE.md` com a evidência real de `main`, merged em `612221b88381cf740bab6d2ab9e31acfb98c6324` com Test Suite #1948, CodeQL #685 e AI Quality Gate #701 verdes.
-- **#380** — eliminação da duplicação de vocabulário de spells em `_validate_transition()`, merged em `8534b2f59392b9e9779bb9ac8e55d7a8b3e53613` a partir do head `1d204482e118790f7fbd138e8fb1d6f8a40fbc15`, com Test Suite #1974, CodeQL #698 e AI Quality Gate #712 verdes.
-- **#391 / #392** — surrender canónico + hardening do contrato, e segundo-STUN do Ignite com paridade Python/C++, merged em `1e137e6ae09a931ea5cef73771e7d753b3c75d53` e `2ea747c15c389640a77a8bb3aea6cf03b69c7424`, respetivamente, com as três gates relevantes verdes nos heads validados.
-
-A matriz final classifica os contratos críticos auditados como `CANONICAL_AND_TESTED` ou `JUSTIFIED_SPECIALIZATION`; não há um `DUPLICATED_AUTHORITY`, `DOCUMENTATION_DRIFT` ou `UNPROTECTED_GAP` remanescente identificado no inventário fundacional. A matriz não constitui alegação de balance, strength ou superioridade de search.
-
-A fronteira fundacional agora consolidada é:
-
-```text
-input action
-→ normalize canonical action
-→ canonical resolution / membership
-→ transition-domain validation
-→ only then mutate
-```
-
-E inclui, entre outros, autoridades explícitas para action-space, resolution, transition mutation, hero design data, spell capability identity, state hash/repetition, native NNUE incremental mutation, `sync_board()` como oracle, terminal conditions e efeitos/timers.
-
-`fast_clone()` permanece restrito a fixtures/replay/reference tooling em Python e fora do hot path C++ da Ares.
-
-## Histórico de infraestrutura já concluído
-
-Os lanes independentes anteriores B–G foram executados a partir do baseline comum `1f65f65d6b4827f0d403d8e6d2bb0f735eda0c42` e merged com as três gates do repositório:
-
-- **#329** — determinismo do audit emparelhado; `29973ffb6e7d270ab8ccc9289307ab11e2f24506`.
-- **#330** — ausência de `fast_clone` no C++ da Ares; `d08a700864d8ed0fe9dc274f8495a01f81105641`.
-- **#331** — encoding NNUE por perspetiva; `fdd1c3516e410b53608a95e554597a577ef6610e`.
-- **#332** — isolamento replay/telemetria; `d07f52f981de0eb0606bef1823beabca61348ae1`.
-- **#333** — bounds do Auto-Pricer; `71bc812d170a8556b9dfde98b4f95202f36190b9`.
-- **#334** — fundação de sessão autoritativa server-side; `845b00a500fff7b3aab2f0c35920bace5d198cc6`.
-
-A tranche fecha infraestrutura/regressões específicas; não equivale a declarar concluídas as fases de produto, strength, balance ou online.
+Os contratos críticos auditados estão classificados como `CANONICAL_AND_TESTED` ou `JUSTIFIED_SPECIALIZATION`. A fronteira consolidada é `input → normalize → canonical resolution/membership → transition validation → mutate`. `fast_clone()` permanece fora do hot path C++.
 
 ## #371 — Gameplay
 
-**Estado: OPEN — em execução.**
+**Estado: CLOSED — 2026-09-10.**
 
-Objetivo: tornar o ruleset 1.0 efetivamente jogável e estável sobre a fundação fechada.
+### Evidência de saída
 
-Escopo canónico: board 8×8; orçamento draft atual de 200 pontos por cor; uma ação por turno; draft/placement secreto antes do match e sem compras durante o match; movimento, ataques, passivas, spells e invocações dos heróis; sequência STUN → segundo STUN enquanto stunned → morte; vitória/derrota/surrender; terminação sem ação legal; parâmetro de 50 turnos sem captura permanente; timing fire/ice/terrain; geração e execução determinísticas e sem autoridades duplicadas.
+- Surrender canónico: #390/#391.
+- STUN → segundo STUN → morte: #392/#394, com TWC e paridade Python/C++.
+- `hero.spells` como autoridade única: #399/#400; Test Suite #2031, CodeQL #725 e AI Quality Gate #732 verdes.
+- Pre-match canónico e integração Pygame/trainer: #395/#396/#397; #401 merged em `7095258388ef71e4dad2dd178c5be6f95e061337`.
+- No-legal-action terminal usa `engine.legal_actions.legal_actions()`: #404/#405; #405 merged em `3e8bbe9417b584b5a4208d18852070f578bb8b77`, com Test Suite #2056, CodeQL #735 e AI Quality Gate #740 verdes.
+- Effects/timing: contrato documentado em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e protegido por regressões.
+- Core Suite: #405 terminou com **692 passed**.
 
-### Progresso atual
-
-- **Concluído:** surrender canónico e hardening do fluxo terminal; segundo STUN do Ignite com TWC/paridade Python-C++; autoridade de spell declarations sem whitelist duplicada.
-- **Concluído:** **#396/#397** — autoridade de validação canónica de pre-match draft/placement e integração nos chamadores existentes (Pygame draft/start e treino). O #397 foi merged em `7095258388ef71e4dad2dd178c5be6f95e061337`; Test Suite #2036, CodeQL #727 e AI Quality Gate passaram.
-- **Concluído no contrato:** timing de efeitos foi explicitado: a criação não consome o primeiro tick; o timer avança quando o lado proprietário se torna ativo. Fire aplica stun elegível na transição; ice impede passagem/centro Nevada. O contrato está em `docs/DECISIONS/2026-09-10-pre-match-and-effect-timing-contract.md` e há regressão explícita para a posse temporal.
-
-Critério de saída: cada regra declarada tem uma implementação/especificação autorizada; cenários críticos passam pela ação canónica; efeitos, vitória e edges de turnos têm regressões executáveis; não existe ambiguidade conhecida que impeça jogo local; parâmetros de balance são explícitos.
+A aceitação do #371 está satisfeita para o ruleset atualmente declarado. Parâmetros de balance continuam separados de alegações de strength.
 
 ## #372 — Ares
 
-**Estado: BLOCKED UNTIL #371 CLOSES.**
+**Estado: OPEN — gate ativa.**
 
-Objetivo: correctness primeiro, depois capability/search/eval/classical baseline, optional NNUE, controlled benchmarks e Arena A/B com provenance. Benchmark ≠ strength; mais nodes ≠ strength; NNUE existente ≠ superioridade; dataset maior ≠ strength maior.
+Objetivo: tornar Ares forte, eficiente e confiável para uso no produto, com correctness primeiro e evidência independente para capability, performance e strength.
 
-`fast_clone()` não pertence ao C++ hot path. Qualquer otimização exige regressão de correctness + benchmark controlado; qualquer alegação de strength exige avaliação Arena independente.
+Preparação: #406 e `docs/ARES_EXECUTION_PLAN.md`.
 
-## #373 — Product
+### Ordem obrigatória
 
-**Estado: BLOCKED UNTIL #372 CLOSES.**
+```text
+correctness
+→ deterministic capability
+→ controlled performance
+→ independent Arena strength
+→ promotion
+```
 
-Abrange aplicação local, replay/telemetria e UX. UI sofisticada e polish ficam subordinados à estabilidade das regras e do núcleo de execução.
+`fast_clone()` não pertence ao C++ hot path nem ao preflight de legalidade. Benchmark/NPS/dataset growth não são prova de strength.
 
-## #374 — Online
-
-**Estado: BLOCKED UNTIL #373 CLOSES.**
-
-Servidor authoritative, multiplayer, matchmaking, contas e contratos de sessão/rede.
-
-## #375 — Release
-
-**Estado: BLOCKED UNTIL #374 CLOSES.**
-
-QA final, segurança, operação, documentação e critérios de release.
+#373 Product, #374 Online e #375 Release permanecem bloqueados até #372 cumprir a sua aceitação.
 
 ## Regras operacionais
 
-Todo work package deve:
-
-1. partir do `main` verificado;
-2. trabalhar numa branch dedicada;
-3. referenciar o issue canónico e o critério de aceitação;
-4. implementar e testar antes do merge;
-5. passar as gates aplicáveis do repositório;
-6. atualizar a documentação canónica no mesmo pacote quando o estado mudou;
-7. atualizar o issue com evidência concreta e fechar apenas após o resultado estar integrado em `main`.
-
-Não criar outro roadmap para contornar esta sequência.
+Todo work package parte do `main` verificado, usa branch dedicada, refere o Issue canónico, implementa e testa antes do merge, passa as gates aplicáveis e sincroniza documentação quando o estado muda. Preparação futura pode ocorrer em paralelo, mas nunca contorna uma gate anterior.
