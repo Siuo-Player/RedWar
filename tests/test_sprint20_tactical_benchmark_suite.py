@@ -19,6 +19,7 @@ def test_sprint20_tactical_matrix_covers_required_foundation_families() -> None:
         "LIFESPAN_COOLDOWN",
         "TWC",
         "HIGH_VALUE_CAPTURE",
+        "SECOND_STUN_LETHAL",
     }
     covered = {case.coverage for case in CASES.values()}
     assert required <= covered
@@ -33,7 +34,7 @@ def test_sprint20_complete_game_corpus_contains_valid_rwen_state() -> None:
     _validate_rwen(rwen)
 
 
-def test_sprint20_tactical_matrix_runs_against_production_engine(tmp_path: Path) -> None:
+def _build_engine(tmp_path: Path) -> Path:
     compiler = shutil.which("g++")
     if compiler is None:
         raise AssertionError("g++ is required for the Sprint 20 tactical foundation regression")
@@ -55,6 +56,11 @@ def test_sprint20_tactical_matrix_runs_against_production_engine(tmp_path: Path)
         check=False,
     )
     assert compile_result.returncode == 0, compile_result.stderr or compile_result.stdout
+    return binary
+
+
+def test_sprint20_tactical_matrix_runs_against_production_engine(tmp_path: Path) -> None:
+    binary = _build_engine(tmp_path)
 
     command = [
         sys.executable,
@@ -66,6 +72,29 @@ def test_sprint20_tactical_matrix_runs_against_production_engine(tmp_path: Path)
         "--complete-game-probe",
         "--complete-game-nodes",
         "1000",
+    ]
+    result = subprocess.run(
+        command,
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr or result.stdout
+
+
+def test_sprint20_second_stun_reference_is_stable_at_high_budget(tmp_path: Path) -> None:
+    binary = _build_engine(tmp_path)
+    command = [
+        sys.executable,
+        "tools/analytics/tactical_benchmark_suite.py",
+        "--engine",
+        str(binary),
+        "--case",
+        "second-stun-lethal",
+        "--nodes",
+        "10000",
+        "--strict-choice",
     ]
     result = subprocess.run(
         command,
