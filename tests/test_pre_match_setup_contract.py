@@ -26,8 +26,10 @@ def test_valid_setup_allows_duplicate_draftable_heroes():
 
 def test_setup_rejects_budget_overflow():
     gs = GameState()
-    for col in range(8):
-        _place(gs.board, 7, col, "Obelisk", "brancas")
+    for row, col in ((7, c) for c in range(8)):
+        _place(gs.board, row, col, "Obelisk", "brancas")
+    for col in range(5):
+        _place(gs.board, 6, col, "Obelisk", "brancas")
 
     with pytest.raises(ValueError, match="exceeds budget"):
         validate_pre_match_setup(gs.board, "brancas")
