@@ -6,11 +6,11 @@ decision logic.
 
 Policy: 96 -> 192 -> 320 -> 512 complete games.
 
-At a fixed look, ACCEPT requires the one-sided, multiplicity-adjusted paired
+At each fixed look, ACCEPT requires the one-sided, multiplicity-adjusted paired
 bootstrap lower bound for the binary Bradley-Terry Elo-equivalent difference to
-be strictly positive. Otherwise the baseline remains the incumbent and the
-caller collects the next fresh opening batch. At 512 games without proof the
-challenger is rejected.
+be strictly positive. If that condition is not met, the baseline remains the
+incumbent and the next fresh opening batch is considered. At 512 games without
+proof the challenger is rejected.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ import argparse
 import json
 from pathlib import Path
 
-from tools.analytics.strength_statistics import MAX_GAMES, PROMOTION_STAGES, PairedGame, evaluate_promotion
+from tools.analytics.strength_statistics import MAX_GAMES, PROMOTION_STAGES, PairedGame, PromotionDecision, evaluate_promotion
 
 _PROVENANCE_FIELDS = (
     "challenger_version",
@@ -112,6 +112,52 @@ def load_games(paths: list[str]) -> list[PairedGame]:
     return games
 
 
+def evaluate_sequential_promotion(
+    games: list[PairedGame],
+    *,
+    bootstrap_replicates: int = 2000,
+    bootstrap_seed: int = 0,
+) -> PromotionDecision:
+    """Replay every completed fixed look and stop at the first terminal decision."""
+    ordered = sorted(games, key=lambda game: -1 if game.game_index is None else game.game_index)
+    if not ordered:
+        raise ValueError("at least one Arena game is required")
+    if len(ordered) > MAX_GAMES:
+        raise ValueError(f"experiment exceeds MAX_GAMES={MAX_GAMES}")
+
+    complete_game_count = len(ordered)
+    available_stages = [stage for stage in PROMOTION_STAGES if stage <= complete_game_count]
+    if not available_stages:
+        return evaluate_promotion(
+            ordered,
+            bootstrap_replicates=bootstrap_replicates,
+            bootstrap_seed=bootstrap_seed,
+        )
+
+    decision: PromotionDecision | None = None
+    for stage in available_stages:
+        decision = evaluate_promotion(
+            ordered[:stage],
+            bootstrap_replicates=bootstrap_replicates,
+            bootstrap_seed=bootstrap_seed,
+        )
+        if decision.decision in {"accept", "reject"}:
+            return decision
+
+    if len(available_stages) == len(PROMOTION_STAGES) and complete_game_count == MAX_GAMES:
+        assert decision is not None
+        return decision
+
+    assert decision is not None
+    if complete_game_count > available_stages[-1]:
+        return evaluate_promotion(
+            ordered,
+            bootstrap_replicates=bootstrap_replicates,
+            bootstrap_seed=bootstrap_seed,
+        )
+    return decision
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="RedWar binary paired sequential promotion gate")
     parser.add_argument("--results", nargs="+", required=True, help="Cumulative Arena JSONL batch files")
@@ -127,7 +173,7 @@ def main() -> int:
     if len(games) > MAX_GAMES:
         raise SystemExit(f"Arena result contains {len(games)} games; MAX_GAMES is {MAX_GAMES}")
 
-    decision = evaluate_promotion(
+    decision = evaluate_sequential_promotion(
         games,
         bootstrap_replicates=args.bootstrap_replicates,
         bootstrap_seed=args.bootstrap_seed,
@@ -145,6 +191,7 @@ def main() -> int:
         "max_games": MAX_GAMES,
         "bootstrap_replicates": args.bootstrap_replicates,
         "bootstrap_seed": args.bootstrap_seed,
+        "sequential_looks": True,
     }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     if args.summary_output:
