@@ -70,6 +70,7 @@ class JogoController:
         self.btn_ia_normal = self.btn_ia_predador = self.btn_voltar_tipo = pygame.Rect(0,0,0,0)
         self.btn_voltar_dificuldade = self.rect_elo = self.btn_prev = self.btn_next = pygame.Rect(0,0,0,0)
         self.btn_voltar_menu = pygame.Rect(0,0,0,0)
+        self.btn_surrender = pygame.Rect(0, 0, 0, 0)
 
         self.arrastando_elo = False
 
@@ -333,7 +334,18 @@ class JogoController:
                         # Keep peca_loja selected so repeated copies can be
                         # placed until budget/space no longer permits it.
 
-        elif self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
+        elif self.fase_atual == "BATALHA":
+            if self.btn_surrender.collidepoint(pos) and self.gs.white_to_move and not self.gs.game_over:
+                if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, "stop_pondering"):
+                    self.bot_ativo.stop_pondering()
+                    self.pondering_active = False
+                self.gs.execute_action({"type": "surrender", "actor_team": "brancas"})
+                self.casa_selecionada = None
+                return
+
+            if not self.gs.white_to_move or self.gs.game_over:
+                return
+
             if self.hover_pos:
                 r, c = self.hover_pos
                 if not self.casa_selecionada:
@@ -506,7 +518,32 @@ class JogoController:
                 self.ecra.blit(fbtn.render("Próximo", True, COLORS["text"]), (self.btn_next.x + 6, self.btn_next.y + 8))
                 self.ecra.blit(fbtn.render("Sair / Menu", True, COLORS["text"]), (self.btn_voltar_menu.x + 12, self.btn_voltar_menu.y + 8))
             else:
-                if self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:
+                if self.fase_atual == "BATALHA":
+                    self.btn_surrender = pygame.Rect(
+                        off_x,
+                        min(h - 42, off_y_tab + LINHAS * tam_casa + 54),
+                        128,
+                        34,
+                    )
+                    enabled = self.gs.white_to_move and not self.gs.game_over
+                    pygame.draw.rect(
+                        self.ecra,
+                        COLORS["danger"] if enabled else (75, 75, 75),
+                        self.btn_surrender,
+                        border_radius=7,
+                    )
+                    pygame.draw.rect(
+                        self.ecra,
+                        COLORS["text"],
+                        self.btn_surrender,
+                        1,
+                        border_radius=7,
+                    )
+                    f_surrender = FontManager.get("arial", 17, bold=True)
+                    label = "Desistir" if enabled else "Desistir (turno)"
+                    txt = f_surrender.render(label, True, COLORS["text"])
+                    self.ecra.blit(txt, txt.get_rect(center=self.btn_surrender.center))
+                elif self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:
                     desenhar_painel_heroi(self.ecra, self.gs.board[self.hover_pos[0]][self.hover_pos[1]], painel_x, 20, 350, h - 40)
                 else:
                     desenhar_log(self.ecra, self.gs, painel_x, 20, 350, h - 40)
