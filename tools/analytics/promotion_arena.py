@@ -69,17 +69,19 @@ def collect_stage(challenger_engine: str, baseline_engine: str, stage_games: int
     baseline = CppEngineBot(nodes=nodes, executable_path=baseline_engine)
     output = Path(results_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    game_index = 0
+    game_index = int(metadata["previous_cumulative_games"])
+    opening_index_start = STAGE_OPENING_RANGES[stage_games][0]
     try:
         with output.open("w", encoding="utf-8") as handle:
-            for pair_index, seed in enumerate(seeds):
-                pair_id = f"promotion-stage-{stage_games}-pair-{pair_index:03d}"
+            for local_pair_index, seed in enumerate(seeds):
+                global_pair_index = opening_index_start + local_pair_index
+                pair_id = f"promotion-pair-{global_pair_index:03d}"
                 for pair_member in range(2):
                     challenger_color = "white" if pair_member == 0 else "black"
-                    game = run_headless_match(challenger, baseline, pair_index, seed) if pair_member == 0 else run_headless_match(baseline, challenger, pair_index, seed)
+                    game = run_headless_match(challenger, baseline, global_pair_index, seed) if pair_member == 0 else run_headless_match(baseline, challenger, global_pair_index, seed)
                     winner_side = _winner_side(game["winner"])
                     if not game["valid"]:
-                        raise RuntimeError(f"invalid Arena game at stage={stage_games} pair={pair_index} seed={seed}: {game['failure_reason']}")
+                        raise RuntimeError(f"invalid Arena game at stage={stage_games} pair={global_pair_index} seed={seed}: {game['failure_reason']}")
                     outcome = "challenger" if winner_side == challenger_color else "baseline"
                     record = {
                         "game_index": game_index,
@@ -89,12 +91,14 @@ def collect_stage(challenger_engine: str, baseline_engine: str, stage_games: int
                         "baseline_color": "black" if challenger_color == "white" else "white",
                         "outcome": outcome,
                         "seed": seed,
-                        "opening_index": pair_index,
+                        "opening_index": global_pair_index,
                         "experiment": metadata,
                         **game,
                     }
                     handle.write(json.dumps(record, ensure_ascii=False, separators=(",", ":")) + "\n")
                     game_index += 1
+        if game_index != stage_games:
+            raise RuntimeError(f"stage {stage_games} should end at global game_index {stage_games}, got {game_index}")
         return 0
     finally:
         for bot in (challenger, baseline):
