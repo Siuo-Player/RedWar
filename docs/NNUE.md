@@ -1,44 +1,26 @@
 # RedWar — NNUE
 
-## Autoridade
+## Contrato
 
-Este documento define o contrato da NNUE. [`ROADMAP.md`](ROADMAP.md) define a sequência; [`PROJECT_REASONING.md`](PROJECT_REASONING.md) define a cadeia de evidência.
+NNUE é uma avaliação opcional da Ares. Este documento define apenas o contrato durável; o código/testes determinam o estado efetivamente integrado.
 
-## Arquitetura atual
+As features devem representar o estado observável relevante para a avaliação, incluindo identidade/posição/equipa relativa, stun, lifespan, cooldown, efeitos, TWC e side-to-move. O formato do modelo deve ser versionado e reproduzível.
 
-**Baseline verificável:** `main` @ `218fd115864629a79c82c72c729fa0faff831664`.
+## Correção incremental
 
-Ares possui uma NNUE opcional adaptada ao estado RPG. As features representam identidade/posição/equipa relativa, stun, lifespan, cooldown, efeitos, TWC e side-to-move. O formato binário é versionado.
-
-NNUE não é atualmente uma alegação de superioridade competitiva. A avaliação clássica continua disponível como baseline.
-
-## Baseline de correção
-
-A infraestrutura mantém `sync_board()` como referência de ressincronização completa e oracle de correção. Existem hooks incrementais para alterações de peça, efeito, lado e TWC.
-
-O **PR #356** integrou esses hooks no caminho nativo real de mutação e adicionou regressão de `make_move()` / `unmake_move()` comparando a avaliação incremental com um full resync. O PR foi merged como `f2e7155d150b4cc0be79d4b86beb5005941ef180`.
-
-Assim, o estado atual é **IMPLEMENTED / TESTED para a integração incremental de correção** nos cenários cobertos. `sync_board()` permanece explícito como oracle/recovery path; a sua existência não é escondida dentro do hot path como mecanismo silencioso de correção.
-
-O contrato exercido é:
+`sync_board()` é a referência de ressincronização completa e pode funcionar como oracle/recovery path. O caminho incremental deve produzir o mesmo resultado nas sequências de mutação cobertas:
 
 ```text
-BoardState mutation
-→ incremental hook
+board mutation
+→ incremental update
 → accumulator
       ≡
-full sync_board()
+full resync
 ```
 
-após sequências `make/unmake` e alterações dos estados persistentes relevantes cobertos pela regressão.
+Correção incremental e eficiência são critérios distintos. Uma redução de custo que introduza drift não é aceite.
 
-## Custo e strength
-
-Só depois de a equivalência incremental/full-resync estar estabelecida se deve medir custo por avaliação e NPS. Uma redução do tempo de avaliação que introduza drift não é melhoria aceite.
-
-Mesmo uma melhoria de NPS ou training loss não constitui strength evidence. Para alegações competitivas continua necessária Arena A/B sob o protocolo de strength, com orçamento comparável, alternância de cores e incerteza explicitamente tratada.
-
-## Dataset / treino
+## Treino e dataset
 
 O pipeline conceptual é:
 
@@ -48,27 +30,27 @@ positions
 → features
 → training
 → quantization
-→ RWNUE model
+→ model
 → validation
 → Arena
 ```
 
-A metodologia de dataset deve auditar, conforme aplicável, duplicação, exact-position leakage, composição, diversidade e estabilidade.
-
-**Estado atual verificável:** #314, que propunha deterministic grouped splitting e `audit_dataset.py`, **não foi merged**. Portanto essas alterações não podem ser descritas como funcionalidades existentes no `main`.
-
-#316 foi merged e altera a classificação de CI para a classe estreita de metodologia de dataset NNUE, separando essa manutenção de uma promoção automática de strength. Isso não significa que o pipeline de dataset tenha sido promovido a validade experimental completa.
+A validação deve controlar leakage, duplicação, composição, diversidade e reprodutibilidade quando relevantes.
 
 ## Promotion gate
 
-NNUE só pode tornar-se default após:
+NNUE só pode substituir a avaliação clássica como default após:
 
-1. correção e paridade de features;
+1. paridade de features;
 2. determinismo relevante;
-3. modelo treinado e reproduzível;
-4. custo/NPS comparado com baseline;
-5. ausência de regressões relevantes em referências;
+3. treino reproduzível;
+4. custo/NPS medido;
+5. regressões relevantes ausentes;
 6. Arena A/B com evidência suficiente;
-7. cumprimento do contrato de observabilidade.
+7. observabilidade e regras do produto respeitadas.
 
-`incremental correctness ≠ strength superiority`, `dataset validity improvement ≠ strength improvement` e `lower training loss ≠ stronger Ares`.
+```text
+incremental correctness ≠ strength superiority
+lower training loss ≠ stronger Ares
+higher NPS ≠ strength proof
+```

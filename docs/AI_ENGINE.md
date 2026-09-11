@@ -1,113 +1,64 @@
 # Ares — AI Engine
 
-## Authority
+## Autoridade
 
-Este documento é o contrato técnico atual da Ares. [`CURRENT_STATE.md`](CURRENT_STATE.md) identifica o baseline verificável; [`ROADMAP.md`](ROADMAP.md) define a ordem de evolução; [`PROJECT_REASONING.md`](PROJECT_REASONING.md) define a cadeia de evidência.
+Este documento define o contrato durável da Ares. O comportamento realmente implementado é determinado pelo código/testes do `main`; [`ROADMAP.md`](ROADMAP.md) define a ordem dos gates.
 
-## Current baseline
+## Engine
 
-**Baseline:** `main` @ `e17afcd54ad57635e222f3b3c9a5bb9966df9394`.
-
-Ares usa C++ no hot path e mantém:
+Ares é o engine C++ de busca do RedWar. O desenho suporta:
 
 - alpha-beta/PVS;
 - iterative deepening;
-- transposition table;
-- Zobrist hashing;
-- move ordering;
-- killer/history heuristics;
+- transposition table e Zobrist hashing;
+- move ordering, killer/history heuristics;
 - quiescence/tactical search;
-- node/time bounded search.
+- limites por nós/tempo.
 
-Ares é um engine de RPG táctico, não uma implementação de xadrez. O estado observável inclui peças, stun, lifespan, spawn cooldown, efeitos, TWC e lado a jogar.
+O estado relevante inclui peças, stun, lifespan, spawn cooldown, efeitos, TWC e side-to-move. Ares deve respeitar exatamente a semântica do ruleset RedWar e a informação autorizada pelo modo de jogo.
 
-## Semantic contract before search
+## Fronteira de execução
 
-A invariância alvo é:
-
-```text
-mesma posição → mesmas ações legais
-make → unmake → mesma posição/metadados relevantes
-mesmas condições terminais
-mesma semântica de timers/efeitos/TWC
-```
-
-No `main` atual, a fronteira `GameAction`/normalização está implementada e testada (#306/#308), e #321 acrescentou `resolve_legal_action()` como seam de resolução canónica/legacy.
-
-Isto **não** prova ainda que o executor rejeite todas as ações ilegais antes da mutação. A0.1 continua aberto porque action-space e transition validity não são equivalentes no estado atual (#317; #315 não foi merged).
-
-A fronteira esperada é:
+A ordem canónica é:
 
 ```text
 input action
-→ normalize / resolve canonical action
+→ normalize / canonical resolution
 → action-space membership
 → transition-domain validation
-→ only then mutate
+→ mutate
 ```
 
-Ares não deve validar ações executando-as especulativamente numa cópia Python. `fast_clone()` não é componente do hot path C++ nem mecanismo aceite de preflight do executor. O código C++ corrente em `ai/cpp_engine/` não depende dessa função.
+Legalidade de action-space e validade da transição são conceitos distintos. Uma otimização de pesquisa não pode contornar a autoridade de execução.
 
-## Search
+`fast_clone()` não é hot path C++ nem preflight aceite do executor.
 
-A pesquisa permanece separada do evaluator. Move ordering e pruning devem explorar fenómenos reais de RedWar — capturas, stun, spells forçantes, passivas, lifespan/cooldown e TWC — e cada alteração deve ser estudada como hipótese isolada.
+## Pesquisa
 
-Não copiar heurísticas de outras engines apenas por existirem. O critério é ganho demonstrável no fenómeno pretendido, sem regressão semântica e com o nível de evidência adequado ao claim.
-
-## Evaluation
-
-A avaliação clássica permanece baseline de compatibilidade/correção. Contém material, PST, stun, lifespan, TWC e termos específicos de RedWar.
-
-Uma limitação conhecida do evaluator é uma **hipótese de investigação**, não prova de “balanceamento errado”.
-
-## NNUE
-
-NNUE é opcional. As features atuais representam peça+quadrado+equipa relativa, stun, lifespan, cooldown, efeitos, TWC e side-to-move.
-
-O caminho de integração continua:
+Alterações de search, pruning, ordering ou evaluation são hipóteses isoladas. Devem demonstrar:
 
 ```text
-full resync
-   ↓
-incremental accumulator
-   ↓
-paridade make/unmake
-   ↓
-benchmark de custo/NPS
-   ↓
-Arena
+correção
+→ capability específica
+→ custo/performance controlado
+→ strength independente
 ```
 
-Os hooks incrementais existem, mas a integração não é considerada concluída até a igualdade com `sync_board()` ser testada no caminho real de mutação.
+Um melhor resultado num puzzle, maior NPS ou menor custo local não constitui prova de strength global.
 
-## Benchmarks
+## Evaluation / NNUE
 
-`tools/analytics/tactical_benchmark_suite.py` é um capability/regression harness.
+A avaliação clássica permanece uma referência de compatibilidade/correção. NNUE é opcional e deve manter paridade semântica com o estado observável.
+
+O caminho incremental de NNUE é aceite apenas quando a equivalência com full resync estiver demonstrada nos caminhos reais de mutação. `sync_board()` pode permanecer como oracle/recovery path sem ser usado silenciosamente para mascarar erros incrementais.
+
+## Evidência de força
+
+A promoção de Ares requer evidência independente, tipicamente Arena A/B sob orçamento comparável e protocolo estatístico explícito.
 
 ```text
-benchmark result
-≠
-global strength proof
+benchmark
+≠ capability geral
+≠ performance geral
+≠ strength
 ```
-
-Uma melhoria num caso FrostMage ou noutro puzzle é evidência de capability específica. Generalização e strength exigem os seus próprios instrumentos.
-
-## Strength
-
-A separação operacional é:
-
-```text
-correctness
-→ capability
-→ performance
-→ independent validation
-→ strength
-```
-
-Um bestmove melhor, maior NPS ou menor training loss não autoriza por si só uma alegação de aumento global de força.
-
-## Observabilidade
-
-No modo local documentado, `DRAFT` mantém informação do adversário oculta e `BATALHA` expõe o estado completo. Ares só pode usar a informação permitida pelo modo em questão.
-
-Fonte: [`OBSERVABILITY_CONTRACT.md`](OBSERVABILITY_CONTRACT.md).
