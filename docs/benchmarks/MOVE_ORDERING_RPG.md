@@ -8,13 +8,24 @@ Measure whether Ares finds the same tactically correct action with fewer nodes a
 
 ## Method
 
-Use the existing deterministic tactical benchmark cases and run a denser node scan than the normal exponential scan. The first reference case is `frostmage-5-target`.
+Use the existing deterministic tactical benchmark cases and run a denser node scan than the normal exponential scan.
 
-Suggested scan:
+Default scan:
 
 ```text
 10, 25, 50, 75, 100, 150, 200, 300, 500, 1000
 ```
+
+The baseline runner can measure one case or the complete tactical corpus. Capability mode validates that the engine returns a non-null legal action at each budget; it does not promote that action to a strength claim.
+
+Examples:
+
+```text
+python tools/analytics/move_ordering_baseline.py --case frostmage-5-target --trace
+python tools/analytics/move_ordering_baseline.py --all-cases --output logs/benchmarks/move-ordering-baseline.json
+```
+
+The JSON artifact uses schema version `1` and records the cases, node budgets, per-budget bestmove, canonical legality, elapsed time, return code, and the captured suite output. This makes repeated baselines comparable without scraping console output manually.
 
 For every change to move ordering, compare:
 
@@ -42,10 +53,4 @@ Do not encode the coordinates, board layout, hero name, or benchmark-specific so
 
 A tactical benchmark is evidence, not a special case.
 
-## Baseline command
-
-```text
-python tools/analytics/move_ordering_baseline.py --case frostmage-5-target --trace
-```
-
-The baseline should be recorded before each ordering optimization so improvements are expressed as a lower node threshold rather than simply a different move.
+The baseline runner itself must remain measurement-only: it must not patch engine state, alter search parameters, or inject benchmark-specific moves.
