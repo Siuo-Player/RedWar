@@ -42,12 +42,10 @@ def test_inquisitor_silence_is_local_and_does_not_remove_frostmage_movement():
     gs.compute_initial_hash()
 
     actions = legal_actions(gs)
-    frostmage_starts = {
+    nevada_starts = {
         action.start for action in actions if action.spell_name == "nevada"
     }
 
-    assert frostmage_starts
-    assert (7, 7) not in frostmage_starts
-
-    movement_actions = [action for action in actions if action.type.value == "move"]
-    assert movement_actions
+    assert (6, 6) not in nevada_starts
+    assert (7, 7) in nevada_starts
+    assert any(action.type.value == "move" for action in actions)
