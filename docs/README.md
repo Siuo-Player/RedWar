@@ -1,60 +1,49 @@
 # RedWar — Documentação
 
-A documentação segue uma regra simples: **não há múltiplos roadmaps nem múltiplos estados operacionais**.
+A documentação descreve contratos, decisões e a ordem de desenvolvimento. O código e os testes no `main` são a autoridade sobre o comportamento implementado.
 
-## Entrada recomendada
-
-A entrada operacional deve seguir esta ordem:
+## Entrada
 
 ```text
-00_INDEX.md
+README.md
   ↓
-CURRENT_STATE.md
+docs/00_INDEX.md
   ↓
-ROADMAP.md
+docs/ROADMAP.md
   ↓
 documento canónico do domínio
   ↓
-PROJECT_REASONING.md (rationale transversal, quando necessário)
-  ↓
-DECISIONS/ (rationale histórico, quando necessário)
+docs/DECISIONS/  (apenas quando a motivação histórica for relevante)
 ```
 
-`00_INDEX.md` é o mapa da autoridade; não é substituído por snapshots ou handoffs.
+Não manter `CURRENT_STATE`, roadmaps datados, handoffs, snapshots ou relatórios de execução como estado operacional permanente.
 
-## Principais documentos
+## Fontes canónicas
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — fronteiras e invariantes do sistema.
-- [`GAME_RULES.md`](GAME_RULES.md) — regras operacionais.
-- [`GAME_DESIGN.md`](GAME_DESIGN.md) — intenção de design.
-- [`HERO_SYSTEM.md`](HERO_SYSTEM.md) — contrato do sistema de heróis.
-- [`AI_ENGINE.md`](AI_ENGINE.md) — Ares.
-- [`NNUE.md`](NNUE.md) — avaliação NNUE.
-- [`AI_BENCHMARK_PROTOCOL.md`](AI_BENCHMARK_PROTOCOL.md) — capability/regression benchmarks.
-- [`STRENGTH_EVALUATION.md`](STRENGTH_EVALUATION.md) — strength/Arena.
-- [`ARENA_STATISTICAL_METHODOLOGY.md`](ARENA_STATISTICAL_METHODOLOGY.md) — estatística.
-- [`ARENA_HOLDOUT_CI.md`](ARENA_HOLDOUT_CI.md) — hold-out.
-- [`BALANCE_METHODOLOGY.md`](BALANCE_METHODOLOGY.md) — balanceamento.
-- [`OBSERVABILITY_CONTRACT.md`](OBSERVABILITY_CONTRACT.md) — informação legal por modo.
-- [`MECHANICS_TRACEABILITY_MATRIX.md`](MECHANICS_TRACEABILITY_MATRIX.md) — cobertura cross-backend.
-- [`BATTLE_UI_SIDEBAR.md`](BATTLE_UI_SIDEBAR.md) — UI de batalha.
-- [`WEB_MULTIPLAYER.md`](WEB_MULTIPLAYER.md) — online.
+- `ARCHITECTURE.md` — fronteiras e invariantes.
+- `GAME_RULES.md` — regras de jogo.
+- `GAME_DESIGN.md` — intenção de design.
+- `HERO_SYSTEM.md` — sistema de heróis.
+- `AI_ENGINE.md` — Ares.
+- `NNUE.md` — avaliação NNUE.
+- `AI_BENCHMARK_PROTOCOL.md` — capability/regression benchmarks.
+- `STRENGTH_EVALUATION.md` — strength/Arena.
+- `ARENA_STATISTICAL_METHODOLOGY.md` — desenho estatístico.
+- `BALANCE_METHODOLOGY.md` — balanceamento.
+- `OBSERVABILITY_CONTRACT.md` — informação permitida por modo.
+- `BATTLE_UI_SIDEBAR.md` — interação de batalha.
+- `WEB_MULTIPLAYER.md` — online.
 
-## Autoridade
-
-Para **comportamento existente**, a prioridade é:
+## Regra de autoridade
 
 ```text
-implementação + testes executáveis
-→ documento canónico
+código + testes
+→ contrato canónico
 → decisão histórica
-→ research/audit
-→ roadmap/proposta
-→ snapshot histórico
+→ research/proposta
+→ roadmap
 ```
 
-Para **ordem de desenvolvimento**, a autoridade é exclusivamente [`ROADMAP.md`](ROADMAP.md).
+`ROADMAP.md` é a única fila operacional. `DECISIONS/` preserva decisões anteriores e os motivos para elas poderem ser recuperadas ou revertidas; não deve ser usado como estado atual.
 
-Para **raciocínio transversal**, consultar [`PROJECT_REASONING.md`](PROJECT_REASONING.md), sem o tratar como segundo roadmap.
-
-`DECISIONS/` é histórico; não se reescreve para alterar a narrativa posterior.
+Antes de criar documentação nova, atualizar o proprietário canónico existente.
