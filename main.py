@@ -69,7 +69,7 @@ class JogoController:
         self.btn_vs_ia = self.btn_multi = self.btn_voltar_modo = pygame.Rect(0,0,0,0)
         self.btn_ia_normal = self.btn_ia_predador = self.btn_voltar_tipo = pygame.Rect(0,0,0,0)
         self.btn_voltar_dificuldade = self.rect_elo = self.btn_prev = self.btn_next = pygame.Rect(0,0,0,0)
-        self.btn_voltar_menu = pygame.Rect(0, 0, 0, 0)
+        self.btn_voltar_menu = pygame.Rect(0,0,0,0)
         self.btn_surrender = pygame.Rect(0, 0, 0, 0)
 
         self.arrastando_elo = False
@@ -294,11 +294,11 @@ class JogoController:
                 self.gs.current_score = None
 
         elif self.fase_atual == "INFO":
-            if self.btn_info_voltar.collidepoint(pos):
+            if self.btn_info_voltar.collidepoint(mx, my):
                 self.fase_atual = "MENU"
             else:
                 for rect, index in self.info_hero_rects:
-                    if rect.collidepoint(pos):
+                    if rect.collidepoint(mx, my):
                         self.info_hero_index = index
                         break
 
