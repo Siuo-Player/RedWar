@@ -32,7 +32,7 @@ _RESULT_RE = re.compile(
     r"nodes=\s*(?P<nodes>\d+)\s+"
     r"bestmove=(?P<bestmove>\S+)\s+"
     r"time=(?P<time>[0-9.]+)s\s+"
-    r"legal=(?P<legal>\S+)\s+"
+    r"legal=(?P<legal>.*?)\s+"
     r"mode=(?P<mode>\S+)\s+"
     r"(?P<result>PASS|FAIL)$"
 )
