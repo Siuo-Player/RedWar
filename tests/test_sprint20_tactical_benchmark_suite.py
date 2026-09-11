@@ -13,7 +13,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_sprint20_tactical_matrix_covers_required_foundation_families() -> None:
     required = {
-        "STUN",
         "SPELL",
         "DEFENSE",
         "LIFESPAN_COOLDOWN",
@@ -23,6 +22,8 @@ def test_sprint20_tactical_matrix_covers_required_foundation_families() -> None:
     }
     covered = {case.coverage for case in CASES.values()}
     assert required <= covered
+    assert CASES["frostmage-5-target"].expected_prefix == "SPELL nevada "
+    assert CASES["second-stun-lethal"].expected_prefix == "SPELL nevada A5 D5"
     for case in CASES.values():
         _validate_rwen(case.rwen)
         assert case.expected_prefix
