@@ -14,13 +14,13 @@ DEFAULT_ENGINE = os.path.join(
 )
 DEFAULT_NODES = [10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000]
 
-# A5 FrostMage stuns at D5. Exactly five Bones occupy the stun cross:
+# A5 FrostMage's Nevada spell targets D5. Exactly five Bones occupy the area:
 # C5, D4, D5, D6 and E5. Every cell uses canonical RWEN piece:effect syntax;
 # an empty cell is .:.
 FROST_CLUSTER = (
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
-    ".:.,.:.,.:.,B_Bone_0_N_0:.,.:.,.:.,.:.,.:./"
+    ".:.,.:.,.:.,B_Bone_0_N_0:.,.:.,.:.,.:./"
     "W_FrostMage_0_N_0:.,.:.,B_Bone_0_N_0:.,B_Bone_0_N_0:.,B_Bone_0_N_0:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,B_Bone_0_N_0:.,.:.,.:.,.:.,.:./"
     ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
@@ -78,7 +78,7 @@ def query(engine: str, nodes: int, trace_path: Path | None = None) -> tuple[str,
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="DiagnÃ³stico tÃ¡ctico do FrostMage para Ares")
+    parser = argparse.ArgumentParser(description="Diagnóstico tático do FrostMage para Ares")
     parser.add_argument("--engine", default=DEFAULT_ENGINE)
     parser.add_argument("--nodes", type=int, action="append", default=None)
     parser.add_argument("--trace", action="store_true")
@@ -88,11 +88,11 @@ def main() -> int:
     if any(nodes <= 0 for nodes in node_budgets):
         parser.error("--nodes deve conter apenas inteiros positivos")
     if not os.path.isfile(args.engine):
-        raise FileNotFoundError(f"Engine nÃ£o encontrada: {args.engine}")
+        raise FileNotFoundError(f"Engine não encontrada: {args.engine}")
 
     trace_dir = Path(ROOT) / "logs" / "benchmarks" / "frostmage" if args.trace else None
     print("FrostMage tactical benchmark")
-    print("position: 5 clustered enemies within one 3-range stun area")
+    print("position: 5 clustered enemies within one Nevada spell area")
     print("expected tactical class: SPELL nevada")
     print("scan: exponential node budgets; use --nodes for fine-grained follow-up")
     if args.trace:
@@ -115,10 +115,10 @@ def main() -> int:
     if failures:
         print(
             "DIAGNOSTIC: Ares failed to select the immediate 5-target FrostMage "
-            f"stun at {failures}/{len(node_budgets)} tested budgets."
+            f"Nevada spell at {failures}/{len(node_budgets)} tested budgets."
         )
         return 1
-    print("DIAGNOSTIC: Ares recognised the 5-target FrostMage Nevada spell at all budgets.")
+    print("PASS: stable Nevada spell reference across tested budgets")
     return 0
 
 
