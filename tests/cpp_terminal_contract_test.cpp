@@ -32,6 +32,25 @@ std::string trim(const std::string& value) {
     return value.substr(first, last - first + 1);
 }
 
+void assert_quiescence_terminal_score(const std::string& kind, int expected_score) {
+    if (kind != "TWC_50" && kind != "BLOCKED" &&
+        kind != "MUTUAL_ANNIHILATION" && kind != "WHITE_ANNIHILATION" &&
+        kind != "BLACK_ANNIHILATION") {
+        return;
+    }
+
+    abort_search = false;
+    nodes_evaluated = 0;
+    search_start_time = std::chrono::steady_clock::now();
+    const int qscore = quiescence_search(-INFINITO, INFINITO, board.turn, 0, 0);
+    if (qscore != expected_score) {
+        std::ostringstream error;
+        error << "quiescence terminal mismatch for " << kind
+              << ": alpha-beta=" << expected_score << " qsearch=" << qscore;
+        throw std::runtime_error(error.str());
+    }
+}
+
 } // namespace
 
 int main() {
@@ -49,6 +68,8 @@ int main() {
 
             const std::string kind = terminal_kind();
             const int score = actual_terminal_score(kind);
+            assert_quiescence_terminal_score(kind, score);
+
             std::string bestmove = search_best_move(1);
             if (bestmove.empty()) bestmove = "0000";
 
