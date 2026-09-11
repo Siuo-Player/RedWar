@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from tools.analytics.promotion_gate import load_games
+from tools.analytics.promotion_gate import evaluate_sequential_promotion, load_games
 from tools.analytics.strength_statistics import MAX_GAMES, PROMOTION_STAGES, PairedGame, evaluate_promotion
 
 
@@ -20,10 +20,11 @@ PROVENANCE = {
 }
 
 
-def _records(pairs: int, first: str = "challenger", second: str = "baseline", *, provenance=None) -> list[dict]:
+def _records(pairs: int, first: str = "challenger", second: str = "baseline", *, provenance=None, pair_start: int = 0) -> list[dict]:
     experiment = dict(PROVENANCE if provenance is None else provenance)
     rows: list[dict] = []
-    for pair_index in range(pairs):
+    for local_index in range(pairs):
+        pair_index = pair_start + local_index
         pair_id = f"pair-{pair_index}"
         seed = 50_000 + pair_index
         rows.extend(
@@ -87,7 +88,7 @@ def test_load_games_rejects_mixed_experiment_provenance(tmp_path):
     alternate = dict(PROVENANCE)
     alternate["node_budget"] = 20_000
     _write_jsonl(first, _records(1))
-    _write_jsonl(second, _records(1, provenance=alternate))
+    _write_jsonl(second, _records(1, provenance=alternate, pair_start=1))
     with pytest.raises(ValueError, match="mixed experiment provenance"):
         load_games([str(first), str(second)])
 
@@ -141,3 +142,19 @@ def test_gate_keeps_baseline_when_first_stage_is_inconclusive(tmp_path):
     decision = evaluate_promotion(games, bootstrap_replicates=100, bootstrap_seed=11)
     assert decision.decision == "continue"
     assert decision.reason.startswith("insufficient evidence")
+
+
+def test_sequential_gate_stops_at_first_accept_even_if_final_snapshot_regresses(tmp_path):
+    path = tmp_path / "arena.jsonl"
+    rows = _records(48, "challenger", "challenger")
+    rows += _records(208, "baseline", "baseline", pair_start=48)
+    _write_jsonl(path, rows)
+    games = load_games([str(path)])
+
+    final_snapshot = evaluate_promotion(games, bootstrap_replicates=100, bootstrap_seed=12)
+    sequential = evaluate_sequential_promotion(games, bootstrap_replicates=100, bootstrap_seed=12)
+
+    assert final_snapshot.decision == "reject"
+    assert sequential.decision == "accept"
+    assert sequential.games == 96
+    assert sequential.stage_games == 96
