@@ -288,6 +288,15 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
     if (abort_search) return 0;
 
     const int eval_score = evaluate_board();
+    if (is_terminal_score(eval_score)) return eval_score;
+    if (board.twc >= 50) return no_capture_terminal_score(ply);
+
+    std::vector<Move> moves = generate_valid_moves(current_turn);
+    if (moves.empty()) {
+        return (current_turn == 'W') ? -INFINITO + (MAX_PLY - ply)
+                                     : INFINITO - (MAX_PLY - ply);
+    }
+
     if (current_turn == 'W') {
         if (eval_score >= beta) return beta;
         alpha = std::max(alpha, eval_score);
@@ -298,7 +307,6 @@ int quiescence_search(int alpha, int beta, char current_turn, int ply, int q_dep
 
     if (q_depth >= QSEARCH_MAX_DEPTH) return eval_score;
 
-    std::vector<Move> moves = generate_valid_moves(current_turn);
     std::size_t forcing_count = 0;
     for (std::size_t i = 0; i < moves.size(); ++i) {
         if (!is_forcing_move(moves[i])) continue;
