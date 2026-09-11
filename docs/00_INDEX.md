@@ -14,14 +14,14 @@ research / proposta
 roadmap
 ```
 
-Não existe um `CURRENT_STATE.md`. O estado implementado deve ser obtido do `main`, dos testes e do CI; esta documentação não replica snapshots.
+O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapshot.
 
 ## Entrada operacional
 
 1. [`README.md`](README.md)
 2. [`ROADMAP.md`](ROADMAP.md)
 3. documento canónico da área
-4. [`DECISIONS/`](DECISIONS/) apenas para motivação histórica
+4. [`DECISIONS/`](DECISIONS/) quando a motivação histórica for relevante
 
 ## Contratos por domínio
 
@@ -30,7 +30,7 @@ Não existe um `CURRENT_STATE.md`. O estado implementado deve ser obtido do `mai
 | Arquitetura | `ARCHITECTURE.md` |
 | Regras | `GAME_RULES.md` |
 | Design | `GAME_DESIGN.md` |
-| Heróis | `HERO_SYSTEM.md` + configuração de engine |
+| Heróis | `HERO_SYSTEM.md` + configuração |
 | Ares | `AI_ENGINE.md` |
 | NNUE | `NNUE.md` |
 | Benchmarks | `AI_BENCHMARK_PROTOCOL.md` |
@@ -43,12 +43,10 @@ Não existe um `CURRENT_STATE.md`. O estado implementado deve ser obtido do `mai
 | Online | `WEB_MULTIPLAYER.md` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
 
-## Estados de evidência
+## Evidência
 
 `DOCUMENTED` ≠ `IMPLEMENTED` ≠ `TESTED` ≠ `VALIDATED` ≠ `PROVEN`.
 
-## Decisões históricas
+## Histórico de decisões
 
-`DECISIONS/` é o arquivo de decisões. Uma decisão antiga pode ser mantida mesmo depois de superseded quando a sua motivação for necessária para compreender uma escolha ou considerar uma reversão.
-
-Não duplicar uma decisão no roadmap, num snapshot ou num relatório de estado.
+`DECISIONS/` preserva decisões anteriores que possam ser úteis para compreender ou reverter uma escolha. Uma decisão histórica não define o estado atual e não deve duplicar o roadmap ou um contrato atual.
