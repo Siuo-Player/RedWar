@@ -24,6 +24,8 @@ For every change to move ordering, compare:
 - search trace when the threshold changes;
 - full tests and Arena result.
 
+The machine-readable runner now validates that the benchmark emits exactly one row for every requested budget, in the requested order. A missing, duplicated or reordered row is a baseline failure rather than silently becoming partial evidence.
+
 ## What is allowed to change
 
 Move ordering may use state information already available to search, such as:

@@ -38,6 +38,36 @@ _RESULT_RE = re.compile(
 )
 
 
+def _parse_rows(stdout: str) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for line in stdout.splitlines():
+        match = _RESULT_RE.search(line.strip())
+        if not match:
+            continue
+        rows.append(
+            {
+                "nodes": int(match.group("nodes")),
+                "bestmove": match.group("bestmove"),
+                "elapsed_seconds": float(match.group("time")),
+                "legal": match.group("legal"),
+                "mode": match.group("mode"),
+                "passed": match.group("result") == "PASS",
+            }
+        )
+    return rows
+
+
+def _validate_rows(rows: list[dict[str, object]], budgets: list[int]) -> list[str]:
+    actual = [int(row["nodes"]) for row in rows]
+    expected = list(budgets)
+    errors: list[str] = []
+    if actual != expected:
+        errors.append(f"benchmark rows incomplete or reordered: expected={expected} actual={actual}")
+    if len(actual) != len(set(actual)):
+        errors.append("benchmark output contains duplicate node budgets")
+    return errors
+
+
 def _run_case(case: str, budgets: list[int], trace: bool) -> dict[str, object]:
     command = [sys.executable, str(SUITE), "--case", case]
     for budget in budgets:
@@ -53,26 +83,13 @@ def _run_case(case: str, budgets: list[int], trace: bool) -> dict[str, object]:
         text=True,
     )
 
-    rows: list[dict[str, object]] = []
-    for line in completed.stdout.splitlines():
-        match = _RESULT_RE.search(line.strip())
-        if not match:
-            continue
-        rows.append(
-            {
-                "nodes": int(match.group("nodes")),
-                "bestmove": match.group("bestmove"),
-                "elapsed_seconds": float(match.group("time")),
-                "legal": match.group("legal"),
-                "mode": match.group("mode"),
-                "passed": match.group("result") == "PASS",
-            }
-        )
-
+    rows = _parse_rows(completed.stdout)
+    validation_errors = _validate_rows(rows, budgets)
     return {
         "case": case,
         "return_code": completed.returncode,
         "results": rows,
+        "validation_errors": validation_errors,
         "stdout": completed.stdout,
         "stderr": completed.stderr,
     }
@@ -107,8 +124,11 @@ def main() -> int:
         print(f"running case={case}")
         result = _run_case(case, list(args.nodes), args.trace)
         baseline["results"].append(result)
-        failures += int(result["return_code"] != 0)
-        print(f"  return_code={result['return_code']} rows={len(result['results'])}")
+        failures += int(result["return_code"] != 0 or bool(result["validation_errors"]))
+        print(
+            f"  return_code={result['return_code']} rows={len(result['results'])}"
+            f" validation_errors={len(result['validation_errors'])}"
+        )
 
     payload = json.dumps(baseline, indent=2, sort_keys=True) + "\n"
     if args.output:
