@@ -2,7 +2,7 @@
 
 **Governing issue:** #413  
 **Parent:** #406 → #372  
-**Reconciled baseline:** `main` @ `eed4c9b00b174717a17441f3fc312d947f5db08f` (2026-09-11)
+**Reconciled baseline:** `main` @ `23391d956e4712d778cbf68713766b2ccb9a4623` (2026-09-11)
 
 Este documento regista o contrato de estado que o caminho nativo de pesquisa Ares deve preservar entre `make_move()` e `unmake_move()`. É uma baseline de correctness, não uma alegação de performance ou strength.
 
