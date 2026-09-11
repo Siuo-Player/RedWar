@@ -40,7 +40,7 @@ class TacticalCase:
 
 
 _EMPTY = ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:."
-_SECOND_STUN_ROW = "W_FrostMage_0_N_0:.,.:.,.:.,B_Bone_1_N_0:.,.:.,.:.,.:."
+_SECOND_STUN_ROW = "W_FrostMage_0_N_0:.,.:.,.:.,B_Bone_1_N_0:.,.:.,.:.,.:.,.:."
 
 CASES = {
     "frostmage-5-target": TacticalCase(
@@ -74,7 +74,7 @@ CASES = {
     "defensive-purify": TacticalCase(
         "defensive-purify",
         "A Cleric can purge a stunned allied Templar; the reference action is capability evidence, not a strength claim.",
-        f"{_EMPTY}/.:.,B_Obelisk_0_N_0:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./{_EMPTY}/.:.,.:.,.:.,W_Templar_2_N_0:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Cleric_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
+        f"{_EMPTY}/.:.,B_Obelisk_0_N_0:.,.:.,.:.,.:.,.:.,.:.,.:./{_EMPTY}/.:.,.:.,.:.,W_Templar_2_N_0:.,.:.,.:.,.:.,.:./.:.,.:.,.:.,.:.,W_Cleric_0_N_0:.,.:.,.:.,.:./{_EMPTY}/{_EMPTY}/{_EMPTY} W 0",
         "SPELL purify E4 D5",
         "DEFENSE",
     ),
