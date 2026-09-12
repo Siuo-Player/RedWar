@@ -6,9 +6,9 @@ import subprocess
 from pathlib import Path
 
 BASE_POSITIONS = [
-    "B:Sentry_0_N_0,.,.,.,B:Ranger_0_N_0,.,.,./.,B:Phantom_0_N_0,.,.,.,.,B:FrostMage_0_N_0,./.,.,.,B:Templar_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,W:Templar_0_N_0,.,.,.,W:Phantom_0_N_0,./.,W:FrostMage_0_N_0,.,.,.,.,W:Ranger_0_N_0,./W:Sentry_0_N_0,.,.,.,W:Inquisitor_0_N_0,.,.,.,. W 0",
-    "W:FrostMage_1_N_0,B:Bone_2_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,W:BoneLord_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B:Phantom_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17",
-    "W:Sentry_0_N_0,.,.,.,B:FrostMage_0_N_0,.,.,.,./.,W:Templar_2_N_0,.,.,.,.,.,./.,.,B:Phantom_0_N_0,.,.,.,.,./.,.,.,.,W:Lich_0_N_0,.,.,.,./.,.,.,.,.,B:BoneLord_0_N_0,.,.,./.,W:Ranger_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./B:Sentry_0_N_0,.,.,.,W:Inquisitor_0_N_0,.,.,.,. W 23",
+    "B_Sentry_0_N_0,.,.,.,B_Ranger_0_N_0,.,.,./.,B_Phantom_0_N_0,.,.,.,.,B_FrostMage_0_N_0,./.,.,.,B_Templar_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,W_Templar_0_N_0,.,.,.,W_Phantom_0_N_0,./.,W_FrostMage_0_N_0,.,.,.,.,W_Ranger_0_N_0,./W_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,.,. W 0",
+    "W_FrostMage_1_N_0,B_Bone_2_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,W_BoneLord_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B_Phantom_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17",
+    "W_Sentry_0_N_0,.,.,.,B_FrostMage_0_N_0,.,.,.,./.,W_Templar_2_N_0,.,.,.,.,.,./.,.,B_Phantom_0_N_0,.,.,.,.,./.,.,.,.,W_Lich_0_N_0,.,.,.,./.,.,.,.,.,B_BoneLord_0_N_0,.,.,./.,W_Ranger_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./B_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,.,. W 23",
 ]
 
 
@@ -18,7 +18,7 @@ def build_positions() -> list[str]:
         positions.append(base.replace(" W 0", " W 25").replace(" B 17", " B 35").replace(" W 23", " W 45"))
         positions.append(base.replace("FrostMage_0_N_0", "FrostMage_2_N_0").replace(" W 0", " B 0"))
         positions.append(base.replace("FrostMage_0_N_0", "FrostMage_0_4_0"))
-        positions.append(base.replace("W:Ranger_0_N_0", "W:Ranger_0_4_2"))
+        positions.append(base.replace("W_Ranger_0_N_0", "W_Ranger_0_4_2"))
     return list(dict.fromkeys(positions))
 
 
