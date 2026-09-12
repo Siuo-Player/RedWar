@@ -7,8 +7,13 @@ def test_teacher_positions_match_canonical_rwen_parser():
     positions = build_positions()
 
     assert positions
-    for rwen in positions:
+    for index, rwen in enumerate(positions, 1):
         board, effects, turn, twc = parse_rwen(rwen, hero_ids)
+        rows = rwen.split(maxsplit=2)[0].split("/")
+        assert len(rows) == 8, f"position {index} has {len(rows)} rows"
+        assert all(len(row.split(",")) == 8 for row in rows), (
+            f"position {index} contains a row with != 8 cells: {rwen}"
+        )
         assert len(board) == 8
         assert all(len(row) == 8 for row in board)
         assert len(effects) == 8
