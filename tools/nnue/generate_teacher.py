@@ -9,12 +9,16 @@ from pathlib import Path
 from tools.nnue.features import load_hero_ids, parse_rwen
 
 
+def _shape_error(rows: list[list[str]] | tuple[tuple[str, ...], ...]) -> ValueError:
+    return ValueError(
+        f"teacher position must contain exactly 8x8 cells: rows={len(rows)} "
+        f"widths={[len(row) for row in rows]}"
+    )
+
+
 def _rwen(rows: tuple[tuple[str, ...], ...], turn: str, twc: int) -> str:
     if len(rows) != 8 or any(len(row) != 8 for row in rows):
-        raise ValueError(
-            f"teacher position must contain exactly 8x8 cells: rows={len(rows)} "
-            f"widths={[len(row) for row in rows]}"
-        )
+        raise _shape_error(rows)
     return "/".join(",".join(row) for row in rows) + f" {turn} {twc}"
 
 
@@ -25,10 +29,7 @@ def _split_rwen(rwen: str) -> tuple[list[list[str]], str, int]:
     board, turn, twc = parts
     rows = [row.split(",") for row in board.split("/")]
     if len(rows) != 8 or any(len(row) != 8 for row in rows):
-        raise ValueError(
-            f"teacher position must contain exactly 8x8 cells: rows={len(rows)} "
-            f"widths={[len(row) for row in rows]}"
-        )
+        raise _shape_error(rows)
     return rows, turn, int(twc)
 
 
@@ -36,27 +37,18 @@ def _join_rwen(rows: list[list[str]], turn: str, twc: int) -> str:
     return _rwen(tuple(tuple(row) for row in rows), turn, twc)
 
 
-# Keep the three original seed positions as explicit canonical RWEN strings.
-# Defining them this way avoids accidental tuple-shape mistakes during module import.
 BASE_POSITIONS = [
     "B_Sentry_0_N_0,.,.,.,B_Ranger_0_N_0,.,.,./.,B_Phantom_0_N_0,.,.,.,B_FrostMage_0_N_0,.,./.,.,.,B_Templar_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,W_Templar_0_N_0,.,.,W_Phantom_0_N_0,.,.,./.,W_FrostMage_0_N_0,.,.,.,W_Ranger_0_N_0,.,./W_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,. W 0",
     "W_FrostMage_1_N_0,B_Bone_2_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,W_BoneLord_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B_Phantom_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17",
-    "W_Sentry_0_N_0,.,.,.,B_FrostMage_0_N_0,.,.,./.,W_Templar_2_N_0,.,.,.,.,.,.,./.,.,B_Phantom_0_N_0,.,.,.,.,.,./.,.,.,.,W_Lich_0_N_0,.,.,./.,.,.,.,.,B_BoneLord_0_N_0,.,./.,W_Ranger_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./B_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,. W 23",
+    "W_Sentry_0_N_0,.,.,.,B_FrostMage_0_N_0,.,.,./.,W_Templar_2_N_0,.,.,.,.,.,./.,.,B_Phantom_0_N_0,.,.,.,.,./.,.,.,.,W_Lich_0_N_0,.,.,./.,.,.,.,.,B_BoneLord_0_N_0,.,./.,W_Ranger_0_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./B_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,. W 23",
 ]
 
 
 def _spatial_families(base: str) -> list[tuple[str, int]]:
-    """Create deterministic, parser-valid positional families from each seed.
-
-    The generator deliberately avoids pretending that transformed boards are game
-    trajectories. These are broad evaluator-training probes: occupancy is kept
-    sparse, pieces are only moved to empty squares, and no new hero is invented.
-    """
     rows, turn, twc = _split_rwen(base)
     occupied = [(r, c) for r in range(8) for c in range(8) if rows[r][c] != "."]
     empty = [(r, c) for r in range(8) for c in range(8) if rows[r][c] == "."]
     families = [(base, 0)]
-
     for family in range(1, 5):
         mutated = [row[:] for row in rows]
         moved = min(family, len(occupied), len(empty))
@@ -104,13 +96,11 @@ def build_positions() -> list[tuple[str, str]]:
     positions: list[tuple[str, str]] = []
     seen: set[str] = set()
     twcs = (0, 10, 20, 30, 40, 50)
-    turns = ("W", "B")
     for base_index, base in enumerate(BASE_POSITIONS):
-        # Validate every seed before applying transformations.
         _split_rwen(base)
         for family_rwen, family_index in _spatial_families(base):
             family_id = f"base{base_index}-family{family_index}"
-            for turn in turns:
+            for turn in ("W", "B"):
                 for twc in twcs:
                     for state_mode in range(2):
                         candidate = _join_rwen(_split_rwen(family_rwen)[0], turn, twc)
@@ -118,9 +108,7 @@ def build_positions() -> list[tuple[str, str]]:
                         for effect_mode in range(2):
                             final_candidate = candidate
                             if effect_mode:
-                                final_candidate = _effect_variant(
-                                    candidate, family_index + state_mode
-                                )
+                                final_candidate = _effect_variant(candidate, family_index + state_mode)
                             if final_candidate not in seen:
                                 seen.add(final_candidate)
                                 positions.append((final_candidate, family_id))
@@ -147,35 +135,21 @@ def main() -> int:
     parser.add_argument("--engine", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
-
     engine = args.engine.resolve()
     hero_ids = load_hero_ids()
     positions = build_positions()
     if len(positions) < 300:
         raise RuntimeError(f"teacher corpus unexpectedly small: {len(positions)} rows")
-
-    rng = random.Random(20260912)
-    rng.shuffle(positions)
+    random.Random(20260912).shuffle(positions)
     rows = []
     for index, (rwen, group) in enumerate(positions, 1):
         try:
             parse_rwen(rwen, hero_ids)
         except ValueError as exc:
             raise ValueError(f"Invalid teacher RWEN at position {index}: {exc}") from exc
-        rows.append(
-            {
-                "rwen": rwen,
-                "score": classical_eval(engine, rwen),
-                "source": "classical-v2",
-                "group": group,
-            }
-        )
-
+        rows.append({"rwen": rwen, "score": classical_eval(engine, rwen), "source": "classical-v2", "group": group})
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(
-        "".join(json.dumps(row, sort_keys=True) + "\n" for row in rows),
-        encoding="utf-8",
-    )
+    args.output.write_text("".join(json.dumps(row, sort_keys=True) + "\n" for row in rows), encoding="utf-8")
     print(f"teacher_rows={len(rows)}")
     print(f"teacher_groups={len({row['group'] for row in rows})}")
     print(f"teacher_output={args.output}")
