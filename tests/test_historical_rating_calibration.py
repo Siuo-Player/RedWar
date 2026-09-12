@@ -67,6 +67,17 @@ def test_direct_comparison_can_pull_a_chain_estimate_back_toward_anchor():
     assert abs(with_direct.ratings["V2"]) < abs(without_direct.ratings["V2"])
 
 
+def test_disconnected_component_fails_closed():
+    with pytest.raises(ValueError, match="connected to anchor"):
+        fit_global_rating(
+            [
+                Comparison("V1", "V0", 5),
+                Comparison("V3", "V2", 5),
+            ],
+            anchor="V0",
+        )
+
+
 def test_invalid_inputs_fail_closed():
     with pytest.raises(ValueError, match="at least one comparison"):
         fit_global_rating([], anchor="V0")
