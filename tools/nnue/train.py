@@ -5,6 +5,7 @@ import copy
 import json
 import random
 import time
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -18,16 +19,41 @@ class DatasetError(ValueError):
 
 def _load_rows(path: str | Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    seen_rwen: set[str] = set()
     for lineno, line in enumerate(Path(path).read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
         row = json.loads(line)
         if not isinstance(row, dict) or "rwen" not in row or "score" not in row:
             raise DatasetError(f"Line {lineno}: expected {{rwen, score}}")
+        rwen = str(row["rwen"])
+        if rwen in seen_rwen:
+            raise DatasetError(f"Line {lineno}: duplicate RWEN position")
+        seen_rwen.add(rwen)
         rows.append(row)
     if not rows:
         raise DatasetError("dataset is empty")
     return rows
+
+
+def _split_rows(rows: list[dict[str, Any]], seed: int) -> tuple[list[int], list[int]]:
+    groups: dict[str, list[int]] = defaultdict(list)
+    for index, row in enumerate(rows):
+        groups[str(row.get("group", f"row-{index}"))].append(index)
+
+    if len(groups) < 2:
+        split = max(1, int(len(rows) * 0.9))
+        return list(range(split)), list(range(split, len(rows))) or [0]
+
+    group_names = list(groups)
+    random.Random(seed).shuffle(group_names)
+    validation_group_count = max(1, round(len(group_names) * 0.2))
+    validation_groups = set(group_names[:validation_group_count])
+    valid_rows = [index for group in validation_groups for index in groups[group]]
+    train_rows = [index for group in group_names if group not in validation_groups for index in groups[group]]
+    if not train_rows or not valid_rows:
+        raise DatasetError("grouped train/validation split produced an empty partition")
+    return train_rows, valid_rows
 
 
 def _require_torch():
@@ -78,9 +104,7 @@ def train(
     if any(len(left) == 0 or len(right) == 0 for left, right in features):
         raise DatasetError("every position must produce features for both perspectives")
 
-    split = max(1, int(len(rows) * 0.9))
-    train_rows = list(range(split))
-    valid_rows = list(range(split, len(rows))) or train_rows[:1]
+    train_rows, valid_rows = _split_rows(rows, seed)
 
     class NNUE(nn.Module):
         def __init__(self) -> None:
@@ -199,8 +223,6 @@ def train(
     output_weight = state["output.weight"].detach().cpu().reshape(-1).tolist()
     output_bias = state["output.bias"].detach().cpu().reshape(-1).tolist()
 
-    # PyTorch stores Linear weights as [hidden][input], while the C++ runtime
-    # stores them as [input][hidden] for contiguous hidden-neuron evaluation.
     hidden_matrix = state["hidden.weight"].detach().cpu()
     hidden_weight = hidden_matrix.t().reshape(-1).tolist()
 
