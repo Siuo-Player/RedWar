@@ -5,10 +5,13 @@ It does not measure real Ares strength and must never be treated as Arena proof.
 """
 from __future__ import annotations
 
+import argparse
 from collections import Counter
 from dataclasses import dataclass
+import json
 from math import isfinite
 import random
+from pathlib import Path
 from typing import Iterable
 
 from tools.analytics.promotion_gate import evaluate_sequential_promotion
@@ -157,3 +160,43 @@ def result_to_dict(result: CalibrationResult) -> dict[str, object]:
         "mean_stopping_games": mean_stopping_games,
         "stopping_games": {str(stage): count for stage, count in result.stopping_games},
     }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Calibrate the RedWar binary paired promotion gate")
+    parser.add_argument("--deltas", nargs="+", type=float, default=[-200.0, -100.0, 0.0, 50.0, 100.0, 200.0])
+    parser.add_argument("--experiments", type=int, default=100)
+    parser.add_argument("--pairs", type=int, default=256)
+    parser.add_argument("--bootstrap-replicates", type=int, default=250)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--output", type=str)
+    args = parser.parse_args()
+
+    results = run_calibration_grid(
+        args.deltas,
+        experiments=args.experiments,
+        pairs=args.pairs,
+        bootstrap_replicates=args.bootstrap_replicates,
+        seed=args.seed,
+    )
+    payload = {
+        "method": "synthetic-binary-paired-promotion-gate-calibration",
+        "warning": "synthetic calibration is not Arena strength evidence",
+        "promotion_stages": list(PROMOTION_STAGES),
+        "seed": args.seed,
+        "experiments": args.experiments,
+        "pairs": args.pairs,
+        "bootstrap_replicates": args.bootstrap_replicates,
+        "results": [result_to_dict(result) for result in results],
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    print(encoded, end="")
+    if args.output:
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(encoded, encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
