@@ -111,12 +111,30 @@ jobs:
           done < /tmp/changed-files.txt
         fi
 
+        # Teacher-pipeline correctness changes validate the source data and the
+        # nightly training workflow, but do not modify the shipped evaluator or
+        # an already-promoted NNUE model. Their Arena run is therefore only a
+        # diagnostic and must not be used as a strength-promotion gate.
+        teacher_pipeline_only=false
+        if [ "$actual_files" -ge 1 ]; then
+          teacher_pipeline_only=true
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/nnue_nightly.yml|tools/nnue/generate_teacher.py|tests/test_nnue_teacher_rwen_contract.py) ;;
+              *) teacher_pipeline_only=false ;;
+            esac
+          done < /tmp/changed-files.txt
+        fi
+
         if [ "$terminal_contract_only" = true ]; then
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "A0.1 terminal contract correctness fix detected; Arena remains diagnostic only."
         elif [ "$dataset_methodology_only" = true ]; then
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "NNUE dataset-methodology validation change detected; no strength-promotion claim is made."
+        elif [ "$teacher_pipeline_only" = true ]; then
+          echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
+          echo "NNUE teacher-pipeline correctness change detected; Arena remains diagnostic only."
         elif grep -Eq '(^|/)tests/test_a0_c1_tt_observability\.py$' /tmp/changed-files.txt && \
              ! grep -Eq '^tools/nnue/' /tmp/changed-files.txt && \
              ! grep -Eq '^ai/cpp_engine/(evaluate|nnue)\.(cpp|h|hpp|cc|cxx)$' /tmp/changed-files.txt; then
