@@ -7,10 +7,60 @@ from pathlib import Path
 
 from tools.nnue.features import load_hero_ids, parse_rwen
 
+
+def _rwen(rows: tuple[tuple[str, ...], ...], turn: str, twc: int) -> str:
+    if len(rows) != 8 or any(len(row) != 8 for row in rows):
+        raise ValueError("teacher position must contain exactly 8x8 cells")
+    return "/".join(",".join(row) for row in rows) + f" {turn} {twc}"
+
+
+def _empty_row() -> tuple[str, ...]:
+    return (".",) * 8
+
+
 BASE_POSITIONS = [
-    "B_Sentry_0_N_0,.,.,.,B_Ranger_0_N_0,.,.,./.,B_Phantom_0_N_0,.,.,.,.,B_FrostMage_0_N_0,./.,.,.,B_Templar_0_N_0,.,.,.,./.,.,.,.,.,.,.,.,/.,.,.,.,.,.,.,./.,W_Templar_0_N_0,.,.,.,W_Phantom_0_N_0,./.,W_FrostMage_0_N_0,.,.,.,.,W_Ranger_0_N_0,./W_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,.,. W 0",
-    "W_FrostMage_1_N_0,B_Bone_2_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,W_BoneLord_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B_Phantom_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17",
-    "W_Sentry_0_N_0,.,.,.,B_FrostMage_0_N_0,.,.,.,./.,W_Templar_2_N_0,.,.,.,.,.,./.,.,B_Phantom_0_N_0,.,.,.,.,./.,.,.,.,W_Lich_0_N_0,.,.,.,./.,.,.,.,.,B_BoneLord_0_N_0,.,.,./.,W_Ranger_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./B_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,.,. W 23",
+    _rwen(
+        (
+            ("B_Sentry_0_N_0", ".", ".", ".", "B_Ranger_0_N_0", ".", ".", "."),
+            (".", "B_Phantom_0_N_0", ".", ".", ".", "B_FrostMage_0_N_0", ".", "."),
+            (".", ".", ".", "B_Templar_0_N_0", ".", ".", ".", "."),
+            _empty_row(),
+            _empty_row(),
+            (".", "W_Templar_0_N_0", ".", ".", "W_Phantom_0_N_0", ".", ".", "."),
+            (".", "W_FrostMage_0_N_0", ".", ".", ".", "W_Ranger_0_N_0", ".", "."),
+            ("W_Sentry_0_N_0", ".", ".", ".", "W_Inquisitor_0_N_0", ".", ".", "."),
+        ),
+        "W",
+        0,
+    ),
+    _rwen(
+        (
+            ("W_FrostMage_1_N_0", "B_Bone_2_N_0", ".", ".", ".", ".", ".", "."),
+            _empty_row(),
+            (".", ".", ".", "W_BoneLord_0_N_0", ".", ".", ".", "."),
+            _empty_row(),
+            _empty_row(),
+            (".", ".", ".", ".", "B_Phantom_0_N_0", ".", ".", "."),
+            _empty_row(),
+            _empty_row(),
+        ),
+        "B",
+        17,
+    ),
+    _rwen(
+        (
+            ("W_Sentry_0_N_0", ".", ".", ".", "B_FrostMage_0_N_0", ".", ".", "."),
+            (".", "W_Templar_2_N_0", ".", ".", ".", ".", ".", "."),
+            (".", ".", "B_Phantom_0_N_0", ".", ".", ".", ".", "."),
+            (".", ".", ".", ".", "W_Lich_0_N_0", ".", ".", "."),
+            (".", ".", ".", ".", ".", "B_BoneLord_0_N_0", ".", "."),
+            (".", "W_Ranger_0_N_0", ".", ".", ".", ".", ".", "."),
+            _empty_row(),
+            ("B_Sentry_0_N_0", ".", ".", ".", "W_Inquisitor_0_N_0", ".", ".", "."),
+        ),
+        "W",
+        23,
+    ),
 ]
 
 
