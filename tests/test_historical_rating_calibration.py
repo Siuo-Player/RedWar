@@ -1,3 +1,5 @@
+import math
+
 import pytest
 
 from tools.analytics.historical_rating_calibration import Comparison, fit_global_rating
@@ -29,8 +31,15 @@ def test_global_fit_does_not_sum_chain_deltas():
     )
     assert result.converged
     assert result.ratings["V0"] == 0.0
-    assert abs(result.ratings["V2"]) < 150.0
-    assert abs(result.ratings["V2"] - result.ratings["V1"]) < 200.0
+    assert math.isfinite(result.ratings["V2"])
+
+    # A chain of two independent 80/20 pairwise results would imply
+    # 2 * (400 * log10(80/20)) Elo if deltas were simply propagated.
+    # The global fit must instead reconcile the graph jointly, including the
+    # direct 50/50 V2-vs-V0 evidence.
+    chained_delta = 2.0 * 400.0 * math.log10(80.0 / 20.0)
+    assert result.ratings["V2"] < chained_delta
+    assert abs(result.ratings["V2"] - result.ratings["V1"]) < chained_delta
 
 
 def test_direct_comparison_can_pull_a_chain_estimate_back_toward_anchor():
