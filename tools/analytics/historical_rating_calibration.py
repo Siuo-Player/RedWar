@@ -74,19 +74,41 @@ def fit_global_rating(
 ) -> RatingEstimate:
     """Fit a finite regularized Bradley-Terry model in Elo units.
 
-    The anchor is fixed at 0.  A zero-mean Gaussian prior with ``prior_sigma``
+    The anchor is fixed at 0. A zero-mean Gaussian prior with ``prior_sigma``
     supplies finite separation for extreme results such as 100-0 matchups.
+    Every rated version must be connected to the anchor by observed
+    comparisons; the prior is not allowed to manufacture cross-component
+    strength estimates.
     """
     if not comparisons:
         raise ValueError("at least one comparison is required")
     if prior_sigma <= 0:
         raise ValueError("prior_sigma must be positive")
     versions = {anchor}
+    adjacency: dict[str, set[str]] = {anchor: set()}
     for comparison in comparisons:
         if comparison.games <= 0:
             raise ValueError("comparison games must be positive")
         versions.add(comparison.winner)
         versions.add(comparison.loser)
+        adjacency.setdefault(comparison.winner, set()).add(comparison.loser)
+        adjacency.setdefault(comparison.loser, set()).add(comparison.winner)
+
+    reachable = {anchor}
+    frontier = [anchor]
+    while frontier:
+        version = frontier.pop()
+        for neighbour in adjacency[version]:
+            if neighbour not in reachable:
+                reachable.add(neighbour)
+                frontier.append(neighbour)
+    if reachable != versions:
+        disconnected = sorted(versions - reachable)
+        raise ValueError(
+            "comparison graph must be connected to anchor; "
+            f"unreachable versions: {', '.join(disconnected)}"
+        )
+
     unknown = sorted(version for version in versions if version != anchor)
     index = {version: i for i, version in enumerate(unknown)}
     ratings = [0.0 for _ in unknown]
