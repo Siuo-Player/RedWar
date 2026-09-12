@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import random
 import time
@@ -50,6 +51,8 @@ def train(
     max_seconds: float | None = None,
     train_loss_stop: float = 1e-3,
     train_loss_stop_patience: int = 3,
+    validation_patience: int = 20,
+    validation_min_delta: float = 1e-3,
 ) -> None:
     torch, nn = _require_torch()
     torch.manual_seed(seed)
@@ -64,6 +67,10 @@ def train(
         raise ValueError("train_loss_stop must be non-negative")
     if train_loss_stop_patience <= 0:
         raise ValueError("train_loss_stop_patience must be positive")
+    if validation_patience <= 0:
+        raise ValueError("validation_patience must be positive")
+    if validation_min_delta < 0.0:
+        raise ValueError("validation_min_delta must be non-negative")
 
     rows = _load_rows(dataset)
     features = [active_features(str(row["rwen"])) for row in rows]
@@ -110,6 +117,11 @@ def train(
 
     completed_epochs = 0
     consecutive_low_train_loss = 0
+    epochs_without_validation_improvement = 0
+    best_validation_loss = float("inf")
+    best_epoch = 0
+    best_state = None
+
     for epoch in range(1, epochs + 1):
         random.shuffle(train_rows)
         model.train()
@@ -131,6 +143,16 @@ def train(
             ids0, mask0, ids1, mask1, y = make_batch(valid_rows)
             validation_loss = float(loss_fn(model(ids0, mask0, ids1, mask1), y).item())
         completed_epochs = epoch
+
+        improved = validation_loss < best_validation_loss - validation_min_delta
+        if improved:
+            best_validation_loss = validation_loss
+            best_epoch = epoch
+            best_state = copy.deepcopy(model.state_dict())
+            epochs_without_validation_improvement = 0
+        else:
+            epochs_without_validation_improvement += 1
+
         print(
             f"epoch={epoch} train_loss={train_loss:.3f} "
             f"validation_loss={validation_loss:.3f} elapsed={time.monotonic()-started:.1f}s"
@@ -148,9 +170,24 @@ def train(
         else:
             consecutive_low_train_loss = 0
 
+        if epochs_without_validation_improvement >= validation_patience:
+            print(
+                "training stopped: validation loss has not improved by at least "
+                f"{validation_min_delta:.6f} for {validation_patience} consecutive epochs; "
+                f"best_epoch={best_epoch} best_validation_loss={best_validation_loss:.6f}"
+            )
+            break
+
         if max_seconds is not None and time.monotonic() - started >= max_seconds:
             print(f"time limit reached after {completed_epochs} epochs")
             break
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
+        print(
+            f"restored best validation model from epoch={best_epoch} "
+            f"validation_loss={best_validation_loss:.6f}"
+        )
 
     state = model.state_dict()
     acc_scale = 64
@@ -197,6 +234,8 @@ def main() -> None:
     parser.add_argument("--max-seconds", type=float, default=None)
     parser.add_argument("--train-loss-stop", type=float, default=1e-3)
     parser.add_argument("--train-loss-stop-patience", type=int, default=3)
+    parser.add_argument("--validation-patience", type=int, default=20)
+    parser.add_argument("--validation-min-delta", type=float, default=1e-3)
     args = parser.parse_args()
     train(
         args.dataset,
@@ -208,6 +247,8 @@ def main() -> None:
         args.max_seconds,
         args.train_loss_stop,
         args.train_loss_stop_patience,
+        args.validation_patience,
+        args.validation_min_delta,
     )
 
 
