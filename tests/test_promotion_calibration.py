@@ -6,6 +6,7 @@ from tools.analytics.promotion_calibration import (
     run_calibration,
     simulate_paired_games,
 )
+from tools.analytics.strength_statistics import BootstrapInterval, evaluate_promotion
 
 
 def test_challenger_probability_matches_binary_bradley_terry():
@@ -33,29 +34,74 @@ def test_calibration_is_deterministic_for_fixed_seed():
 def test_null_false_accept_rate_is_controlled():
     result = run_calibration(0.0, experiments=40, pairs=256, bootstrap_replicates=100, seed=23)
 
-    # The four fixed sequential looks are Bonferroni-adjusted in the production
-    # gate. The empirical null false-accept rate should therefore stay comfortably
-    # below a 10% engineering ceiling in this deterministic calibration batch.
+    # Calibration sanity check only. This does not define a minimum practical Elo
+    # improvement: the production rule is simply lower_bound_elo > 0.
     assert result.accept_rate <= 0.10
     assert result.accept_count + result.reject_count + result.continue_count == result.experiments
 
 
-def test_positive_strength_has_high_detection_power():
+def test_calibration_detects_a_clear_positive_signal():
     result = run_calibration(200.0, experiments=40, pairs=256, bootstrap_replicates=100, seed=31)
 
-    # +200 Elo-equivalent is intentionally a clearly detectable signal. The gate
-    # should accept it in the overwhelming majority of seeded experiments.
+    # A large synthetic signal should be detected reliably, but +200 Elo is NOT
+    # the production promotion threshold.
     assert result.accept_rate >= 0.80
     assert result.reject_count + result.accept_count + result.continue_count == result.experiments
 
 
-def test_negative_strength_is_rejected_with_high_probability():
+def test_calibration_rejects_a_clear_negative_signal():
     result = run_calibration(-200.0, experiments=40, pairs=256, bootstrap_replicates=100, seed=41)
 
-    # A challenger known to be weaker must not survive indefinitely as "inconclusive";
-    # with the hard 512-game budget it should be rejected in the vast majority of runs.
+    # A clearly weaker challenger should be rejected reliably at the hard budget.
     assert result.reject_rate >= 0.80
     assert result.reject_count + result.accept_count + result.continue_count == result.experiments
+
+
+def test_positive_lower_bound_is_sufficient_regardless_of_effect_size():
+    games = simulate_paired_games(0.0, pairs=256, seed=71)
+
+    # The important contract is that +2 Elo in the lower bound accepts even when
+    # the point estimate is only +9.
+    import tools.analytics.strength_statistics as strength_statistics
+
+    original = strength_statistics.paired_bootstrap_delta
+    try:
+        strength_statistics.paired_bootstrap_delta = lambda *args, **kwargs: BootstrapInterval(
+            lower=2.0,
+            median=9.0,
+            upper=16.0,
+            confidence=0.975,
+            replicates=kwargs.get("replicates", 100),
+            cluster_count=256,
+        )
+        decision = evaluate_promotion(games, bootstrap_replicates=100, bootstrap_seed=72)
+    finally:
+        strength_statistics.paired_bootstrap_delta = original
+
+    assert decision.decision == "accept"
+    assert decision.lower_bound_elo == pytest.approx(2.0)
+
+
+def test_non_positive_lower_bound_does_not_accept():
+    games = simulate_paired_games(0.0, pairs=256, seed=73)
+
+    import tools.analytics.strength_statistics as strength_statistics
+
+    original = strength_statistics.paired_bootstrap_delta
+    try:
+        strength_statistics.paired_bootstrap_delta = lambda *args, **kwargs: BootstrapInterval(
+            lower=0.0,
+            median=9.0,
+            upper=18.0,
+            confidence=0.975,
+            replicates=kwargs.get("replicates", 100),
+            cluster_count=256,
+        )
+        decision = evaluate_promotion(games, bootstrap_replicates=100, bootstrap_seed=74)
+    finally:
+        strength_statistics.paired_bootstrap_delta = original
+
+    assert decision.decision != "accept"
 
 
 def test_result_serialization_uses_json_safe_stopping_counts():
