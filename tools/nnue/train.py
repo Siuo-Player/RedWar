@@ -48,11 +48,22 @@ def train(
     lr: float,
     seed: int,
     max_seconds: float | None = None,
+    train_loss_stop: float = 1e-3,
+    train_loss_stop_patience: int = 3,
 ) -> None:
     torch, nn = _require_torch()
     torch.manual_seed(seed)
     random.seed(seed)
     started = time.monotonic()
+
+    if epochs <= 0:
+        raise ValueError("epochs must be positive")
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
+    if train_loss_stop < 0.0:
+        raise ValueError("train_loss_stop must be non-negative")
+    if train_loss_stop_patience <= 0:
+        raise ValueError("train_loss_stop_patience must be positive")
 
     rows = _load_rows(dataset)
     features = [active_features(str(row["rwen"])) for row in rows]
@@ -98,6 +109,7 @@ def train(
         return ids0, mask0, ids1, mask1, y
 
     completed_epochs = 0
+    consecutive_low_train_loss = 0
     for epoch in range(1, epochs + 1):
         random.shuffle(train_rows)
         model.train()
@@ -112,15 +124,29 @@ def train(
             optimizer.step()
             train_loss += float(loss.item()) * len(batch)
 
+        train_loss /= max(1, len(train_rows))
+
         model.eval()
         with torch.no_grad():
             ids0, mask0, ids1, mask1, y = make_batch(valid_rows)
             validation_loss = float(loss_fn(model(ids0, mask0, ids1, mask1), y).item())
         completed_epochs = epoch
         print(
-            f"epoch={epoch} train_loss={train_loss/max(1,len(train_rows)):.3f} "
+            f"epoch={epoch} train_loss={train_loss:.3f} "
             f"validation_loss={validation_loss:.3f} elapsed={time.monotonic()-started:.1f}s"
         )
+
+        if train_loss <= train_loss_stop:
+            consecutive_low_train_loss += 1
+            if consecutive_low_train_loss >= train_loss_stop_patience:
+                print(
+                    "training stopped: train loss reached "
+                    f"{train_loss:.6f} <= {train_loss_stop:.6f} for "
+                    f"{train_loss_stop_patience} consecutive epochs"
+                )
+                break
+        else:
+            consecutive_low_train_loss = 0
 
         if max_seconds is not None and time.monotonic() - started >= max_seconds:
             print(f"time limit reached after {completed_epochs} epochs")
@@ -169,8 +195,20 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--seed", type=int, default=20260823)
     parser.add_argument("--max-seconds", type=float, default=None)
+    parser.add_argument("--train-loss-stop", type=float, default=1e-3)
+    parser.add_argument("--train-loss-stop-patience", type=int, default=3)
     args = parser.parse_args()
-    train(args.dataset, args.output, args.epochs, args.batch_size, args.lr, args.seed, args.max_seconds)
+    train(
+        args.dataset,
+        args.output,
+        args.epochs,
+        args.batch_size,
+        args.lr,
+        args.seed,
+        args.max_seconds,
+        args.train_loss_stop,
+        args.train_loss_stop_patience,
+    )
 
 
 if __name__ == "__main__":
