@@ -120,7 +120,7 @@ jobs:
           teacher_pipeline_only=true
           while IFS= read -r path; do
             case "$path" in
-              .github/workflows/nnue_nightly.yml|tools/nnue/generate_teacher.py|tests/test_nnue_teacher_rwen_contract.py) ;;
+              .github/workflows/ai_quality_gate.yml|.github/workflows/nnue_nightly.yml|tools/nnue/generate_teacher.py|tests/test_nnue_teacher_rwen_contract.py) ;;
               *) teacher_pipeline_only=false ;;
             esac
           done < /tmp/changed-files.txt
