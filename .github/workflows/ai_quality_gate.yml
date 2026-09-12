@@ -111,6 +111,21 @@ jobs:
           done < /tmp/changed-files.txt
         fi
 
+        # Training-process maintenance changes affect only how a future NNUE
+        # artifact is produced; they do not modify the shipped evaluator/search
+        # or an already-promoted model. Keep deterministic diagnostics, but do
+        # not launch a strength-promotion Arena for this maintenance class.
+        nnue_training_process_only=false
+        if [ "$actual_files" -ge 1 ]; then
+          nnue_training_process_only=true
+          while IFS= read -r path; do
+            case "$path" in
+              .github/workflows/ai_quality_gate.yml|.github/workflows/nnue_nightly.yml|tools/nnue/train.py) ;;
+              *) nnue_training_process_only=false ;;
+            esac
+          done < /tmp/changed-files.txt
+        fi
+
         # Teacher-pipeline correctness changes validate the source data and the
         # nightly training workflow, but do not modify the shipped evaluator or
         # an already-promoted NNUE model. Their Arena run is therefore only a
@@ -121,7 +136,7 @@ jobs:
           while IFS= read -r path; do
             case "$path" in
               .github/workflows/ai_quality_gate.yml|.github/workflows/nnue_nightly.yml|tools/nnue/generate_teacher.py|tests/test_nnue_teacher_rwen_contract.py) ;;
-              *) teacher_pipeline_only=false ;;
+              *) teacher_pipeline_only=false ;
             esac
           done < /tmp/changed-files.txt
         fi
@@ -132,6 +147,9 @@ jobs:
         elif [ "$dataset_methodology_only" = true ]; then
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "NNUE dataset-methodology validation change detected; no strength-promotion claim is made."
+        elif [ "$nnue_training_process_only" = true ]; then
+          echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
+          echo "NNUE training-process maintenance change detected; Arena remains diagnostic only."
         elif [ "$teacher_pipeline_only" = true ]; then
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "NNUE teacher-pipeline correctness change detected; Arena remains diagnostic only."
