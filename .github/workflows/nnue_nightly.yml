@@ -73,16 +73,18 @@ jobs:
       - name: Train for this exact workflow revision
         # Fresh per SHA on purpose: if the rules/evaluation change, the next
         # nightly run must not resume weights trained against the old game.
-        # Stop before the GitHub 120-minute timeout so the model is exported
-        # and uploaded normally. The 120-minute job timeout is a final failsafe.
+        # Early stopping is handled by train.py; the epoch limit is only a
+        # hard safety bound against a runaway training job.
         run: |
           python tools/nnue/train.py \
             /tmp/teacher.jsonl \
             --output /tmp/ares-nightly-${GITHUB_SHA}.nnue \
-            --epochs 1000000 \
+            --epochs 2000 \
             --batch-size 128 \
             --seed 20260823 \
-            --max-seconds 6900
+            --train-loss-stop 0.001 \
+            --train-loss-stop-patience 3 \
+            --max-seconds 900
 
       - name: Store model and metadata
         if: always()
