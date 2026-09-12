@@ -84,6 +84,8 @@ jobs:
             --seed 20260823 \
             --train-loss-stop 0.001 \
             --train-loss-stop-patience 3 \
+            --validation-patience 20 \
+            --validation-min-delta 0.001 \
             --max-seconds 900
 
       - name: Store model and metadata
