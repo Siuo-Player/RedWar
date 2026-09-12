@@ -11,68 +11,38 @@ from tools.nnue.features import load_hero_ids, parse_rwen
 
 def _rwen(rows: tuple[tuple[str, ...], ...], turn: str, twc: int) -> str:
     if len(rows) != 8 or any(len(row) != 8 for row in rows):
-        raise ValueError("teacher position must contain exactly 8x8 cells")
+        raise ValueError(
+            f"teacher position must contain exactly 8x8 cells: rows={len(rows)} "
+            f"widths={[len(row) for row in rows]}"
+        )
     return "/".join(",".join(row) for row in rows) + f" {turn} {twc}"
 
 
-def _empty_row() -> tuple[str, ...]:
-    return (".",) * 8
-
-
-BASE_POSITIONS = [
-    _rwen(
-        (
-            ("B_Sentry_0_N_0", ".", ".", ".", "B_Ranger_0_N_0", ".", ".", "."),
-            (".", "B_Phantom_0_N_0", ".", ".", ".", "B_FrostMage_0_N_0", ".", "."),
-            (".", ".", ".", "B_Templar_0_N_0", ".", ".", ".", "."),
-            _empty_row(),
-            _empty_row(),
-            (".", "W_Templar_0_N_0", ".", ".", "W_Phantom_0_N_0", ".", ".", "."),
-            (".", "W_FrostMage_0_N_0", ".", ".", ".", "W_Ranger_0_N_0", ".", "."),
-            ("W_Sentry_0_N_0", ".", ".", ".", "W_Inquisitor_0_N_0", ".", "."),
-        ),
-        "W",
-        0,
-    ),
-    _rwen(
-        (
-            ("W_FrostMage_1_N_0", "B_Bone_2_N_0", ".", ".", ".", ".", ".", "."),
-            _empty_row(),
-            (".", ".", ".", "W_BoneLord_0_N_0", ".", ".", ".", "."),
-            _empty_row(),
-            _empty_row(),
-            (".", ".", ".", ".", "B_Phantom_0_N_0", ".", ".", "."),
-            _empty_row(),
-            _empty_row(),
-        ),
-        "B",
-        17,
-    ),
-    _rwen(
-        (
-            ("W_Sentry_0_N_0", ".", ".", ".", "B_FrostMage_0_N_0", ".", ".", "."),
-            (".", "W_Templar_2_N_0", ".", ".", ".", ".", ".", "."),
-            (".", ".", "B_Phantom_0_N_0", ".", ".", ".", ".", "."),
-            (".", ".", ".", ".", "W_Lich_0_N_0", ".", ".", "."),
-            (".", ".", ".", ".", ".", "B_BoneLord_0_N_0", ".", "."),
-            (".", "W_Ranger_0_N_0", ".", ".", ".", ".", ".", "."),
-            _empty_row(),
-            ("B_Sentry_0_N_0", ".", ".", ".", "W_Inquisitor_0_N_0", ".", ".", "."),
-        ),
-        "W",
-        23,
-    ),
-]
-
-
 def _split_rwen(rwen: str) -> tuple[list[list[str]], str, int]:
-    board, turn, twc = rwen.split()
+    parts = rwen.split()
+    if len(parts) != 3:
+        raise ValueError(f"teacher position must have board, turn and twc: {rwen!r}")
+    board, turn, twc = parts
     rows = [row.split(",") for row in board.split("/")]
+    if len(rows) != 8 or any(len(row) != 8 for row in rows):
+        raise ValueError(
+            f"teacher position must contain exactly 8x8 cells: rows={len(rows)} "
+            f"widths={[len(row) for row in rows]}"
+        )
     return rows, turn, int(twc)
 
 
 def _join_rwen(rows: list[list[str]], turn: str, twc: int) -> str:
     return _rwen(tuple(tuple(row) for row in rows), turn, twc)
+
+
+# Keep the three original seed positions as explicit canonical RWEN strings.
+# Defining them this way avoids accidental tuple-shape mistakes during module import.
+BASE_POSITIONS = [
+    "B_Sentry_0_N_0,.,.,.,B_Ranger_0_N_0,.,.,./.,B_Phantom_0_N_0,.,.,.,B_FrostMage_0_N_0,.,./.,.,.,B_Templar_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,W_Templar_0_N_0,.,.,W_Phantom_0_N_0,.,.,./.,W_FrostMage_0_N_0,.,.,.,W_Ranger_0_N_0,.,./W_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,. W 0",
+    "W_FrostMage_1_N_0,B_Bone_2_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,W_BoneLord_0_N_0,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,B_Phantom_0_N_0,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. B 17",
+    "W_Sentry_0_N_0,.,.,.,B_FrostMage_0_N_0,.,.,./.,W_Templar_2_N_0,.,.,.,.,.,.,./.,.,B_Phantom_0_N_0,.,.,.,.,.,./.,.,.,.,W_Lich_0_N_0,.,.,./.,.,.,.,.,B_BoneLord_0_N_0,.,./.,W_Ranger_0_N_0,.,.,.,.,.,.,./.,.,.,.,.,.,.,./B_Sentry_0_N_0,.,.,.,W_Inquisitor_0_N_0,.,.,. W 23",
+]
 
 
 def _spatial_families(base: str) -> list[tuple[str, int]]:
@@ -136,6 +106,8 @@ def build_positions() -> list[tuple[str, str]]:
     twcs = (0, 10, 20, 30, 40, 50)
     turns = ("W", "B")
     for base_index, base in enumerate(BASE_POSITIONS):
+        # Validate every seed before applying transformations.
+        _split_rwen(base)
         for family_rwen, family_index in _spatial_families(base):
             family_id = f"base{base_index}-family{family_index}"
             for turn in turns:
@@ -144,11 +116,14 @@ def build_positions() -> list[tuple[str, str]]:
                         candidate = _join_rwen(_split_rwen(family_rwen)[0], turn, twc)
                         candidate = _state_variants(candidate, family_index + state_mode)
                         for effect_mode in range(2):
+                            final_candidate = candidate
                             if effect_mode:
-                                candidate = _effect_variant(candidate, family_index + state_mode)
-                            if candidate not in seen:
-                                seen.add(candidate)
-                                positions.append((candidate, family_id))
+                                final_candidate = _effect_variant(
+                                    candidate, family_index + state_mode
+                                )
+                            if final_candidate not in seen:
+                                seen.add(final_candidate)
+                                positions.append((final_candidate, family_id))
     return positions
 
 
