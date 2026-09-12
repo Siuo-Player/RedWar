@@ -30,20 +30,36 @@ def test_calibration_is_deterministic_for_fixed_seed():
     assert first == second
 
 
-def test_null_calibration_does_not_claim_power():
-    result = run_calibration(0.0, experiments=4, pairs=256, bootstrap_replicates=40, seed=23)
-    assert result.accept_count <= result.experiments
+def test_null_false_accept_rate_is_controlled():
+    result = run_calibration(0.0, experiments=40, pairs=256, bootstrap_replicates=100, seed=23)
+
+    # The four fixed sequential looks are Bonferroni-adjusted in the production
+    # gate. The empirical null false-accept rate should therefore stay comfortably
+    # below a 10% engineering ceiling in this deterministic calibration batch.
+    assert result.accept_rate <= 0.10
+    assert result.accept_count + result.reject_count + result.continue_count == result.experiments
+
+
+def test_positive_strength_has_high_detection_power():
+    result = run_calibration(200.0, experiments=40, pairs=256, bootstrap_replicates=100, seed=31)
+
+    # +200 Elo-equivalent is intentionally a clearly detectable signal. The gate
+    # should accept it in the overwhelming majority of seeded experiments.
+    assert result.accept_rate >= 0.80
     assert result.reject_count + result.accept_count + result.continue_count == result.experiments
 
 
-def test_negative_strength_is_not_reported_as_acceptance_deterministically():
-    result = run_calibration(-400.0, experiments=4, pairs=256, bootstrap_replicates=40, seed=31)
-    assert result.reject_count >= 0
-    assert result.accept_count <= result.experiments
+def test_negative_strength_is_rejected_with_high_probability():
+    result = run_calibration(-200.0, experiments=40, pairs=256, bootstrap_replicates=100, seed=41)
+
+    # A challenger known to be weaker must not survive indefinitely as "inconclusive";
+    # with the hard 512-game budget it should be rejected in the vast majority of runs.
+    assert result.reject_rate >= 0.80
+    assert result.reject_count + result.accept_count + result.continue_count == result.experiments
 
 
 def test_result_serialization_uses_json_safe_stopping_counts():
-    result = run_calibration(0.0, experiments=2, pairs=256, bootstrap_replicates=40, seed=41)
+    result = run_calibration(0.0, experiments=2, pairs=256, bootstrap_replicates=40, seed=51)
     payload = result_to_dict(result)
     assert set(payload["stopping_games"]).issubset({"96", "192", "320", "512"})
     assert payload["experiments"] == 2
