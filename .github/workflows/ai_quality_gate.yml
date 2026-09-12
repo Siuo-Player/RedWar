@@ -63,10 +63,6 @@ jobs:
           echo "No AI-quality-related changes detected."
         fi
 
-        # Strength promotion is required for direct search/evaluation/NNUE
-        # tuning changes. The A0.1 terminal contract intentionally changes only
-        # the external terminal-root contract, not search strength. Recognise it
-        # by its exact implementation/test file set and the known one-line guard.
         terminal_contract_only=false
         search_numstat="$(git diff --numstat "$BASE...HEAD" -- ai/cpp_engine/search.cpp)"
         search_added="${search_numstat%%$'\t'*}"
@@ -95,11 +91,6 @@ jobs:
           fi
         fi
 
-        # Dataset-methodology changes affect future training protocol validity,
-        # but do not change the shipped evaluator/search or claim stronger play.
-        # They still run the deterministic build/benchmark diagnostics, but do
-        # not trigger a promotion Arena whose outcome would imply a strength
-        # claim that this class of PR does not make.
         dataset_methodology_only=false
         if [ "$actual_files" -eq 4 ]; then
           dataset_methodology_only=true
@@ -111,10 +102,6 @@ jobs:
           done < /tmp/changed-files.txt
         fi
 
-        # Training-process maintenance changes affect only how a future NNUE
-        # artifact is produced; they do not modify the shipped evaluator/search
-        # or an already-promoted model. Keep deterministic diagnostics, but do
-        # not launch a strength-promotion Arena for this maintenance class.
         nnue_training_process_only=false
         if [ "$actual_files" -ge 1 ]; then
           nnue_training_process_only=true
@@ -126,16 +113,12 @@ jobs:
           done < /tmp/changed-files.txt
         fi
 
-        # Teacher-pipeline correctness changes validate the source data and the
-        # nightly training workflow, but do not modify the shipped evaluator or
-        # an already-promoted NNUE model. Their Arena run is therefore only a
-        # diagnostic and must not be used as a strength-promotion gate.
         teacher_pipeline_only=false
         if [ "$actual_files" -ge 1 ]; then
           teacher_pipeline_only=true
           while IFS= read -r path; do
             case "$path" in
-              .github/workflows/ai_quality_gate.yml|.github/workflows/nnue_nightly.yml|tools/nnue/generate_teacher.py|tests/test_nnue_teacher_rwen_contract.py) ;;
+              .github/workflows/ai_quality_gate.yml|.github/workflows/nnue_nightly.yml|tools/nnue/generate_teacher.py|tools/nnue/train.py|tests/test_nnue_teacher_rwen_contract.py) ;;
               *) teacher_pipeline_only=false ;
             esac
           done < /tmp/changed-files.txt
