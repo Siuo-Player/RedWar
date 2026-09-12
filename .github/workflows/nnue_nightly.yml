@@ -65,6 +65,7 @@ jobs:
 
       - name: Install PyTorch CPU trainer
         run: |
+          python -m pip install numpy
           python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 
       - name: Train for this exact main revision
