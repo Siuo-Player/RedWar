@@ -4,7 +4,7 @@
 
 Este documento define como medir **força da Ares**. [`ROADMAP.md`](ROADMAP.md) define quando e em que ordem esta medição entra no desenvolvimento; [`PROJECT_REASONING.md`](PROJECT_REASONING.md) define por que strength é uma camada posterior à correção semântica.
 
-**Current main:** `55f32050f91fd459ca8d48a26dc100d77240f31f`.
+A identificação exata da revisão de `main` usada por uma experiência pertence ao próprio registo da experiência, CI/Artefacto ou proveniência do dataset — não a este documento canónico.
 
 ## Pergunta
 
