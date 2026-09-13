@@ -9,9 +9,9 @@ on:
         default: '32'
         type: string
       nodes:
-        description: 'Matched Ares node budget per move'
+        description: 'Matched Ares node budget per move (calibration-compatible default)'
         required: false
-        default: '10000'
+        default: '250000'
         type: string
 
 permissions:
@@ -20,7 +20,7 @@ permissions:
 jobs:
   lifecycle-diagnostic:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 360
     env:
       PYTHONHASHSEED: '0'
     steps:
