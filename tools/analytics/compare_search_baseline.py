@@ -28,13 +28,12 @@ def _load(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _index_rows(payload: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]]:
-    rows: dict[tuple[str, int], dict[str, Any]] = {}
-    cases = payload.get("cases")
+def _case_results(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
     results = payload.get("results")
-    if not isinstance(cases, list) or not isinstance(results, list):
-        raise ValueError("baseline artifact must contain list fields 'cases' and 'results'")
+    if not isinstance(results, list):
+        raise ValueError("baseline artifact must contain a list field 'results'")
 
+    cases: dict[str, dict[str, Any]] = {}
     for result in results:
         if not isinstance(result, dict):
             raise ValueError("each case result must be a JSON object")
@@ -42,7 +41,16 @@ def _index_rows(payload: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]
         case_rows = result.get("results")
         if not isinstance(case, str) or not isinstance(case_rows, list):
             raise ValueError("each case result needs string 'case' and list 'results'")
-        for row in case_rows:
+        if case in cases:
+            raise ValueError(f"duplicate case result: {case}")
+        cases[case] = result
+    return cases
+
+
+def _index_rows(payload: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]]:
+    rows: dict[tuple[str, int], dict[str, Any]] = {}
+    for case, result in _case_results(payload).items():
+        for row in result["results"]:
             if not isinstance(row, dict) or not isinstance(row.get("nodes"), int):
                 raise ValueError(f"invalid result row for case={case}")
             key = (case, row["nodes"])
@@ -64,11 +72,31 @@ def compare(reference: dict[str, Any], candidate: dict[str, Any]) -> tuple[list[
             )
 
     try:
+        ref_cases = _case_results(reference)
+        cand_cases = _case_results(candidate)
         ref_rows = _index_rows(reference)
         cand_rows = _index_rows(candidate)
     except ValueError as exc:
         errors.append(str(exc))
         return errors, diagnostics
+
+    if set(ref_cases) != set(cand_cases):
+        missing = sorted(set(ref_cases) - set(cand_cases))
+        extra = sorted(set(cand_cases) - set(ref_cases))
+        if missing:
+            errors.append(f"candidate is missing cases: {missing}")
+        if extra:
+            errors.append(f"candidate has unexpected cases: {extra}")
+
+    for case in sorted(set(ref_cases) & set(cand_cases)):
+        ref_case = ref_cases[case]
+        cand_case = cand_cases[case]
+        for field in ("return_code", "validation_errors"):
+            if ref_case.get(field) != cand_case.get(field):
+                errors.append(
+                    f"case-level regression for {case}: {field} "
+                    f"reference={ref_case.get(field)!r} candidate={cand_case.get(field)!r}"
+                )
 
     if set(ref_rows) != set(cand_rows):
         missing = sorted(set(ref_rows) - set(cand_rows))
