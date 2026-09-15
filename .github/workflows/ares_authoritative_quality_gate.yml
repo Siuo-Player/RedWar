@@ -100,9 +100,9 @@ jobs:
           for stage in 96 192 320 512; do
             result="/tmp/promotion/stage-${stage}.jsonl"
             summary="/tmp/promotion/gate-${stage}.json"
-            (cd /tmp/redwar-quality-head && python tools/analytics/promotion_arena.py --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine --baseline-engine /tmp/redwar-quality-base/ai/cpp_engine/engine --stage-games "$stage" --nodes 10000 --results "$result" --challenger-version "$version" --baseline-version "$base" --rules-version "$version")
+            (cd /tmp/redwar-quality-head && PYTHONPATH=/tmp/redwar-quality-head python tools/analytics/promotion_arena.py --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine --baseline-engine /tmp/redwar-quality-base/ai/cpp_engine/engine --stage-games "$stage" --nodes 10000 --results "$result" --challenger-version "$version" --baseline-version "$base" --rules-version "$version")
             results+=(--results "$result")
-            (cd /tmp/redwar-quality-head && python tools/analytics/promotion_gate.py "${results[@]}" --bootstrap-replicates 2000 --bootstrap-seed 0 --summary-output "$summary") || true
+            (cd /tmp/redwar-quality-head && PYTHONPATH=/tmp/redwar-quality-head python tools/analytics/promotion_gate.py "${results[@]}" --bootstrap-replicates 2000 --bootstrap-seed 0 --summary-output "$summary") || true
             decision="$(python -c 'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["decision"])' "$summary")"
             echo "stage=$stage decision=$decision"
             [ "$decision" = accept ] && break
