@@ -6,6 +6,8 @@ The candidate changes only `ai/cpp_engine/search.cpp` and reduces eligible late 
 
 PR #500 passed the repository CI suite, including build, tests, CodeQL, FrostMage regression, and the existing 100-game AI quality Arena.
 
-The 100-game Arena result is diagnostic only. The current `ai_quality_gate.yml` still invokes the generic `arena_tournament.py --jogos 100 --margem-vitorias 10`, while the authoritative promotion methodology requires `promotion_arena.py` plus `promotion_gate.py` and sequential paired-bootstrap lower-bound evidence at the fixed stages 96, 192, 320, and 512 games. Therefore the CI string `promoted` is not treated as an authoritative promotion decision for LMR.
+The 100-game Arena result is diagnostic only. The authoritative promotion methodology now requires `promotion_arena.py` plus `promotion_gate.py` and sequential paired-bootstrap lower-bound evidence at the fixed stages 96, 192, 320, and 512 games. The legacy generic Arena margin result is not treated as a promotion decision.
 
 No LMR merge is authorized until the candidate has passed the authoritative promotion evidence path under #372.
+
+#503 is merged and provides that authoritative CI path for strength-sensitive changes.
