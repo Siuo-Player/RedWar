@@ -54,7 +54,7 @@ jobs:
           echo "No AI engine/NNUE changes detected."
         fi
 
-        if grep -Eq '^(ai/.*\.(py|pyx|pyi|cpp|hpp|h|c|cc|cxx)$|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark)\.py)' /tmp/changed-files.txt; then
+        if grep -Eq '^(ai/.*\.(py|pyx|pyi|cpp|hpp|h|c|cc|cxx)$|tools/nnue/|tools/analytics/(benchmark_engine|arena_tournament|frostmage_benchmark|promotion_arena|promotion_gate|move_ordering_baseline|compare_search_baseline|tactical_benchmark_suite)\.py|tests/(cpp_nnue_test|test_frostmage_benchmark|test_sprint20_tactical_benchmark_suite|test_move_ordering_baseline|test_compare_search_baseline)\.py)' /tmp/changed-files.txt; then
           echo "has_quality_changes=true" >> "$GITHUB_OUTPUT"
           echo "AI-quality-related changes detected:"
           cat /tmp/changed-files.txt
@@ -108,7 +108,7 @@ jobs:
           while IFS= read -r path; do
             case "$path" in
               .github/workflows/ai_quality_gate.yml|.github/workflows/nnue_nightly.yml|tools/nnue/train.py) ;;
-              *) nnue_training_process_only=false ;;
+              *) nnue_training_process_only=false ;
             esac
           done < /tmp/changed-files.txt
         fi
@@ -143,7 +143,7 @@ jobs:
           echo "A0 C1 TT observability seam detected; Arena remains diagnostic only."
         elif grep -Eq '^(ai/cpp_engine/(evaluate|search|nnue)\.(cpp|h|hpp|cc|cxx)|tools/nnue/)' /tmp/changed-files.txt; then
           echo "has_promotion_changes=true" >> "$GITHUB_OUTPUT"
-          echo "Strength-sensitive changes detected; promotion Arena required."
+          echo "Strength-sensitive changes detected; authoritative promotion Arena required."
         else
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "No direct strength-sensitive changes; Arena remains diagnostic only."
@@ -186,6 +186,18 @@ jobs:
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine | tee /tmp/main-ai-benchmark.txt
         python tools/analytics/benchmark_engine.py --engine /tmp/redwar-quality-head/ai/cpp_engine/engine | tee /tmp/head-benchmark.txt
 
+    - name: Run protected tactical suite
+      if: steps.changes.outputs.has_promotion_changes == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        python tools/analytics/tactical_benchmark_suite.py \
+          --engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
+          --nodes 10 \
+          --nodes 100 \
+          --nodes 1000 \
+          | tee /tmp/protected-tactical-suite.txt
+
     - name: Run FrostMage tactical regression
       if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
@@ -197,19 +209,90 @@ jobs:
           --nodes 1000 \
           | tee /tmp/frostmage-quality.txt
 
-    - name: Run promotion Arena
+    - name: Compare deterministic search baseline
       if: steps.changes.outputs.has_promotion_changes == 'true'
       shell: bash
       run: |
         set -euo pipefail
-        python /tmp/redwar-quality-head/tools/analytics/arena_tournament.py \
-          --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
-          --baseline-engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine \
-          --jogos 100 \
-          --margem-vitorias 10 \
-          --nodes 10000 \
-          --results /tmp/ai-quality-games.jsonl \
-          | tee /tmp/ai-quality-arena.txt
+        cp /tmp/redwar-quality-base-ai/ai/cpp_engine/engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine
+        cp /tmp/redwar-quality-head/ai/cpp_engine/engine /tmp/redwar-quality-head/ai/cpp_engine/engine
+        (
+          cd /tmp/redwar-quality-base-ai
+          python tools/analytics/move_ordering_baseline.py \
+            --all-cases \
+            --nodes 10 25 50 75 100 150 200 300 500 1000 \
+            --output /tmp/search-baseline-reference.json
+        )
+        (
+          cd /tmp/redwar-quality-head
+          python tools/analytics/move_ordering_baseline.py \
+            --all-cases \
+            --nodes 10 25 50 75 100 150 200 300 500 1000 \
+            --output /tmp/search-baseline-candidate.json
+        )
+        python tools/analytics/compare_search_baseline.py \
+          /tmp/search-baseline-reference.json \
+          /tmp/search-baseline-candidate.json \
+          | tee /tmp/search-baseline-comparison.txt
+
+    - name: Run authoritative promotion Arena
+      if: steps.changes.outputs.has_promotion_changes == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        BASE="${{ github.event.pull_request.base.sha }}"
+        RULES_VERSION="${{ github.sha }}"
+        PROMOTION_DIR=/tmp/authoritative-promotion
+        mkdir -p "$PROMOTION_DIR"
+        result_files=()
+        final_decision=continue
+
+        for stage in 96 192 320 512; do
+          result_file="$PROMOTION_DIR/stage-${stage}.jsonl"
+          summary_file="$PROMOTION_DIR/gate-${stage}.json"
+
+          python tools/analytics/promotion_arena.py \
+            --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
+            --baseline-engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine \
+            --stage-games "$stage" \
+            --nodes 10000 \
+            --results "$result_file" \
+            --challenger-version "$RULES_VERSION" \
+            --baseline-version "$BASE" \
+            --rules-version "$RULES_VERSION"
+
+          result_files+=(--results "$result_file")
+          set +e
+          python tools/analytics/promotion_gate.py \
+            "${result_files[@]}" \
+            --bootstrap-replicates 2000 \
+            --bootstrap-seed 0 \
+            --summary-output "$summary_file" \
+            | tee "/tmp/promotion-gate-${stage}.txt"
+          gate_status=${PIPESTATUS[0]}
+          set -e
+
+          final_decision="$(python - "$summary_file" <<'PY'
+import json
+import sys
+print(json.loads(open(sys.argv[1], encoding="utf-8").read())["decision"])
+PY
+)"
+
+          echo "authoritative_gate stage=${stage} decision=${final_decision} exit=${gate_status}"
+          if [ "$final_decision" = "accept" ]; then
+            break
+          fi
+          if [ "$final_decision" = "reject" ]; then
+            echo "Authoritative promotion gate rejected the challenger at ${stage} games."
+            exit 1
+          fi
+        done
+
+        if [ "$final_decision" = "continue" ]; then
+          echo "Authoritative promotion gate did not reach a terminal decision."
+          exit 1
+        fi
 
     - name: Record semantic Arena diagnostic
       if: steps.changes.outputs.has_ai_changes == 'true' && steps.changes.outputs.has_promotion_changes != 'true'
@@ -228,10 +311,15 @@ jobs:
           /tmp/changed-files.txt
           /tmp/main-ai-benchmark.txt
           /tmp/head-benchmark.txt
+          /tmp/protected-tactical-suite.txt
           /tmp/frostmage-quality.txt
+          /tmp/search-baseline-reference.json
+          /tmp/search-baseline-candidate.json
+          /tmp/search-baseline-comparison.txt
+          /tmp/authoritative-promotion/stage-*.jsonl
+          /tmp/authoritative-promotion/gate-*.json
+          /tmp/promotion-gate-*.txt
           /tmp/ai-quality-arena.txt
-          /tmp/ai-quality-games.jsonl
-          /tmp/ai-quality-games.jsonl.summary.json
         if-no-files-found: warn
         retention-days: 30
 
