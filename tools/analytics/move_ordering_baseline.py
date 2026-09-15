@@ -30,7 +30,7 @@ DEFAULT_BUDGETS = (10, 25, 50, 75, 100, 150, 200, 300, 500, 1000)
 
 _RESULT_RE = re.compile(
     r"nodes=\s*(?P<nodes>\d+)\s+"
-    r"bestmove=(?P<bestmove>\S+)\s+"
+    r"bestmove=(?P<bestmove>.*?)\s+"
     r"time=(?P<time>[0-9.]+)s\s+"
     r"legal=(?P<legal>.*?)\s+"
     r"mode=(?P<mode>\S+)\s+"
