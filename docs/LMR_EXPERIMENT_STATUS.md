@@ -11,3 +11,5 @@ The 100-game Arena result is diagnostic only. The authoritative promotion method
 No LMR merge is authorized until the candidate has passed the authoritative promotion evidence path under #372.
 
 #503 is merged and provides that authoritative CI path for strength-sensitive changes.
+
+#504 is also merged and adds a dedicated authoritative Ares workflow identity; this commit only refreshes the experiment status to trigger a fresh PR synchronization run.
