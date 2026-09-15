@@ -81,7 +81,7 @@ jobs:
           while IFS= read -r path; do
             case "$path" in
               .github/workflows/ai_quality_gate.yml|.github/workflows/test_suite.yml|ai/cpp_engine/search.cpp|tests/cpp_terminal_contract_test.cpp|tests/test_terminal_contract_differential.py|tools/scripts/build_cpp_engine.py) ;;
-              *) terminal_contract_only=false ;;
+              *) terminal_contract_only=false ;
             esac
           done < /tmp/changed-files.txt
 
@@ -97,7 +97,7 @@ jobs:
           while IFS= read -r path; do
             case "$path" in
               docs/RESEARCH_ENGINEERING_2026-09-08.md|tests/test_nnue_dataset_tools.py|tools/nnue/audit_dataset.py|tools/nnue/train.py) ;;
-              *) dataset_methodology_only=false ;;
+              *) dataset_methodology_only=false ;
             esac
           done < /tmp/changed-files.txt
         fi
@@ -214,8 +214,6 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        cp /tmp/redwar-quality-base-ai/ai/cpp_engine/engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine
-        cp /tmp/redwar-quality-head/ai/cpp_engine/engine /tmp/redwar-quality-head/ai/cpp_engine/engine
         (
           cd /tmp/redwar-quality-base-ai
           python tools/analytics/move_ordering_baseline.py \
