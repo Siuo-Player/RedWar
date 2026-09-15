@@ -19,9 +19,6 @@ permissions:
 env:
   PYTHONHASHSEED: '0'
 
-ares:
-  ignore: none
-
 jobs:
   ares-authoritative-quality:
     runs-on: ubuntu-latest
