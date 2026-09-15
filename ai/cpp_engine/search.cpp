@@ -26,6 +26,9 @@ constexpr int KILLER2_SCORE = 9'000;
 constexpr int ACTION_HISTORY_BONUS_MAX = 1'200;
 constexpr int ACTION_KILLER1_BONUS = 1'500;
 constexpr int ACTION_KILLER2_BONUS = 1'200;
+constexpr int LMR_MIN_DEPTH = 4;
+constexpr std::size_t LMR_MIN_MOVE_INDEX = 3;
+constexpr int LMR_REDUCTION = 1;
 
 struct StunContinuation {
     bool active = false;
@@ -166,6 +169,26 @@ StunContinuation continuation_after_move(
     }
 
     return continuation;
+}
+
+bool eligible_for_lmr(
+    const Move& move,
+    int depth,
+    int ply,
+    std::size_t move_index,
+    const Move& tt_best_move,
+    const StunContinuation& continuation
+) {
+    if (depth < LMR_MIN_DEPTH || ply < 2) return false;
+    if (move_index < LMR_MIN_MOVE_INDEX) return false;
+    if (continuation.active) return false;
+    if (move == tt_best_move) return false;
+    if (move.type != "MOVE") return false;
+    return true;
+}
+
+int lmr_child_depth(int child_depth) {
+    return std::max(1, child_depth - LMR_REDUCTION);
 }
 
 int action_history_bonus(char current_turn, const Move& move) {
@@ -435,7 +458,8 @@ int alpha_beta(
     if (current_turn == 'W') {
         int best_value = -INFINITO;
         bool first_move = true;
-        for (const Move& move : moves) {
+        for (std::size_t move_index = 0; move_index < moves.size(); ++move_index) {
+            const Move& move = moves[move_index];
             UndoInfo undo = make_move(move);
             const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
             const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
@@ -443,6 +467,11 @@ int alpha_beta(
             if (first_move) {
                 value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 first_move = false;
+            } else if (eligible_for_lmr(move, depth, ply, move_index, tt_best_move, continuation)) {
+                value = alpha_beta(lmr_child_depth(child_depth), alpha, alpha + 1, board.turn, ply + 1, child_continuation);
+                if (!abort_search && value > alpha) {
+                    value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
+                }
             } else {
                 value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
                 if (!abort_search && value > alpha && value < beta) {
@@ -476,7 +505,8 @@ int alpha_beta(
 
     int best_value = INFINITO;
     bool first_move = true;
-    for (const Move& move : moves) {
+    for (std::size_t move_index = 0; move_index < moves.size(); ++move_index) {
+        const Move& move = moves[move_index];
         UndoInfo undo = make_move(move);
         const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
         const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
@@ -484,6 +514,11 @@ int alpha_beta(
         if (first_move) {
             value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             first_move = false;
+        } else if (eligible_for_lmr(move, depth, ply, move_index, tt_best_move, continuation)) {
+            value = alpha_beta(lmr_child_depth(child_depth), beta - 1, beta, board.turn, ply + 1, child_continuation);
+            if (!abort_search && value < beta) {
+                value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
+            }
         } else {
             value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
             if (!abort_search && value < beta && value > alpha) {
