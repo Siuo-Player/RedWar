@@ -93,7 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/promotion
-          results=()
+          result_paths=()
           decision=continue
           base="${{ github.event.pull_request.base.sha }}"
           version="${{ github.event.pull_request.head.sha }}"
@@ -101,8 +101,8 @@ jobs:
             result="/tmp/promotion/stage-${stage}.jsonl"
             summary="/tmp/promotion/gate-${stage}.json"
             (cd /tmp/redwar-quality-head && PYTHONPATH=/tmp/redwar-quality-head python tools/analytics/promotion_arena.py --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine --baseline-engine /tmp/redwar-quality-base/ai/cpp_engine/engine --stage-games "$stage" --nodes 10000 --results "$result" --challenger-version "$version" --baseline-version "$base" --rules-version "$version")
-            results+=(--results "$result")
-            (cd /tmp/redwar-quality-head && PYTHONPATH=/tmp/redwar-quality-head python tools/analytics/promotion_gate.py "${results[@]}" --bootstrap-replicates 2000 --bootstrap-seed 0 --summary-output "$summary") || true
+            result_paths+=("$result")
+            (cd /tmp/redwar-quality-head && PYTHONPATH=/tmp/redwar-quality-head python tools/analytics/promotion_gate.py --results "${result_paths[@]}" --bootstrap-replicates 2000 --bootstrap-seed 0 --summary-output "$summary") || true
             decision="$(python -c 'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["decision"])' "$summary")"
             echo "stage=$stage decision=$decision"
             [ "$decision" = accept ] && break
