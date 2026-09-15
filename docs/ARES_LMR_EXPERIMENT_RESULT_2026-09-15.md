@@ -46,13 +46,21 @@ At the final 512-game look, the promotion gate reported:
 
 The lower bound remained negative, so the experiment did not establish the required strictly-positive effect under the active #372 promotion authority.
 
+This **reject is a promotion decision, not evidence that LMR universally reduces playing strength**. The observed point estimate is not itself a promotion result, and this experiment does not establish that every possible LMR scheme is neutral or negative.
+
 The earlier 100-game diagnostic result associated with PR #500 is not used as promotion evidence. The first 96-game look from the earlier infrastructure-faulted run is also not a substitute for the valid cumulative run.
+
+## Lifecycle limitation
+
+The authoritative result above was measured with the repository's canonical Arena process lifecycle. The separate persistent-vs-fresh-process A/A lifecycle diagnostic remains observational and unresolved; therefore this experiment establishes the promotion outcome **under the current official Arena instrument**, not a lifecycle-independent causal characterization of LMR.
+
+That limitation does not change the promotion decision: the active #372 authority requires a strictly-positive lower bound at the terminal look, and that condition was not met.
 
 ## Disposition
 
-PR #507 remains unmerged. The LMR candidate is **not promoted to main**.
+PR #507 is closed and unmerged. The LMR candidate is **not promoted to main**.
 
-This result closes this specific single-ply LMR experiment. A future LMR attempt should be treated as a new hypothesis/experiment with independently justified design and fresh evidence; this result should not be reinterpreted as proof that every possible LMR scheme is invalid.
+This result closes this specific single-ply LMR experiment. A future LMR attempt should be treated as a new hypothesis/experiment with independently justified design and fresh evidence. Any future LMR work should not be presented as a continuation that merely retries this rejected candidate.
 
 ## Evidence
 
