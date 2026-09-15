@@ -4,6 +4,9 @@ name: RedWar Ares Authoritative Quality Gate
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - feat/ares-controlled-lmr-2026-09-15
   workflow_dispatch:
 
 concurrency:
@@ -15,6 +18,9 @@ permissions:
 
 env:
   PYTHONHASHSEED: '0'
+
+ares:
+  ignore: none
 
 jobs:
   ares-authoritative-quality:
@@ -33,14 +39,19 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    - name: Fetch PR base
+    - name: Fetch base
       run: git fetch origin "${{ github.event.pull_request.base.ref || 'main' }}" --no-tags
     - name: Detect strength-sensitive changes
       id: changes
       shell: bash
       run: |
         set -euo pipefail
-        BASE="${{ github.event.pull_request.base.sha }}"
+        if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+          BASE="${{ github.event.pull_request.base.sha }}"
+        else
+          BASE="$(git rev-parse origin/main)"
+        fi
+        echo "BASE=$BASE" >> "$GITHUB_ENV"
         git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
         cat /tmp/changed-files.txt
         if grep -Eq '^(ai/cpp_engine/(evaluate|search|nnue)\.(cpp|h|hpp|cc|cxx)|tools/nnue/)' /tmp/changed-files.txt; then
@@ -64,7 +75,6 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        BASE="${{ github.event.pull_request.base.sha }}"
         git worktree add --detach /tmp/redwar-quality-base HEAD
         git -C /tmp/redwar-quality-base restore --source="$BASE" -- ai
         cd /tmp/redwar-quality-base
@@ -88,8 +98,7 @@ jobs:
       if: steps.changes.outputs.strength_sensitive == 'true'
       run: |
         set -euo pipefail
-        BASE="${{ github.event.pull_request.base.sha }}"
-        RULES_VERSION="${{ github.sha }}"
+        RULES_VERSION="${{ github.event.pull_request.head.sha || github.sha }}"
         PROMOTION_DIR=/tmp/authoritative-promotion
         mkdir -p "$PROMOTION_DIR"
         result_files=()
@@ -117,7 +126,7 @@ PY
       if: always() && steps.changes.outputs.strength_sensitive == 'true'
       uses: actions/upload-artifact@v7
       with:
-        name: redwar-ares-authoritative-${{ github.event.pull_request.number }}
+        name: redwar-ares-authoritative-${{ github.event.pull_request.number || github.run_id }}
         path: |
           /tmp/changed-files.txt
           /tmp/protected-tactical-suite.txt
