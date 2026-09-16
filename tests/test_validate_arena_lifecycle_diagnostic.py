@@ -73,12 +73,13 @@ def test_validate_rejects_schedule_mismatch_between_modes():
 
 def test_validate_rejects_broken_colour_inversion():
     payload = _payload()
-    record = payload["persistent_per_game_process"]["records"][1]
-    record["challenger_color"] = "white"
-    payload["persistent_per_game_process"]["challenger_outcomes_by_colour"] = {
-        "white": {"challenger": 2, "baseline": 0, "invalid": 0},
-        "black": {"challenger": 0, "baseline": 0, "invalid": 0},
-    }
+    for series_name in ("persistent_per_game_process", "fresh_process_per_game"):
+        record = payload[series_name]["records"][1]
+        record["challenger_color"] = "white"
+        payload[series_name]["challenger_outcomes_by_colour"] = {
+            "white": {"challenger": 2, "baseline": 0, "invalid": 0},
+            "black": {"challenger": 0, "baseline": 0, "invalid": 0},
+        }
     with pytest.raises(ValueError, match="does not invert challenger colour"):
         validate_payload(payload)
 
