@@ -28,16 +28,50 @@ def test_summarize_preserves_colour_and_total_outcomes():
     assert summary["challenger_outcomes_by_colour"]["black"]["baseline"] == 1
 
 
-def test_compare_modes_reports_outcome_differences_without_calling_them_strength():
+def test_compare_modes_detects_matched_differences_even_when_totals_cancel():
     persistent = summarize([
-        {"outcome": "challenger", "challenger_color": "white"},
-        {"outcome": "baseline", "challenger_color": "black"},
+        {
+            "game_index": 0,
+            "outcome": "challenger",
+            "challenger_color": "white",
+            "termination_reason": "game_over",
+            "final_rwen": "state-p",
+            "action_trace_sha256": "trace-p0",
+        },
+        {
+            "game_index": 1,
+            "outcome": "baseline",
+            "challenger_color": "black",
+            "termination_reason": "game_over",
+            "final_rwen": "state-p1",
+            "action_trace_sha256": "trace-p1",
+        },
     ])
     fresh = summarize([
-        {"outcome": "baseline", "challenger_color": "white"},
-        {"outcome": "baseline", "challenger_color": "black"},
+        {
+            "game_index": 0,
+            "outcome": "baseline",
+            "challenger_color": "white",
+            "termination_reason": "game_over",
+            "final_rwen": "state-f0",
+            "action_trace_sha256": "trace-f0",
+        },
+        {
+            "game_index": 1,
+            "outcome": "challenger",
+            "challenger_color": "black",
+            "termination_reason": "game_over",
+            "final_rwen": "state-f1",
+            "action_trace_sha256": "trace-f1",
+        },
     ])
     comparison = compare_modes(persistent, fresh)
-    assert comparison["outcome_delta"] == {"challenger": 1, "baseline": -1, "invalid": 0}
+
+    assert comparison["outcome_delta"] == {"challenger": 0, "baseline": 0, "invalid": 0}
+    assert comparison["matched_game_count"] == 2
+    assert comparison["outcome_disagreements"] == [0, 1]
+    assert comparison["termination_disagreements"] == []
+    assert comparison["final_state_disagreements"] == [0, 1]
+    assert comparison["trace_disagreements"] == [0, 1]
     assert comparison["persistent_colour_wins_difference"] == 1
-    assert comparison["fresh_colour_wins_difference"] == 0
+    assert comparison["fresh_colour_wins_difference"] == 1
