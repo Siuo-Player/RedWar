@@ -107,21 +107,58 @@ Experimentos de Ares, NNUE, Arena e balanceamento devem ser reproduzíveis:
 
 Resultados negativos também são conhecimento e devem ser preservados quando alteram a direção do projeto.
 
-## Duas linhas de Ares
+## Duas linhas de Ares e a Balance Lab
 
-Ares passa a ter duas utilizações distintas, que não devem ser confundidas:
+Ares passa a ter duas utilizações distintas, que não devem ser confundidas.
 
 ### Ares Balance Baseline
 
 É a versão congelada utilizada pelo produto 1.0-Lite para:
 
 - fornecer um adversário jogável;
-- produzir estatísticas controladas para balanceamento de heróis/economia;
-- suportar testes repetíveis de design.
+- gerar partidas sob orçamento fixo e configuração reproduzível;
+- servir como **um agente experimental controlado** dentro do Balance Lab;
+- permitir reexecução de experiências de design sem alterar a população de referência a meio do ciclo.
 
-A validade destas estatísticas é **condicionada ao baseline, orçamento, população e contexto declarados**. Não são uma afirmação de força competitiva global.
+A expressão **Ares Balance Baseline não significa “Ares validada como instrumento suficiente de balanceamento por si só”**. O baseline apenas congela o agente e as condições necessárias para executar a análise.
 
-Quando o baseline muda, os resultados de balanceamento dependentes dele devem ser revalidados.
+O Balance Lab continua separado e deve analisar valor de herói de forma contextual, preservando quando disponível:
+
+```text
+hero
+× position
+× allied composition
+× opponent / matchup
+× initiative / colour
+× ruleset
+× seed
+× Ares policy / player-skill context
+× outcome / terminal reason
+```
+
+Ares é um agente importante no laboratório, não o laboratório inteiro. Aggregate win rate de um herói é apenas uma marginalização e não é suficiente para decidir balanceamento.
+
+### Balance intervention discipline
+
+Quando uma mudança de balanceamento é considerada:
+
+```text
+controlled baseline
+→ matched games / seeds / colours
+→ selection + provenance audit
+→ contextual matchup / composition / counter analysis
+→ candidate intervention
+→ independent hold-out
+→ manual/design decision
+```
+
+Para preço, a primeira intervenção normal é custo inteiro e a procura deve ser coarse-to-fine. Uma alteração específica de mecânica só entra quando a evidência mostra que custo não resolve o defeito estratégico.
+
+O `tools/balance/auto_pricer.py` é **diagnóstico/legado, não autoridade de balanceamento**. Os seus resíduos agregados de ocorrência/performance não modelam adequadamente posição, composição, matchup, população, contexto ou consequências no metagame. Nenhuma alteração de preço, mecânica ou roster deve ser aceite apenas porque esse script a propõe.
+
+Para cor/iniciativa, usar condições emparelhadas, várias seeds/configurações, incerteza explícita e separação entre calibração e hold-out. A mesma amostra usada para escolher uma compensação não pode ser apresentada como validação independente dessa compensação.
+
+Balance statistics remain descriptive and conditional on the declared baseline, population and protocol. They are not claims of intrinsic hero power, universal game balance or competitive Ares strength.
 
 ### Competitive Ares
 
@@ -134,9 +171,9 @@ Continua como projecto open-project sob #372:
 - historical evidence;
 - promoção por critérios científicos.
 
-Uma melhoria competitiva não substitui automaticamente o Lite baseline. A adopção no produto é uma decisão separada, seguida de revalidação do contexto de balanceamento.
+Uma melhoria competitiva não substitui automaticamente o Lite baseline. A adopção no produto é uma decisão separada, seguida de revalidação de toda a evidência de balanceamento dependente daquele baseline.
 
-Esta separação permite que o produto local avance sem transformar cada optimização experimental da Ares num blocker de lançamento.
+Esta separação permite que o produto local avance sem transformar cada optimização experimental da Ares num blocker de lançamento, sem enfraquecer a metodologia científica do Balance Lab.
 
 ## Workflows isolados
 
