@@ -35,6 +35,8 @@ The current `ai/bot.py` defines these player-facing C++ Ares profiles:
 
 The deterministic search benchmark in `ai/BENCHMARK_SCENARIO.md` uses 150,000 nodes for performance comparison. That benchmark is a **performance/correctness instrument**, not the balance baseline.
 
+`tools/analytics/trainer.py` is also **not** a Balance Baseline source. Its telemetry deliberately mixes `BotAleatorio` with 1k/5k/10k training bots and generates random drafts. This is useful diagnostic/training infrastructure, but it does not define one fixed Ares policy, one fixed skill context, or one controlled draft population for Lite balance evidence.
+
 ## What must be frozen
 
 A balance run is only baseline-valid when its provenance records all fields applicable to the experiment:
