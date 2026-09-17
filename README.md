@@ -6,7 +6,7 @@ Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O c
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-> **Estado atual:** projeto em desenvolvimento. As regras continuam a poder mudar e o Ares ainda está a ser significativamente melhorado.
+> **Estado atual:** projeto em desenvolvimento. As regras continuam a poder mudar. O primeiro objetivo de produto é um **1.0-Lite local**, enquanto o Ares continua a evoluir como open-project separado.
 
 ## O projeto em duas partes
 
@@ -14,7 +14,7 @@ O repositório contém atualmente o jogo e a IA no mesmo projeto, mas a separaç
 
 | Parte | Objetivo | Política de alterações |
 |---|---|---|
-| `ai/` — **Ares** | Pesquisa, avaliação, bots e ferramentas específicas de IA | Deve poder receber contribuições automatizadas, desde que demonstrem melhoria sobre a versão anterior |
+| `ai/` — **Ares** | Pesquisa, avaliação, bots e ferramentas específicas de IA | Deve poder receber contribuições automatizadas, desde que demonstrem melhoria quando a alteração pretende ser strength-sensitive; a investigação competitiva continua aberta após o 1.0-Lite |
 | `engine/`, `ui/`, `online/`, `main.py` e restante produto | Regras, aplicação, multiplayer, interface e infraestrutura | O autor decide manualmente o que entra em `main` |
 
 A ideia é semelhante ao modelo do Stockfish: a IA pode tornar-se uma zona aberta de otimização competitiva, enquanto a definição do jogo e o produto permanecem sob controlo do projeto.
@@ -134,7 +134,7 @@ O formato está documentado em:
 
 **Ares** é a IA especializada de RedWar.
 
-O objetivo não é apenas fornecer um bot: é criar a melhor IA possível para este jogo, suficientemente rápida para ser usada na aplicação e suficientemente forte para analisar partidas e explicar decisões.
+O objetivo de longo prazo é criar uma IA suficientemente forte e rápida para adversário, análise de posições, análise pós-partida e benchmarking competitivo. Esse trabalho continua como open-project para além do primeiro lançamento local.
 
 Funções pretendidas:
 
@@ -143,17 +143,17 @@ Funções pretendidas:
 - análise de posições;
 - análise pós-partida;
 - benchmarking de novas versões da IA;
-- Arena automática para aceitar apenas melhorias reais.
+- Arena automática para aceitar apenas melhorias reais no caminho competitivo.
 
 A implementação está em transição para um núcleo C++ mais rápido, mantendo ferramentas Python onde isso for conveniente.
 
-A metodologia de desenvolvimento segue uma abordagem **Stockfish-like adaptada ao RPG**: separar estado, pesquisa, avaliação e move ordering, manter o hot path pequeno e exigir evidência antes de aceitar alterações funcionais.
+A metodologia de desenvolvimento segue uma abordagem **Stockfish-like adaptada ao RPG**: separar estado, pesquisa, avaliação e move ordering, manter o hot path pequeno e exigir evidência antes de aceitar alterações strength-sensitive.
 
 O Ares suporta atualmente uma avaliação clássica e um caminho **NNUE opcional**. A rede não é considerada superior só por existir: o objetivo é demonstrar ganho de força por CPU-segundo antes de a tornar default.
 
 ### Princípio de otimização
 
-> **Uma alteração na IA só deve sobreviver se melhorar a IA.**
+> **Uma alteração na IA só deve sobreviver como melhoria strength-sensitive se houver evidência adequada para a afirmação pretendida.**
 
 Não interessa se o código parece mais elegante, mais complexo ou mais “Stockfish-like” se o resultado prático for pior.
 
@@ -171,7 +171,7 @@ versão proposta no Pull Request
 
 usando condições equivalentes de pesquisa e alternando cores para evitar que a primeira jogada determine artificialmente o resultado.
 
-A Arena mede **força relativa entre versões da IA**, não qualidade do jogo como produto.
+A Arena mede **força relativa entre versões da IA**, não qualidade do jogo como produto nem equilíbrio intrínseco de heróis.
 
 Resultados históricos devem guardar, quando disponíveis:
 
@@ -184,6 +184,62 @@ Resultados históricos devem guardar, quando disponíveis:
 - métricas relevantes.
 
 A longo prazo, os resultados deverão alimentar um sistema de rating/ELO válido para engines.
+
+## ⚖️ Balance Lab
+
+O Balance Lab é uma responsabilidade distinta da Ares.
+
+**Ares é um agente dentro do Balance Lab; não é o Balance Lab.** O objetivo do laboratório é estudar como alterações de roster, custos e regras afetam o jogo como sistema.
+
+Hero strength deve ser tratada como contextual, preservando quando disponível:
+
+```text
+hero
+× position
+× allied composition
+× opponent / matchup
+× initiative / colour
+× ruleset
+× seed
+× Ares policy / player-skill context
+× outcome / terminal reason
+```
+
+Por isso:
+
+```text
+hero → global win rate
+```
+
+é apenas uma marginalização grosseira e não é suficiente para decidir balanceamento.
+
+Para uma alteração de balanceamento, o processo de referência é:
+
+```text
+controlled baseline
+→ matched games / seeds / colours
+→ selection + provenance audit
+→ contextual matchup / composition / counter analysis
+→ candidate intervention
+→ independent hold-out
+→ manual/design decision
+```
+
+Para preço, a intervenção normal começa em **custos inteiros** e usa procura coarse-to-fine. Quando custo não resolve o defeito estratégico, a análise pode escalar para a menor alteração de mecânica capaz de atacar a causa observada.
+
+`tools/balance/auto_pricer.py` é tooling diagnóstico/legado. Não é uma autoridade de balanceamento e não deve, sozinho, justificar uma alteração de preço, mecânica ou roster.
+
+O equilíbrio de cor/iniciativa é tratado como uma calibração experimental separada, com condições emparelhadas e distinção entre amostras de calibração e hold-out.
+
+O Balance Lab também deve distinguir:
+
+```text
+competitive strength
+≠ intrinsic hero value
+≠ player-perceived balance
+```
+
+O primeiro 1.0-Lite usa um **Ares Balance Baseline congelado** apenas para tornar estes experimentos reprodutíveis. O baseline não é uma certificação de que Ares é competitivamente ótima.
 
 ## 🔬 Workflows e validação
 
@@ -205,7 +261,7 @@ EXPERIMENTS
 
 NIGHTLY
 ├── nnue_nightly.yml        -> teacher data, treino NNUE e modelos experimentais
-└── auto_balancer.yml       -> trainer, Auto-Pricer e telemetria
+└── auto_balancer.yml       -> trainer, telemetria e tooling de balanceamento diagnóstico
 
 TEMPORARY RESEARCH
 └── strength_calibration.yml -> calibração A/A, sem autoridade de promoção
@@ -215,7 +271,7 @@ A proteção estrutural de `main` pertence ao GitHub Ruleset `Protect main`; nã
 
 `arena_diagnostics.yml` e `arena_experiments.yml` não são required checks de promoção. A Arena experimental é manual e não dispara automaticamente em pushes normais de branches AI.
 
-O **Auto-Balancer não treina NNUE**. O treino PyTorch pertence ao workflow nightly NNUE. Assim, uma falha de PyTorch, dataset ou exportação NNUE não deve aparecer como uma falsa falha do balanceamento económico.
+O **Auto-Balancer não treina NNUE**. O treino PyTorch pertence ao workflow nightly NNUE. O tooling de balanceamento não deve ser interpretado como uma autoridade automática sobre custos de heróis.
 
 ## 🛠️ Tooling e desenvolvimento
 
@@ -223,7 +279,7 @@ As ferramentas estão separadas por função:
 
 ```text
 tools/analytics  -> Arena, trainer e análise de jogos
-tools/balance    -> auto-pricer e balanceamento
+tools/balance    -> tooling diagnóstico do Balance Lab / pricing
 tools/nnue       -> features, teacher data, treino e export
 tools/scripts    -> build e auditorias de desenvolvimento
 ```
@@ -350,21 +406,21 @@ RedWar ainda não é um produto lançado.
 
 A prioridade atual é:
 
-1. estabilizar e acelerar a Ares;
-2. tornar as regras do jogo consistentes e testáveis;
-3. melhorar a criação/configuração de heróis;
+1. definir e congelar o **Ares Balance Baseline** e o protocolo mínimo do Balance Lab para o 1.0-Lite;
+2. completar a aplicação local 1.0-Lite: fluxo de partida, draft, Battle UI, VFX/som, dificuldades, replay básico e usabilidade;
+3. manter regras, legalidade e regressões continuamente protegidas;
 4. manter Arena, datasets e tooling reproduzíveis;
-5. desenvolver a aplicação;
-6. desenvolver a versão web e o multiplayer;
-7. criar contas, matchmaking, ranking e histórico;
-8. abrir o projeto da Ares a contribuições automatizadas;
-9. só então considerar o lançamento público completo.
+5. lançar a primeira versão local jogável sem depender de servidor ou matchmaking;
+6. continuar o desenvolvimento competitivo da Ares como open-project sob #372;
+7. desenvolver a versão web e o multiplayer;
+8. criar contas, matchmaking, ranking e histórico;
+9. só então considerar o lançamento público completo/Full.
 
 ### 10×10 e outros modos
 
 8×8 continua a ser o formato normal.
 
-Um tabuleiro 10×10 é uma possibilidade futura, mas só depois de a IA ser suficientemente rápida e forte. Também é possível que diferentes tamanhos, orçamentos e regras se tornem modos separados, em vez de substituir o modo normal.
+Um tabuleiro 10×10 é uma possibilidade futura, mas só depois de a base 1.0-Lite e a Ares serem suficientemente rápidas/estáveis para justificar o modo. Também é possível que diferentes tamanhos, orçamentos e regras se tornem modos separados, em vez de substituir o modo normal.
 
 ## Licenças e conteúdo de terceiros
 
