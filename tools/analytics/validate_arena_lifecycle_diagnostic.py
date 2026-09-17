@@ -1,20 +1,23 @@
 """Validate lifecycle-diagnostic evidence structure without judging strength.
 
 The validator is deliberately fail-closed: it checks that the persistent and
-fresh-process series contain the same paired experimental schedule and that the
-reported summaries are consistent with their raw records. It does not infer
-lifecycle sensitivity or make any promotion decision.
+fresh-process series contain the same paired experimental schedule, that matched
+games expose comparable execution evidence, and that reported summaries are
+consistent with their raw records. It does not infer lifecycle sensitivity or
+make any promotion decision.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
-EXPECTED_SCHEMA = "redwar-arena-lifecycle-diagnostic-v1"
+EXPECTED_SCHEMA = "redwar-arena-lifecycle-diagnostic-v2"
 REQUIRED_OUTCOMES = {"challenger", "baseline", "invalid"}
 REQUIRED_COLOURS = {"white", "black"}
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def _fail(message: str) -> None:
@@ -24,6 +27,18 @@ def _fail(message: str) -> None:
 def _non_negative_int(value: Any, *, field: str) -> int:
     if type(value) is not int or value < 0:
         _fail(f"{field} must be a non-negative integer")
+    return value
+
+
+def _require_non_empty_string(value: Any, *, field: str) -> str:
+    if not isinstance(value, str) or not value:
+        _fail(f"{field} must be a non-empty string")
+    return value
+
+
+def _require_sha256(value: Any, *, field: str) -> str:
+    if not isinstance(value, str) or SHA256_RE.fullmatch(value) is None:
+        _fail(f"{field} must be a lowercase SHA-256 hex digest")
     return value
 
 
@@ -78,6 +93,8 @@ def _validate_series(name: str, series: dict[str, Any], expected_games: int, ope
         outcome = record.get("outcome")
         opening_index = record.get("opening_index")
         seed = record.get("seed")
+        final_rwen = record.get("final_rwen")
+        action_trace_sha256 = record.get("action_trace_sha256")
 
         game_index = _non_negative_int(game_index, field=f"{name}.game_index")
         if game_index >= expected_games:
@@ -91,6 +108,8 @@ def _validate_series(name: str, series: dict[str, Any], expected_games: int, ope
             _fail(f"{name}: game {game_index} has invalid challenger_color {colour!r}")
         if outcome not in REQUIRED_OUTCOMES:
             _fail(f"{name}: game {game_index} has invalid outcome {outcome!r}")
+        _require_non_empty_string(final_rwen, field=f"{name}.game {game_index}.final_rwen")
+        _require_sha256(action_trace_sha256, field=f"{name}.game {game_index}.action_trace_sha256")
 
         opening_index = _non_negative_int(opening_index, field=f"{name}.game {game_index}.opening_index")
         if opening_index >= len(opening_seeds):
@@ -120,6 +139,12 @@ def _validate_series(name: str, series: dict[str, Any], expected_games: int, ope
         _fail(f"{name}: colour summary disagrees with records")
 
     return records_by_index
+
+
+def _validate_index_list(value: Any, *, field: str) -> list[int]:
+    if not isinstance(value, list) or any(type(item) is not int or item < 0 for item in value):
+        _fail(f"{field} must be a list of non-negative integers")
+    return value
 
 
 def validate_payload(payload: dict[str, Any]) -> None:
@@ -178,6 +203,45 @@ def validate_payload(payload: dict[str, Any]) -> None:
         _fail("comparison persistent_totals disagrees with persistent series")
     if comparison.get("fresh_totals") != fresh["totals"]:
         _fail("comparison fresh_totals disagrees with fresh series")
+    if comparison.get("outcome_delta") != {
+        key: int(persistent["totals"][key]) - int(fresh["totals"][key])
+        for key in ("challenger", "baseline", "invalid")
+    }:
+        _fail("comparison outcome_delta disagrees with lifecycle series")
+
+    expected_outcome_disagreements = [
+        index
+        for index in range(games)
+        if persistent_records[index]["outcome"] != fresh_records[index]["outcome"]
+    ]
+    expected_termination_disagreements = [
+        index
+        for index in range(games)
+        if persistent_records[index].get("termination_reason") != fresh_records[index].get("termination_reason")
+    ]
+    expected_final_state_disagreements = [
+        index
+        for index in range(games)
+        if persistent_records[index]["final_rwen"] != fresh_records[index]["final_rwen"]
+    ]
+    expected_trace_disagreements = [
+        index
+        for index in range(games)
+        if persistent_records[index]["action_trace_sha256"] != fresh_records[index]["action_trace_sha256"]
+    ]
+
+    for field, expected in (
+        ("outcome_disagreements", expected_outcome_disagreements),
+        ("termination_disagreements", expected_termination_disagreements),
+        ("final_state_disagreements", expected_final_state_disagreements),
+        ("trace_disagreements", expected_trace_disagreements),
+    ):
+        actual = _validate_index_list(comparison.get(field), field=f"comparison.{field}")
+        if actual != expected:
+            _fail(f"comparison {field} disagrees with matched records")
+
+    if comparison.get("matched_game_count") != games:
+        _fail("comparison matched_game_count disagrees with expected game count")
 
 
 def main() -> int:
