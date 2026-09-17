@@ -1,10 +1,19 @@
-name: RedWar Arena Lifecycle TT Isolation Diagnostic
+name: RedWar Arena Diagnostics
 
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: 'Lifecycle diagnostic to execute'
+        required: true
+        default: process_lifecycle
+        type: choice
+        options:
+          - process_lifecycle
+          - tt_isolation
+          - both
       games:
-        description: 'Even number of paired games for each lifecycle mode'
+        description: 'Even number of paired games for each diagnostic'
         required: false
         default: '32'
         type: string
@@ -18,7 +27,7 @@ permissions:
   contents: read
 
 jobs:
-  lifecycle-tt-isolation:
+  arena-diagnostics:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     env:
@@ -56,7 +65,38 @@ jobs:
           [[ "${{ inputs.nodes }}" =~ ^[0-9]+$ ]] || { echo 'nodes must be an integer'; exit 1; }
           (( 10#${{ inputs.nodes }} > 0 )) || { echo 'nodes must be positive'; exit 1; }
 
-      - name: Run persistent-with-TT-reset vs fresh diagnostic
+      - name: Run process lifecycle diagnostic
+        if: inputs.mode == 'process_lifecycle' || inputs.mode == 'both'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/arena/lifecycle
+          python tools/analytics/arena_lifecycle_diagnostic.py \
+            --challenger-engine "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
+            --baseline-engine "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
+            --nodes "${{ inputs.nodes }}" \
+            --games "${{ inputs.games }}" \
+            --output data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
+
+      - name: Validate process lifecycle artifact
+        if: inputs.mode == 'process_lifecycle' || inputs.mode == 'both'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/analytics/validate_arena_lifecycle_diagnostic.py \
+            --input data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
+
+      - name: Upload process lifecycle artifact
+        if: inputs.mode == 'process_lifecycle' || inputs.mode == 'both'
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-arena-lifecycle-diagnostic-${{ github.run_id }}
+          path: data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Run TT isolation diagnostic
+        if: inputs.mode == 'tt_isolation' || inputs.mode == 'both'
         shell: bash
         run: |
           set -euo pipefail
@@ -68,16 +108,19 @@ jobs:
             --games "${{ inputs.games }}" \
             --output data/arena/lifecycle/lifecycle-tt-isolation-${{ github.run_id }}.json
 
-      - name: Validate lifecycle evidence artifact
+      - name: Validate TT isolation artifact
+        if: inputs.mode == 'tt_isolation' || inputs.mode == 'both'
         shell: bash
         run: |
           set -euo pipefail
           python tools/analytics/validate_arena_lifecycle_diagnostic.py \
             --input data/arena/lifecycle/lifecycle-tt-isolation-${{ github.run_id }}.json
 
-      - name: Upload lifecycle evidence
-        uses: actions/upload-artifact@v4
+      - name: Upload TT isolation artifact
+        if: inputs.mode == 'tt_isolation' || inputs.mode == 'both'
+        uses: actions/upload-artifact@v7
         with:
           name: redwar-arena-lifecycle-tt-isolation-${{ github.run_id }}
           path: data/arena/lifecycle/lifecycle-tt-isolation-${{ github.run_id }}.json
           if-no-files-found: error
+          retention-days: 30
