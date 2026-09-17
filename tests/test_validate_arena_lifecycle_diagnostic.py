@@ -64,10 +64,24 @@ def test_validate_accepts_identical_paired_schedule():
     validate_payload(_payload())
 
 
+def test_validate_accepts_reordered_records():
+    payload = _payload()
+    for series_name in ("persistent_per_game_process", "fresh_process_per_game"):
+        payload[series_name]["records"] = list(reversed(payload[series_name]["records"]))
+    validate_payload(payload)
+
+
 def test_validate_rejects_schedule_mismatch_between_modes():
     payload = _payload()
     payload["fresh_process_per_game"]["records"][1]["seed"] = 102
     with pytest.raises(ValueError, match="schedule mismatch"):
+        validate_payload(payload)
+
+
+def test_validate_rejects_seed_not_matching_opening_set():
+    payload = _payload()
+    payload["persistent_per_game_process"]["records"][0]["seed"] = 999
+    with pytest.raises(ValueError, match="disagrees with opening_seeds"):
         validate_payload(payload)
 
 
