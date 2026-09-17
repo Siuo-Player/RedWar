@@ -21,24 +21,48 @@ def _fail(message: str) -> None:
     raise ValueError(message)
 
 
-def _validate_series(name: str, series: dict[str, Any], expected_games: int) -> None:
+def _non_negative_int(value: Any, *, field: str) -> int:
+    if type(value) is not int or value < 0:
+        _fail(f"{field} must be a non-negative integer")
+    return value
+
+
+def _validate_series(name: str, series: dict[str, Any], expected_games: int, opening_seeds: list[int]) -> dict[int, dict[str, Any]]:
     records = series.get("records")
     if not isinstance(records, list):
         _fail(f"{name}: records must be a list")
     if len(records) != expected_games:
         _fail(f"{name}: expected {expected_games} records, got {len(records)}")
 
+    reported_games = series.get("games")
+    if reported_games != expected_games:
+        _fail(f"{name}: games disagrees with expected count")
+
     totals = series.get("totals")
     if not isinstance(totals, dict) or set(totals) != REQUIRED_OUTCOMES:
         _fail(f"{name}: totals keys are invalid")
-    if sum(int(totals[key]) for key in REQUIRED_OUTCOMES) != expected_games:
+    for outcome in REQUIRED_OUTCOMES:
+        _non_negative_int(totals[outcome], field=f"{name}.totals[{outcome!r}]")
+    if sum(totals.values()) != expected_games:
         _fail(f"{name}: totals do not sum to games")
+
+    reported_valid_games = series.get("valid_games")
+    if reported_valid_games != expected_games - totals["invalid"]:
+        _fail(f"{name}: valid_games disagrees with totals")
 
     colours = series.get("challenger_outcomes_by_colour")
     if not isinstance(colours, dict) or set(colours) != REQUIRED_COLOURS:
         _fail(f"{name}: colour summary keys are invalid")
+    for colour in REQUIRED_COLOURS:
+        if not isinstance(colours[colour], dict) or set(colours[colour]) != REQUIRED_OUTCOMES:
+            _fail(f"{name}: colour summary for {colour} is invalid")
+        for outcome in REQUIRED_OUTCOMES:
+            _non_negative_int(
+                colours[colour][outcome],
+                field=f"{name}.challenger_outcomes_by_colour[{colour!r}][{outcome!r}]",
+            )
 
-    seen_indices: set[int] = set()
+    records_by_index: dict[int, dict[str, Any]] = {}
     computed_totals = {key: 0 for key in REQUIRED_OUTCOMES}
     computed_colours = {
         colour: {key: 0 for key in REQUIRED_OUTCOMES}
@@ -55,34 +79,47 @@ def _validate_series(name: str, series: dict[str, Any], expected_games: int) -> 
         opening_index = record.get("opening_index")
         seed = record.get("seed")
 
-        if not isinstance(game_index, int) or game_index < 0 or game_index >= expected_games:
-            _fail(f"{name}: invalid game_index {game_index!r}")
-        if game_index in seen_indices:
+        game_index = _non_negative_int(game_index, field=f"{name}.game_index")
+        if game_index >= expected_games:
+            _fail(f"{name}: invalid game_index {game_index}")
+        if game_index in records_by_index:
             _fail(f"{name}: duplicate game_index {game_index}")
-        seen_indices.add(game_index)
+
         if pair_id != game_index // 2:
             _fail(f"{name}: game {game_index} has incorrect pair_id {pair_id!r}")
         if colour not in REQUIRED_COLOURS:
             _fail(f"{name}: game {game_index} has invalid challenger_color {colour!r}")
         if outcome not in REQUIRED_OUTCOMES:
             _fail(f"{name}: game {game_index} has invalid outcome {outcome!r}")
-        if not isinstance(opening_index, int) or opening_index < 0:
-            _fail(f"{name}: game {game_index} has invalid opening_index")
-        if not isinstance(seed, int) or seed < 0:
-            _fail(f"{name}: game {game_index} has invalid seed")
 
+        opening_index = _non_negative_int(opening_index, field=f"{name}.game {game_index}.opening_index")
+        if opening_index >= len(opening_seeds):
+            _fail(f"{name}: game {game_index} has out-of-range opening_index")
+        expected_opening_index = (game_index // 2) % len(opening_seeds)
+        if opening_index != expected_opening_index:
+            _fail(f"{name}: game {game_index} has incorrect opening_index {opening_index}")
+
+        seed = _non_negative_int(seed, field=f"{name}.game {game_index}.seed")
+        if seed != opening_seeds[opening_index]:
+            _fail(
+                f"{name}: game {game_index} seed {seed} disagrees with opening_seeds[{opening_index}]"
+            )
+
+        records_by_index[game_index] = record
         computed_totals[outcome] += 1
         computed_colours[colour][outcome] += 1
 
-    if seen_indices != set(range(expected_games)):
+    if set(records_by_index) != set(range(expected_games)):
         _fail(f"{name}: game indices are not the complete 0..{expected_games - 1} range")
-    if computed_totals != {key: int(totals[key]) for key in REQUIRED_OUTCOMES}:
+    if computed_totals != {key: totals[key] for key in REQUIRED_OUTCOMES}:
         _fail(f"{name}: totals disagree with records")
     if computed_colours != {
-        colour: {key: int(colours[colour][key]) for key in REQUIRED_OUTCOMES}
+        colour: {key: colours[colour][key] for key in REQUIRED_OUTCOMES}
         for colour in REQUIRED_COLOURS
     }:
         _fail(f"{name}: colour summary disagrees with records")
+
+    return records_by_index
 
 
 def validate_payload(payload: dict[str, Any]) -> None:
@@ -95,13 +132,15 @@ def validate_payload(payload: dict[str, Any]) -> None:
     if not isinstance(parameters, dict):
         _fail("parameters must be an object")
     games = parameters.get("games")
-    if not isinstance(games, int) or games <= 0 or games % 2:
+    if type(games) is not int or games <= 0 or games % 2:
         _fail("parameters.games must be a positive even integer")
+
     seeds = parameters.get("opening_seeds")
     if not isinstance(seeds, list) or len(seeds) != 16 or len(set(seeds)) != 16:
         _fail("parameters.opening_seeds must contain 16 unique values")
-    if any(not isinstance(seed, int) or seed < 0 for seed in seeds):
+    if any(type(seed) is not int or seed < 0 for seed in seeds):
         _fail("parameters.opening_seeds must contain non-negative integers")
+
     if parameters.get("pairing_policy") != "adjacent_games_same_opening_with_inverted_challenger_colour":
         _fail("unexpected pairing_policy")
 
@@ -110,30 +149,27 @@ def validate_payload(payload: dict[str, Any]) -> None:
     if not isinstance(persistent, dict) or not isinstance(fresh, dict):
         _fail("both lifecycle series are required")
 
-    _validate_series("persistent", persistent, games)
-    _validate_series("fresh", fresh, games)
+    persistent_records = _validate_series("persistent", persistent, games, seeds)
+    fresh_records = _validate_series("fresh", fresh, games, seeds)
 
     for index in range(games):
-        p = persistent["records"][index]
-        f = fresh["records"][index]
+        p = persistent_records[index]
+        f = fresh_records[index]
         for key in ("game_index", "pair_id", "opening_index", "seed", "challenger_color"):
             if p[key] != f[key]:
                 _fail(f"schedule mismatch at game {index}: field {key}")
 
     for start in range(0, games, 2):
-        first = persistent["records"][start]
-        second = persistent["records"][start + 1]
-        if first["seed"] != second["seed"]:
-            _fail(f"persistent pair {start // 2} does not reuse the same seed")
-        if {first["challenger_color"], second["challenger_color"]} != {"white", "black"}:
-            _fail(f"persistent pair {start // 2} does not invert challenger colour")
-
-        first = fresh["records"][start]
-        second = fresh["records"][start + 1]
-        if first["seed"] != second["seed"]:
-            _fail(f"fresh pair {start // 2} does not reuse the same seed")
-        if {first["challenger_color"], second["challenger_color"]} != {"white", "black"}:
-            _fail(f"fresh pair {start // 2} does not invert challenger colour")
+        for name, records_by_index in (
+            ("persistent", persistent_records),
+            ("fresh", fresh_records),
+        ):
+            first = records_by_index[start]
+            second = records_by_index[start + 1]
+            if first["seed"] != second["seed"]:
+                _fail(f"{name} pair {start // 2} does not reuse the same seed")
+            if {first["challenger_color"], second["challenger_color"]} != {"white", "black"}:
+                _fail(f"{name} pair {start // 2} does not invert challenger colour")
 
     comparison = payload.get("comparison")
     if not isinstance(comparison, dict):
