@@ -171,8 +171,6 @@ versão proposta no Pull Request
 
 usando condições equivalentes de pesquisa e alternando cores para evitar que a primeira jogada determine artificialmente o resultado.
 
-O workflow atual compara **base vs HEAD** em benchmark determinístico e depois executa um torneio Arena separado. Para PRs de performance existe um guard de regressão de 10% no benchmark.
-
 A Arena mede **força relativa entre versões da IA**, não qualidade do jogo como produto.
 
 Resultados históricos devem guardar, quando disponíveis:
@@ -192,12 +190,30 @@ A longo prazo, os resultados deverão alimentar um sistema de rating/ELO válido
 Os workflows do projeto são intencionalmente separados por responsabilidade. Uma falha experimental não deve mascarar a saúde de outro subsistema.
 
 ```text
-auto_balancer.yml  -> regressões numéricas + trainer + Auto-Pricer
-ai_arena.yml       -> força relativa / jogos comparativos
-ai_quality_gate.yml-> decisão de qualidade da AI nos PRs
-nnue_nightly.yml   -> teacher data + treino NNUE experimental
-main_guard.yml     -> política de proteção da main
+GATES
+├── test_suite.yml          -> correção funcional e regressões gerais
+└── ai_quality_gate.yml     -> única autoridade strength-sensitive nos PRs
+
+SECURITY
+└── codeql.yml              -> análise de segurança
+
+DIAGNOSTICS
+└── arena_diagnostics.yml   -> evidência observacional, sem promoção
+
+EXPERIMENTS
+└── arena_experiments.yml   -> experiências manuais, datasets e holdout
+
+NIGHTLY
+├── nnue_nightly.yml        -> teacher data, treino NNUE e modelos experimentais
+└── auto_balancer.yml       -> trainer, Auto-Pricer e telemetria
+
+TEMPORARY RESEARCH
+└── strength_calibration.yml -> calibração A/A, sem autoridade de promoção
 ```
+
+A proteção estrutural de `main` pertence ao GitHub Ruleset `Protect main`; não existe um `main_guard.yml` paralelo. `ai_quality_gate.yml` é a única autoridade Action-based para promoção strength-sensitive em PRs.
+
+`arena_diagnostics.yml` e `arena_experiments.yml` não são required checks de promoção. A Arena experimental é manual e não dispara automaticamente em pushes normais de branches AI.
 
 O **Auto-Balancer não treina NNUE**. O treino PyTorch pertence ao workflow nightly NNUE. Assim, uma falha de PyTorch, dataset ou exportação NNUE não deve aparecer como uma falsa falha do balanceamento económico.
 
