@@ -1,31 +1,47 @@
-# Decision — 1.0-Lite Ares baseline selection boundary
+# Decision — 1.0-Lite controlled Ares baseline selection
 
 ## Status
 
-**Selection not yet frozen.** This decision records what is and is not eligible to become the 1.0-Lite Balance Baseline.
+**Experiment implemented; selection not yet frozen.**
 
-## Repository evidence
+The repository now contains an explicit controlled experiment for selecting the 1.0-Lite Ares Balance Baseline. The experiment is an instrument-reliability/reproducibility study only.
 
-The player-facing C++ Ares profiles currently exposed by `ai/bot.py` are 100k, 500k and 1M nodes. Separately, `ai/BENCHMARK_SCENARIO.md` defines a 150k-node performance/correctness benchmark. These are different concerns and must not be conflated.
+## Fixed candidates
 
-`tools/analytics/trainer.py` is also not a baseline source. Its training telemetry deliberately selects controllers from a mixed pool containing `BotAleatorio`, 1k, 5k and 10k-node training bots, and it generates random drafts from the current catalogue. Those choices are useful for broad diagnostics/training telemetry, but they do not define one fixed Ares policy, one fixed skill context, or one controlled draft population suitable for Lite balance evidence.
+- StockWar-Iniciante — 100,000 nodes
+- StockWar-Intermedio — 500,000 nodes
+- StockWar-Avancado — 1,000,000 nodes
 
-The scheduled `auto_balancer.yml` workflow still runs this trainer and then invokes `auto_pricer.py` in `--no-write` mode. Both remain diagnostic/telemetry infrastructure, not balance authority.
+The 150,000-node benchmark and mixed training bots are excluded from baseline selection.
 
-## Consequence
+## Evidence model
 
-The 1.0-Lite Balance Baseline must be selected separately from:
+Each candidate plays against itself from the same deterministic opening schedule. The two games in each pair invert candidate colour. Each game uses fresh engine processes, so a previous game's process-local state is not silently carried into the next observation.
 
-- player-facing difficulty defaults;
-- the 150k performance benchmark;
-- mixed training telemetry;
-- `auto_pricer.py` output;
-- the competitive Ares promotion track in #372.
+Each game records candidate, node budget, seed, opening identity, colour, validity, termination, failure diagnostics and a digest of the complete action trace. Fixed-condition replay checks compare the action digest from repeated executions.
 
-No hero/economy tuning should be treated as baseline-backed evidence until one exact Ares profile/policy, deterministic seed protocol, controlled population/draft definition and provenance-valid record contract are explicitly frozen.
+## Selection boundary
 
-## Next phase
+The selected baseline must be chosen from operational reliability and reproducibility evidence:
 
-Create a controlled baseline-selection experiment whose purpose is **instrument reliability and reproducibility**, not hero ranking or automatic balancing. The experiment should compare candidate fixed Ares profiles under the same engine/ruleset, matched conditions, colour symmetry and bounded game/turn limits, recording complete provenance and invalid/hang diagnostics.
+```text
+valid completion
++ no unresolved hang/invalid-action pattern
++ deterministic replay evidence
++ complete provenance
+```
 
-The result selects a reproducible execution policy for Lite. It does not claim that the selected policy is the strongest Ares and does not itself authorize balance changes.
+The following are explicitly excluded from the selection criterion:
+
+```text
+hero win rate
+competitive strength
+Arena rating
+Auto-Pricer output
+```
+
+Selecting a baseline does not certify the selected Ares as the strongest engine and does not certify the hero roster as balanced.
+
+## Next decision
+
+After the controlled artifact has been executed and reviewed, one exact profile/configuration can be frozen as the 1.0-Lite Balance Baseline. Only then may Balance Lab development samples be collected for hero/economy analysis.
