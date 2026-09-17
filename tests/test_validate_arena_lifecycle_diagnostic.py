@@ -73,6 +73,7 @@ def test_validate_accepts_reordered_records():
 
 def test_validate_rejects_schedule_mismatch_between_modes():
     payload = _payload()
+    payload["fresh_process_per_game"]["records"][1]["opening_index"] = 1
     payload["fresh_process_per_game"]["records"][1]["seed"] = 102
     with pytest.raises(ValueError, match="schedule mismatch"):
         validate_payload(payload)
