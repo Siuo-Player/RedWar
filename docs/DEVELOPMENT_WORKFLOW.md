@@ -107,6 +107,37 @@ Experimentos de Ares, NNUE, Arena e balanceamento devem ser reproduzíveis:
 
 Resultados negativos também são conhecimento e devem ser preservados quando alteram a direção do projeto.
 
+## Duas linhas de Ares
+
+Ares passa a ter duas utilizações distintas, que não devem ser confundidas:
+
+### Ares Balance Baseline
+
+É a versão congelada utilizada pelo produto 1.0-Lite para:
+
+- fornecer um adversário jogável;
+- produzir estatísticas controladas para balanceamento de heróis/economia;
+- suportar testes repetíveis de design.
+
+A validade destas estatísticas é **condicionada ao baseline, orçamento, população e contexto declarados**. Não são uma afirmação de força competitiva global.
+
+Quando o baseline muda, os resultados de balanceamento dependentes dele devem ser revalidados.
+
+### Competitive Ares
+
+Continua como projecto open-project sob #372:
+
+- search/evaluation research;
+- Arena A/B;
+- NNUE;
+- performance;
+- historical evidence;
+- promoção por critérios científicos.
+
+Uma melhoria competitiva não substitui automaticamente o Lite baseline. A adopção no produto é uma decisão separada, seguida de revalidação do contexto de balanceamento.
+
+Esta separação permite que o produto local avance sem transformar cada optimização experimental da Ares num blocker de lançamento.
+
 ## Workflows isolados
 
 Cada workflow deve medir uma responsabilidade principal e falhar por motivos que pertençam a essa responsabilidade:
