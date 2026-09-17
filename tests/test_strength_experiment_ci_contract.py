@@ -1,10 +1,10 @@
 from pathlib import Path
 
 
-WORKFLOW = Path(__file__).parents[1] / ".github" / "workflows" / "ai_strength_experiment.yml"
+WORKFLOW = Path(__file__).parents[1] / ".github" / "workflows" / "arena_experiments.yml"
 
 
-def test_strength_workflow_validates_arena_dataset():
+def test_experiment_workflow_validates_arena_dataset():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "Validate experiment dataset" in text
     assert "from tools.analytics.arena_experiment_validation import validate_experiment_records" in text
@@ -13,38 +13,25 @@ def test_strength_workflow_validates_arena_dataset():
     assert "incomplete_valid_pair_ids" in text
 
 
-def test_strength_workflow_does_not_use_arena_exit_code_as_promotion_gate():
+def test_experiment_workflow_is_manual_only_and_not_authoritative():
     text = WORKFLOW.read_text(encoding="utf-8")
+    assert "workflow_dispatch:" in text
+    assert "\n  push:" not in text
+    assert "PROMOTION_AUTHORITY: 'false'" in text
+    assert "promotion_authority': False" in text
     assert "--margem-vitorias 0" in text
     assert 'echo "$rc" > "${PREFIX}-arena.exitcode"' in text
-    assert "exit 0" in text
 
 
-def test_strength_workflow_publishes_validation_artifact():
+def test_experiment_workflow_publishes_validation_and_context_artifacts():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "${PREFIX}-validation.json" in text
-    assert "actions/upload-artifact@v" in text
+    assert "${PREFIX}-games.context.jsonl" in text
+    assert "actions/upload-artifact@v7" in text
+    assert "retention-days: 30" in text
 
 
-def test_strength_workflow_auto_triggers_only_on_non_calibration_experiment_branches():
-    text = WORKFLOW.read_text(encoding="utf-8")
-    push_block = text.split("  push:\n", 1)[1].split("\n\npermissions:", 1)[0]
-    assert "      - 'experiment/strength/**'" in push_block
-    assert "      - '!experiment/strength/replication-seed-b-*'" in push_block
-    assert push_block.index("experiment/strength/**") < push_block.index("!experiment/strength/replication-seed-b-*")
-    assert "branches-ignore:" not in text
-
-
-def test_strength_workflow_push_defaults_are_reproducible():
-    text = WORKFLOW.read_text(encoding="utf-8")
-    assert "GAMES: ${{ github.event_name == 'workflow_dispatch' && inputs.games || '100' }}" in text
-    assert "NODES: ${{ github.event_name == 'workflow_dispatch' && inputs.nodes || '10000' }}" in text
-    assert "BASELINE_REF: ${{ github.event_name == 'workflow_dispatch' && inputs.baseline_ref || 'origin/main' }}" in text
-    assert "ares-dev-population-v1" in text
-    assert "paired-fixed-openings" in text
-
-
-def test_strength_workflow_carries_explicit_seed_controls():
+def test_experiment_workflow_carries_explicit_seed_and_population_controls():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "opening_seeds:" in text
     assert "seed_policy:" in text
@@ -52,17 +39,13 @@ def test_strength_workflow_carries_explicit_seed_controls():
     assert "--opening-seeds \"$OPENING_SEEDS\"" in text
     assert "--seed-policy \"$SEED_POLICY\"" in text
     assert "--seed-generation-rule \"$SEED_GENERATION_RULE\"" in text
-    assert "10091,10211,10307,10401,10503,10601,10709,10809,10907,11009,11103,11201,11301,11409,11501,11601" not in text
+    assert "population_id:" in text
+    assert "selection_policy:" in text
+    assert "controller_population:" in text
+    assert "skill_context:" in text
 
 
-def test_strength_workflow_retains_raw_experiment_artifacts():
-    text = WORKFLOW.read_text(encoding="utf-8")
-    assert "path: /tmp/redwar-strength-results/" in text
-    assert "name: ares-strength-experiment-${{ github.sha }}" in text
-    assert "retention-days: 30" in text
-
-
-def test_strength_workflow_uses_python_312_for_current_dependencies():
+def test_experiment_workflow_uses_python_312_for_current_dependencies():
     text = WORKFLOW.read_text(encoding="utf-8")
 
     assert "python-version: '3.12'" in text
