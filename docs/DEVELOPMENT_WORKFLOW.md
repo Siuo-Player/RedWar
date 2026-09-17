@@ -111,13 +111,18 @@ Resultados negativos também são conhecimento e devem ser preservados quando al
 
 Cada workflow deve medir uma responsabilidade principal e falhar por motivos que pertençam a essa responsabilidade:
 
-- `auto_balancer.yml`: regressões numéricas, build mínimo do motor necessário ao trainer, telemetria e Auto-Pricer;
-- `ai_arena.yml`: jogos comparativos e recolha de evidência de força;
-- `ai_quality_gate.yml`: decisão de qualidade da AI nos PRs;
+- `test_suite.yml`: correção funcional e regressões gerais;
+- `ai_quality_gate.yml`: única autoridade strength-sensitive para PRs;
+- `codeql.yml`: análise de segurança;
+- `arena_diagnostics.yml`: diagnósticos observacionais da Arena, sem decisão de promoção;
+- `arena_experiments.yml`: experiências Arena manuais, datasets e holdout, sempre não-authoritativos;
 - `nnue_nightly.yml`: teacher data, treino NNUE e publicação de modelos experimentais;
-- `main_guard.yml`: apenas validação/política de proteção, sem reescrita automática de `main`.
+- `auto_balancer.yml`: regressões numéricas, trainer/pricer e telemetria;
+- `strength_calibration.yml`: protocolo A/A temporário de calibração, sem autoridade de promoção.
 
-Assim uma falha do treino NNUE não aparece como uma falsa falha do Auto-Balancer, e uma falha da Arena não bloqueia regressões numéricas básicas.
+A proteção estrutural de `main` pertence ao GitHub Ruleset `Protect main`, não a um workflow paralelo.
+
+Assim uma falha do treino NNUE não aparece como uma falsa falha do Auto-Balancer, um diagnóstico da Arena não bloqueia promoção e experiências experimentais não duplicam a autoridade de `ai_quality_gate.yml`.
 
 ## Dados e artefactos
 
