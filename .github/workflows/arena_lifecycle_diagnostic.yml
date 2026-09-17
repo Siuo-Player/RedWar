@@ -68,6 +68,13 @@ jobs:
             --games "${{ inputs.games }}" \
             --output data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
 
+      - name: Validate lifecycle evidence artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/analytics/validate_arena_lifecycle_diagnostic.py \
+            --input data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
+
       - name: Upload lifecycle evidence
         uses: actions/upload-artifact@v4
         with:
