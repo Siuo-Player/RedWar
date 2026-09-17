@@ -1,0 +1,126 @@
+name: RedWar Arena Diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Lifecycle diagnostic to execute'
+        required: true
+        default: process_lifecycle
+        type: choice
+        options:
+          - process_lifecycle
+          - tt_isolation
+          - both
+      games:
+        description: 'Even number of paired games for each diagnostic'
+        required: false
+        default: '32'
+        type: string
+      nodes:
+        description: 'Matched Ares node budget per move'
+        required: false
+        default: '250000'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  arena-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      PYTHONHASHSEED: '0'
+    steps:
+      - name: Checkout canonical main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Ares engine
+        run: |
+          python tools/scripts/build_cpp_engine.py
+          chmod +x ai/cpp_engine/engine
+
+      - name: Validate diagnostic inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.games }}" =~ ^[0-9]+$ ]] || { echo 'games must be an integer'; exit 1; }
+          (( 10#${{ inputs.games }} > 0 )) || { echo 'games must be positive'; exit 1; }
+          (( 10#${{ inputs.games }} % 2 == 0 )) || { echo 'games must be even'; exit 1; }
+          [[ "${{ inputs.nodes }}" =~ ^[0-9]+$ ]] || { echo 'nodes must be an integer'; exit 1; }
+          (( 10#${{ inputs.nodes }} > 0 )) || { echo 'nodes must be positive'; exit 1; }
+
+      - name: Run process lifecycle diagnostic
+        if: inputs.mode == 'process_lifecycle' || inputs.mode == 'both'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/arena/lifecycle
+          python tools/analytics/arena_lifecycle_diagnostic.py \
+            --challenger-engine "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
+            --baseline-engine "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
+            --nodes "${{ inputs.nodes }}" \
+            --games "${{ inputs.games }}" \
+            --output data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
+
+      - name: Validate process lifecycle artifact
+        if: inputs.mode == 'process_lifecycle' || inputs.mode == 'both'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/analytics/validate_arena_lifecycle_diagnostic.py \
+            --input data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
+
+      - name: Upload process lifecycle artifact
+        if: inputs.mode == 'process_lifecycle' || inputs.mode == 'both'
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-arena-lifecycle-diagnostic-${{ github.run_id }}
+          path: data/arena/lifecycle/lifecycle-diagnostic-${{ github.run_id }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Run TT isolation diagnostic
+        if: inputs.mode == 'tt_isolation' || inputs.mode == 'both'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/arena/lifecycle
+          python tools/analytics/arena_lifecycle_tt_isolation_diagnostic.py \
+            --challenger-engine "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
+            --baseline-engine "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
+            --nodes "${{ inputs.nodes }}" \
+            --games "${{ inputs.games }}" \
+            --output data/arena/lifecycle/lifecycle-tt-isolation-${{ github.run_id }}.json
+
+      - name: Validate TT isolation artifact
+        if: inputs.mode == 'tt_isolation' || inputs.mode == 'both'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/analytics/validate_arena_lifecycle_diagnostic.py \
+            --input data/arena/lifecycle/lifecycle-tt-isolation-${{ github.run_id }}.json
+
+      - name: Upload TT isolation artifact
+        if: inputs.mode == 'tt_isolation' || inputs.mode == 'both'
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-arena-lifecycle-tt-isolation-${{ github.run_id }}
+          path: data/arena/lifecycle/lifecycle-tt-isolation-${{ github.run_id }}.json
+          if-no-files-found: error
+          retention-days: 30
