@@ -1,0 +1,495 @@
+name: RedWar Arena Experiments
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Experimental Arena protocol'
+        required: true
+        default: experiment
+        type: choice
+        options:
+          - experiment
+          - protected_holdout
+      games:
+        description: 'Even number of paired Arena games (experiment mode)'
+        required: false
+        default: '100'
+        type: string
+      nodes:
+        description: 'Node budget per move'
+        required: false
+        default: '10000'
+        type: string
+      baseline_ref:
+        description: 'Exact baseline ref/commit for experiment mode'
+        required: false
+        default: 'origin/main'
+        type: string
+      challenger_ref:
+        description: 'Exact challenger ref/commit for experiment mode'
+        required: false
+        default: 'HEAD'
+        type: string
+      opening_seeds:
+        description: 'Ordered 16-seed opening set, comma-separated'
+        required: false
+        default: '101,211,307,401,503,601,709,809,907,1009,1103,1201,1301,1409,1501,1601'
+        type: string
+      seed_policy:
+        description: 'Declared seed policy stored in experiment provenance'
+        required: false
+        default: 'canonical-opening-book-v1'
+        type: string
+      seed_generation_rule:
+        description: 'Declared seed-generation rule stored in experiment provenance'
+        required: false
+        default: 'canonical-opening-book-v1'
+        type: string
+      population_id:
+        description: 'Strength population identifier'
+        required: false
+        default: 'ares-dev-population-v1'
+        type: string
+      selection_policy:
+        description: 'How controllers/games are selected'
+        required: false
+        default: 'paired-fixed-openings'
+        type: string
+      controller_population:
+        description: 'Controller population represented by the experiment'
+        required: false
+        default: 'Ares-v1-vs-baseline-v1'
+        type: string
+      skill_context:
+        description: 'Skill/controller-strength context'
+        required: false
+        default: 'fixed-node-budget'
+        type: string
+      candidate_sha:
+        description: '40-character candidate commit SHA for protected holdout mode'
+        required: false
+        default: ''
+        type: string
+
+concurrency:
+  group: redwar-arena-experiments-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: '0'
+  PROMOTION_AUTHORITY: 'false'
+
+jobs:
+  arena-experiment:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout selected workflow ref
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Fetch canonical main
+        run: git fetch origin main --no-tags
+
+      - name: Validate experiment protocol inputs
+        if: inputs.mode == 'experiment'
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "${{ inputs.games }}" =~ ^[0-9]+$ ]] || { echo 'games must be an integer'; exit 1; }
+          (( 10#${{ inputs.games }} > 0 )) || { echo 'games must be positive'; exit 1; }
+          (( 10#${{ inputs.games }} % 2 == 0 )) || { echo 'games must be even'; exit 1; }
+          [[ "${{ inputs.nodes }}" =~ ^[0-9]+$ ]] || { echo 'nodes must be an integer'; exit 1; }
+          (( 10#${{ inputs.nodes }} > 0 )) || { echo 'nodes must be positive'; exit 1; }
+          [[ "${{ inputs.opening_seeds }}" =~ ^[0-9]+(,[0-9]+){15}$ ]] || { echo 'opening_seeds must contain exactly 16 comma-separated integers'; exit 1; }
+          python - "${{ inputs.opening_seeds }}" <<'PY'
+          import sys
+          seeds = [int(item) for item in sys.argv[1].split(',')]
+          if len(set(seeds)) != 16:
+              raise SystemExit('opening_seeds must be unique')
+          if any(seed < 0 for seed in seeds):
+              raise SystemExit('opening_seeds must be non-negative')
+          PY
+
+      - name: Resolve exact experiment refs
+        if: inputs.mode == 'experiment'
+        shell: bash
+        env:
+          BASELINE_REF: ${{ inputs.baseline_ref }}
+          CHALLENGER_REF: ${{ inputs.challenger_ref }}
+        run: |
+          set -euo pipefail
+          BASELINE_SHA="$(git rev-parse "${BASELINE_REF}^{commit}")"
+          CHALLENGER_SHA="$(git rev-parse "${CHALLENGER_REF}^{commit}")"
+          {
+            echo "BASELINE_REF=$BASELINE_REF"
+            echo "BASELINE_SHA=$BASELINE_SHA"
+            echo "CHALLENGER_REF=$CHALLENGER_REF"
+            echo "CHALLENGER_SHA=$CHALLENGER_SHA"
+            echo "RULES_VERSION=$BASELINE_SHA"
+          } >> "$GITHUB_ENV"
+          echo "Experiment mode: baseline=$BASELINE_SHA challenger=$CHALLENGER_SHA rules=$BASELINE_SHA"
+
+      - name: Build exact experiment baseline
+        if: inputs.mode == 'experiment'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/redwar-baseline "$BASELINE_SHA"
+          pushd /tmp/redwar-baseline/ai/cpp_engine >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+          chmod +x engine
+          popd >/dev/null
+
+      - name: Build exact experiment challenger
+        if: inputs.mode == 'experiment'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/redwar-challenger "$CHALLENGER_SHA"
+          pushd /tmp/redwar-challenger/ai/cpp_engine >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp main.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+          chmod +x engine
+          popd >/dev/null
+
+      - name: Run non-authoritative Arena experiment
+        if: inputs.mode == 'experiment'
+        shell: bash
+        env:
+          GAMES: ${{ inputs.games }}
+          NODES: ${{ inputs.nodes }}
+          OPENING_SEEDS: ${{ inputs.opening_seeds }}
+          SEED_POLICY: ${{ inputs.seed_policy }}
+          SEED_GENERATION_RULE: ${{ inputs.seed_generation_rule }}
+        run: |
+          set -u
+          mkdir -p /tmp/redwar-arena-results
+          PREFIX="/tmp/redwar-arena-results/${GITHUB_SHA}"
+          set +e
+          python "$GITHUB_WORKSPACE/tools/analytics/arena_tournament.py" \
+            --challenger-engine /tmp/redwar-challenger/ai/cpp_engine/engine \
+            --baseline-engine /tmp/redwar-baseline/ai/cpp_engine/engine \
+            --challenger-version "$CHALLENGER_SHA" \
+            --baseline-version "$BASELINE_SHA" \
+            --rules-version "$RULES_VERSION" \
+            --jogos "$GAMES" \
+            --margem-vitorias 0 \
+            --nodes "$NODES" \
+            --opening-seeds "$OPENING_SEEDS" \
+            --seed-policy "$SEED_POLICY" \
+            --seed-generation-rule "$SEED_GENERATION_RULE" \
+            --results "${PREFIX}-games.jsonl" \
+            2>&1 | tee "${PREFIX}-arena.txt"
+          rc=${PIPESTATUS[0]}
+          set -e
+          echo "arena_exit_code=$rc" | tee -a "${PREFIX}-arena.txt"
+          echo "$rc" > "${PREFIX}-arena.exitcode"
+          echo "promotion_authority=$PROMOTION_AUTHORITY" > "${PREFIX}-authority.txt"
+          exit 0
+
+      - name: Validate experiment dataset
+        if: inputs.mode == 'experiment' && always()
+        shell: bash
+        env:
+          GAMES: ${{ inputs.games }}
+        run: |
+          set -euo pipefail
+          PREFIX="/tmp/redwar-arena-results/${GITHUB_SHA}"
+          RESULTS="${PREFIX}-games.jsonl"
+          VALIDATION="${PREFIX}-validation.json"
+          if [[ ! -f "$RESULTS" ]]; then
+            echo "Missing Arena JSONL result: $RESULTS"
+            exit 1
+          fi
+          python - "$RESULTS" "$VALIDATION" "$GAMES" "$CHALLENGER_SHA" "$BASELINE_SHA" "$RULES_VERSION" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from tools.analytics.arena_experiment_validation import validate_experiment_records
+
+          results_path = Path(sys.argv[1])
+          validation_path = Path(sys.argv[2])
+          games_expected = int(sys.argv[3])
+          challenger_version = sys.argv[4]
+          baseline_version = sys.argv[5]
+          rules_version = sys.argv[6]
+
+          records = [
+              json.loads(line)
+              for line in results_path.read_text(encoding='utf-8').splitlines()
+              if line.strip()
+          ]
+          if not records:
+              raise SystemExit('Arena JSONL is empty')
+
+          experiment = records[0].get('experiment')
+          metadata = {
+              'challenger_version': challenger_version,
+              'baseline_version': baseline_version,
+              'rules_version': rules_version,
+              'node_budget': int(experiment['node_budget']),
+              'games': games_expected,
+              'opening_count': int(experiment['opening_count']),
+          }
+          audit = validate_experiment_records(records, metadata)
+          validation_path.write_text(
+              json.dumps(audit, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+          print(json.dumps(audit, ensure_ascii=False, indent=2))
+          if audit['invalid_games']:
+              raise SystemExit(
+                  f"Experiment contains {audit['invalid_games']} invalid game(s); strength inference is blocked."
+              )
+          if audit['incomplete_valid_pair_ids']:
+              raise SystemExit(
+                  'Experiment contains incomplete valid pairs: ' + ', '.join(audit['incomplete_valid_pair_ids'])
+              )
+          PY
+
+      - name: Attach Strength context diagnostics
+        if: inputs.mode == 'experiment' && always()
+        shell: bash
+        env:
+          POPULATION_ID: ${{ inputs.population_id }}
+          SELECTION_POLICY: ${{ inputs.selection_policy }}
+          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
+          SKILL_CONTEXT: ${{ inputs.skill_context }}
+        run: |
+          set -euo pipefail
+          PREFIX="/tmp/redwar-arena-results/${GITHUB_SHA}"
+          RESULTS="${PREFIX}-games.jsonl"
+          CONTEXT_RESULTS="${PREFIX}-games.context.jsonl"
+          SUMMARY="${PREFIX}-games.jsonl.summary.json"
+          if [[ ! -f "$RESULTS" || ! -f "$SUMMARY" ]]; then
+            echo 'Arena artifacts unavailable; context diagnostics cannot be generated.'
+            exit 1
+          fi
+          python "$GITHUB_WORKSPACE/tools/analytics/strength_context_artifacts.py" \
+            "$RESULTS" \
+            --summary "$SUMMARY" \
+            --context-output "$CONTEXT_RESULTS" \
+            --population-id "$POPULATION_ID" \
+            --selection-policy "$SELECTION_POLICY" \
+            --controller-population "$CONTROLLER_POPULATION" \
+            --skill-context "$SKILL_CONTEXT"
+
+      - name: Validate Strength population context
+        if: inputs.mode == 'experiment' && always()
+        shell: bash
+        env:
+          GAMES: ${{ inputs.games }}
+          POPULATION_ID: ${{ inputs.population_id }}
+          SELECTION_POLICY: ${{ inputs.selection_policy }}
+          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
+          SKILL_CONTEXT: ${{ inputs.skill_context }}
+        run: |
+          set -euo pipefail
+          PREFIX="/tmp/redwar-arena-results/${GITHUB_SHA}"
+          RESULTS="${PREFIX}-games.context.jsonl"
+          if [[ ! -f "$RESULTS" ]]; then
+            echo "Missing contextualized Arena JSONL result: $RESULTS"
+            exit 1
+          fi
+          python - "$RESULTS" "$GAMES" "$CHALLENGER_SHA" "$BASELINE_SHA" "$RULES_VERSION" "$POPULATION_ID" "$SELECTION_POLICY" "$CONTROLLER_POPULATION" "$SKILL_CONTEXT" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          from tools.analytics.arena_experiment_validation import validate_experiment_records
+
+          records = [
+              json.loads(line)
+              for line in Path(sys.argv[1]).read_text(encoding='utf-8').splitlines()
+              if line.strip()
+          ]
+          experiment = records[0]['experiment']
+          metadata = {
+              'challenger_version': sys.argv[3],
+              'baseline_version': sys.argv[4],
+              'rules_version': sys.argv[5],
+              'node_budget': int(experiment['node_budget']),
+              'games': int(sys.argv[2]),
+              'opening_count': int(experiment['opening_count']),
+              'strength_population': {
+                  'population_id': sys.argv[6],
+                  'selection_policy': sys.argv[7],
+                  'controller_population': sys.argv[8],
+                  'skill_context': sys.argv[9],
+              },
+          }
+          audit = validate_experiment_records(records, metadata, require_strength_population=True)
+          print(json.dumps(audit, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Write experiment provenance
+        if: inputs.mode == 'experiment' && always()
+        env:
+          GAMES: ${{ inputs.games }}
+          NODES: ${{ inputs.nodes }}
+          OPENING_SEEDS: ${{ inputs.opening_seeds }}
+          SEED_POLICY: ${{ inputs.seed_policy }}
+          SEED_GENERATION_RULE: ${{ inputs.seed_generation_rule }}
+          POPULATION_ID: ${{ inputs.population_id }}
+          SELECTION_POLICY: ${{ inputs.selection_policy }}
+          CONTROLLER_POPULATION: ${{ inputs.controller_population }}
+          SKILL_CONTEXT: ${{ inputs.skill_context }}
+        run: |
+          set -euo pipefail
+          PREFIX="/tmp/redwar-arena-results/${GITHUB_SHA}"
+          python - "$PREFIX-provenance.json" <<'PY'
+          import json
+          import os
+          import sys
+
+          payload = {
+              'schema_version': 'redwar-arena-experiment-orchestration-v1',
+              'mode': 'experiment',
+              'promotion_authority': False,
+              'baseline_ref': os.environ['BASELINE_REF'],
+              'baseline_sha': os.environ['BASELINE_SHA'],
+              'challenger_ref': os.environ['CHALLENGER_REF'],
+              'challenger_sha': os.environ['CHALLENGER_SHA'],
+              'rules_version': os.environ['RULES_VERSION'],
+              'games': int(os.environ['GAMES']),
+              'node_budget': int(os.environ['NODES']),
+              'opening_seeds': [int(item) for item in os.environ['OPENING_SEEDS'].split(',')],
+              'seed_policy': os.environ['SEED_POLICY'],
+              'seed_generation_rule': os.environ['SEED_GENERATION_RULE'],
+              'strength_population': {
+                  'population_id': os.environ['POPULATION_ID'],
+                  'selection_policy': os.environ['SELECTION_POLICY'],
+                  'controller_population': os.environ['CONTROLLER_POPULATION'],
+                  'skill_context': os.environ['SKILL_CONTEXT'],
+              },
+              'status': 'experiment_only_no_promotion_decision',
+          }
+          with open(sys.argv[1], 'w', encoding='utf-8') as handle:
+              json.dump(payload, handle, ensure_ascii=False, indent=2)
+              handle.write('\n')
+          PY
+
+      - name: Validate protected holdout invocation
+        if: inputs.mode == 'protected_holdout'
+        shell: bash
+        env:
+          CANDIDATE_SHA_INPUT: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != 'refs/heads/main' ]]; then
+            echo 'Protected holdout must be dispatched from canonical main.'
+            exit 1
+          fi
+          if [[ ! "$CANDIDATE_SHA_INPUT" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo 'candidate_sha must be a full 40-character commit SHA.'
+            exit 1
+          fi
+          git cat-file -e "${CANDIDATE_SHA_INPUT}^{commit}"
+          echo "BASELINE_SHA=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
+          echo "CANDIDATE_SHA=$CANDIDATE_SHA_INPUT" >> "$GITHUB_ENV"
+          echo "RULES_VERSION=$(git rev-parse origin/main)" >> "$GITHUB_ENV"
+
+      - name: Build canonical main baseline for holdout
+        if: inputs.mode == 'protected_holdout'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/redwar-baseline "$BASELINE_SHA"
+          pushd /tmp/redwar-baseline/ai/cpp_engine >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+          chmod +x engine
+          popd >/dev/null
+
+      - name: Build protected holdout candidate
+        if: inputs.mode == 'protected_holdout'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/redwar-candidate "$CANDIDATE_SHA"
+          pushd /tmp/redwar-candidate/ai/cpp_engine >/dev/null
+          cpp_sources=(board.cpp evaluate.cpp movegen.cpp search.cpp)
+          if [[ -f nnue.cpp ]]; then cpp_sources+=(nnue.cpp); fi
+          g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o engine
+          chmod +x engine
+          popd >/dev/null
+
+      - name: Run protected holdout
+        if: inputs.mode == 'protected_holdout'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/redwar-holdout-results
+          python "$GITHUB_WORKSPACE/tools/analytics/holdout_arena.py" \
+            --challenger-engine /tmp/redwar-candidate/ai/cpp_engine/engine \
+            --baseline-engine /tmp/redwar-baseline/ai/cpp_engine/engine \
+            --nodes 10000 \
+            --challenger-version "$CANDIDATE_SHA" \
+            --baseline-version "$BASELINE_SHA" \
+            --rules-version "$RULES_VERSION" \
+            --results "/tmp/redwar-holdout-results/holdout-${CANDIDATE_SHA}.json"
+          HOLDOUT_PROVENANCE="/tmp/redwar-holdout-results/holdout-${CANDIDATE_SHA}.provenance.json"
+          export HOLDOUT_PROVENANCE
+          python - <<'PY'
+          import json
+          import os
+
+          payload = {
+              'schema_version': 'redwar-arena-experiment-orchestration-v1',
+              'mode': 'protected_holdout',
+              'promotion_authority': False,
+              'baseline_sha': os.environ['BASELINE_SHA'],
+              'challenger_sha': os.environ['CANDIDATE_SHA'],
+              'rules_version': os.environ['RULES_VERSION'],
+              'status': 'protected_holdout_evidence_no_promotion_decision',
+          }
+          with open(os.environ['HOLDOUT_PROVENANCE'], 'w', encoding='utf-8') as handle:
+              json.dump(payload, handle, ensure_ascii=False, indent=2)
+              handle.write('\n')
+          PY
+
+      - name: Upload experiment artifacts
+        if: always() && inputs.mode == 'experiment'
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-arena-experiment-${{ github.sha }}
+          path: /tmp/redwar-arena-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload protected holdout artifacts
+        if: always() && inputs.mode == 'protected_holdout'
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-arena-holdout-${{ github.sha }}
+          path: /tmp/redwar-holdout-results/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Cleanup worktrees
+        if: always()
+        shell: bash
+        run: |
+          git worktree remove --force /tmp/redwar-baseline 2>/dev/null || true
+          git worktree remove --force /tmp/redwar-challenger 2>/dev/null || true
+          git worktree remove --force /tmp/redwar-candidate 2>/dev/null || true
