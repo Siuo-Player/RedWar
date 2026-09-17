@@ -1,14 +1,15 @@
 """Compare persistent and fresh-per-game engine lifecycles.
 
-This is a diagnostic instrument, not a strength or promotion protocol.  It uses
+This is a diagnostic instrument, not a strength or promotion protocol. It uses
 identical opening seeds, colour assignment, node budget, and match runner logic
 for both modes while changing only whether each C++ engine process is reused
-between games.  A difference indicates lifecycle sensitivity; it does not by
+between games. A difference indicates lifecycle sensitivity; it does not by
 itself identify a causal mechanism.
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -37,6 +38,12 @@ def parse_seeds(raw: str) -> tuple[int, ...]:
     if len(set(values)) != len(values) or any(value < 0 for value in values):
         raise ValueError("opening seeds must be unique non-negative integers")
     return values
+
+
+def _action_trace_sha256(actions: object) -> str:
+    """Return a deterministic digest of the normalized action trace."""
+    payload = json.dumps(actions, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def _play_series(
@@ -95,6 +102,8 @@ def _play_series(
                     "valid": bool(game["valid"]),
                     "termination_reason": game["termination_reason"],
                     "plies": game["plies"],
+                    "final_rwen": str(game["final_rwen"]),
+                    "action_trace_sha256": _action_trace_sha256(game["actions"]),
                 }
             )
 
@@ -133,6 +142,31 @@ def compare_modes(
 ) -> dict[str, object]:
     p_totals = persistent["totals"]
     f_totals = fresh["totals"]
+    p_records = {int(record["game_index"]): record for record in persistent["records"]}
+    f_records = {int(record["game_index"]): record for record in fresh["records"]}
+    common_indices = sorted(set(p_records) & set(f_records))
+
+    outcome_disagreements = [
+        index
+        for index in common_indices
+        if p_records[index]["outcome"] != f_records[index]["outcome"]
+    ]
+    termination_disagreements = [
+        index
+        for index in common_indices
+        if p_records[index]["termination_reason"] != f_records[index]["termination_reason"]
+    ]
+    final_state_disagreements = [
+        index
+        for index in common_indices
+        if p_records[index]["final_rwen"] != f_records[index]["final_rwen"]
+    ]
+    trace_disagreements = [
+        index
+        for index in common_indices
+        if p_records[index]["action_trace_sha256"] != f_records[index]["action_trace_sha256"]
+    ]
+
     return {
         "persistent_totals": p_totals,
         "fresh_totals": f_totals,
@@ -148,6 +182,11 @@ def compare_modes(
             int(fresh["challenger_outcomes_by_colour"]["white"]["challenger"])
             - int(fresh["challenger_outcomes_by_colour"]["black"]["challenger"])
         ),
+        "matched_game_count": len(common_indices),
+        "outcome_disagreements": outcome_disagreements,
+        "termination_disagreements": termination_disagreements,
+        "final_state_disagreements": final_state_disagreements,
+        "trace_disagreements": trace_disagreements,
     }
 
 
@@ -185,7 +224,7 @@ def main() -> int:
     )
 
     payload = {
-        "schema_version": "redwar-arena-lifecycle-diagnostic-v1",
+        "schema_version": "redwar-arena-lifecycle-diagnostic-v2",
         "diagnostic_status": "observational_lifecycle_sensitivity_no_promotion_decision",
         "parameters": {
             "challenger_engine": str(Path(args.challenger_engine).resolve()),
