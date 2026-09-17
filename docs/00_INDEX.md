@@ -32,6 +32,7 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | Design | `GAME_DESIGN.md` |
 | Heróis | `HERO_SYSTEM.md` + configuração |
 | Ares | `AI_ENGINE.md` |
+| Ares Balance Baseline 1.0-Lite | `ARES_BALANCE_BASELINE_1_0_LITE.md` |
 | NNUE | `NNUE.md` |
 | Benchmarks | `AI_BENCHMARK_PROTOCOL.md` |
 | Strength | `STRENGTH_EVALUATION.md` |
