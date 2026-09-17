@@ -44,6 +44,10 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | Online | `WEB_MULTIPLAYER.md` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
 
+## 1.0-Lite baseline selection
+
+[`LITE_BASELINE_SELECTION_EXPERIMENT.md`](LITE_BASELINE_SELECTION_EXPERIMENT.md) documenta a experiência controlada usada para selecionar o agente reprodutível do Balance Lab do 1.0-Lite.
+
 ## Evidência
 
 `DOCUMENTED` ≠ `IMPLEMENTED` ≠ `TESTED` ≠ `VALIDATED` ≠ `PROVEN`.
