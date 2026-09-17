@@ -15,6 +15,8 @@ def _record(game_index, seed=101, colour="white", outcome="challenger"):
         "valid": True,
         "termination_reason": "capture",
         "plies": 2,
+        "final_rwen": f"state-{game_index}",
+        "action_trace_sha256": f"{'0' * 63}{game_index}",
     }
 
 
@@ -36,15 +38,31 @@ def _series(records):
     }
 
 
+def _comparison(persistent_series, fresh_series):
+    return {
+        "persistent_totals": persistent_series["totals"],
+        "fresh_totals": fresh_series["totals"],
+        "outcome_delta": {
+            key: persistent_series["totals"][key] - fresh_series["totals"][key]
+            for key in ("challenger", "baseline", "invalid")
+        },
+        "matched_game_count": len(persistent_series["records"]),
+        "outcome_disagreements": [],
+        "termination_disagreements": [],
+        "final_state_disagreements": [],
+        "trace_disagreements": [],
+    }
+
+
 def _payload(games=2):
-    persistent = [_record(0, colour="white"), _record(1, colour="black")]
-    fresh = [_record(0, colour="white"), _record(1, colour="black")]
+    persistent = [_record(0, colour="white"), _record(1, colour="black", seed=101)]
+    fresh = [_record(0, colour="white"), _record(1, colour="black", seed=101)]
     if games != 2:
         raise AssertionError("test fixture only defines two games")
     persistent_series = _series(persistent)
     fresh_series = _series(fresh)
     return {
-        "schema_version": "redwar-arena-lifecycle-diagnostic-v1",
+        "schema_version": "redwar-arena-lifecycle-diagnostic-v2",
         "diagnostic_status": "observational_lifecycle_sensitivity_no_promotion_decision",
         "parameters": {
             "games": games,
@@ -53,10 +71,7 @@ def _payload(games=2):
         },
         "persistent_per_game_process": persistent_series,
         "fresh_process_per_game": fresh_series,
-        "comparison": {
-            "persistent_totals": persistent_series["totals"],
-            "fresh_totals": fresh_series["totals"],
-        },
+        "comparison": _comparison(persistent_series, fresh_series),
     }
 
 
@@ -103,4 +118,18 @@ def test_validate_rejects_summary_mismatch():
     payload = _payload()
     payload["comparison"]["fresh_totals"] = {"challenger": 1, "baseline": 1, "invalid": 0}
     with pytest.raises(ValueError, match="comparison fresh_totals"):
+        validate_payload(payload)
+
+
+def test_validate_rejects_matched_trace_summary_mismatch():
+    payload = _payload()
+    payload["comparison"]["trace_disagreements"] = [1]
+    with pytest.raises(ValueError, match="comparison trace_disagreements"):
+        validate_payload(payload)
+
+
+def test_validate_rejects_malformed_trace_hash():
+    payload = _payload()
+    payload["persistent_per_game_process"]["records"][0]["action_trace_sha256"] = "not-a-sha256"
+    with pytest.raises(ValueError, match="SHA-256"):
         validate_payload(payload)
