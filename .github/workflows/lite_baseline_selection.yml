@@ -51,6 +51,8 @@ jobs:
         run: |
           echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           echo "rules_version=$(git rev-parse HEAD:docs/GAME_RULES.md)" >> "$GITHUB_OUTPUT"
+          echo "engine_sha256=$(sha256sum ai/cpp_engine/engine | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "compiler_identity=$(g++ --version | head -n1)" >> "$GITHUB_OUTPUT"
 
       - name: Run controlled baseline-selection experiment
         run: |
@@ -59,6 +61,8 @@ jobs:
             --rules-version "${{ steps.identity.outputs.rules_version }}" \
             --pairs "${{ inputs.pairs }}" \
             --replay-checks "${{ inputs.replay_checks }}" \
+            --engine-sha256 "${{ steps.identity.outputs.engine_sha256 }}" \
+            --compiler-identity "${{ steps.identity.outputs.compiler_identity }}" \
             --output /tmp/redwar-lite-ares-baseline-selection.json
 
       - name: Upload raw baseline-selection evidence
