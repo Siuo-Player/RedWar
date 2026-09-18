@@ -8,7 +8,7 @@ def test_lite_baseline_selection_workflow_is_manual_and_not_promotion_authority(
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "workflow_dispatch:" in text
     assert "RedWar Lite Ares Baseline Selection" in text
-    assert "lite_baseline_selection.py" in text
+    assert "python -m tools.analytics.lite_baseline_selection" in text
     assert "auto_pricer.py" not in text
     assert "promotion_arena.py" not in text
     assert "--pairs" in text
