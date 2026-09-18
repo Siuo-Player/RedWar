@@ -34,11 +34,13 @@ def test_fixed_opening_seed_count_is_bounded():
 
 
 def test_metadata_explicitly_disallows_strength_and_balance_claims():
-    metadata = build_metadata("abc123", "rules-v1", 8, fixed_opening_seeds(16))
+    metadata = build_metadata("abc123", "rules-v1", 8, fixed_opening_seeds(16), "deadbeef", "g++ (Ubuntu 15.2.0)")
     assert metadata["strength_claim_allowed"] is False
     assert metadata["balance_claim_allowed"] is False
     assert metadata["pairing_policy"] == "same-candidate-self-play-with-colour-inversion"
     assert metadata["process_policy"] == "fresh-candidate-processes-per-game"
+    assert metadata["engine_sha256"] == "deadbeef"
+    assert metadata["compiler_identity"] == "g++ (Ubuntu 15.2.0)"
 
 
 def test_action_digest_is_order_and_content_stable():
