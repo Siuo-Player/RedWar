@@ -54,7 +54,7 @@ jobs:
 
       - name: Run controlled baseline-selection experiment
         run: |
-          python tools/analytics/lite_baseline_selection.py \
+          python -m tools.analytics.lite_baseline_selection \
             --source-sha "${{ steps.identity.outputs.source_sha }}" \
             --rules-version "${{ steps.identity.outputs.rules_version }}" \
             --pairs "${{ inputs.pairs }}" \
