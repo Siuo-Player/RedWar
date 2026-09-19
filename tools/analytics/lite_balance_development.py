@@ -1,0 +1,287 @@
+"""Controlled 1.0-Lite Balance Lab development campaign.
+
+This runner collects development-only self-play evidence under the frozen
+StockWar-Iniciante / 100,000-node Ares baseline. It deliberately reserves a
+separate deterministic seed bank for future protected hold-out validation and
+does not expose that hold-out set through the development command.
+
+No balance, rules, or Ares-policy changes are performed here.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+import time
+from pathlib import Path
+from typing import Any, Literal
+
+ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from ai.bot import CppEngineBot
+from tools.analytics.arena_tournament import ARENA_MAX_PLIES, run_headless_match
+
+
+BASELINE_POLICY = "StockWar-Iniciante"
+BASELINE_NODES = 100_000
+CAMPAIGN_ID = "redwar-lite-balance-development-v1"
+CAMPAIGN_SPLIT = "development"
+OPENING_BANK_ID = "lite-balance-development-bank-v1"
+OPENING_BANK_COUNT = 48
+GAMES_PER_OPENING = 2
+TOTAL_GAMES = OPENING_BANK_COUNT * GAMES_PER_OPENING
+
+# These 48 conditions are permanently reserved for development evidence.
+# The following 48 seeds are reserved for a future protected hold-out and are
+# intentionally not accepted by the current runner.
+_DEVELOPMENT_SEEDS = tuple(2001 + 17 * index for index in range(48))
+_HOLDOUT_SEEDS = tuple(2001 + 17 * index for index in range(48, 96))
+
+SeedSet = tuple[int, ...]
+Color = Literal["white", "black"]
+
+
+def development_opening_seeds() -> SeedSet:
+    return _DEVELOPMENT_SEEDS
+
+
+def protected_holdout_seeds() -> SeedSet:
+    return _HOLDOUT_SEEDS
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _winner_side(winner: object) -> str | None:
+    text = str(winner)
+    if "Brancas" in text:
+        return "white"
+    if "Pretas" in text:
+        return "black"
+    return None
+
+
+def build_campaign_metadata(
+    *,
+    source_sha: str,
+    rules_version: str,
+    engine_sha256: str,
+    compiler_identity: str,
+    hero_config_sha256: str,
+) -> dict[str, Any]:
+    seeds = development_opening_seeds()
+    return {
+        "campaign_id": CAMPAIGN_ID,
+        "campaign_split": CAMPAIGN_SPLIT,
+        "purpose": "controlled-development-balance-evidence",
+        "strength_claim_allowed": False,
+        "global_balance_claim_allowed": False,
+        "baseline_policy": BASELINE_POLICY,
+        "node_budget": BASELINE_NODES,
+        "source_sha": source_sha,
+        "rules_version": rules_version,
+        "engine_sha256": engine_sha256,
+        "compiler_identity": compiler_identity,
+        "hero_config_sha256": hero_config_sha256,
+        "opening_bank_id": OPENING_BANK_ID,
+        "opening_bank_size": len(seeds),
+        "opening_seeds": list(seeds),
+        "opening_seed_generation": "2001 + 17 * index",
+        "condition_independence_policy": "one unique deterministic opening condition per development game pair",
+        "colour_policy": "two games per opening with focus colour inverted",
+        "pairing_policy": "same opening condition, white-focus then black-focus",
+        "process_policy": "fresh candidate engine processes per game",
+        "termination_policy": f"game_over_or_{ARENA_MAX_PLIES}_plies",
+        "validity_policy": "valid_only_when_authoritative_game_over_has_declared_winner",
+        "raw_evidence_policy": "persist raw game records before derived summaries",
+        "context_policy": (
+            "retain initial/final RWEN, seed, opening identity, colour, winner, "
+            "terminal reason and action trace"
+        ),
+        "holdout_policy": "protected seed set reserved outside this runner",
+    }
+
+
+def opening_condition_id(index: int) -> str:
+    if not 0 <= index < OPENING_BANK_COUNT:
+        raise ValueError(f"opening index outside development bank: {index}")
+    return f"{OPENING_BANK_ID}:{index:02d}"
+
+
+def _record_game(
+    *,
+    opening_index: int,
+    seed: int,
+    focus_color: Color,
+    game: dict[str, Any],
+    elapsed_seconds: float,
+    metadata: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "campaign_id": CAMPAIGN_ID,
+        "campaign_split": CAMPAIGN_SPLIT,
+        "opening_condition_id": opening_condition_id(opening_index),
+        "opening_index": opening_index,
+        "seed": seed,
+        "focus_color": focus_color,
+        "baseline_policy": BASELINE_POLICY,
+        "node_budget": BASELINE_NODES,
+        "source_sha": metadata["source_sha"],
+        "rules_version": metadata["rules_version"],
+        "engine_sha256": metadata["engine_sha256"],
+        "compiler_identity": metadata["compiler_identity"],
+        "hero_config_sha256": metadata["hero_config_sha256"],
+        "initial_position_sha256": _sha256_text(str(game.get("initial_rwen", ""))),
+        "elapsed_seconds": round(elapsed_seconds, 6),
+        "winner_side": _winner_side(game.get("winner")),
+        "valid": bool(game.get("valid")),
+        "termination_reason": game.get("termination_reason"),
+        "failure_reason": game.get("failure_reason"),
+        "failure_exception_type": game.get("failure_exception_type"),
+        "failure_detail": game.get("failure_detail"),
+        "plies": game.get("plies"),
+        "initial_rwen": game.get("initial_rwen"),
+        "final_rwen": game.get("final_rwen"),
+        "actions": game.get("actions", []),
+        "action_counts": game.get("action_counts", {}),
+    }
+
+
+def _run_one_game(
+    *,
+    opening_index: int,
+    seed: int,
+    focus_color: Color,
+    engine_path: str,
+) -> tuple[dict[str, Any], float]:
+    started = time.perf_counter()
+    white_bot = CppEngineBot(nodes=BASELINE_NODES, executable_path=engine_path)
+    black_bot = CppEngineBot(nodes=BASELINE_NODES, executable_path=engine_path)
+    try:
+        if focus_color == "white":
+            game = run_headless_match(
+                white_bot,
+                black_bot,
+                opening_index=opening_index,
+                opening_seed=seed,
+            )
+        else:
+            game = run_headless_match(
+                black_bot,
+                white_bot,
+                opening_index=opening_index,
+                opening_seed=seed,
+            )
+    finally:
+        white_bot.__del__()
+        black_bot.__del__()
+
+    return game, time.perf_counter() - started
+
+
+def run_campaign(
+    *,
+    source_sha: str,
+    rules_version: str,
+    engine_sha256: str,
+    compiler_identity: str,
+    hero_config_sha256: str,
+    engine_path: str,
+) -> dict[str, Any]:
+    metadata = build_campaign_metadata(
+        source_sha=source_sha,
+        rules_version=rules_version,
+        engine_sha256=engine_sha256,
+        compiler_identity=compiler_identity,
+        hero_config_sha256=hero_config_sha256,
+    )
+    games: list[dict[str, Any]] = []
+
+    for opening_index, seed in enumerate(development_opening_seeds()):
+        for focus_color in ("white", "black"):
+            game, elapsed = _run_one_game(
+                opening_index=opening_index,
+                seed=seed,
+                focus_color=focus_color,
+                engine_path=engine_path,
+            )
+            games.append(
+                _record_game(
+                    opening_index=opening_index,
+                    seed=seed,
+                    focus_color=focus_color,
+                    game=game,
+                    elapsed_seconds=elapsed,
+                    metadata=metadata,
+                )
+            )
+
+    valid_games = [game for game in games if game["valid"]]
+    invalid_games = [game for game in games if not game["valid"]]
+    summary = {
+        "games": len(games),
+        "expected_games": TOTAL_GAMES,
+        "valid_games": len(valid_games),
+        "invalid_games": len(invalid_games),
+        "termination_reasons": _count_values(games, "termination_reason"),
+        "winner_sides": _count_values(valid_games, "winner_side"),
+        "focus_colour_games": _count_values(games, "focus_color"),
+        "opening_conditions": len({game["opening_condition_id"] for game in games}),
+        "selection_or_strength_claim_allowed": False,
+    }
+    return {
+        "metadata": metadata,
+        "summary": summary,
+        "games": games,
+    }
+
+
+def _count_values(records: list[dict[str, Any]], key: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for record in records:
+        value = str(record.get(key))
+        counts[value] = counts.get(value, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def write_campaign(result: dict[str, Any], output: Path) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Run the frozen 1.0-Lite development Balance Lab campaign."
+    )
+    parser.add_argument("--source-sha", required=True)
+    parser.add_argument("--rules-version", required=True)
+    parser.add_argument("--engine-sha256", required=True)
+    parser.add_argument("--compiler-identity", required=True)
+    parser.add_argument("--hero-config-sha256", required=True)
+    parser.add_argument("--engine-path", required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+
+    result = run_campaign(
+        source_sha=args.source_sha,
+        rules_version=args.rules_version,
+        engine_sha256=args.engine_sha256,
+        compiler_identity=args.compiler_identity,
+        hero_config_sha256=args.hero_config_sha256,
+        engine_path=args.engine_path,
+    )
+    write_campaign(result, args.output)
+    print(json.dumps(result["summary"], ensure_ascii=False, indent=2))
+    return 0 if result["summary"]["invalid_games"] == 0 else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
