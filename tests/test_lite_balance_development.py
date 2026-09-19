@@ -5,6 +5,8 @@ from tools.analytics.lite_balance_development import (
     BASELINE_POLICY,
     TOTAL_GAMES,
     build_campaign_metadata,
+    development_opening_conditions,
+    development_opening_request_seeds,
     development_opening_seeds,
     opening_condition_id,
     protected_holdout_seeds,
@@ -13,11 +15,17 @@ from tools.analytics.lite_balance_development import (
 
 def test_development_bank_has_unique_conditions_and_exact_size():
     seeds = development_opening_seeds()
+    conditions = development_opening_conditions()
+    assert len(conditions) == 96
     assert len(seeds) == 96
     assert len(set(seeds)) == 96
+    assert len({item["position_sha256"] for item in conditions}) == 96
+    assert len({item["resolved_seed"] for item in conditions}) == 96
     assert len(protected_holdout_seeds()) == 96
     assert len(set(protected_holdout_seeds())) == 96
-    assert set(seeds).isdisjoint(protected_holdout_seeds())
+    assert set(development_opening_request_seeds()).isdisjoint(protected_holdout_seeds())
+    assert all(item["white_draft_cost"] <= 200 for item in conditions)
+    assert all(item["black_draft_cost"] <= 200 for item in conditions)
 
 
 def test_holdout_bank_is_reserved_and_disjoint():
@@ -41,8 +49,10 @@ def test_campaign_protocol_is_frozen():
     assert metadata["strength_claim_allowed"] is False
     assert metadata["global_balance_claim_allowed"] is False
     assert metadata["opening_bank_size"] == 96
-    assert metadata["opening_seed_generation"] == "2000 + 7 * index"
-    assert metadata["condition_independence_policy"] == "one unique deterministic opening condition per development game; no repeated pseudo-replicates"
+    assert len(metadata["opening_conditions"]) == 96
+    assert metadata["opening_seed_generation"].startswith("request=2000 + 7 * index")
+    assert metadata["pre_match_setup_policy"] == "canonical validate_complete_pre_match_setup with 200-point team budgets"
+    assert metadata["condition_independence_policy"] == "one unique deterministic legal opening condition per development game; no repeated pseudo-replicates"
     assert metadata["colour_policy"] == "record both white and black sides; first-player is fixed by the current engine contract"
     assert metadata["pairing_policy"] == "no duplicate relabelled self-play runs"
     assert metadata["initiative_policy"] == "white_to_move"
