@@ -132,7 +132,8 @@ def build_campaign_metadata(
     compiler_identity: str,
     hero_config_sha256: str,
 ) -> dict[str, Any]:
-    seeds = development_opening_seeds()
+    conditions = development_opening_conditions()
+    seeds = tuple(int(item["resolved_seed"]) for item in conditions)
     return {
         "campaign_id": CAMPAIGN_ID,
         "campaign_split": CAMPAIGN_SPLIT,
@@ -147,10 +148,15 @@ def build_campaign_metadata(
         "compiler_identity": compiler_identity,
         "hero_config_sha256": hero_config_sha256,
         "opening_bank_id": OPENING_BANK_ID,
-        "opening_bank_size": len(seeds),
+        "opening_bank_size": len(conditions),
+        "opening_request_seeds": list(development_opening_request_seeds()),
         "opening_seeds": list(seeds),
-        "opening_seed_generation": "2000 + 7 * index",
-        "condition_independence_policy": "one unique deterministic opening condition per development game; no repeated pseudo-replicates",
+        "opening_conditions": list(conditions),
+        "holdout_request_seeds": list(protected_holdout_seeds()),
+        "opening_seed_generation": "request=2000 + 7 * index; resolved=request + attempt * 1000003, first legal unique condition",
+        "opening_resolution_max_attempts": MAX_OPENING_RESOLUTION_ATTEMPTS,
+        "condition_independence_policy": "one unique deterministic legal opening condition per development game; no repeated pseudo-replicates",
+        "pre_match_setup_policy": "canonical validate_complete_pre_match_setup with 200-point team budgets",
         "colour_policy": "record both white and black sides; first-player is fixed by the current engine contract",
         "pairing_policy": "no duplicate relabelled self-play runs",
         "initiative_policy": "white_to_move",
@@ -193,7 +199,12 @@ def _record_game(
         "engine_sha256": metadata["engine_sha256"],
         "compiler_identity": metadata["compiler_identity"],
         "hero_config_sha256": metadata["hero_config_sha256"],
-        "initial_position_sha256": _sha256_text(str(game.get("initial_rwen", ""))),
+        "requested_seed": metadata["opening_conditions"][opening_index]["requested_seed"],
+        "seed_resolution_attempt": metadata["opening_conditions"][opening_index]["resolution_attempt"],
+        "initial_position_sha256": metadata["opening_conditions"][opening_index]["position_sha256"],
+        "white_draft_cost": metadata["opening_conditions"][opening_index]["white_draft_cost"],
+        "black_draft_cost": metadata["opening_conditions"][opening_index]["black_draft_cost"],
+        "pre_match_setup_validated": True,
         "elapsed_seconds": round(elapsed_seconds, 6),
         "winner_side": _winner_side(game.get("winner")),
         "valid": bool(game.get("valid")),
@@ -249,8 +260,10 @@ def run_campaign(
         hero_config_sha256=hero_config_sha256,
     )
     games: list[dict[str, Any]] = []
+    conditions = development_opening_conditions()
 
-    for opening_index, seed in enumerate(development_opening_seeds()):
+    for opening_index, condition in enumerate(conditions):
+        seed = int(condition["resolved_seed"])
         game, elapsed = _run_one_game(
             opening_index=opening_index,
             seed=seed,
