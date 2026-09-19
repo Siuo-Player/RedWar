@@ -24,6 +24,9 @@ def test_development_bank_has_unique_conditions_and_exact_size():
     assert len(protected_holdout_seeds()) == 96
     assert len(set(protected_holdout_seeds())) == 96
     assert set(development_opening_request_seeds()).isdisjoint(protected_holdout_seeds())
+    assert min(development_opening_seeds()) >= 1_000_000
+    assert max(development_opening_seeds()) < 2_000_000_000
+    assert min(protected_holdout_seeds()) == 2_000_000_000
     assert max(development_opening_seeds()) < min(protected_holdout_seeds())
     assert all(item["white_draft_cost"] <= 200 for item in conditions)
     assert all(item["black_draft_cost"] <= 200 for item in conditions)
