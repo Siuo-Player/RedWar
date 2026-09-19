@@ -15,6 +15,7 @@ import hashlib
 import json
 import sys
 import time
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +24,10 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from ai.bot import CppEngineBot
+from engine.game_state import GameState
+from engine.setup import validate_complete_pre_match_setup
 from tools.analytics.arena_tournament import ARENA_MAX_PLIES, run_headless_match
+from tools.analytics.opening_book import gerar_abertura
 
 
 BASELINE_POLICY = "StockWar-Iniciante"
@@ -33,20 +37,78 @@ CAMPAIGN_SPLIT = "development"
 OPENING_BANK_ID = "lite-balance-development-bank-v1"
 OPENING_BANK_COUNT = 96
 TOTAL_GAMES = OPENING_BANK_COUNT
+OPENING_SEED_STEP = 1_000_003
+MAX_OPENING_RESOLUTION_ATTEMPTS = 128
 
-# 96 unique development conditions. Another disjoint 96-condition bank is
-# reserved for protected hold-out validation and is not consumed here.
-_DEVELOPMENT_SEEDS = tuple(2000 + 7 * index for index in range(96))
-_HOLDOUT_SEEDS = tuple(2000 + 7 * index for index in range(96, 192))
+# Requested condition identifiers are disjoint between development and future
+# protected hold-out. Each requested seed is resolved to the first deterministic
+# seed whose generated opening satisfies the canonical pre-match setup contract
+# and has a unique initial RWEN.
+_DEVELOPMENT_REQUESTED_SEEDS = tuple(2000 + 7 * index for index in range(96))
+_HOLDOUT_REQUESTED_SEEDS = tuple(2000 + 7 * index for index in range(96, 192))
 
+
+@lru_cache(maxsize=1)
+def development_opening_conditions() -> tuple[dict[str, Any], ...]:
+    used_position_hashes: set[str] = set()
+    used_resolved_seeds: set[int] = set()
+    conditions: list[dict[str, Any]] = []
+
+    for opening_index, requested_seed in enumerate(_DEVELOPMENT_REQUESTED_SEEDS):
+        resolved = None
+        for attempt in range(MAX_OPENING_RESOLUTION_ATTEMPTS):
+            candidate_seed = requested_seed + attempt * OPENING_SEED_STEP
+            if candidate_seed in used_resolved_seeds:
+                continue
+
+            board = gerar_abertura(candidate_seed)
+            try:
+                draft_costs = validate_complete_pre_match_setup(board)
+            except ValueError:
+                continue
+
+            state = GameState()
+            state.board = board
+            initial_rwen = state.to_rwen()
+            position_sha256 = _sha256_text(initial_rwen)
+            if position_sha256 in used_position_hashes:
+                continue
+
+            resolved = {
+                "opening_index": opening_index,
+                "requested_seed": requested_seed,
+                "resolved_seed": candidate_seed,
+                "resolution_attempt": attempt,
+                "initial_rwen": initial_rwen,
+                "position_sha256": position_sha256,
+                "white_draft_cost": int(draft_costs["brancas"]),
+                "black_draft_cost": int(draft_costs["pretas"]),
+            }
+            break
+
+        if resolved is None:
+            raise RuntimeError(
+                f"Unable to resolve legal unique opening for requested seed {requested_seed} "
+                f"after {MAX_OPENING_RESOLUTION_ATTEMPTS} attempts"
+            )
+
+        used_resolved_seeds.add(int(resolved["resolved_seed"]))
+        used_position_hashes.add(str(resolved["position_sha256"]))
+        conditions.append(resolved)
+
+    return tuple(conditions)
+
+
+def development_opening_request_seeds() -> tuple[int, ...]:
+    return _DEVELOPMENT_REQUESTED_SEEDS
 
 
 def development_opening_seeds() -> tuple[int, ...]:
-    return _DEVELOPMENT_SEEDS
+    return tuple(int(item["resolved_seed"]) for item in development_opening_conditions())
 
 
 def protected_holdout_seeds() -> tuple[int, ...]:
-    return _HOLDOUT_SEEDS
+    return _HOLDOUT_REQUESTED_SEEDS
 
 
 def _sha256_text(value: str) -> str:
