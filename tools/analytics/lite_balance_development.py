@@ -16,7 +16,7 @@ import json
 import sys
 import time
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -41,11 +41,11 @@ _HOLDOUT_SEEDS = tuple(2000 + 7 * index for index in range(96, 192))
 
 
 
-def development_opening_seeds() -> SeedSet:
+def development_opening_seeds() -> tuple[int, ...]:
     return _DEVELOPMENT_SEEDS
 
 
-def protected_holdout_seeds() -> SeedSet:
+def protected_holdout_seeds() -> tuple[int, ...]:
     return _HOLDOUT_SEEDS
 
 
