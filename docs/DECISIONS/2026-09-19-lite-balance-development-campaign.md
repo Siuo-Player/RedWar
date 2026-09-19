@@ -8,21 +8,23 @@ The 1.0-Lite Ares Balance Baseline is frozen at StockWar-Iniciante / 100,000 nod
 
 ## Development population
 
-The campaign uses **48 unique deterministic opening conditions**, each played twice with the focus colour inverted, for **96 games total**.
+The development set contains **96 unique deterministic opening conditions and 96 games total: exactly one game per condition**.
 
-The development opening seeds are generated as:
+Development seeds are generated as:
 
-2001 + 17 × index, for indexes 0 through 47.
+2000 + 7 × index, for indexes 0 through 95.
 
-Each opening condition is therefore observed once with white as the focus colour and once with black as the focus colour. These are paired observations, not independent samples simply because they are two games.
+The runner deliberately does **not** execute a second relabelled self-play game for the same opening. With identical Ares policies on both sides, relabelling the same deterministic self-play condition would not create an independent observation.
+
+The first-player condition is retained explicitly: the current campaign always starts with `white_to_move`. White/black winner side is recorded, but this campaign does not claim colour or first-player calibration.
 
 ## Protected hold-out reservation
 
-A separate **48-opening hold-out bank** is reserved but is deliberately not exposed by the development runner.
+A separate **96-opening protected hold-out bank** is reserved and deliberately not exposed by the development runner.
 
 Its seeds are:
 
-2001 + 17 × index, for indexes 48 through 95.
+2000 + 7 × index, for indexes 96 through 191.
 
 No development analysis may treat this bank as training/calibration data. A future validation issue must explicitly decide when and how it is opened.
 
@@ -37,7 +39,7 @@ Every campaign record must preserve:
 - hero-configuration SHA-256;
 - fixed StockWar-Iniciante / 100,000-node policy;
 - opening condition and seed;
-- focus colour;
+- first-player / winner-side context;
 - initial/final RWEN;
 - action trace and terminal reason;
 - execution validity/failure diagnostics.
