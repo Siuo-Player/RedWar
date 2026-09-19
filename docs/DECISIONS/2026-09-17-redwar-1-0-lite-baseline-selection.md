@@ -64,6 +64,6 @@ Evidence artifact: `redwar-lite-ares-baseline-selection-35415022596` (artifact `
 
 Only after this freeze may Balance Lab development samples be collected under this exact Ares policy/context.
 
-## Next decision
+## Post-freeze boundary
 
-After the controlled artifact has been executed and reviewed, one exact profile/configuration can be frozen as the 1.0-Lite Balance Baseline. Only then may Balance Lab development samples be collected for hero/economy analysis.
+The baseline is now frozen. Subsequent 1.0-Lite Balance Lab evidence must use this exact Ares policy/context unless a new baseline-selection decision is explicitly recorded.
