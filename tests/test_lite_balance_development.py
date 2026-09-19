@@ -22,8 +22,8 @@ def test_development_bank_has_unique_conditions_and_exact_size():
 
 def test_holdout_bank_is_reserved_and_disjoint():
     holdout = protected_holdout_seeds()
-    assert len(holdout) == 48
-    assert len(set(holdout)) == 48
+    assert len(holdout) == 96
+    assert len(set(holdout)) == 96
     assert set(holdout).isdisjoint(development_opening_seeds())
 
 
