@@ -55,3 +55,8 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 ## Histórico de decisões
 
 `DECISIONS/` preserva decisões anteriores que possam ser úteis para compreender ou reverter uma escolha. Uma decisão histórica não define o estado atual e não deve duplicar o roadmap ou um contrato atual.
+
+
+## 1.0-Lite balance development
+
+[DECISIONS/2026-09-19-lite-balance-development-campaign.md](DECISIONS/2026-09-19-lite-balance-development-campaign.md) defines the controlled development campaign and reserves a separate protected opening bank for future validation.
