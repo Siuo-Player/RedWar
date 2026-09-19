@@ -37,15 +37,14 @@ CAMPAIGN_SPLIT = "development"
 OPENING_BANK_ID = "lite-balance-development-bank-v1"
 OPENING_BANK_COUNT = 96
 TOTAL_GAMES = OPENING_BANK_COUNT
-OPENING_SEED_STEP = 1_000_003
-MAX_OPENING_RESOLUTION_ATTEMPTS = 128
+MAX_OPENING_RESOLUTION_ATTEMPTS = 10_000
 
 # Requested condition identifiers are disjoint between development and future
 # protected hold-out. Each requested seed is resolved to the first deterministic
 # seed whose generated opening satisfies the canonical pre-match setup contract
 # and has a unique initial RWEN.
-_DEVELOPMENT_REQUESTED_SEEDS = tuple(2000 + 7 * index for index in range(96))
-_HOLDOUT_REQUESTED_SEEDS = tuple(2000 + 7 * index for index in range(96, 192))
+_DEVELOPMENT_REQUESTED_SEEDS = tuple(10_000 + 7 * index for index in range(96))
+_HOLDOUT_REQUESTED_SEEDS = tuple(20_000_000 + 7 * index for index in range(96))
 
 
 @lru_cache(maxsize=1)
@@ -57,7 +56,7 @@ def development_opening_conditions() -> tuple[dict[str, Any], ...]:
     for opening_index, requested_seed in enumerate(_DEVELOPMENT_REQUESTED_SEEDS):
         resolved = None
         for attempt in range(MAX_OPENING_RESOLUTION_ATTEMPTS):
-            candidate_seed = requested_seed + attempt * OPENING_SEED_STEP
+            candidate_seed = requested_seed + attempt
             if candidate_seed in used_resolved_seeds:
                 continue
 
@@ -153,7 +152,7 @@ def build_campaign_metadata(
         "opening_seeds": list(seeds),
         "opening_conditions": list(conditions),
         "holdout_request_seeds": list(protected_holdout_seeds()),
-        "opening_seed_generation": "request=2000 + 7 * index; resolved=request + attempt * 1000003, first legal unique condition",
+        "opening_seed_generation": "development request=10000 + 7 * index; holdout request=20000000 + 7 * index; resolved=request + attempt, first legal unique condition",
         "opening_resolution_max_attempts": MAX_OPENING_RESOLUTION_ATTEMPTS,
         "condition_independence_policy": "one unique deterministic legal opening condition per development game; no repeated pseudo-replicates",
         "pre_match_setup_policy": "canonical validate_complete_pre_match_setup with 200-point team budgets",
