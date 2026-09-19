@@ -31,18 +31,14 @@ BASELINE_NODES = 100_000
 CAMPAIGN_ID = "redwar-lite-balance-development-v1"
 CAMPAIGN_SPLIT = "development"
 OPENING_BANK_ID = "lite-balance-development-bank-v1"
-OPENING_BANK_COUNT = 48
-GAMES_PER_OPENING = 2
-TOTAL_GAMES = OPENING_BANK_COUNT * GAMES_PER_OPENING
+OPENING_BANK_COUNT = 96
+TOTAL_GAMES = OPENING_BANK_COUNT
 
-# These 48 conditions are permanently reserved for development evidence.
-# The following 48 seeds are reserved for a future protected hold-out and are
-# intentionally not accepted by the current runner.
-_DEVELOPMENT_SEEDS = tuple(2001 + 17 * index for index in range(48))
-_HOLDOUT_SEEDS = tuple(2001 + 17 * index for index in range(48, 96))
+# 96 unique development conditions. Another disjoint 96-condition bank is
+# reserved for protected hold-out validation and is not consumed here.
+_DEVELOPMENT_SEEDS = tuple(2000 + 7 * index for index in range(96))
+_HOLDOUT_SEEDS = tuple(2000 + 7 * index for index in range(96, 192))
 
-SeedSet = tuple[int, ...]
-Color = Literal["white", "black"]
 
 
 def development_opening_seeds() -> SeedSet:
@@ -91,16 +87,17 @@ def build_campaign_metadata(
         "opening_bank_id": OPENING_BANK_ID,
         "opening_bank_size": len(seeds),
         "opening_seeds": list(seeds),
-        "opening_seed_generation": "2001 + 17 * index",
-        "condition_independence_policy": "one unique deterministic opening condition per development game pair",
-        "colour_policy": "two games per opening with focus colour inverted",
-        "pairing_policy": "same opening condition, white-focus then black-focus",
-        "process_policy": "fresh candidate engine processes per game",
+        "opening_seed_generation": "2000 + 7 * index",
+        "condition_independence_policy": "one unique deterministic opening condition per development game; no repeated pseudo-replicates",
+        "colour_policy": "record both white and black sides; first-player is fixed by the current engine contract",
+        "pairing_policy": "no duplicate relabelled self-play runs",
+        "initiative_policy": "white_to_move",
+        "process_policy": "fresh white and black candidate processes per game",
         "termination_policy": f"game_over_or_{ARENA_MAX_PLIES}_plies",
         "validity_policy": "valid_only_when_authoritative_game_over_has_declared_winner",
         "raw_evidence_policy": "persist raw game records before derived summaries",
         "context_policy": (
-            "retain initial/final RWEN, seed, opening identity, colour, winner, "
+            "retain initial/final RWEN, seed, opening identity, white/black winner side, "
             "terminal reason and action trace"
         ),
         "holdout_policy": "protected seed set reserved outside this runner",
@@ -117,7 +114,6 @@ def _record_game(
     *,
     opening_index: int,
     seed: int,
-    focus_color: Color,
     game: dict[str, Any],
     elapsed_seconds: float,
     metadata: dict[str, Any],
@@ -128,7 +124,6 @@ def _record_game(
         "opening_condition_id": opening_condition_id(opening_index),
         "opening_index": opening_index,
         "seed": seed,
-        "focus_color": focus_color,
         "baseline_policy": BASELINE_POLICY,
         "node_budget": BASELINE_NODES,
         "source_sha": metadata["source_sha"],
@@ -156,27 +151,18 @@ def _run_one_game(
     *,
     opening_index: int,
     seed: int,
-    focus_color: Color,
     engine_path: str,
 ) -> tuple[dict[str, Any], float]:
     started = time.perf_counter()
     white_bot = CppEngineBot(nodes=BASELINE_NODES, executable_path=engine_path)
     black_bot = CppEngineBot(nodes=BASELINE_NODES, executable_path=engine_path)
     try:
-        if focus_color == "white":
-            game = run_headless_match(
-                white_bot,
-                black_bot,
-                opening_index=opening_index,
-                opening_seed=seed,
-            )
-        else:
-            game = run_headless_match(
-                black_bot,
-                white_bot,
-                opening_index=opening_index,
-                opening_seed=seed,
-            )
+        game = run_headless_match(
+            white_bot,
+            black_bot,
+            opening_index=opening_index,
+            opening_seed=seed,
+        )
     finally:
         white_bot.__del__()
         black_bot.__del__()
@@ -203,23 +189,20 @@ def run_campaign(
     games: list[dict[str, Any]] = []
 
     for opening_index, seed in enumerate(development_opening_seeds()):
-        for focus_color in ("white", "black"):
-            game, elapsed = _run_one_game(
+        game, elapsed = _run_one_game(
+            opening_index=opening_index,
+            seed=seed,
+            engine_path=engine_path,
+        )
+        games.append(
+            _record_game(
                 opening_index=opening_index,
                 seed=seed,
-                focus_color=focus_color,
-                engine_path=engine_path,
+                game=game,
+                elapsed_seconds=elapsed,
+                metadata=metadata,
             )
-            games.append(
-                _record_game(
-                    opening_index=opening_index,
-                    seed=seed,
-                    focus_color=focus_color,
-                    game=game,
-                    elapsed_seconds=elapsed,
-                    metadata=metadata,
-                )
-            )
+        )
 
     valid_games = [game for game in games if game["valid"]]
     invalid_games = [game for game in games if not game["valid"]]
@@ -230,7 +213,7 @@ def run_campaign(
         "invalid_games": len(invalid_games),
         "termination_reasons": _count_values(games, "termination_reason"),
         "winner_sides": _count_values(valid_games, "winner_side"),
-        "focus_colour_games": _count_values(games, "focus_color"),
+        "initiative_policy": "white_to_move",
         "opening_conditions": len({game["opening_condition_id"] for game in games}),
         "selection_or_strength_claim_allowed": False,
     }
