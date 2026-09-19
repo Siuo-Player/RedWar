@@ -43,8 +43,8 @@ MAX_OPENING_RESOLUTION_ATTEMPTS = 10_000
 # protected hold-out. Each requested seed is resolved to the first deterministic
 # seed whose generated opening satisfies the canonical pre-match setup contract
 # and has a unique initial RWEN.
-_DEVELOPMENT_REQUESTED_SEEDS = tuple(10_000 + 7 * index for index in range(96))
-_HOLDOUT_REQUESTED_SEEDS = tuple(20_000_000 + 7 * index for index in range(96))
+_DEVELOPMENT_REQUESTED_SEEDS = tuple(1_000_000 + 7 * index for index in range(96))
+_HOLDOUT_REQUESTED_SEEDS = tuple(2_000_000_000 + 7 * index for index in range(96))
 
 
 @lru_cache(maxsize=1)
@@ -152,7 +152,7 @@ def build_campaign_metadata(
         "opening_seeds": list(seeds),
         "opening_conditions": list(conditions),
         "holdout_request_seeds": list(protected_holdout_seeds()),
-        "opening_seed_generation": "development request=10000 + 7 * index; holdout request=20000000 + 7 * index; resolved=request + attempt, first legal unique condition",
+        "opening_seed_generation": "development request=1000000 + 7 * index; holdout request=2000000000 + 7 * index; resolved=request + attempt, first legal unique condition",
         "opening_resolution_max_attempts": MAX_OPENING_RESOLUTION_ATTEMPTS,
         "condition_independence_policy": "one unique deterministic legal opening condition per development game; no repeated pseudo-replicates",
         "pre_match_setup_policy": "canonical validate_complete_pre_match_setup with 200-point team budgets",
