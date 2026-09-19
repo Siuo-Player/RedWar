@@ -12,9 +12,9 @@ The development set contains **96 unique deterministic legal pre-match opening c
 
 Requested condition identifiers are generated as:
 
-2000 + 7 × index, for indexes 0 through 95.
+1,000,000 + 7 × index, for indexes 0 through 95.
 
-For each requested condition, the runner deterministically searches candidate seeds using `requested + attempt × 1,000,003` and selects the first opening that passes `validate_complete_pre_match_setup` for both teams (200-point budgets) and has a unique initial RWEN within the development bank. The raw requested seed, resolved seed, resolution attempt, position hash and both draft costs are persisted in provenance.
+For each requested condition, the runner deterministically searches candidate seeds using `requested + attempt` and selects the first opening that passes `validate_complete_pre_match_setup` for both teams (200-point budgets) and has a unique initial RWEN within the development bank. The raw requested seed, resolved seed, resolution attempt, position hash and both draft costs are persisted in provenance.
 
 The runner deliberately does **not** execute a second relabelled self-play game for the same opening. With identical Ares policies on both sides, relabelling the same deterministic self-play condition would not create an independent observation.
 
@@ -26,9 +26,9 @@ A separate **96-opening protected hold-out bank** is reserved and deliberately n
 
 Its requested seeds are:
 
-2000 + 7 × index, for indexes 96 through 191.
+2,000,000,000 + 7 × index, for indexes 0 through 95.
 
-The same deterministic legal-opening resolution rule is reserved for future validation, but this development runner never consumes those conditions.
+The two banks use disjoint seed namespaces by construction; the development range is kept above the existing legacy/promotion seed ranges, and the hold-out namespace is intentionally far outside both. The same deterministic legal-opening resolution rule is reserved for future validation, but this development runner never consumes those conditions.
 
 No development analysis may treat this bank as training/calibration data. A future validation issue must explicitly decide when and how it is opened.
 
