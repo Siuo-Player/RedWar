@@ -101,7 +101,14 @@ def run_candidate_game(candidate: str, nodes: int, seed: int, opening_index: int
     }
 
 
-def build_metadata(source_sha: str, rules_version: str, pairs: int, seeds: tuple[int, ...]) -> dict[str, Any]:
+def build_metadata(
+    source_sha: str,
+    rules_version: str,
+    pairs: int,
+    seeds: tuple[int, ...],
+    engine_sha256: str,
+    compiler_identity: str,
+) -> dict[str, Any]:
     return {
         "experiment_id": "redwar-lite-ares-baseline-selection-v1",
         "purpose": "instrument-reliability-and-reproducibility-only",
@@ -110,6 +117,8 @@ def build_metadata(source_sha: str, rules_version: str, pairs: int, seeds: tuple
         "balance_claim_allowed": False,
         "source_sha": source_sha,
         "rules_version": rules_version,
+        "engine_sha256": engine_sha256,
+        "compiler_identity": compiler_identity,
         "candidate_profiles": CANDIDATE_PROFILES,
         "pair_count_per_candidate": pairs,
         "opening_count": len(seeds),
@@ -132,6 +141,8 @@ def run_experiment(
     pairs: int = DEFAULT_PAIRS,
     opening_count: int = DEFAULT_OPENING_COUNT,
     replay_checks: int = DEFAULT_REPLAY_CHECKS,
+    engine_sha256: str = "unknown",
+    compiler_identity: str = "unknown",
 ) -> dict[str, Any]:
     if pairs <= 0:
         raise ValueError("pairs must be positive")
@@ -139,7 +150,7 @@ def run_experiment(
         raise ValueError("replay_checks must be non-negative")
 
     seeds = fixed_opening_seeds(opening_count)
-    metadata = build_metadata(source_sha, rules_version, pairs, seeds)
+    metadata = build_metadata(source_sha, rules_version, pairs, seeds, engine_sha256, compiler_identity)
     games: list[dict[str, Any]] = []
 
     for candidate, nodes in CANDIDATE_PROFILES.items():
@@ -220,6 +231,8 @@ def main() -> int:
     parser.add_argument("--pairs", type=int, default=DEFAULT_PAIRS)
     parser.add_argument("--opening-count", type=int, default=DEFAULT_OPENING_COUNT)
     parser.add_argument("--replay-checks", type=int, default=DEFAULT_REPLAY_CHECKS)
+    parser.add_argument("--engine-sha256", required=True)
+    parser.add_argument("--compiler-identity", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
 
@@ -229,6 +242,8 @@ def main() -> int:
         pairs=args.pairs,
         opening_count=args.opening_count,
         replay_checks=args.replay_checks,
+        engine_sha256=args.engine_sha256,
+        compiler_identity=args.compiler_identity,
     )
     result["summary"] = summarize(result)
     result["decision_policy"] = {
