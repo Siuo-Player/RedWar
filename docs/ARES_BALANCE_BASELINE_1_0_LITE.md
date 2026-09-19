@@ -2,7 +2,38 @@
 
 ## Status
 
-**Draft contract — not yet frozen for balance decisions.**
+**Frozen operational baseline: StockWar-Iniciante (100,000 nodes).**
+
+The selection is frozen for 1.0-Lite Balance Lab work. This is an operational/reproducibility decision, not a competitive-strength claim and not a declaration that the roster is balanced.
+
+## Frozen selection record
+
+The final controlled experiment was run by GitHub Actions run `35415022596` from `main` at source SHA `bf9955c26db58cf08c39f939f96317ed4a7be7c1`.
+
+| Provenance | Value |
+|---|---|
+| Rules version | `8610c07c19b078cc73393880d034fd1780e773b0` |
+| Engine SHA-256 | `8f5799e646af7f0917e6e29afc9a24d764f7498609668215ba8c0c46ef482bcc` |
+| Compiler | `g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0` |
+| Controlled main games | 16 per candidate / 48 total |
+| Colour pairing | 8 white + 8 black per candidate |
+| Main-game seeds | `101, 211, 307, 401, 503, 601, 709, 809` |
+| Replay checks | 1 per candidate / 3 total |
+| Intervention | none |
+
+All three candidates completed 16/16 valid main games, with every main game terminating as `game_over`; no invalid actions, timeout/failure records, or unresolved hangs occurred. All three replay checks reproduced the complete action digest exactly.
+
+| Candidate | Nodes | Main-game elapsed | Reliability result |
+|---|---:|---:|---|
+| StockWar-Iniciante | 100,000 | 282.75 s | passed |
+| StockWar-Intermedio | 500,000 | 1,197.43 s | passed |
+| StockWar-Avancado | 1,000,000 | 1,983.84 s | passed |
+
+**Frozen baseline:** `StockWar-Iniciante` at **100,000 nodes**. The other two candidates were not rejected for correctness or determinism; they passed the same reliability boundary but required substantially more execution time for the same controlled schedule. The selection therefore freezes the lowest-cost candidate that demonstrated the required operational/reproducibility behaviour. This decision must not be interpreted as a strength ranking.
+
+The evidence artifact is `redwar-lite-ares-baseline-selection-35415022596` (artifact `10576413639`).
+
+## Separation of responsibilities
 
 This document defines what must be frozen before 1.0-Lite hero/economy tuning is treated as controlled Balance Lab evidence. It does not declare Ares competitively validated and does not replace #372.
 
@@ -119,7 +150,7 @@ Escalation is justified only by evidence that the lower tier cannot repair the o
 
 ## Freeze checklist
 
-Before closing the baseline phase for 1.0-Lite, the project must be able to point to:
+The 1.0-Lite baseline phase is now complete. The project can point to:
 
 - one exact Ares profile/policy selected for baseline experiments;
 - exact engine/rules/search/evaluation identity;
@@ -129,4 +160,4 @@ Before closing the baseline phase for 1.0-Lite, the project must be able to poin
 - deterministic replay/termination expectations for representative runs;
 - explicit calibration/hold-out split where first-player or balance tuning is involved.
 
-Until that checklist is complete, balance results are exploratory and must not be presented as a frozen Lite Balance Baseline.
+Balance evidence may now be collected under this frozen context. This freeze does not close or replace competitive Ares #372.

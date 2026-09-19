@@ -2,7 +2,9 @@
 
 ## Status
 
-**Experiment implemented; selection not yet frozen.**
+**Selected and frozen: StockWar-Iniciante (100,000 nodes).**
+
+The controlled experiment is complete and the 1.0-Lite operational Ares baseline is now frozen. This does not make a competitive-strength claim.
 
 The repository now contains an explicit controlled experiment for selecting the 1.0-Lite Ares Balance Baseline. The experiment is an instrument-reliability/reproducibility study only.
 
@@ -42,6 +44,26 @@ Auto-Pricer output
 
 Selecting a baseline does not certify the selected Ares as the strongest engine and does not certify the hero roster as balanced.
 
-## Next decision
+## Final decision record
 
-After the controlled artifact has been executed and reviewed, one exact profile/configuration can be frozen as the 1.0-Lite Balance Baseline. Only then may Balance Lab development samples be collected for hero/economy analysis.
+GitHub Actions run `35415022596` executed the experiment from `main` at source SHA `bf9955c26db58cf08c39f939f96317ed4a7be7c1` with engine SHA-256 `8f5799e646af7f0917e6e29afc9a24d764f7498609668215ba8c0c46ef482bcc` and compiler `g++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0`.
+
+All three fixed candidates completed the same 8-pair / 16-main-game schedule:
+
+- **100,000 nodes:** 16/16 valid; all `game_over`; 282.75 s total.
+- **500,000 nodes:** 16/16 valid; all `game_over`; 1,197.43 s total.
+- **1,000,000 nodes:** 16/16 valid; all `game_over`; 1,983.84 s total.
+
+There were no invalid actions, recorded failures, timeouts, or unresolved hangs. One deterministic replay check per candidate reproduced the action digest exactly.
+
+The selected baseline is **StockWar-Iniciante — 100,000 nodes**. The reason is operational: it is the lowest-cost candidate that satisfied the full reliability/reproducibility boundary under the controlled schedule. The 500k and 1M profiles also passed that boundary, but were not selected because they consumed substantially more execution time for the same baseline role.
+
+The selection deliberately does **not** use hero win rate, Arena rating, competitive strength, or balance conclusions. The selected profile is the frozen execution context for subsequent 1.0-Lite Balance Lab evidence.
+
+Evidence artifact: `redwar-lite-ares-baseline-selection-35415022596` (artifact `10576413639`).
+
+Only after this freeze may Balance Lab development samples be collected under this exact Ares policy/context.
+
+## Post-freeze boundary
+
+The baseline is now frozen. Subsequent 1.0-Lite Balance Lab evidence must use this exact Ares policy/context unless a new baseline-selection decision is explicitly recorded.
