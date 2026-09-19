@@ -24,6 +24,7 @@ def test_development_bank_has_unique_conditions_and_exact_size():
     assert len(protected_holdout_seeds()) == 96
     assert len(set(protected_holdout_seeds())) == 96
     assert set(development_opening_request_seeds()).isdisjoint(protected_holdout_seeds())
+    assert max(development_opening_seeds()) < min(protected_holdout_seeds())
     assert all(item["white_draft_cost"] <= 200 for item in conditions)
     assert all(item["black_draft_cost"] <= 200 for item in conditions)
 
@@ -50,7 +51,7 @@ def test_campaign_protocol_is_frozen():
     assert metadata["global_balance_claim_allowed"] is False
     assert metadata["opening_bank_size"] == 96
     assert len(metadata["opening_conditions"]) == 96
-    assert metadata["opening_seed_generation"].startswith("request=2000 + 7 * index")
+    assert metadata["opening_seed_generation"].startswith("development request=1000000 + 7 * index")
     assert metadata["pre_match_setup_policy"] == "canonical validate_complete_pre_match_setup with 200-point team budgets"
     assert metadata["condition_independence_policy"] == "one unique deterministic legal opening condition per development game; no repeated pseudo-replicates"
     assert metadata["colour_policy"] == "record both white and black sides; first-player is fixed by the current engine contract"
