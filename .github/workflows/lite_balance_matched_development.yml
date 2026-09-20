@@ -49,11 +49,11 @@ jobs:
       - name: Run matched Balance Lab development campaign
         run: |
           python tools/analytics/lite_balance_matched_development.py \
-            --source-sha "\${{ steps.identity.outputs.source_sha }}" \
-            --rules-version "\${{ steps.identity.outputs.rules_version }}" \
-            --engine-sha256 "\${{ steps.identity.outputs.engine_sha256 }}" \
-            --compiler-identity "\${{ steps.identity.outputs.compiler_identity }}" \
-            --hero-config-sha256 "\${{ steps.identity.outputs.hero_config_sha256 }}" \
+            --source-sha "${{ steps.identity.outputs.source_sha }}" \
+            --rules-version "${{ steps.identity.outputs.rules_version }}" \
+            --engine-sha256 "${{ steps.identity.outputs.engine_sha256 }}" \
+            --compiler-identity "${{ steps.identity.outputs.compiler_identity }}" \
+            --hero-config-sha256 "${{ steps.identity.outputs.hero_config_sha256 }}" \
             --engine-path "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
             --output /tmp/redwar-lite-balance-matched-development.json
 
@@ -110,6 +110,6 @@ jobs:
       - name: Upload raw matched Balance Lab evidence
         uses: actions/upload-artifact@v7
         with:
-          name: redwar-lite-balance-matched-development-\${{ github.run_id }}
+          name: redwar-lite-balance-matched-development-${{ github.run_id }}
           path: /tmp/redwar-lite-balance-matched-development.json
           if-no-files-found: error
