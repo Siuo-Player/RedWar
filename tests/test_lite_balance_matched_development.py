@@ -73,3 +73,53 @@ def test_write_campaign_emits_json_consumable_by_json_loads(tmp_path) -> None:
     assert raw.endswith("\n")
     assert not raw.endswith("\\n")
     assert json.loads(raw)["metadata"]["campaign_id"] == "test"
+
+
+def test_equal_cost_contract_allows_different_costs_across_contexts() -> None:
+    from tools.analytics.lite_balance_matched_development import _pair_summary
+
+    games = [
+        {
+            "pair_id": "p1",
+            "valid": True,
+            "winner_side": "white",
+            "candidate_side": "white",
+            "white_draft_cost": 20,
+            "black_draft_cost": 20,
+        },
+        {
+            "pair_id": "p1",
+            "valid": True,
+            "winner_side": "black",
+            "candidate_side": "black",
+            "white_draft_cost": 20,
+            "black_draft_cost": 20,
+        },
+        {
+            "pair_id": "p2",
+            "valid": True,
+            "winner_side": "white",
+            "candidate_side": "white",
+            "white_draft_cost": 40,
+            "black_draft_cost": 40,
+        },
+        {
+            "pair_id": "p2",
+            "valid": True,
+            "winner_side": "black",
+            "candidate_side": "black",
+            "white_draft_cost": 40,
+            "black_draft_cost": 40,
+        },
+    ]
+
+    assert all(
+        game["white_draft_cost"] == game["black_draft_cost"] for game in games
+    )
+    assert len(
+        {
+            (game["white_draft_cost"], game["black_draft_cost"])
+            for game in games
+        }
+    ) == 2
+    assert _pair_summary(games)["complete_valid_pairs"] == 2
