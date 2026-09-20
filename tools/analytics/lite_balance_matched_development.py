@@ -593,7 +593,7 @@ def run_campaign(
 def write_campaign(result: dict[str, Any], output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\\n",
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
 
