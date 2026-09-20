@@ -153,6 +153,15 @@ def _state_rwen_from_board(board: list[list[object | None]]) -> str:
     return state.to_rwen()
 
 
+def _board_signature(board: list[list[object | None]]) -> tuple[tuple[str | None, ...], ...]:
+    return tuple(
+        tuple(
+            None if piece is None else f"{piece.team}:{piece.name}"
+            for piece in row
+        )
+        for row in board
+    )
+
 def _mirror_swap_board(board: list[list[object | None]]) -> list[list[object | None]]:
     mirrored = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
     for row in range(LINHAS):
