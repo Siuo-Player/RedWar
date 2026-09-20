@@ -56,3 +56,20 @@ def test_side_swap_reflects_geometry_and_swaps_teams() -> None:
 
 def test_total_games_is_two_per_matched_context() -> None:
     assert TOTAL_GAMES == 96
+
+
+def test_write_campaign_emits_json_consumable_by_json_loads(tmp_path) -> None:
+    import json
+
+    from tools.analytics.lite_balance_matched_development import write_campaign
+
+    output = tmp_path / "campaign.json"
+    write_campaign(
+        {"metadata": {"campaign_id": "test"}, "summary": {}, "games": []},
+        output,
+    )
+
+    raw = output.read_text(encoding="utf-8")
+    assert raw.endswith("\n")
+    assert not raw.endswith("\\n")
+    assert json.loads(raw)["metadata"]["campaign_id"] == "test"
