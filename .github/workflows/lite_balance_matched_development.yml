@@ -1,0 +1,115 @@
+name: RedWar Lite Matched Balance Development Campaign
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: redwar-lite-matched-balance-development
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  matched-development-campaign:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Ares engine
+        run: |
+          cd ai/cpp_engine
+          g++ -std=c++17 -O3 -DNDEBUG -pipe \
+            board.cpp evaluate.cpp main.cpp movegen.cpp nnue.cpp search.cpp \
+            -o engine
+
+      - name: Compute immutable experiment identities
+        id: identity
+        run: |
+          echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "rules_version=$(git rev-parse HEAD:docs/GAME_RULES.md)" >> "$GITHUB_OUTPUT"
+          echo "engine_sha256=$(sha256sum ai/cpp_engine/engine | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "compiler_identity=$(g++ --version | head -n1)" >> "$GITHUB_OUTPUT"
+          echo "hero_config_sha256=$(sha256sum engine/heroes_config.json | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Run matched Balance Lab development campaign
+        run: |
+          python tools/analytics/lite_balance_matched_development.py \
+            --source-sha "\${{ steps.identity.outputs.source_sha }}" \
+            --rules-version "\${{ steps.identity.outputs.rules_version }}" \
+            --engine-sha256 "\${{ steps.identity.outputs.engine_sha256 }}" \
+            --compiler-identity "\${{ steps.identity.outputs.compiler_identity }}" \
+            --hero-config-sha256 "\${{ steps.identity.outputs.hero_config_sha256 }}" \
+            --engine-path "$GITHUB_WORKSPACE/ai/cpp_engine/engine" \
+            --output /tmp/redwar-lite-balance-matched-development.json
+
+      - name: Validate matched raw campaign contract
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("/tmp/redwar-lite-balance-matched-development.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          metadata = data["metadata"]
+          summary = data["summary"]
+          games = data["games"]
+
+          assert metadata["baseline_policy"] == "StockWar-Iniciante"
+          assert metadata["node_budget"] == 100_000
+          assert metadata["strength_claim_allowed"] is False
+          assert metadata["global_balance_claim_allowed"] is False
+          assert metadata["candidate_control_policy"] == "exact-configured-cost-only"
+          assert metadata["matched_pairs"] == 48
+          assert summary["games"] == 96
+          assert summary["expected_games"] == 96
+          assert summary["valid_games"] == 96
+          assert summary["invalid_games"] == 0
+          assert summary["matched_pairs"] == 48
+          assert summary["expected_pairs"] == 48
+          assert summary["all_pairs_equal_cost"] is True
+          assert summary["all_pairs_side_swapped"] is True
+          assert len({game["pair_id"] for game in games}) == 48
+          assert len({game["initial_position_sha256"] for game in games}) == 96
+          assert all(game["pre_match_setup_validated"] is True for game in games)
+          assert all(game["termination_reason"] == "game_over" for game in games)
+          assert all(game["winner_side"] in {"white", "black"} for game in games)
+          assert all(game["source_sha"] == metadata["source_sha"] for game in games)
+          assert all(game["engine_sha256"] == metadata["engine_sha256"] for game in games)
+          assert all(game["compiler_identity"] == metadata["compiler_identity"] for game in games)
+          assert all(game["hero_config_sha256"] == metadata["hero_config_sha256"] for game in games)
+          assert all(
+              game["initial_position_sha256"] == game["expected_initial_position_sha256"]
+              for game in games
+          )
+          for pair_id in {game["pair_id"] for game in games}:
+              pair = [game for game in games if game["pair_id"] == pair_id]
+              assert len(pair) == 2
+              assert {game["candidate_side"] for game in pair} == {"white", "black"}
+              assert len({game["resolved_seed"] for game in pair}) == 1
+              assert pair[0]["white_draft_cost"] == pair[0]["black_draft_cost"]
+              assert pair[1]["white_draft_cost"] == pair[1]["black_draft_cost"]
+              assert pair[0]["draft_cost"] == pair[1]["draft_cost"]
+          print("Matched Balance Lab campaign contract: PASS")
+          PY
+
+      - name: Upload raw matched Balance Lab evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-lite-balance-matched-development-\${{ github.run_id }}
+          path: /tmp/redwar-lite-balance-matched-development.json
+          if-no-files-found: error
