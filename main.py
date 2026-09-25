@@ -406,21 +406,24 @@ class JogoController:
                     return
 
         elif self.fase_atual == "BATALHA":
-            if self.btn_surrender.collidepoint(pos) and self.gs.white_to_move and not self.gs.game_over:
+            current_team = "brancas" if self.gs.white_to_move else "pretas"
+            if self.btn_surrender.collidepoint(pos) and not self.gs.game_over:
+                if not self.modo_local_2p and current_team != "brancas":
+                    return
                 if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, "stop_pondering"):
                     self.bot_ativo.stop_pondering()
                     self.pondering_active = False
-                self.gs.execute_action({"type": "surrender", "actor_team": "brancas"})
+                self.gs.execute_action({"type": "surrender", "actor_team": current_team})
                 self.casa_selecionada = None
                 return
 
-            if not self.gs.white_to_move or self.gs.game_over:
+            if (not self.modo_local_2p and not self.gs.white_to_move) or self.gs.game_over:
                 return
 
             if self.hover_pos:
                 r, c = self.hover_pos
                 if not self.casa_selecionada:
-                    if self.gs.board[r][c] and self.gs.board[r][c].team == 'brancas':
+                    if self.gs.board[r][c] and self.gs.board[r][c].team == current_team:
                         self.casa_selecionada = (r, c)
                 else:
                     sr, sc = self.casa_selecionada
@@ -457,6 +460,8 @@ class JogoController:
             elif self.btn_voltar_menu.collidepoint(pos):
                 self.fase_atual = "MENU"
                 self.gs = GameState(time_limit_seconds=180.0)
+                self.modo_local_2p = False
+                self.lado_draft_atual = "brancas"
                 self.casa_selecionada = None
                 self.hover_pos = None
                 self.pontos_jogador = ORCAMENTO_BRANCAS
@@ -615,7 +620,8 @@ class JogoController:
             try: desenhar_eval_bar(self.ecra, self.gs, off_x - 30, LINHAS * tam_casa, off_y_tab)
             except Exception: pass
 
-            desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, self.bot_ativo.nome if self.bot_ativo else "StockWar", self.gs)
+            hud_name = "Jogador 2" if self.modo_local_2p else (self.bot_ativo.nome if self.bot_ativo else "StockWar")
+            desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, hud_name, self.gs)
 
             if self.gs.game_over:
                 fonte_fim = FontManager.get("arial", 24, bold=True)
@@ -629,7 +635,8 @@ class JogoController:
             if self.fase_atual == "DRAFT":
                 self.botoes_loja, self.btn_ready = desenhar_loja_dinamica(
                     self.ecra, painel_x, 20, 350, h - 40, self.catalogo,
-                    self.pontos_jogador, self.peca_loja
+                    self.pontos_jogador, self.peca_loja,
+                    team=self.lado_draft_atual,
                 )
                 # O draft permite cópias do mesmo herói. Mostramos explicitamente
                 # quantas cópias já foram colocadas, para não parecer um acidente da UI.
@@ -681,7 +688,7 @@ class JogoController:
                         128,
                         34,
                     )
-                    enabled = self.gs.white_to_move and not self.gs.game_over
+                    enabled = (self.modo_local_2p or self.gs.white_to_move) and not self.gs.game_over
                     pygame.draw.rect(
                         self.ecra,
                         COLORS["danger"] if enabled else (75, 75, 75),
@@ -696,7 +703,7 @@ class JogoController:
                         border_radius=7,
                     )
                     f_surrender = FontManager.get("arial", 17, bold=True)
-                    label = "Desistir" if enabled else "Desistir (turno)"
+                    label = "Desistir" if enabled else "Desistir (turno IA)"
                     txt = f_surrender.render(label, True, COLORS["text"])
                     self.ecra.blit(txt, txt.get_rect(center=self.btn_surrender.center))
                 elif self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:
