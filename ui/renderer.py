@@ -429,7 +429,7 @@ def desenhar_loja_dinamica(ecra: pygame.Surface, off_x: int, off_y: int, width: 
     desenhar_botao(ecra, btn_r, "Batalhar! (Pronto)", COLORS["btn_primary"], font_size=24)
     return botoes, btn_r
 
-def desenhar_menu_principal(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect]:
+def desenhar_menu_principal(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
     ecra.fill(COLORS["bg"])
     txt_tit = FontManager.get("arial", 64, bold=True).render("REDWAR", True, COLORS["danger"])
     ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, h * 0.25))
@@ -438,7 +438,9 @@ def desenhar_menu_principal(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygam
     desenhar_botao(ecra, btn_start, "Jogar", COLORS["btn_primary"])
     btn_info = pygame.Rect(w//2 - btn_w//2, h * 0.5 + 80, btn_w, 60)
     desenhar_botao(ecra, btn_info, "Enciclopédia", COLORS["btn_secondary"])
-    return btn_start, btn_info
+    btn_replays = pygame.Rect(w//2 - btn_w//2, h * 0.5 + 160, btn_w, 60)
+    desenhar_botao(ecra, btn_replays, "Replays", COLORS["btn_secondary"])
+    return btn_start, btn_info, btn_replays
 
 def desenhar_selecao_modo(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
     ecra.fill(COLORS["bg"])

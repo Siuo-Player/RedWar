@@ -103,8 +103,11 @@ def snapshot_state(gs: Any) -> dict[str, Any]:
 
 
 def _compact_action(action: dict[str, Any]) -> list[Any]:
+    action_type = str(action["type"]).lower()
+    if action_type == "surrender":
+        return ["surrender", -1, -1, -1, -1, None, action.get("actor_team")]
     return [
-        str(action["type"]).lower(),
+        action_type,
         int(action["start"][0]),
         int(action["start"][1]),
         int(action["end"][0]),
@@ -117,8 +120,14 @@ def _compact_action(action: dict[str, Any]) -> list[Any]:
 def _expand_action(item: list[Any]) -> dict[str, Any]:
     if not isinstance(item, list) or len(item) != 7:
         raise ReplayCorruptionError("Malformed compact replay action")
+    action_type = str(item[0]).lower()
+    if action_type == "surrender":
+        actor_team = item[6]
+        if actor_team not in {"brancas", "pretas"}:
+            raise ReplayCorruptionError("Malformed replay surrender actor")
+        return {"type": "surrender", "actor_team": actor_team}
     return {
-        "type": str(item[0]),
+        "type": action_type,
         "start": (int(item[1]), int(item[2])),
         "end": (int(item[3]), int(item[4])),
         "spell_name": item[5],
@@ -384,12 +393,16 @@ def _restore_state(snapshot: dict[str, Any]):
     return gs
 
 
-def reconstruct(record: dict[str, Any]):
+def reconstruct(record: dict[str, Any], include_history: bool = False):
     if record.get("schema_version") != SCHEMA_VERSION:
         raise ReplayCorruptionError("Unsupported replay schema")
     gs = _restore_state(record["initial"])
     for compact in record.get("moves", []):
         action = _expand_action(compact)
+        if action["type"] == "surrender":
+            gs.execute_action(action)
+            continue
+
         affected_area = []
         if action["type"] == "stun":
             attacker = gs.board[action["start"][0]][action["start"][1]]
@@ -402,6 +415,7 @@ def reconstruct(record: dict[str, Any]):
                 )
                 if action["end"] in stuns:
                     affected_area = stuns[action["end"]].get("aoe", [])
+
         gs.make_action(
             action["start"],
             action["end"],
@@ -409,6 +423,6 @@ def reconstruct(record: dict[str, Any]):
             affected_area=affected_area,
             spawn_name=action.get("spawn_name"),
             spell_name=action.get("spell_name"),
-            is_simulation=True,
+            is_simulation=not include_history,
         )
     return gs

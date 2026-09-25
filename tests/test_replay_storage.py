@@ -133,3 +133,39 @@ def test_game_state_capture_and_finalize_persists_completed_game(tmp_path, monke
 
     assert game_id is not None
     assert ReplayStore(tmp_path).load(game_id) is not None
+
+
+def test_surrender_is_compactly_stored_and_reconstructed_with_history():
+    gs = GameState()
+    gs.board[7][0] = Ranger("brancas")
+    gs.board[0][0] = Ranger("pretas")
+    gs.compute_initial_hash()
+    initial = snapshot_state(gs)
+    gs.execute_action({"type": "surrender", "actor_team": "brancas"})
+
+    record = build_record(gs, initial)
+
+    assert record["moves"][-1] == ["surrender", -1, -1, -1, -1, None, "brancas"]
+
+    rebuilt = reconstruct(record, include_history=True)
+    assert rebuilt.game_over is True
+    assert rebuilt.winner == gs.winner
+    assert len(rebuilt.move_log) == len(gs.move_log)
+    assert rebuilt.move_log[-1]["acao_escolhida"]["type"] == "surrender"
+
+
+def test_reconstruct_include_history_preserves_replay_steps():
+    gs = GameState()
+    gs.board[7][0] = Ranger("brancas")
+    gs.board[0][0] = Ranger("pretas")
+    gs.compute_initial_hash()
+    initial = snapshot_state(gs)
+    gs.execute_action({"type": "move", "start": (7, 0), "end": (6, 0)})
+    gs.execute_action({"type": "move", "start": (0, 0), "end": (1, 0)})
+
+    record = build_record(gs, initial)
+    rebuilt = reconstruct(record, include_history=True)
+
+    assert rebuilt.to_rwen() == gs.to_rwen()
+    assert len(rebuilt.move_log) == len(record["moves"])
+    assert rebuilt.move_log[0]["acao_escolhida"]["type"] == "move"
