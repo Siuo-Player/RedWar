@@ -461,7 +461,7 @@ def desenhar_selecao_modo(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.
     btn_ia = pygame.Rect(w//2 - btn_w//2, h * 0.35, btn_w, 60)
     desenhar_botao(ecra, btn_ia, "Jogar vs IA", COLORS["btn_primary"])
     btn_multi = pygame.Rect(w//2 - btn_w//2, h * 0.35 + 90, btn_w, 60)
-    desenhar_botao(ecra, btn_multi, "Multiplayer (Em Breve)", COLORS["btn_disabled"], (120, 120, 120), 28)
+    desenhar_botao(ecra, btn_multi, "2 Jogadores (Hot-seat)", COLORS["btn_secondary"], font_size=28)
     btn_voltar = pygame.Rect(w//2 - 100, h * 0.35 + 230, 200, 50)
     desenhar_botao(ecra, btn_voltar, "Voltar", COLORS["danger"], font_size=28)
     return btn_ia, btn_multi, btn_voltar
