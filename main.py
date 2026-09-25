@@ -23,6 +23,13 @@ from ui.hero_encyclopedia import desenhar_enciclopedia_detalhada
 
 from ai.bot import CppEngineBot
 from ai.search import analisar_posicao_continuamente
+from tools.replay import (
+    ReplayCorruptionError,
+    ReplayStore,
+    capture_initial,
+    finalize_completed_game,
+    reconstruct,
+)
 from tools.replay.hover_visuals import install_hover_visuals
 from tools.replay.interaction import install_intent_interaction
 
@@ -71,6 +78,11 @@ class JogoController:
         self.btn_voltar_dificuldade = self.rect_elo = self.btn_prev = self.btn_next = pygame.Rect(0,0,0,0)
         self.btn_voltar_menu = pygame.Rect(0,0,0,0)
         self.btn_surrender = pygame.Rect(0, 0, 0, 0)
+        self.btn_replays = pygame.Rect(0, 0, 0, 0)
+        self.btn_replays_back = pygame.Rect(0, 0, 0, 0)
+        self.replay_buttons = {}
+        self.replay_records = []
+        self.replay_error = None
 
         self.arrastando_elo = False
 
@@ -266,6 +278,9 @@ class JogoController:
             elif self.btn_info.collidepoint(mx, my):
                 self.info_hero_index = 0
                 self.fase_atual = "INFO"
+            elif self.btn_replays.collidepoint(mx, my):
+                self._load_recent_replays()
+                self.fase_atual = "REPLAYS"
 
         elif self.fase_atual == "MODO_JOGO":
             if self.btn_vs_ia.collidepoint(mx, my): self.fase_atual = "TIPO_IA"
@@ -323,6 +338,8 @@ class JogoController:
                                 self.gs.board[row][col] = None
                     return
                 self.fase_atual = "BATALHA"
+                capture_initial(self.gs)
+                self.replay_error = None
                 self.peca_loja = None
             elif self.peca_loja and self.hover_pos:
                 r, c = self.hover_pos
@@ -333,6 +350,16 @@ class JogoController:
                         self.pontos_jogador -= p_data["cost"]
                         # Keep peca_loja selected so repeated copies can be
                         # placed until budget/space no longer permits it.
+
+        elif self.fase_atual == "REPLAYS":
+            if self.btn_replays_back.collidepoint(pos):
+                self.fase_atual = "MENU"
+                self.replay_error = None
+                return
+            for rect, record in self.replay_buttons.items():
+                if rect.collidepoint(pos):
+                    self._open_replay(record)
+                    return
 
         elif self.fase_atual == "BATALHA":
             if self.btn_surrender.collidepoint(pos) and self.gs.white_to_move and not self.gs.game_over:
@@ -434,6 +461,11 @@ class JogoController:
                 self.thread_ia = None
 
         if self.fase_atual == "BATALHA" and self.gs.game_over and not self.thread_analise:
+            try:
+                finalize_completed_game(self.gs)
+            except Exception as exc:
+                self.replay_error = f"Replay não guardado: {exc}"
+                print(f"⚠️ {self.replay_error}")
             self.fase_atual = "ANALISE"
             self.review_index = len(self.gs.move_log)
             self.display_gs = self.gs.fast_clone()
@@ -441,9 +473,89 @@ class JogoController:
             self.thread_analise.daemon = True
             self.thread_analise.start()
 
+    def _load_recent_replays(self):
+        try:
+            self.replay_records = [
+                record for record in ReplayStore().recent() if record is not None
+            ]
+            self.replay_error = None
+        except Exception as exc:
+            self.replay_records = []
+            self.replay_error = f"Não foi possível ler os replays: {exc}"
+            print(f"⚠️ {self.replay_error}")
+
+    def _open_replay(self, record):
+        try:
+            self.gs = reconstruct(record, include_history=True)
+            self.display_gs = self.gs.fast_clone()
+            self.review_index = len(self.gs.move_log)
+            self.analise_resultados_top5 = []
+            self.analise_depth_atual = 0
+            self.thread_analise = None
+            self.bot_ativo = None
+            self.casa_selecionada = None
+            self.replay_error = None
+            self.fase_atual = "ANALISE"
+        except ReplayCorruptionError as exc:
+            self.replay_error = f"Replay inválido: {exc}"
+            print(f"⚠️ {self.replay_error}")
+
+    def _draw_recent_replays(self, w, h):
+        self.ecra.fill(COLORS["bg"])
+        title = FontManager.get("arial", 40, bold=True)
+        self.ecra.blit(
+            title.render("Replays Recentes", True, COLORS["text"]),
+            (w // 2 - 175, 90),
+        )
+
+        self.replay_buttons = {}
+        y = 170
+        for record in self.replay_records:
+            rect = pygame.Rect(w // 2 - 300, y, 600, 54)
+            pygame.draw.rect(self.ecra, COLORS["btn_secondary"], rect, border_radius=8)
+            winner = record.get("result", {}).get("winner", "Resultado desconhecido")
+            created = str(record.get("created_at", "")).replace("T", " ").replace("+00:00", " UTC")
+            label = f"{created[:19]} — {winner}"
+            text = FontManager.get("arial", 17).render(label[:72], True, COLORS["text"])
+            self.ecra.blit(text, (rect.x + 14, rect.y + 15))
+            self.replay_buttons[rect] = record
+            y += 66
+
+        if not self.replay_records and not self.replay_error:
+            msg = FontManager.get("arial", 20).render(
+                "Ainda não existem replays guardados.",
+                True,
+                COLORS["text_muted"],
+            )
+            self.ecra.blit(msg, (w // 2 - msg.get_width() // 2, 180))
+
+        if self.replay_error:
+            msg = FontManager.get("arial", 18).render(
+                self.replay_error[:90],
+                True,
+                COLORS["danger"],
+            )
+            self.ecra.blit(msg, (w // 2 - msg.get_width() // 2, h - 125))
+
+        self.btn_replays_back = pygame.Rect(w // 2 - 100, h - 75, 200, 46)
+        pygame.draw.rect(
+            self.ecra,
+            COLORS["btn_primary"],
+            self.btn_replays_back,
+            border_radius=8,
+        )
+        msg = FontManager.get("arial", 19, bold=True).render(
+            "Voltar",
+            True,
+            COLORS["text"],
+        )
+        self.ecra.blit(msg, msg.get_rect(center=self.btn_replays_back.center))
+
     def renderizar(self, w, h, off_x, off_y_tab, tam_casa, painel_x):
         if self.fase_atual == "MENU":
-            self.btn_start, self.btn_info = desenhar_menu_principal(self.ecra, w, h)
+            self.btn_start, self.btn_info, self.btn_replays = desenhar_menu_principal(self.ecra, w, h)
+        elif self.fase_atual == "REPLAYS":
+            self._draw_recent_replays(w, h)
         elif self.fase_atual == "MODO_JOGO":
             self.btn_vs_ia, self.btn_multi, self.btn_voltar_modo = desenhar_selecao_modo(self.ecra, w, h)
         elif self.fase_atual == "TIPO_IA":
