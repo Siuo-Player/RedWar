@@ -350,7 +350,7 @@ class JogoController:
             budget = ORCAMENTO_BRANCAS if draft_side == "brancas" else ORCAMENTO_PRETAS
             if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < budget:
                 try:
-                    if self.modo_local_2p:
+                    if getattr(self, "modo_local_2p", False):
                         validate_complete_pre_match_setup(self.gs.board)
                         if self.lado_draft_atual == "brancas":
                             self.lado_draft_atual = "pretas"
