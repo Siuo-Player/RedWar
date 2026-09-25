@@ -169,3 +169,24 @@ def test_reconstruct_include_history_preserves_replay_steps():
     assert rebuilt.to_rwen() == gs.to_rwen()
     assert len(rebuilt.move_log) == len(record["moves"])
     assert rebuilt.move_log[0]["acao_escolhida"]["type"] == "move"
+
+
+def test_build_record_preserves_product_replay_metadata():
+    gs = GameState()
+    gs.board[7][0] = Ranger("brancas")
+    gs.board[0][0] = Ranger("pretas")
+    gs.compute_initial_hash()
+    initial = snapshot_state(gs)
+    gs.replay_metadata = {
+        "mode": "hotseat",
+        "player_side": "both",
+        "opponent": "Local 2P",
+    }
+    gs.game_over = True
+    gs.winner = "Brancas"
+
+    record = build_record(gs, initial)
+
+    assert record["metadata"]["mode"] == "hotseat"
+    assert record["metadata"]["player_side"] == "both"
+    assert record["metadata"]["opponent"] == "Local 2P"
