@@ -41,6 +41,7 @@ def test_draft_to_battle_captures_replay_initial_state(monkeypatch):
     controller.botoes_loja = {}
     controller.gs = _FakeBoardState()
     controller.replay_error = "stale"
+    controller.bot_ativo = None
 
     calls = []
 
