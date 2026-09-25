@@ -461,7 +461,7 @@ class JogoController:
 
                         _, off_x, tam_casa = self.get_ui_metrics()
                         self.desenhar_animacao(self.gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
-                        self.gs.execute_action(acao)
+                        self._execute_action_with_sound(acao)
                     self.casa_selecionada = None
 
         elif self.fase_atual == "ANALISE":
