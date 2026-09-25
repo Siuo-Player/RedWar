@@ -574,13 +574,10 @@ def run_campaign(
             game["winner_side"] == game["candidate_side"] for game in valid_games
         ),
         "pair_summary": _pair_summary(games),
-        "all_pairs_equal_cost": len(
-            {
-                (game["white_draft_cost"], game["black_draft_cost"])
-                for game in games
-            }
-        )
-        == 1,
+        "all_games_equal_cost_within_pair": all(
+            game["white_draft_cost"] == game["black_draft_cost"]
+            for game in games
+        ),
         "all_pairs_side_swapped": all(
             game["candidate_side"] == ("white" if game["pair_member"] == 0 else "black")
             for game in games
