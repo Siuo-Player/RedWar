@@ -137,18 +137,21 @@ def _expand_action(item: list[Any]) -> dict[str, Any]:
 
 def build_record(gs: Any, initial: dict[str, Any]) -> dict[str, Any]:
     root = Path(__file__).resolve().parents[2]
+    replay_metadata = {
+        "engine_commit": _git_commit(),
+        "rules_hash": _sha256_file(root / "engine" / "game_state.py"),
+        "hero_config_hash": _sha256_file(root / "engine" / "heroes_config.json"),
+        "mode": "local",
+        "player_side": "brancas",
+        "opponent": "Ares",
+    }
+    replay_metadata.update(getattr(gs, "replay_metadata", {}) or {})
+
     record = {
         "schema_version": SCHEMA_VERSION,
         "game_id": uuid.uuid4().hex,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "metadata": {
-            "engine_commit": _git_commit(),
-            "rules_hash": _sha256_file(root / "engine" / "game_state.py"),
-            "hero_config_hash": _sha256_file(root / "engine" / "heroes_config.json"),
-            "mode": "local",
-            "player_side": "brancas",
-            "opponent": "Ares",
-        },
+        "metadata": replay_metadata,
         "initial": initial,
         "moves": [
             _compact_action(entry["acao_escolhida"])

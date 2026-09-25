@@ -52,6 +52,8 @@ class JogoController:
         # --- Configurações da IA ---
         self.elo_escolhido = 1500
         self.modo_predador = False
+        self.modo_local_2p = False
+        self.lado_draft_atual = "brancas"
         self.pondering_active = False
         self.bot_ativo = None
         # ---------------------------
@@ -85,6 +87,22 @@ class JogoController:
         self.replay_error = None
 
         self.arrastando_elo = False
+
+    def _start_local_2p_draft(self):
+        self.modo_local_2p = True
+        self.bot_ativo = None
+        self.modo_predador = False
+        self.lado_draft_atual = "brancas"
+        self.gs = GameState(time_limit_seconds=180.0)
+        self.pontos_jogador = ORCAMENTO_BRANCAS
+        self.peca_loja = None
+        self.casa_selecionada = None
+        self.hover_pos = None
+        self.replay_error = None
+        self.fase_atual = "DRAFT"
+        self.thread_ia = None
+        self.thread_analise = None
+        pygame.display.set_caption("RedWar - Draft das Brancas")
 
     def calcular_nos_por_elo(self, elo):
         """Traduz o rating ELO para poder computacional no C++"""
@@ -283,8 +301,13 @@ class JogoController:
                 self.fase_atual = "REPLAYS"
 
         elif self.fase_atual == "MODO_JOGO":
-            if self.btn_vs_ia.collidepoint(mx, my): self.fase_atual = "TIPO_IA"
-            elif self.btn_voltar_modo.collidepoint(mx, my): self.fase_atual = "MENU"
+            if self.btn_vs_ia.collidepoint(mx, my):
+                self.modo_local_2p = False
+                self.fase_atual = "TIPO_IA"
+            elif self.btn_multi.collidepoint(mx, my):
+                self._start_local_2p_draft()
+            elif self.btn_voltar_modo.collidepoint(mx, my):
+                self.fase_atual = "MENU"
 
         elif self.fase_atual == "TIPO_IA":
             if self.btn_ia_normal.collidepoint(mx, my):
@@ -320,36 +343,61 @@ class JogoController:
         elif self.fase_atual == "DRAFT":
             for nome, rect in self.botoes_loja.items():
                 if rect.collidepoint(mx, my):
-                    # Selecting the same hero again explicitly deselects it;
-                    # otherwise keep the selected hero active for repeated copies.
                     self.peca_loja = None if self.peca_loja == nome else nome
                     return
-            if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < ORCAMENTO_BRANCAS:
+
+            draft_side = getattr(self, "lado_draft_atual", "brancas")
+            local_2p = getattr(self, "modo_local_2p", False)
+            budget = ORCAMENTO_BRANCAS if draft_side == "brancas" else ORCAMENTO_PRETAS
+            if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < budget:
                 try:
-                    validate_complete_pre_match_setup(self.gs.board)
-                    self.auto_draft_inimigo(ORCAMENTO_PRETAS)
-                    validate_complete_pre_match_setup(self.gs.board)
+                    if getattr(self, "modo_local_2p", False):
+                        validate_complete_pre_match_setup(self.gs.board)
+                        if self.lado_draft_atual == "brancas":
+                            self.lado_draft_atual = "pretas"
+                            self.pontos_jogador = ORCAMENTO_PRETAS
+                            self.peca_loja = None
+                            pygame.display.set_caption("RedWar - Draft das Pretas")
+                            return
+                    else:
+                        self.auto_draft_inimigo(ORCAMENTO_PRETAS)
+                        validate_complete_pre_match_setup(self.gs.board)
                 except ValueError as exc:
                     print(f"⚠️ Setup de pré-match inválido: {exc}")
-                    for row in range(2):
-                        for col in range(COLUNAS):
-                            piece = self.gs.board[row][col]
-                            if piece is not None and piece.team == "pretas":
-                                self.gs.board[row][col] = None
+                    if not local_2p:
+                        for row in range(2):
+                            for col in range(COLUNAS):
+                                piece = self.gs.board[row][col]
+                                if piece is not None and piece.team == "pretas":
+                                    self.gs.board[row][col] = None
                     return
+
                 self.fase_atual = "BATALHA"
+                self.gs.replay_metadata = (
+                    {"mode": "hotseat", "player_side": "both", "opponent": "Local 2P"}
+                    if local_2p
+                    else {"mode": "local", "player_side": "brancas", "opponent": "Ares"}
+                )
                 capture_initial(self.gs)
                 self.replay_error = None
                 self.peca_loja = None
+                self.lado_draft_atual = "brancas"
+                pygame.display.set_caption(
+                    "RedWar - Turno das Brancas"
+                    if local_2p
+                    else f"RedWar - VS {self.bot_ativo.nome if self.bot_ativo else 'Ares'}"
+                )
+
             elif self.peca_loja and self.hover_pos:
                 r, c = self.hover_pos
-                if 0 <= c < COLUNAS and r >= LINHAS - 2 and self.gs.board[r][c] is None:
+                draft_side = getattr(self, "lado_draft_atual", "brancas")
+                home_rows = range(LINHAS - 2, LINHAS) if draft_side == "brancas" else range(0, 2)
+                team = draft_side
+                if 0 <= c < COLUNAS and r in home_rows and self.gs.board[r][c] is None:
                     p_data = next((p for p in self.catalogo if p["name"] == self.peca_loja), None)
                     if p_data and p_data["cost"] <= self.pontos_jogador:
-                        self.gs.board[r][c] = p_data["class"]('brancas')
+                        self.gs.board[r][c] = p_data["class"](team)
                         self.pontos_jogador -= p_data["cost"]
-                        # Keep peca_loja selected so repeated copies can be
-                        # placed until budget/space no longer permits it.
 
         elif self.fase_atual == "REPLAYS":
             if self.btn_replays_back.collidepoint(pos):
@@ -362,21 +410,24 @@ class JogoController:
                     return
 
         elif self.fase_atual == "BATALHA":
-            if self.btn_surrender.collidepoint(pos) and self.gs.white_to_move and not self.gs.game_over:
+            current_team = "brancas" if self.gs.white_to_move else "pretas"
+            if self.btn_surrender.collidepoint(pos) and not self.gs.game_over:
+                if not self.modo_local_2p and current_team != "brancas":
+                    return
                 if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, "stop_pondering"):
                     self.bot_ativo.stop_pondering()
                     self.pondering_active = False
-                self.gs.execute_action({"type": "surrender", "actor_team": "brancas"})
+                self.gs.execute_action({"type": "surrender", "actor_team": current_team})
                 self.casa_selecionada = None
                 return
 
-            if not self.gs.white_to_move or self.gs.game_over:
+            if (not self.modo_local_2p and not self.gs.white_to_move) or self.gs.game_over:
                 return
 
             if self.hover_pos:
                 r, c = self.hover_pos
                 if not self.casa_selecionada:
-                    if self.gs.board[r][c] and self.gs.board[r][c].team == 'brancas':
+                    if self.gs.board[r][c] and self.gs.board[r][c].team == current_team:
                         self.casa_selecionada = (r, c)
                 else:
                     sr, sc = self.casa_selecionada
@@ -413,6 +464,8 @@ class JogoController:
             elif self.btn_voltar_menu.collidepoint(pos):
                 self.fase_atual = "MENU"
                 self.gs = GameState(time_limit_seconds=180.0)
+                self.modo_local_2p = False
+                self.lado_draft_atual = "brancas"
                 self.casa_selecionada = None
                 self.hover_pos = None
                 self.pontos_jogador = ORCAMENTO_BRANCAS
@@ -571,7 +624,8 @@ class JogoController:
             try: desenhar_eval_bar(self.ecra, self.gs, off_x - 30, LINHAS * tam_casa, off_y_tab)
             except Exception: pass
 
-            desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, self.bot_ativo.nome if self.bot_ativo else "StockWar", self.gs)
+            hud_name = "Jogador 2" if self.modo_local_2p else (self.bot_ativo.nome if self.bot_ativo else "StockWar")
+            desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, hud_name, self.gs)
 
             if self.gs.game_over:
                 fonte_fim = FontManager.get("arial", 24, bold=True)
@@ -585,7 +639,8 @@ class JogoController:
             if self.fase_atual == "DRAFT":
                 self.botoes_loja, self.btn_ready = desenhar_loja_dinamica(
                     self.ecra, painel_x, 20, 350, h - 40, self.catalogo,
-                    self.pontos_jogador, self.peca_loja
+                    self.pontos_jogador, self.peca_loja,
+                    team=self.lado_draft_atual,
                 )
                 # O draft permite cópias do mesmo herói. Mostramos explicitamente
                 # quantas cópias já foram colocadas, para não parecer um acidente da UI.
@@ -637,7 +692,7 @@ class JogoController:
                         128,
                         34,
                     )
-                    enabled = self.gs.white_to_move and not self.gs.game_over
+                    enabled = (self.modo_local_2p or self.gs.white_to_move) and not self.gs.game_over
                     pygame.draw.rect(
                         self.ecra,
                         COLORS["danger"] if enabled else (75, 75, 75),
@@ -652,7 +707,7 @@ class JogoController:
                         border_radius=7,
                     )
                     f_surrender = FontManager.get("arial", 17, bold=True)
-                    label = "Desistir" if enabled else "Desistir (turno)"
+                    label = "Desistir" if enabled else "Desistir (turno IA)"
                     txt = f_surrender.render(label, True, COLORS["text"])
                     self.ecra.blit(txt, txt.get_rect(center=self.btn_surrender.center))
                 elif self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:

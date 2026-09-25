@@ -81,7 +81,7 @@ class GameState:
         "board", "tile_effects", "white_to_move", "game_over", "winner",
         "turns_without_capture", "move_log", "last_move", "white_time",
         "black_time", "state_history", "current_hash", "_hash_valid", "current_score",
-        "_last_history_hash",
+        "_last_history_hash", "replay_metadata",
     )
 
     def __init__(self, time_limit_seconds: float = 600.0):
@@ -100,6 +100,7 @@ class GameState:
         self._hash_valid = False
         self.current_score: float | int | None = None
         self._last_history_hash: int | None = None
+        self.replay_metadata: dict[str, str] = {}
 
     def compute_initial_hash(self):
         h = ZOBRIST_WTM if self.white_to_move else 0
@@ -172,6 +173,7 @@ class GameState:
         novo_gs.current_hash = self.current_hash
         novo_gs._hash_valid = self._hash_valid
         novo_gs._last_history_hash = self._last_history_hash
+        novo_gs.replay_metadata = dict(self.replay_metadata)
         novo_gs.board = [row[:] for row in self.board]
         novo_gs.tile_effects = [row[:] for row in self.tile_effects]
 
