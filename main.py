@@ -342,36 +342,58 @@ class JogoController:
         elif self.fase_atual == "DRAFT":
             for nome, rect in self.botoes_loja.items():
                 if rect.collidepoint(mx, my):
-                    # Selecting the same hero again explicitly deselects it;
-                    # otherwise keep the selected hero active for repeated copies.
                     self.peca_loja = None if self.peca_loja == nome else nome
                     return
-            if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < ORCAMENTO_BRANCAS:
+
+            budget = ORCAMENTO_BRANCAS if self.lado_draft_atual == "brancas" else ORCAMENTO_PRETAS
+            if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < budget:
                 try:
-                    validate_complete_pre_match_setup(self.gs.board)
-                    self.auto_draft_inimigo(ORCAMENTO_PRETAS)
-                    validate_complete_pre_match_setup(self.gs.board)
+                    if self.modo_local_2p:
+                        validate_complete_pre_match_setup(self.gs.board)
+                        if self.lado_draft_atual == "brancas":
+                            self.lado_draft_atual = "pretas"
+                            self.pontos_jogador = ORCAMENTO_PRETAS
+                            self.peca_loja = None
+                            pygame.display.set_caption("RedWar - Draft das Pretas")
+                            return
+                    else:
+                        self.auto_draft_inimigo(ORCAMENTO_PRETAS)
+                        validate_complete_pre_match_setup(self.gs.board)
                 except ValueError as exc:
                     print(f"⚠️ Setup de pré-match inválido: {exc}")
-                    for row in range(2):
-                        for col in range(COLUNAS):
-                            piece = self.gs.board[row][col]
-                            if piece is not None and piece.team == "pretas":
-                                self.gs.board[row][col] = None
+                    if not self.modo_local_2p:
+                        for row in range(2):
+                            for col in range(COLUNAS):
+                                piece = self.gs.board[row][col]
+                                if piece is not None and piece.team == "pretas":
+                                    self.gs.board[row][col] = None
                     return
+
                 self.fase_atual = "BATALHA"
+                self.gs.replay_metadata = (
+                    {"mode": "hotseat", "player_side": "both", "opponent": "Local 2P"}
+                    if self.modo_local_2p
+                    else {"mode": "local", "player_side": "brancas", "opponent": "Ares"}
+                )
                 capture_initial(self.gs)
                 self.replay_error = None
                 self.peca_loja = None
+                self.lado_draft_atual = "brancas"
+                pygame.display.set_caption(
+                    "RedWar - Turno das Brancas"
+                    if self.modo_local_2p
+                    else f"RedWar - VS {self.bot_ativo.nome if self.bot_ativo else 'Ares'}"
+                )
+
             elif self.peca_loja and self.hover_pos:
                 r, c = self.hover_pos
-                if 0 <= c < COLUNAS and r >= LINHAS - 2 and self.gs.board[r][c] is None:
+                home_rows = range(LINHAS - 2, LINHAS) if self.lado_draft_atual == "brancas" else range(0, 2)
+                team = self.lado_draft_atual
+                if 0 <= c < COLUNAS and r in home_rows and self.gs.board[r][c] is None:
                     p_data = next((p for p in self.catalogo if p["name"] == self.peca_loja), None)
                     if p_data and p_data["cost"] <= self.pontos_jogador:
-                        self.gs.board[r][c] = p_data["class"]('brancas')
+                        self.gs.board[r][c] = p_data["class"](team)
                         self.pontos_jogador -= p_data["cost"]
-                        # Keep peca_loja selected so repeated copies can be
-                        # placed until budget/space no longer permits it.
 
         elif self.fase_atual == "REPLAYS":
             if self.btn_replays_back.collidepoint(pos):
