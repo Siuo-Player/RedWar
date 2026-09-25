@@ -347,6 +347,7 @@ class JogoController:
                     return
 
             draft_side = getattr(self, "lado_draft_atual", "brancas")
+            local_2p = getattr(self, "modo_local_2p", False)
             budget = ORCAMENTO_BRANCAS if draft_side == "brancas" else ORCAMENTO_PRETAS
             if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < budget:
                 try:
@@ -363,7 +364,7 @@ class JogoController:
                         validate_complete_pre_match_setup(self.gs.board)
                 except ValueError as exc:
                     print(f"⚠️ Setup de pré-match inválido: {exc}")
-                    if not self.modo_local_2p:
+                    if not local_2p:
                         for row in range(2):
                             for col in range(COLUNAS):
                                 piece = self.gs.board[row][col]
@@ -374,7 +375,7 @@ class JogoController:
                 self.fase_atual = "BATALHA"
                 self.gs.replay_metadata = (
                     {"mode": "hotseat", "player_side": "both", "opponent": "Local 2P"}
-                    if self.modo_local_2p
+                    if local_2p
                     else {"mode": "local", "player_side": "brancas", "opponent": "Ares"}
                 )
                 capture_initial(self.gs)
@@ -383,7 +384,7 @@ class JogoController:
                 self.lado_draft_atual = "brancas"
                 pygame.display.set_caption(
                     "RedWar - Turno das Brancas"
-                    if self.modo_local_2p
+                    if local_2p
                     else f"RedWar - VS {self.bot_ativo.nome if self.bot_ativo else 'Ares'}"
                 )
 
