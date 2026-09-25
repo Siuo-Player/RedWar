@@ -98,3 +98,97 @@ def test_recent_replay_screen_loads_from_store(monkeypatch):
 
     assert controller.replay_records == records
     assert controller.replay_error is None
+
+
+def test_hotseat_mode_starts_a_two_player_draft(monkeypatch):
+    controller = object.__new__(main.JogoController)
+    controller.fase_atual = "MODO_JOGO"
+    controller.btn_vs_ia = _FakeRect(hit=False)
+    controller.btn_multi = _FakeRect(hit=True)
+    controller.btn_voltar_modo = _FakeRect(hit=False)
+    monkeypatch.setattr(main.pygame.display, "set_caption", lambda *_args: None)
+
+    controller._start_local_2p_draft()
+
+    assert controller.modo_local_2p is True
+    assert controller.bot_ativo is None
+    assert controller.lado_draft_atual == "brancas"
+    assert controller.fase_atual == "DRAFT"
+    assert controller.pontos_jogador == main.ORCAMENTO_BRANCAS
+
+
+def test_hotseat_white_ready_hands_draft_to_black(monkeypatch):
+    controller = object.__new__(main.JogoController)
+    controller.fase_atual = "DRAFT"
+    controller.modo_local_2p = True
+    controller.lado_draft_atual = "brancas"
+    controller.pontos_jogador = main.ORCAMENTO_BRANCAS - 1
+    controller.btn_ready = _FakeRect()
+    controller.botoes_loja = {}
+    controller.peca_loja = None
+    controller.hover_pos = None
+    controller.gs = _FakeBoardState()
+    monkeypatch.setattr(main, "validate_complete_pre_match_setup", lambda board: {"brancas": 199, "pretas": 0})
+    monkeypatch.setattr(main.pygame.display, "set_caption", lambda *_args: None)
+
+    controller.tratar_cliques(0, 0, (0, 0))
+
+    assert controller.fase_atual == "DRAFT"
+    assert controller.lado_draft_atual == "pretas"
+    assert controller.pontos_jogador == main.ORCAMENTO_PRETAS
+
+
+def test_hotseat_black_ready_starts_battle_with_hotseat_replay_metadata(monkeypatch):
+    controller = object.__new__(main.JogoController)
+    controller.fase_atual = "DRAFT"
+    controller.modo_local_2p = True
+    controller.lado_draft_atual = "pretas"
+    controller.pontos_jogador = main.ORCAMENTO_PRETAS - 1
+    controller.btn_ready = _FakeRect()
+    controller.botoes_loja = {}
+    controller.peca_loja = None
+    controller.hover_pos = None
+    controller.gs = _FakeBoardState()
+    controller.replay_error = "stale"
+    controller.bot_ativo = None
+    calls = []
+
+    monkeypatch.setattr(main, "validate_complete_pre_match_setup", lambda board: {"brancas": 199, "pretas": 199})
+    monkeypatch.setattr(main, "capture_initial", lambda gs: calls.append(gs))
+    monkeypatch.setattr(main.pygame.display, "set_caption", lambda *_args: None)
+
+    controller.tratar_cliques(0, 0, (0, 0))
+
+    assert controller.fase_atual == "BATALHA"
+    assert controller.gs.replay_metadata == {
+        "mode": "hotseat",
+        "player_side": "both",
+        "opponent": "Local 2P",
+    }
+    assert calls == [controller.gs]
+
+
+def test_hotseat_battle_only_selects_piece_belonging_to_side_to_move(monkeypatch):
+    controller = object.__new__(main.JogoController)
+    controller.fase_atual = "BATALHA"
+    controller.modo_local_2p = True
+    controller.gs = _FakeBoardState()
+    controller.gs.game_over = False
+    controller.btn_surrender = _FakeRect(hit=False)
+    controller.casa_selecionada = None
+    controller.pondering_active = False
+    controller.modo_predador = False
+    controller.bot_ativo = None
+
+    from engine.pieces import Ranger
+
+    controller.gs.board[7][0] = Ranger("brancas")
+    controller.gs.board[0][0] = Ranger("pretas")
+
+    controller.hover_pos = (0, 0)
+    controller.tratar_cliques(0, 0, (0, 0))
+    assert controller.casa_selecionada is None
+
+    controller.gs.white_to_move = False
+    controller.tratar_cliques(0, 0, (0, 0))
+    assert controller.casa_selecionada == (0, 0)
