@@ -52,6 +52,8 @@ class JogoController:
         # --- Configurações da IA ---
         self.elo_escolhido = 1500
         self.modo_predador = False
+        self.modo_local_2p = False
+        self.lado_draft_atual = "brancas"
         self.pondering_active = False
         self.bot_ativo = None
         # ---------------------------
@@ -85,6 +87,21 @@ class JogoController:
         self.replay_error = None
 
         self.arrastando_elo = False
+
+    def _start_local_2p_draft(self):
+        self.modo_local_2p = True
+        self.bot_ativo = None
+        self.modo_predador = False
+        self.lado_draft_atual = "brancas"
+        self.gs = GameState(time_limit_seconds=180.0)
+        self.pontos_jogador = ORCAMENTO_BRANCAS
+        self.peca_loja = None
+        self.casa_selecionada = None
+        self.hover_pos = None
+        self.replay_error = None
+        self.thread_ia = None
+        self.thread_analise = None
+        pygame.display.set_caption("RedWar - Draft das Brancas")
 
     def calcular_nos_por_elo(self, elo):
         """Traduz o rating ELO para poder computacional no C++"""
@@ -283,8 +300,13 @@ class JogoController:
                 self.fase_atual = "REPLAYS"
 
         elif self.fase_atual == "MODO_JOGO":
-            if self.btn_vs_ia.collidepoint(mx, my): self.fase_atual = "TIPO_IA"
-            elif self.btn_voltar_modo.collidepoint(mx, my): self.fase_atual = "MENU"
+            if self.btn_vs_ia.collidepoint(mx, my):
+                self.modo_local_2p = False
+                self.fase_atual = "TIPO_IA"
+            elif self.btn_multi.collidepoint(mx, my):
+                self._start_local_2p_draft()
+            elif self.btn_voltar_modo.collidepoint(mx, my):
+                self.fase_atual = "MENU"
 
         elif self.fase_atual == "TIPO_IA":
             if self.btn_ia_normal.collidepoint(mx, my):
