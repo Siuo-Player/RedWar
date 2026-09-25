@@ -99,6 +99,7 @@ class JogoController:
         self.casa_selecionada = None
         self.hover_pos = None
         self.replay_error = None
+        self.fase_atual = "DRAFT"
         self.thread_ia = None
         self.thread_analise = None
         pygame.display.set_caption("RedWar - Draft das Brancas")
@@ -345,7 +346,8 @@ class JogoController:
                     self.peca_loja = None if self.peca_loja == nome else nome
                     return
 
-            budget = ORCAMENTO_BRANCAS if self.lado_draft_atual == "brancas" else ORCAMENTO_PRETAS
+            draft_side = getattr(self, "lado_draft_atual", "brancas")
+            budget = ORCAMENTO_BRANCAS if draft_side == "brancas" else ORCAMENTO_PRETAS
             if self.btn_ready.collidepoint(mx, my) and self.pontos_jogador < budget:
                 try:
                     if self.modo_local_2p:
@@ -387,8 +389,9 @@ class JogoController:
 
             elif self.peca_loja and self.hover_pos:
                 r, c = self.hover_pos
-                home_rows = range(LINHAS - 2, LINHAS) if self.lado_draft_atual == "brancas" else range(0, 2)
-                team = self.lado_draft_atual
+                draft_side = getattr(self, "lado_draft_atual", "brancas")
+                home_rows = range(LINHAS - 2, LINHAS) if draft_side == "brancas" else range(0, 2)
+                team = draft_side
                 if 0 <= c < COLUNAS and r in home_rows and self.gs.board[r][c] is None:
                     p_data = next((p for p in self.catalogo if p["name"] == self.peca_loja), None)
                     if p_data and p_data["cost"] <= self.pontos_jogador:
