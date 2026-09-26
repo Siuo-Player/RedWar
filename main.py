@@ -350,6 +350,7 @@ class JogoController:
 
     def _open_analysis_timeline(self):
         self._invalidate_replay_analysis()
+        self.fase_atual = "ANALISE"
         self.review_index = 0
         self._analysis_context = "main"
         self._analysis_branch_base_index = 0
@@ -646,12 +647,7 @@ class JogoController:
                 self.fase_atual = "BATALHA"
                 self._terminal_sound_played = False
                 self.gs.replay_metadata = (
-                    {
-                        "mode": "hotseat",
-                        "player_side": "both",
-                        "opponent": "Local 2P",
-                        "ai_nodes": 250000,
-                    }
+                    {"mode": "hotseat", "player_side": "both", "opponent": "Local 2P"}
                     if local_2p
                     else {
                         "mode": "local",
