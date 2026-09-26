@@ -120,7 +120,7 @@ def test_execute_action_with_sound_plays_action_and_terminal_once():
     ]
     assert controller._terminal_sound_played is True
 
-    controller._execute_action_with_sound({"type": "move"})
+    controller._execute_action_with_sound(GameAction(type=ActionType.MOVE, start=(7, 0), end=(6, 0)))
     assert events[-1] == ("action", "move")
     assert events.count(("terminal", None)) == 1
 
