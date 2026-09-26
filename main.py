@@ -392,7 +392,8 @@ class JogoController:
         def worker():
             bot = None
             try:
-                bot = CppEngineBot(nodes=int(self._analysis_nodes))
+                nodes = max(1, int(getattr(self, "_analysis_nodes", 250000)))
+                bot = CppEngineBot(nodes=nodes)
                 for path, index, state in items:
                     if generation != self._analysis_generation:
                         return
@@ -1035,7 +1036,7 @@ class JogoController:
                     yy += 25
                 else:
                     best_label = self._analysis_best_label(result["best_move"])
-                    nodes = result["nodes"] if result["nodes"] is not None else self._analysis_nodes
+                    nodes = result["nodes"] if result["nodes"] is not None else getattr(self, "_analysis_nodes", 250000)
                     self.ecra.blit(small_font.render(f"Ares ({nodes:,} nós): {best_label[:29]}", True, COLORS["success"]), (painel_x + 15, yy))
                     yy += 24
                     if expected_label:
