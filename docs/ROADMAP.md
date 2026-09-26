@@ -131,16 +131,16 @@ Balance results remain descriptive and conditional on the frozen baseline, decla
 Current implementation path:
 
 ```text
-#526 Lite baseline
+#526 Lite baseline — CLOSED
       ↓
 #557 Local 2P / hot-seat — CLOSED
       ↓
-#558 Settings + audio — PR #561 / CI pending
+#558 Settings + audio — CLOSED (PR #561 merged)
       ↓
 #555 final product acceptance
 ```
 
-#557 is merged into `main` at `2c6c9e9`. PR #561 contains the remaining settings/audio scope and must pass the normal Test Suite, AI Quality Gate and CodeQL before merge. Closing #555 additionally requires the final local smoke-test and validation record; this acceptance gate does not close #372.
+#557 and #558 are merged into `main` at `2c6c9e9` and `e78b6fa`, respectively. PR #561 passed the normal Test Suite, AI Quality Gate and CodeQL. Closing #555 additionally requires the final local smoke-test and validation record; this acceptance gate does not close #372.
 
 ## Not required for 1.0-Lite
 
