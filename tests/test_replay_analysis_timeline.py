@@ -105,7 +105,7 @@ def test_analysis_branch_does_not_mutate_original_replay():
     controller = _controller()
     controller.gs = _two_move_game()
     controller._analysis_generation = 0
-    controller._start_analysis_worker = lambda: None
+    controller._start_analysis_worker = lambda *args, **kwargs: None
     controller._open_analysis_timeline()
 
     original_hash = controller.gs.get_state_hash()
@@ -127,7 +127,7 @@ def test_branch_can_be_navigated_back_to_original_position():
     controller = _controller()
     controller.gs = _two_move_game()
     controller._analysis_generation = 0
-    controller._start_analysis_worker = lambda: None
+    controller._start_analysis_worker = lambda *args, **kwargs: None
     controller._open_analysis_timeline()
 
     controller._create_analysis_branch({
