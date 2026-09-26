@@ -120,3 +120,21 @@ def test_execute_action_with_sound_plays_action_and_terminal_once():
     controller._execute_action_with_sound({"type": "move"})
     assert events[-1] == ("action", "move")
     assert events.count(("terminal", None)) == 1
+
+
+def test_settings_renderer_draws_without_font_rect_crash():
+    import pygame
+    from ui import renderer
+
+    pygame.font.init()
+    surface = pygame.Surface((1000, 800))
+
+    back, toggle, minus, plus = renderer.desenhar_definicoes(
+        surface,
+        1000,
+        800,
+        True,
+        0.7,
+    )
+
+    assert all(isinstance(rect, pygame.Rect) for rect in (back, toggle, minus, plus))
