@@ -33,6 +33,7 @@ def _controller():
     controller._analysis_branch_actions = []
     controller.casa_selecionada = None
     controller.hover_pos = None
+    controller.desenhar_animacao = lambda *_args, **_kwargs: None
     return controller
 
 
@@ -149,3 +150,46 @@ def test_branch_can_be_navigated_back_to_original_position():
     assert controller.review_index == 0
     assert controller.display_gs.board[7][0] is not None
     assert controller.display_gs.board[6][0] is None
+
+
+def test_replay_analysis_worker_covers_every_mainline_position(monkeypatch):
+    controller = _controller()
+    controller.gs = _two_move_game()
+
+    class FakeBot:
+        def __init__(self, nodes):
+            self.nodes = nodes
+            self.last_engine_info = "info string search diagnostics nodes=100 tt_probes=1 tt_hits=0 tt_stores=1"
+            self.bridge = SimpleNamespace(close=lambda: None)
+            self.seen = []
+
+        def escolher_jogada(self, state):
+            self.seen.append(state.get_state_hash())
+            return None
+
+    class ImmediateThread:
+        def __init__(self, target):
+            self.target = target
+
+        def start(self):
+            self.target()
+
+    fake_bots = []
+
+    def make_bot(nodes):
+        bot = FakeBot(nodes)
+        fake_bots.append(bot)
+        return bot
+
+    monkeypatch.setattr(main, "CppEngineBot", make_bot)
+    monkeypatch.setattr(main.threading, "Thread", ImmediateThread)
+
+    controller._open_analysis_timeline()
+
+    assert controller._analysis_cache.keys() == {
+        ("main", 0),
+        ("main", 1),
+        ("main", 2),
+    }
+    assert len(fake_bots) == 1
+    assert len(fake_bots[0].seen) == 3
