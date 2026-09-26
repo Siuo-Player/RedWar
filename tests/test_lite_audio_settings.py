@@ -7,6 +7,8 @@ _evaluator = types.ModuleType("ai.evaluator")
 _evaluator.avaliador_mestre = lambda _state: 0
 sys.modules.setdefault("ai.evaluator", _evaluator)
 
+from engine.actions import ActionType, GameAction
+
 import main
 
 
@@ -93,7 +95,8 @@ def test_execute_action_with_sound_plays_action_and_terminal_once():
         game_over = False
 
         def execute_action(self, action):
-            events.append(("execute", action["type"]))
+            action_type = action.type.value if isinstance(action, GameAction) else action["type"]
+            events.append(("execute", action_type))
             self.game_over = True
 
     class FakeAudio:
@@ -108,7 +111,7 @@ def test_execute_action_with_sound_plays_action_and_terminal_once():
     controller.audio = FakeAudio()
     controller._terminal_sound_played = False
 
-    controller._execute_action_with_sound({"type": "surrender"})
+    controller._execute_action_with_sound(GameAction(type=ActionType.SURRENDER, start=None, end=None))
 
     assert events == [
         ("execute", "surrender"),
@@ -117,7 +120,7 @@ def test_execute_action_with_sound_plays_action_and_terminal_once():
     ]
     assert controller._terminal_sound_played is True
 
-    controller._execute_action_with_sound({"type": "move"})
+    controller._execute_action_with_sound(GameAction(type=ActionType.MOVE, start=(7, 0), end=(6, 0)))
     assert events[-1] == ("action", "move")
     assert events.count(("terminal", None)) == 1
 

@@ -5,6 +5,7 @@ import os
 import json
 from collections import Counter
 from engine.game_state import GameState, coords_para_notacao
+from engine.actions import normalize_action
 from engine.pieces import obter_catalogo_pecas, criar_peca_por_nome
 from engine.config import ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS, LINHAS, COLUNAS
 from engine.setup import validate_complete_pre_match_setup
@@ -514,8 +515,9 @@ class JogoController:
                         self.casa_selecionada = None
 
     def _execute_action_with_sound(self, action):
-        self.gs.execute_action(action)
-        self.audio.play_action(action.get("type", ""))
+        canonical = normalize_action(action)
+        self.gs.execute_action(canonical)
+        self.audio.play_action(canonical.type.value)
         if self.gs.game_over and not self._terminal_sound_played:
             self.audio.play_terminal()
             self._terminal_sound_played = True
