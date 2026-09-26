@@ -11,7 +11,7 @@ from engine.setup import validate_complete_pre_match_setup
 
 # Imports alinhados com o novo renderer.py
 from ui.renderer import (
-    desenhar_menu_principal,
+    desenhar_menu_principal, desenhar_definicoes,
     desenhar_selecao_modo, desenhar_selecao_tipo_ia, desenhar_selecao_dificuldade,
     desenhar_tabuleiro, desenhar_pecas,
     desenhar_loja_dinamica, desenhar_log, desenhar_analise,
@@ -32,6 +32,7 @@ from tools.replay import (
 )
 from tools.replay.hover_visuals import install_hover_visuals
 from tools.replay.interaction import install_intent_interaction
+from ui.audio import AudioManager, VOLUME_STEP
 
 class JogoController:
     def __init__(self):
@@ -39,6 +40,8 @@ class JogoController:
         self.ecra = pygame.display.set_mode((1300, 800), pygame.RESIZABLE)
         pygame.display.set_caption("RedWar - Combat Engine")
         self.clock = pygame.time.Clock()
+        self.audio = AudioManager()
+        self._terminal_sound_played = False
 
         self.fase_atual = "MENU"
         self.gs = GameState(time_limit_seconds=180.0)
@@ -81,6 +84,11 @@ class JogoController:
         self.btn_voltar_menu = pygame.Rect(0,0,0,0)
         self.btn_surrender = pygame.Rect(0, 0, 0, 0)
         self.btn_replays = pygame.Rect(0, 0, 0, 0)
+        self.btn_settings = pygame.Rect(0, 0, 0, 0)
+        self.btn_settings_back = pygame.Rect(0, 0, 0, 0)
+        self.btn_sound_toggle = pygame.Rect(0, 0, 0, 0)
+        self.btn_volume_down = pygame.Rect(0, 0, 0, 0)
+        self.btn_volume_up = pygame.Rect(0, 0, 0, 0)
         self.btn_replays_back = pygame.Rect(0, 0, 0, 0)
         self.replay_buttons = {}
         self.replay_records = []
@@ -102,6 +110,7 @@ class JogoController:
         self.fase_atual = "DRAFT"
         self.thread_ia = None
         self.thread_analise = None
+        self._terminal_sound_played = False
         pygame.display.set_caption("RedWar - Draft das Brancas")
 
     def calcular_nos_por_elo(self, elo):
@@ -299,6 +308,18 @@ class JogoController:
             elif self.btn_replays.collidepoint(mx, my):
                 self._load_recent_replays()
                 self.fase_atual = "REPLAYS"
+            elif self.btn_settings.collidepoint(mx, my):
+                self.fase_atual = "SETTINGS"
+
+        elif self.fase_atual == "SETTINGS":
+            if self.btn_settings_back.collidepoint(pos):
+                self.fase_atual = "MENU"
+            elif self.btn_sound_toggle.collidepoint(pos):
+                self.audio.toggle()
+            elif self.btn_volume_down.collidepoint(pos):
+                self.audio.change_volume(-VOLUME_STEP)
+            elif self.btn_volume_up.collidepoint(pos):
+                self.audio.change_volume(VOLUME_STEP)
 
         elif self.fase_atual == "MODO_JOGO":
             if self.btn_vs_ia.collidepoint(mx, my):
@@ -373,6 +394,7 @@ class JogoController:
                     return
 
                 self.fase_atual = "BATALHA"
+                self._terminal_sound_played = False
                 self.gs.replay_metadata = (
                     {"mode": "hotseat", "player_side": "both", "opponent": "Local 2P"}
                     if local_2p
@@ -417,7 +439,7 @@ class JogoController:
                 if self.modo_predador and self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, "stop_pondering"):
                     self.bot_ativo.stop_pondering()
                     self.pondering_active = False
-                self.gs.execute_action({"type": "surrender", "actor_team": current_team})
+                self._execute_action_with_sound({"type": "surrender", "actor_team": current_team})
                 self.casa_selecionada = None
                 return
 
@@ -439,7 +461,7 @@ class JogoController:
 
                         _, off_x, tam_casa = self.get_ui_metrics()
                         self.desenhar_animacao(self.gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
-                        self.gs.execute_action(acao)
+                        self._execute_action_with_sound(acao)
                     self.casa_selecionada = None
 
         elif self.fase_atual == "ANALISE":
@@ -490,6 +512,13 @@ class JogoController:
                             self.thread_analise.start()
                         self.casa_selecionada = None
 
+    def _execute_action_with_sound(self, action):
+        self.gs.execute_action(action)
+        self.audio.play_action(action.get("type", ""))
+        if self.gs.game_over and not self._terminal_sound_played:
+            self.audio.play_terminal()
+            self._terminal_sound_played = True
+
     def processar_ia(self):
         if self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
             if self.modo_predador and not self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'start_pondering'):
@@ -509,7 +538,7 @@ class JogoController:
                 if parsed:
                     _, off_x, tam_casa = self.get_ui_metrics()
                     self.desenhar_animacao(self.gs, parsed["start"], parsed["end"], parsed["type"], tam_casa, off_x, 80)
-                    self.gs.execute_action(parsed)
+                    self._execute_action_with_sound(parsed)
                 pygame.display.set_caption("RedWar - O Teu Turno")
                 self.thread_ia = None
 
@@ -606,9 +635,14 @@ class JogoController:
 
     def renderizar(self, w, h, off_x, off_y_tab, tam_casa, painel_x):
         if self.fase_atual == "MENU":
-            self.btn_start, self.btn_info, self.btn_replays = desenhar_menu_principal(self.ecra, w, h)
+            self.btn_start, self.btn_info, self.btn_replays, self.btn_settings = desenhar_menu_principal(self.ecra, w, h)
         elif self.fase_atual == "REPLAYS":
             self._draw_recent_replays(w, h)
+        elif self.fase_atual == "SETTINGS":
+            (self.btn_settings_back, self.btn_sound_toggle,
+             self.btn_volume_down, self.btn_volume_up) = desenhar_definicoes(
+                self.ecra, w, h, self.audio.enabled, self.audio.volume
+            )
         elif self.fase_atual == "MODO_JOGO":
             self.btn_vs_ia, self.btn_multi, self.btn_voltar_modo = desenhar_selecao_modo(self.ecra, w, h)
         elif self.fase_atual == "TIPO_IA":

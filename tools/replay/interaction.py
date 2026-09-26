@@ -529,7 +529,11 @@ def _install_instance_wrapper(controller: Any) -> None:
 
         _, off_x, tam_casa = self.get_ui_metrics()
         self.desenhar_animacao(self.gs, chosen["start"], chosen["end"], chosen["type"], tam_casa, off_x, 80)
-        self.gs.execute_action(normalize_action(chosen))
+        executor = getattr(self, "_execute_action_with_sound", None)
+        if executor is None:
+            self.gs.execute_action(normalize_action(chosen))
+        else:
+            executor(normalize_action(chosen))
         self.casa_selecionada = None
         _clear_pending_interaction(self)
         return None

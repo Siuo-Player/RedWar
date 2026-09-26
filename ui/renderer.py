@@ -440,18 +440,73 @@ def desenhar_loja_dinamica(
     desenhar_botao(ecra, btn_r, "Batalhar! (Pronto)", COLORS["btn_primary"], font_size=24)
     return botoes, btn_r
 
-def desenhar_menu_principal(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
+def desenhar_menu_principal(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]:
     ecra.fill(COLORS["bg"])
     txt_tit = FontManager.get("arial", 64, bold=True).render("REDWAR", True, COLORS["danger"])
-    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, h * 0.25))
-    btn_w = min(300, int(w * 0.4))
-    btn_start = pygame.Rect(w//2 - btn_w//2, h * 0.5, btn_w, 60)
-    desenhar_botao(ecra, btn_start, "Jogar", COLORS["btn_primary"])
-    btn_info = pygame.Rect(w//2 - btn_w//2, h * 0.5 + 80, btn_w, 60)
-    desenhar_botao(ecra, btn_info, "Enciclopédia", COLORS["btn_secondary"])
-    btn_replays = pygame.Rect(w//2 - btn_w//2, h * 0.5 + 160, btn_w, 60)
-    desenhar_botao(ecra, btn_replays, "Replays", COLORS["btn_secondary"])
-    return btn_start, btn_info, btn_replays
+    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, h * 0.20))
+    btn_w = min(320, int(w * 0.48))
+    btn_h = 54
+    gap = 14
+    top = max(int(h * 0.42), 155)
+    buttons = [
+        (top, "Jogar", COLORS["btn_primary"]),
+        (top + btn_h + gap, "Enciclopédia", COLORS["btn_secondary"]),
+        (top + 2 * (btn_h + gap), "Replays", COLORS["btn_secondary"]),
+        (top + 3 * (btn_h + gap), "Definições", COLORS["btn_secondary"]),
+    ]
+    rects = []
+    for y, label, color in buttons:
+        rect = pygame.Rect(w//2 - btn_w//2, y, btn_w, btn_h)
+        desenhar_botao(ecra, rect, label, color, font_size=24)
+        rects.append(rect)
+    return tuple(rects)
+
+
+def desenhar_definicoes(
+    ecra: pygame.Surface,
+    w: int,
+    h: int,
+    audio_enabled: bool,
+    volume: float,
+) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]:
+    ecra.fill(COLORS["bg"])
+    title = FontManager.get("arial", 46, bold=True)
+    ecra.blit(title.render("Definições", True, COLORS["text"]),
+              title.get_rect(center=(w // 2, int(h * 0.18))))
+
+    panel_w = min(560, int(w * 0.80))
+    panel_h = 330
+    panel = pygame.Rect(w // 2 - panel_w // 2, int(h * 0.28), panel_w, panel_h)
+    pygame.draw.rect(ecra, (30, 30, 40), panel, border_radius=12)
+    pygame.draw.rect(ecra, (100, 100, 120), panel, 2, border_radius=12)
+
+    label_font = FontManager.get("arial", 24, bold=True)
+    text_font = FontManager.get("arial", 20)
+    button_font = FontManager.get("arial", 22, bold=True)
+
+    toggle = pygame.Rect(panel.x + 30, panel.y + 55, panel.width - 60, 52)
+    toggle_label = "Som: Ligado" if audio_enabled else "Som: Desligado"
+    pygame.draw.rect(ecra, COLORS["btn_primary"] if audio_enabled else COLORS["btn_secondary"], toggle, border_radius=8)
+    ecra.blit(label_font.render(toggle_label, True, COLORS["text"]),
+              label_font.render(toggle_label, True, COLORS["text"]).get_rect(center=toggle.center))
+
+    volume_label = text_font.render(f"Volume: {int(round(volume * 100))}%", True, COLORS["text"])
+    ecra.blit(volume_label, volume_label.get_rect(center=(w // 2, panel.y + 150)))
+
+    minus = pygame.Rect(w // 2 - 115, panel.y + 185, 70, 48)
+    plus = pygame.Rect(w // 2 + 45, panel.y + 185, 70, 48)
+    for rect, label in ((minus, "−"), (plus, "+")):
+        pygame.draw.rect(ecra, COLORS["btn_secondary"], rect, border_radius=8)
+        pygame.draw.rect(ecra, (100, 100, 120), rect, 1, border_radius=8)
+        txt = button_font.render(label, True, COLORS["text"])
+        ecra.blit(txt, txt.get_rect(center=rect.center))
+
+    hint = text_font.render("Ajustes aplicam-se apenas à sessão atual.", True, COLORS["text_muted"])
+    ecra.blit(hint, hint.get_rect(center=(w // 2, panel.bottom - 28)))
+
+    back = pygame.Rect(w // 2 - 100, h - 70, 200, 44)
+    desenhar_botao(ecra, back, "Voltar", COLORS["danger"], font_size=20)
+    return back, toggle, minus, plus
 
 def desenhar_selecao_modo(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
     ecra.fill(COLORS["bg"])

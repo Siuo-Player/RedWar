@@ -39,7 +39,7 @@ The 1.0-Lite path is not an alternative definition of competitive Ares. It estab
 - **#370 Foundation — CLOSED.** Contratos base e fronteira de execução fechados para o ruleset atual.
 - **#371 Gameplay — CLOSED.** Ruleset 1.0 jogável fechado para o escopo declarado.
 - **#372 Ares — OPEN.** Competitive/open-project AI track. It is no longer required to block a first local 1.0-Lite release.
-- **#526 1.0-Lite — OPEN.** Define and validate the product-facing Ares Balance Baseline and the reduced local-release scope.
+- **#526 1.0-Lite — CLOSED.** Product split and Ares Balance Baseline are closed; remaining local release acceptance is tracked by #555.
 - **#373 Product — OPEN/BLOCKED for 1.0 Full by #372.** Stable local work may proceed through #526 when contracts are independent of the competitive Ares gate.
 - **#374 Online — BLOCKED for the Full product sequence by #372/#373.**
 - **#375 Release — BLOCKED for the Full product sequence by #372/#373/#374.**
@@ -125,6 +125,22 @@ For hero pricing, integer cost is normally the first intervention and should be 
 `tools/balance/auto_pricer.py` is legacy diagnostic tooling, not an authoritative balance method. It must not automatically justify a price, mechanic or roster change. Its aggregate occurrence/performance heuristic does not replace contextual matchup, composition, positional, population and hold-out analysis.
 
 Balance results remain descriptive and conditional on the frozen baseline, declared population and protocol. They are not claims of intrinsic hero power, universal game balance or competitive Ares strength.
+
+## Local 1.0-Lite acceptance — #555
+
+Current implementation path:
+
+```text
+#526 Lite baseline
+      ↓
+#557 Local 2P / hot-seat — CLOSED
+      ↓
+#558 Settings + audio — PR #561 / CI pending
+      ↓
+#555 final product acceptance
+```
+
+#557 is merged into `main` at `2c6c9e9`. PR #561 contains the remaining settings/audio scope and must pass the normal Test Suite, AI Quality Gate and CodeQL before merge. Closing #555 additionally requires the final local smoke-test and validation record; this acceptance gate does not close #372.
 
 ## Not required for 1.0-Lite
 
