@@ -39,7 +39,7 @@ The 1.0-Lite path is not an alternative definition of competitive Ares. It estab
 - **#370 Foundation — CLOSED.** Contratos base e fronteira de execução fechados para o ruleset atual.
 - **#371 Gameplay — CLOSED.** Ruleset 1.0 jogável fechado para o escopo declarado.
 - **#372 Ares — OPEN.** Competitive/open-project AI track. It is no longer required to block a first local 1.0-Lite release.
-- **#526 1.0-Lite — OPEN.** Define and validate the product-facing Ares Balance Baseline and the reduced local-release scope.
+- **#526 1.0-Lite — CLOSED.** Product split and Ares Balance Baseline are closed; remaining local release acceptance is tracked by #555.
 - **#373 Product — OPEN/BLOCKED for 1.0 Full by #372.** Stable local work may proceed through #526 when contracts are independent of the competitive Ares gate.
 - **#374 Online — BLOCKED for the Full product sequence by #372/#373.**
 - **#375 Release — BLOCKED for the Full product sequence by #372/#373/#374.**
