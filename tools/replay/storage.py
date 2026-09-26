@@ -400,6 +400,7 @@ def reconstruct(record: dict[str, Any], include_history: bool = False):
     if record.get("schema_version") != SCHEMA_VERSION:
         raise ReplayCorruptionError("Unsupported replay schema")
     gs = _restore_state(record["initial"])
+    gs.replay_metadata = dict(record.get("metadata", {}) or {})
     for compact in record.get("moves", []):
         action = _expand_action(compact)
         if action["type"] == "surrender":
