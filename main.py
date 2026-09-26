@@ -360,7 +360,7 @@ class JogoController:
         self.display_gs = self._mainline_state_at(0)
         self.analise_resultados_top5 = []
         self.analise_depth_atual = 0
-        self._start_analysis_worker()
+        self._start_analysis_worker(clear_cache=True)
 
     def _current_analysis_state(self):
         if self._analysis_context == "branch":
@@ -382,10 +382,11 @@ class JogoController:
         order = [current] + [i for i in range(total + 1) if i != current]
         return [("main", index, self._mainline_state_at(index)) for index in order]
 
-    def _start_analysis_worker(self):
+    def _start_analysis_worker(self, *, clear_cache=False):
         self._analysis_generation += 1
         generation = self._analysis_generation
-        self._analysis_cache = {}
+        if clear_cache:
+            self._analysis_cache = {}
         items = self._analysis_work_items()
 
         def worker():
@@ -395,6 +396,8 @@ class JogoController:
                 for path, index, state in items:
                     if generation != self._analysis_generation:
                         return
+                    if (path, index) in self._analysis_cache:
+                        continue
 
                     started = time.perf_counter()
                     error = None
@@ -484,25 +487,64 @@ class JogoController:
         if self.display_gs is None or self.display_gs.game_over:
             return
 
-        if self._analysis_context != "branch":
+        current_team = "brancas" if self.display_gs.white_to_move else "pretas"
+        start = action.get("start")
+        piece = (
+            self.display_gs.board[start[0]][start[1]]
+            if isinstance(start, tuple) and len(start) == 2
+            else None
+        )
+        if piece is None or piece.team != current_team:
+            return
+
+        new_branch = self._analysis_context != "branch"
+        if new_branch:
             self._analysis_context = "branch"
             self._analysis_branch_base_index = self.review_index
             self._analysis_branch_index = 0
             self._analysis_branch_states = [self.display_gs.fast_clone()]
             self._analysis_branch_actions = []
-
-        # A new choice from an earlier point replaces the abandoned branch tail.
-        self._analysis_branch_actions = self._analysis_branch_actions[:self._analysis_branch_index]
-        self._analysis_branch_states = self._analysis_branch_states[:self._analysis_branch_index + 1]
+        else:
+            # A new choice from an earlier point replaces the abandoned branch tail.
+            self._analysis_branch_actions = self._analysis_branch_actions[:self._analysis_branch_index]
+            self._analysis_branch_states = self._analysis_branch_states[:self._analysis_branch_index + 1]
+            self._analysis_cache = {
+                key: value for key, value in self._analysis_cache.items()
+                if key[0] != "branch"
+            }
 
         action = dict(action)
-        _, off_x, tam_casa = self.get_ui_metrics()
-        self.desenhar_animacao(self.display_gs, action["start"], action["end"], action["type"], tam_casa, off_x, 80)
-        self.display_gs.execute_action(action)
+        try:
+            _, off_x, tam_casa = self.get_ui_metrics()
+            self.desenhar_animacao(
+                self.display_gs,
+                action["start"],
+                action["end"],
+                action["type"],
+                tam_casa,
+                off_x,
+                80,
+            )
+            self.display_gs.execute_action(action)
+        except (KeyError, TypeError, ValueError) as exc:
+            self.replay_error = f"Ramificação rejeitada: {exc}"
+            if new_branch:
+                self._analysis_context = "main"
+                self._analysis_branch_base_index = 0
+                self._analysis_branch_index = 0
+                self._analysis_branch_states = []
+                self._analysis_branch_actions = []
+            return
+
+        self.replay_error = None
         self._analysis_branch_actions.append(action)
         self._analysis_branch_states.append(self.display_gs.fast_clone())
         self._analysis_branch_index += 1
         self.casa_selecionada = None
+        self._analysis_cache = {
+            key: value for key, value in self._analysis_cache.items()
+            if key[0] != "branch"
+        }
         self._start_analysis_worker()
 
     def thread_de_analise(self, estado_congelado):
@@ -742,10 +784,18 @@ class JogoController:
                 if self.hover_pos and self.display_gs:
                     r, c = self.hover_pos
                     if not self.casa_selecionada and self.display_gs.board[r][c]:
-                        self.casa_selecionada = (r, c)
+                        current_team = "brancas" if self.display_gs.white_to_move else "pretas"
+                        if self.display_gs.board[r][c].team == current_team:
+                            self.casa_selecionada = (r, c)
                     elif self.casa_selecionada:
                         if not self.display_gs.game_over:
-                            acao = self.extrair_acao_valida(self.display_gs, self.casa_selecionada[0], self.casa_selecionada[1], r, c)
+                            acao = self.extrair_acao_valida(
+                                self.display_gs,
+                                self.casa_selecionada[0],
+                                self.casa_selecionada[1],
+                                r,
+                                c,
+                            )
                             if acao:
                                 self._create_analysis_branch(acao)
                         self.casa_selecionada = None
