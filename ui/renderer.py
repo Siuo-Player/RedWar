@@ -471,8 +471,9 @@ def desenhar_definicoes(
 ) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]:
     ecra.fill(COLORS["bg"])
     title = FontManager.get("arial", 46, bold=True)
-    ecra.blit(title.render("Definições", True, COLORS["text"]),
-              title.get_rect(center=(w // 2, int(h * 0.18))))
+    title_surface = title.render("Definições", True, COLORS["text"])
+    ecra.blit(title_surface,
+              title_surface.get_rect(center=(w // 2, int(h * 0.18))))
 
     panel_w = min(560, int(w * 0.80))
     panel_h = 330

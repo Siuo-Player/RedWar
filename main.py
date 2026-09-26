@@ -752,10 +752,6 @@ class JogoController:
                     label = "Desistir" if enabled else "Desistir (turno IA)"
                     txt = f_surrender.render(label, True, COLORS["text"])
                     self.ecra.blit(txt, txt.get_rect(center=self.btn_surrender.center))
-                elif self.hover_pos and self.gs.board[self.hover_pos[0]][self.hover_pos[1]]:
-                    desenhar_painel_heroi(self.ecra, self.gs.board[self.hover_pos[0]][self.hover_pos[1]], painel_x, 20, 350, h - 40)
-                else:
-                    desenhar_log(self.ecra, self.gs, painel_x, 20, 350, h - 40)
 
             if self.casa_selecionada:
                 desenhar_destaques_com_hover(self.ecra, to_draw, self.casa_selecionada, self.hover_pos, tam_casa, off_x, off_y_tab)

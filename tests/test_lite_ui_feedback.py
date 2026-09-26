@@ -67,3 +67,12 @@ def test_terminal_message_is_explicit_for_player_and_hotseat():
     controller.modo_local_2p = True
     controller.gs = SimpleNamespace(winner="Desempate por Material - Pretas Vencem")
     assert controller._terminal_message() == "VITÓRIA — PRETAS"
+
+
+def test_battle_render_does_not_draw_legacy_sidebar_over_intent_sidebar():
+    import inspect
+
+    source = inspect.getsource(main.JogoController.renderizar)
+
+    assert 'desenhar_painel_heroi(' not in source
+    assert 'desenhar_log(' not in source
