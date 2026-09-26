@@ -126,6 +126,22 @@ For hero pricing, integer cost is normally the first intervention and should be 
 
 Balance results remain descriptive and conditional on the frozen baseline, declared population and protocol. They are not claims of intrinsic hero power, universal game balance or competitive Ares strength.
 
+## Local 1.0-Lite acceptance — #555
+
+Current implementation path:
+
+```text
+#526 Lite baseline
+      ↓
+#557 Local 2P / hot-seat — CLOSED
+      ↓
+#558 Settings + audio — PR #561 / CI pending
+      ↓
+#555 final product acceptance
+```
+
+#557 is merged into `main` at `2c6c9e9`. PR #561 contains the remaining settings/audio scope and must pass the normal Test Suite, AI Quality Gate and CodeQL before merge. Closing #555 additionally requires the final local smoke-test and validation record; this acceptance gate does not close #372.
+
 ## Not required for 1.0-Lite
 
 - statistically significant improvement over previous Ares versions;
