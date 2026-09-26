@@ -1,5 +1,12 @@
 from __future__ import annotations
 
+import sys
+import types
+
+_evaluator = types.ModuleType("ai.evaluator")
+_evaluator.avaliador_mestre = lambda _state: 0
+sys.modules.setdefault("ai.evaluator", _evaluator)
+
 import main
 
 
