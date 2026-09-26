@@ -519,6 +519,19 @@ class JogoController:
             self.audio.play_terminal()
             self._terminal_sound_played = True
 
+    def _terminal_message(self):
+        winner = str(self.gs.winner or "Fim de jogo")
+        if self.modo_local_2p:
+            if "Brancas Vencem" in winner:
+                return "VITÓRIA — BRANCAS"
+            if "Pretas Vencem" in winner:
+                return "VITÓRIA — PRETAS"
+        elif "Brancas Vencem" in winner:
+            return "GANHASTE!"
+        elif "Pretas Vencem" in winner:
+            return "ARES VENCEU"
+        return "FIM DE JOGO"
+
     def processar_ia(self):
         if self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
             if self.modo_predador and not self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'start_pondering'):
@@ -661,11 +674,6 @@ class JogoController:
             hud_name = "Jogador 2" if self.modo_local_2p else (self.bot_ativo.nome if self.bot_ativo else "StockWar")
             desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, hud_name, self.gs)
 
-            if self.gs.game_over:
-                fonte_fim = FontManager.get("arial", 24, bold=True)
-                txt = fonte_fim.render(f"FIM DE JOGO: {self.gs.winner}", True, COLORS["danger"])
-                self.ecra.blit(txt, (off_x, off_y_tab - 35))
-
             to_draw = self.display_gs if (self.fase_atual == "ANALISE" and self.display_gs) else self.gs
             desenhar_tabuleiro(self.ecra, to_draw, tam_casa, off_x, off_y_tab)
             desenhar_coordenadas(self.ecra, tam_casa, off_x, off_y_tab)
@@ -754,6 +762,21 @@ class JogoController:
                 pygame.draw.rect(self.ecra, (255, 255, 50), (off_x + self.casa_selecionada[1] * tam_casa, off_y_tab + self.casa_selecionada[0] * tam_casa, tam_casa, tam_casa), 3)
 
             desenhar_pecas(self.ecra, to_draw.board, tam_casa, off_x, off_y_tab)
+
+            if self.gs.game_over:
+                board_w = COLUNAS * tam_casa
+                board_h = LINHAS * tam_casa
+                banner = pygame.Surface((max(220, board_w - 40), 104), pygame.SRCALPHA)
+                banner.fill((15, 15, 22, 225))
+                banner_rect = banner.get_rect(center=(off_x + board_w // 2, off_y_tab + board_h // 2))
+                pygame.draw.rect(banner, (180, 90, 210, 255), banner.get_rect(), 2, border_radius=12)
+                title_font = FontManager.get("arial", 40, bold=True)
+                detail_font = FontManager.get("arial", 17)
+                title_text = title_font.render(self._terminal_message(), True, COLORS["success"] if "GANHASTE" in self._terminal_message() or "VITÓRIA" in self._terminal_message() else COLORS["danger"])
+                detail_text = detail_font.render(str(self.gs.winner or "Fim de jogo"), True, COLORS["text"])
+                banner.blit(title_text, title_text.get_rect(center=(banner.get_width() // 2, 34)))
+                banner.blit(detail_text, detail_text.get_rect(center=(banner.get_width() // 2, 76)))
+                self.ecra.blit(banner, banner_rect)
 
 if __name__ == "__main__":
     app = JogoController()

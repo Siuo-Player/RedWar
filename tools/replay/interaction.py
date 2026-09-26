@@ -25,6 +25,40 @@ from ui.sidebar_theme import SIDEBAR_THEME
 SUPPORT_SPELLS = {"purify", "swap"}
 
 
+def _wrap_lines(font: Any, text: str, max_width: int) -> list[str]:
+    words = str(text).split()
+    if not words:
+        return []
+    lines: list[str] = []
+    current = words[0]
+    for word in words[1:]:
+        candidate = f"{current} {word}"
+        if font.size(candidate)[0] <= max_width:
+            current = candidate
+            continue
+        lines.append(current)
+        current = word
+    lines.append(current)
+    return lines
+
+
+def _draw_wrapped_text(
+    ecra: Any,
+    text: str,
+    font: Any,
+    color: Any,
+    x: int,
+    y: int,
+    max_width: int,
+    max_lines: int = 3,
+) -> int:
+    lines = _wrap_lines(font, text, max_width)
+    for line in lines[:max_lines]:
+        ecra.blit(font.render(line, True, color), (x, y))
+        y += font.get_linesize() + 2
+    return y
+
+
 def actions_for_destination(gs: Any, sr: int, sc: int, tr: int, tc: int) -> list[dict[str, Any]]:
     """Return every legal action whose destination is (tr, tc)."""
     piece = gs.board[sr][sc]
@@ -353,9 +387,32 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
                 sr, sc = controller.casa_selecionada
                 actions = actions_for_destination(controller.gs, sr, sc, r, c)
                 if actions:
-                    ecra.blit(small.render("Ações legais: " + " / ".join(action_label(a) for a in actions), True, SIDEBAR_THEME.text_secondary), (context_rect.x + 12, min(context_rect.bottom - 22, y + 6)))
+                    action_text = "Ações legais: " + " / ".join(action_label(a) for a in actions)
+                    action_lines = _wrap_lines(small, action_text, max(80, context_rect.width - 24))
+                    start_y = min(
+                        y + 6,
+                        context_rect.bottom - 12 - len(action_lines[:3]) * (small.get_linesize() + 2),
+                    )
+                    _draw_wrapped_text(
+                        ecra,
+                        action_text,
+                        small,
+                        SIDEBAR_THEME.text_secondary,
+                        context_rect.x + 12,
+                        max(context_rect.y + 48, start_y),
+                        max(80, context_rect.width - 24),
+                    )
                 else:
-                    ecra.blit(small.render("Nenhuma ação legal", True, SIDEBAR_THEME.text_disabled), (context_rect.x + 12, min(context_rect.bottom - 22, y + 6)))
+                    _draw_wrapped_text(
+                        ecra,
+                        "Nenhuma ação legal",
+                        small,
+                        SIDEBAR_THEME.text_disabled,
+                        context_rect.x + 12,
+                        min(context_rect.bottom - 20, y + 6),
+                        max(80, context_rect.width - 24),
+                        max_lines=1,
+                    )
 
     if action_rect is not None:
         _draw_section(ecra, action_rect, action_title)
