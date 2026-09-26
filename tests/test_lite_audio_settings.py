@@ -7,7 +7,7 @@ _evaluator = types.ModuleType("ai.evaluator")
 _evaluator.avaliador_mestre = lambda _state: 0
 sys.modules.setdefault("ai.evaluator", _evaluator)
 
-from engine.actions import GameAction
+from engine.actions import ActionType, GameAction
 
 import main
 
@@ -111,7 +111,7 @@ def test_execute_action_with_sound_plays_action_and_terminal_once():
     controller.audio = FakeAudio()
     controller._terminal_sound_played = False
 
-    controller._execute_action_with_sound(GameAction(type=__import__("engine.actions", fromlist=["ActionType"]).ActionType.SURRENDER, start=None, end=None))
+    controller._execute_action_with_sound(GameAction(type=ActionType.SURRENDER, start=None, end=None))
 
     assert events == [
         ("execute", "surrender"),
