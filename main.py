@@ -275,7 +275,7 @@ class JogoController:
         return off_y_tab, off_x, tam_casa
 
     def _invalidate_replay_analysis(self):
-        self._analysis_generation += 1
+        self._analysis_generation = getattr(self, "_analysis_generation", 0) + 1
         self._analysis_cache = {}
         self.thread_analise = None
 
@@ -360,7 +360,8 @@ class JogoController:
         self.display_gs = self._mainline_state_at(0)
         self.analise_resultados_top5 = []
         self.analise_depth_atual = 0
-        self._start_analysis_worker(clear_cache=True)
+        self._analysis_cache = {}
+        self._start_analysis_worker()
 
     def _current_analysis_state(self):
         if self._analysis_context == "branch":
@@ -382,11 +383,9 @@ class JogoController:
         order = [current] + [i for i in range(total + 1) if i != current]
         return [("main", index, self._mainline_state_at(index)) for index in order]
 
-    def _start_analysis_worker(self, *, clear_cache=False):
-        self._analysis_generation += 1
+    def _start_analysis_worker(self):
+        self._analysis_generation = getattr(self, "_analysis_generation", 0) + 1
         generation = self._analysis_generation
-        if clear_cache:
-            self._analysis_cache = {}
         items = self._analysis_work_items()
 
         def worker():
