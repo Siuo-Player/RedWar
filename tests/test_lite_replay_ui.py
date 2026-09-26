@@ -72,3 +72,16 @@ def test_recent_replays_loaded_records_remain_clickable():
             break
 
     assert called == [record]
+
+
+def test_load_recent_replays_with_no_replay_directory_is_safe(tmp_path, monkeypatch):
+    monkeypatch.setenv("REDWAR_REPLAY_DIR", str(tmp_path / "replays"))
+
+    controller = object.__new__(main.JogoController)
+    controller.replay_records = ["stale"]
+    controller.replay_error = "stale"
+
+    controller._load_recent_replays()
+
+    assert controller.replay_records == []
+    assert controller.replay_error is None
