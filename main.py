@@ -876,7 +876,8 @@ class JogoController:
             self.casa_selecionada = None
             self.replay_error = None
             metadata = getattr(self.gs, "replay_metadata", {}) or {}
-            self._analysis_nodes = int(metadata.get("ai_nodes", 250000))
+            self.modo_local_2p = metadata.get("mode") == "hotseat"
+            self._analysis_nodes = max(1, int(metadata.get("ai_nodes", 250000)))
             self._open_analysis_timeline()
             self.fase_atual = "ANALISE"
         except ReplayCorruptionError as exc:
@@ -961,7 +962,12 @@ class JogoController:
             try: desenhar_eval_bar(self.ecra, self.gs, off_x - 30, LINHAS * tam_casa, off_y_tab)
             except Exception: pass
 
-            hud_name = "Jogador 2" if self.modo_local_2p else (self.bot_ativo.nome if self.bot_ativo else "StockWar")
+            replay_meta = getattr(self.gs, "replay_metadata", {}) or {}
+            hud_name = (
+                "Jogador 2"
+                if self.modo_local_2p
+                else (self.bot_ativo.nome if self.bot_ativo else replay_meta.get("opponent", "StockWar"))
+            )
             desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, hud_name, self.gs)
 
             to_draw = self.display_gs if (self.fase_atual == "ANALISE" and self.display_gs) else self.gs
