@@ -3,6 +3,8 @@ import threading
 import random
 import os
 import json
+import re
+import time
 from collections import Counter
 from engine.game_state import GameState, coords_para_notacao
 from engine.actions import normalize_action
@@ -70,6 +72,16 @@ class JogoController:
         self.analise_depth_atual = 0
         self.review_index = 0
         self.display_gs = None
+
+        # Estado da revisão/replay.
+        self._analysis_generation = 0
+        self._analysis_cache = {}
+        self._analysis_nodes = 250000
+        self._analysis_context = "main"
+        self._analysis_branch_base_index = 0
+        self._analysis_branch_index = 0
+        self._analysis_branch_states = []
+        self._analysis_branch_actions = []
 
         # Enciclopédia
         self.info_hero_index = 0
@@ -262,7 +274,238 @@ class JogoController:
         tam_casa = min(w // (COLUNAS + 1), max(8, (h - off_y_tab - 120) // LINHAS))
         return off_y_tab, off_x, tam_casa
 
+    def _invalidate_replay_analysis(self):
+        self._analysis_generation += 1
+        self._analysis_cache = {}
+        self.thread_analise = None
+
+    def _mainline_state_at(self, index):
+        total = len(self.gs.move_log)
+        index = max(0, min(int(index), total))
+        if total == 0:
+            return self.gs.fast_clone()
+        if index == total:
+            return self.gs.fast_clone()
+        return self.gs.move_log[index]["estado_anterior"].fast_clone()
+
+    def _analysis_path_length(self):
+        if self._analysis_context == "branch":
+            return len(self._analysis_branch_actions)
+        return len(self.gs.move_log)
+
+    def _analysis_current_key(self):
+        if self._analysis_context == "branch":
+            return ("branch", self._analysis_branch_index)
+        return ("main", self.review_index)
+
+    @staticmethod
+    def _analysis_action_key(action):
+        if action is None:
+            return None
+        if hasattr(action, "to_dict"):
+            action = action.to_dict()
+        return (
+            str(action.get("type", "")),
+            tuple(action.get("start", ())),
+            tuple(action.get("end", ())),
+            action.get("spell_name"),
+            action.get("spawn_name"),
+        )
+
+    def _analysis_expected_next(self):
+        if self._analysis_context == "branch":
+            if self._analysis_branch_index >= len(self._analysis_branch_actions):
+                return None
+            return self._analysis_branch_actions[self._analysis_branch_index]
+        if self.review_index >= len(self.gs.move_log):
+            return None
+        return self.gs.move_log[self.review_index]["acao_escolhida"]
+
+    def _analysis_expected_label(self):
+        if self._analysis_context == "branch":
+            action = self._analysis_expected_next()
+            return None if action is None else (
+                f"{action.get('type', '').upper()} "
+                f"{coords_para_notacao(*action['start'])}-"
+                f"{coords_para_notacao(*action['end'])}"
+            )
+        if self.review_index >= len(self.gs.move_log):
+            return None
+        return self.gs.move_log[self.review_index]["short"]
+
+    @staticmethod
+    def _analysis_best_label(action):
+        if action is None:
+            return None
+        return (
+            f"{str(action.get('type', '')).upper()} "
+            f"{coords_para_notacao(*action['start'])}-"
+            f"{coords_para_notacao(*action['end'])}"
+        )
+
+    @staticmethod
+    def _analysis_nodes_from_info(info):
+        match = re.search(r"nodes=(\d+)", info or "")
+        return int(match.group(1)) if match else None
+
+    def _open_analysis_timeline(self):
+        self._invalidate_replay_analysis()
+        self.review_index = 0
+        self._analysis_context = "main"
+        self._analysis_branch_base_index = 0
+        self._analysis_branch_index = 0
+        self._analysis_branch_states = []
+        self._analysis_branch_actions = []
+        self.display_gs = self._mainline_state_at(0)
+        self.analise_resultados_top5 = []
+        self.analise_depth_atual = 0
+        self._start_analysis_worker()
+
+    def _current_analysis_state(self):
+        if self._analysis_context == "branch":
+            if self._analysis_branch_states:
+                return self._analysis_branch_states[self._analysis_branch_index]
+        return self._mainline_state_at(self.review_index)
+
+    def _analysis_work_items(self):
+        if self._analysis_context == "branch":
+            items = []
+            current = self._analysis_branch_index
+            order = [current] + [i for i in range(len(self._analysis_branch_states)) if i != current]
+            for index in order:
+                items.append(("branch", index, self._analysis_branch_states[index].fast_clone()))
+            return items
+
+        total = len(self.gs.move_log)
+        current = self.review_index
+        order = [current] + [i for i in range(total + 1) if i != current]
+        return [("main", index, self._mainline_state_at(index)) for index in order]
+
+    def _start_analysis_worker(self):
+        self._analysis_generation += 1
+        generation = self._analysis_generation
+        self._analysis_cache = {}
+        items = self._analysis_work_items()
+
+        def worker():
+            bot = None
+            try:
+                bot = CppEngineBot(nodes=int(self._analysis_nodes))
+                for path, index, state in items:
+                    if generation != self._analysis_generation:
+                        return
+
+                    started = time.perf_counter()
+                    error = None
+                    best_move = None
+                    try:
+                        best_move = bot.escolher_jogada(state)
+                    except Exception as exc:
+                        error = str(exc)
+                    elapsed_ms = (time.perf_counter() - started) * 1000.0
+                    info = bot.last_engine_info or ""
+                    result = {
+                        "best_move": best_move,
+                        "nodes": self._analysis_nodes_from_info(info),
+                        "elapsed_ms": elapsed_ms,
+                        "error": error,
+                        "expected": (
+                            self.gs.move_log[index]["acao_escolhida"]
+                            if path == "main" and index < len(self.gs.move_log)
+                            else (
+                                self._analysis_branch_actions[index]
+                                if path == "branch" and index < len(self._analysis_branch_actions)
+                                else None
+                            )
+                        ),
+                    }
+                    if generation != self._analysis_generation:
+                        return
+                    self._analysis_cache[(path, index)] = result
+                    current_path, current_index = self._analysis_current_key()
+                    if (path, index) == (current_path, current_index):
+                        self.analise_resultados_top5 = []
+                        self.analise_depth_atual = 0
+            finally:
+                if bot is not None:
+                    try:
+                        bot.bridge.close()
+                    except Exception:
+                        pass
+
+        self.thread_analise = threading.Thread(target=worker)
+        self.thread_analise.daemon = True
+        self.thread_analise.start()
+
+    def _analysis_step(self, delta):
+        if self._analysis_context == "branch":
+            target = self._analysis_branch_index + int(delta)
+            if target < 0:
+                self._analysis_context = "main"
+                self.review_index = self._analysis_branch_base_index
+                self._analysis_branch_index = 0
+                self._analysis_branch_states = []
+                self._analysis_branch_actions = []
+                self.display_gs = self._mainline_state_at(self.review_index)
+                self.casa_selecionada = None
+                self._start_analysis_worker()
+                return
+            if target > len(self._analysis_branch_actions):
+                return
+            self._analysis_branch_index = target
+            self.display_gs = self._analysis_branch_states[target]
+            self.casa_selecionada = None
+            self._start_analysis_worker()
+            return
+
+        total = len(self.gs.move_log)
+        target = max(0, min(self.review_index + int(delta), total))
+        if target == self.review_index:
+            return
+
+        old_index = self.review_index
+        old_state = self.display_gs
+        if delta > 0:
+            action = self.gs.move_log[old_index]["acao_escolhida"]
+            _, off_x, tam_casa = self.get_ui_metrics()
+            self.desenhar_animacao(old_state, action["start"], action["end"], action["type"], tam_casa, off_x, 80)
+        else:
+            action = self.gs.move_log[target]["acao_escolhida"]
+            _, off_x, tam_casa = self.get_ui_metrics()
+            self.desenhar_animacao(old_state, action["end"], action["start"], action["type"], tam_casa, off_x, 80)
+
+        self.review_index = target
+        self.display_gs = self._mainline_state_at(target)
+        self.casa_selecionada = None
+        self._start_analysis_worker()
+
+    def _create_analysis_branch(self, action):
+        if self.display_gs is None or self.display_gs.game_over:
+            return
+
+        if self._analysis_context != "branch":
+            self._analysis_context = "branch"
+            self._analysis_branch_base_index = self.review_index
+            self._analysis_branch_index = 0
+            self._analysis_branch_states = [self.display_gs.fast_clone()]
+            self._analysis_branch_actions = []
+
+        # A new choice from an earlier point replaces the abandoned branch tail.
+        self._analysis_branch_actions = self._analysis_branch_actions[:self._analysis_branch_index]
+        self._analysis_branch_states = self._analysis_branch_states[:self._analysis_branch_index + 1]
+
+        action = dict(action)
+        _, off_x, tam_casa = self.get_ui_metrics()
+        self.desenhar_animacao(self.display_gs, action["start"], action["end"], action["type"], tam_casa, off_x, 80)
+        self.display_gs.execute_action(action)
+        self._analysis_branch_actions.append(action)
+        self._analysis_branch_states.append(self.display_gs.fast_clone())
+        self._analysis_branch_index += 1
+        self.casa_selecionada = None
+        self._start_analysis_worker()
+
     def thread_de_analise(self, estado_congelado):
+        """Compatibility entry point for older callers/tests."""
         for depth, top_moves in analisar_posicao_continuamente(estado_congelado):
             self.analise_depth_atual = depth
             self.analise_resultados_top5 = top_moves
@@ -290,6 +533,11 @@ class JogoController:
                     self.ecra = pygame.display.set_mode((evento.w, evento.h), pygame.RESIZABLE)
                 elif evento.type == pygame.MOUSEBUTTONUP:
                     self.arrastando_elo = False
+                elif evento.type == pygame.KEYDOWN and self.fase_atual == "ANALISE":
+                    if evento.key == pygame.K_LEFT:
+                        self._analysis_step(-1)
+                    elif evento.key == pygame.K_RIGHT:
+                        self._analysis_step(1)
                 elif evento.type == pygame.MOUSEBUTTONDOWN and evento.button == 1:
                     self.tratar_cliques(mx, my, evento.pos)
                 elif evento.type == pygame.MOUSEMOTION:
@@ -398,9 +646,19 @@ class JogoController:
                 self.fase_atual = "BATALHA"
                 self._terminal_sound_played = False
                 self.gs.replay_metadata = (
-                    {"mode": "hotseat", "player_side": "both", "opponent": "Local 2P"}
+                    {
+                        "mode": "hotseat",
+                        "player_side": "both",
+                        "opponent": "Local 2P",
+                        "ai_nodes": 250000,
+                    }
                     if local_2p
-                    else {"mode": "local", "player_side": "brancas", "opponent": "Ares"}
+                    else {
+                        "mode": "local",
+                        "player_side": "brancas",
+                        "opponent": "Ares",
+                        "ai_nodes": int(self.bot_ativo.nodes) if self.bot_ativo is not None else 250000,
+                    }
                 )
                 capture_initial(self.gs)
                 self.replay_error = None
@@ -467,25 +725,13 @@ class JogoController:
                     self.casa_selecionada = None
 
         elif self.fase_atual == "ANALISE":
-            total_estados = len(self.gs.move_log)
-            if self.btn_prev.collidepoint(pos) and self.review_index > 0:
-                estado_antigo = self.display_gs
-                self.review_index -= 1
-                if self.review_index == total_estados: self.display_gs = self.gs
-                else: self.display_gs = self.gs.move_log[self.review_index]["estado_anterior"].fast_clone()
-                acao = self.gs.move_log[self.review_index]["acao_escolhida"]
-                _, off_x, tam_casa = self.get_ui_metrics()
-                self.desenhar_animacao(estado_antigo, acao["end"], acao["start"], acao["type"], tam_casa, off_x, 80)
-
-            elif self.btn_next.collidepoint(pos) and self.review_index < total_estados:
-                acao = self.gs.move_log[self.review_index]["acao_escolhida"]
-                _, off_x, tam_casa = self.get_ui_metrics()
-                self.desenhar_animacao(self.display_gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
-                self.review_index += 1
-                if self.review_index == total_estados: self.display_gs = self.gs
-                else: self.display_gs = self.gs.move_log[self.review_index]["estado_anterior"].fast_clone()
+            if self.btn_prev.collidepoint(pos):
+                self._analysis_step(-1)
+            elif self.btn_next.collidepoint(pos):
+                self._analysis_step(1)
 
             elif self.btn_voltar_menu.collidepoint(pos):
+                self._invalidate_replay_analysis()
                 self.fase_atual = "MENU"
                 self.gs = GameState(time_limit_seconds=180.0)
                 self.modo_local_2p = False
@@ -502,16 +748,10 @@ class JogoController:
                     if not self.casa_selecionada and self.display_gs.board[r][c]:
                         self.casa_selecionada = (r, c)
                     elif self.casa_selecionada:
-                        acao = self.extrair_acao_valida(self.display_gs, self.casa_selecionada[0], self.casa_selecionada[1], r, c)
-                        if acao:
-                            _, off_x, tam_casa = self.get_ui_metrics()
-                            self.desenhar_animacao(self.display_gs, acao["start"], acao["end"], acao["type"], tam_casa, off_x, 80)
-                            self.display_gs.execute_action(acao)
-                            self.analise_resultados_top5 = []
-                            self.analise_depth_atual = 0
-                            self.thread_analise = threading.Thread(target=self.thread_de_analise, args=(self.display_gs.fast_clone(),))
-                            self.thread_analise.daemon = True
-                            self.thread_analise.start()
+                        if not self.display_gs.game_over:
+                            acao = self.extrair_acao_valida(self.display_gs, self.casa_selecionada[0], self.casa_selecionada[1], r, c)
+                            if acao:
+                                self._create_analysis_branch(acao)
                         self.casa_selecionada = None
 
     def _execute_action_with_sound(self, action):
@@ -522,8 +762,9 @@ class JogoController:
             self.audio.play_terminal()
             self._terminal_sound_played = True
 
-    def _terminal_message(self):
-        winner = str(self.gs.winner or "Fim de jogo")
+    def _terminal_message(self, state=None):
+        source = state or self.gs
+        winner = str(source.winner or "Fim de jogo")
         if self.modo_local_2p:
             if "Brancas Vencem" in winner:
                 return "VITÓRIA — BRANCAS"
@@ -564,12 +805,7 @@ class JogoController:
             except Exception as exc:
                 self.replay_error = f"Replay não guardado: {exc}"
                 print(f"⚠️ {self.replay_error}")
-            self.fase_atual = "ANALISE"
-            self.review_index = len(self.gs.move_log)
-            self.display_gs = self.gs.fast_clone()
-            self.thread_analise = threading.Thread(target=self.thread_de_analise, args=(self.display_gs.fast_clone(),))
-            self.thread_analise.daemon = True
-            self.thread_analise.start()
+            self._open_analysis_timeline()
 
     def _load_recent_replays(self):
         try:
@@ -585,14 +821,12 @@ class JogoController:
     def _open_replay(self, record):
         try:
             self.gs = reconstruct(record, include_history=True)
-            self.display_gs = self.gs.fast_clone()
-            self.review_index = len(self.gs.move_log)
-            self.analise_resultados_top5 = []
-            self.analise_depth_atual = 0
-            self.thread_analise = None
             self.bot_ativo = None
             self.casa_selecionada = None
             self.replay_error = None
+            metadata = getattr(self.gs, "replay_metadata", {}) or {}
+            self._analysis_nodes = int(metadata.get("ai_nodes", 250000))
+            self._open_analysis_timeline()
             self.fase_atual = "ANALISE"
         except ReplayCorruptionError as exc:
             self.replay_error = f"Replay inválido: {exc}"
@@ -708,29 +942,84 @@ class JogoController:
 
             elif self.fase_atual == "ANALISE":
                 pygame.draw.rect(self.ecra, (20, 20, 30), (painel_x, 20, 350, h - 40), border_radius=10)
-                self.ecra.blit(FontManager.get("arial", 22, bold=True).render(f"Análise (Profundidade: {self.analise_depth_atual})", True, (150, 200, 255)), (painel_x + 15, 35))
 
-                f_top = FontManager.get("arial", 16)
-                yy = 80
-                for rank, mv in enumerate(self.analise_resultados_top5):
-                    c = COLORS["text"] if rank == 0 else (180, 180, 180)
-                    str_alg = f"{coords_para_notacao(*mv['start'])}-{coords_para_notacao(*mv['end'])}"
-                    txt = f"{rank+1}. {str_alg} (Score: {mv['score']:.1f})"
-                    self.ecra.blit(f_top.render(txt, True, c), (painel_x + 20, yy))
-                    yy += 30
+                total_estados = self._analysis_path_length()
+                if self._analysis_context == "branch":
+                    position_label = f"RAMIFICAÇÃO · {self._analysis_branch_index}/{total_estados}"
+                else:
+                    position_label = f"PARTIDA · {self.review_index}/{total_estados}"
+
+                title_font = FontManager.get("arial", 22, bold=True)
+                small_font = FontManager.get("arial", 15)
+                self.ecra.blit(title_font.render("Análise Ares", True, (150, 200, 255)), (painel_x + 15, 35))
+                self.ecra.blit(small_font.render(position_label, True, COLORS["text_muted"]), (painel_x + 15, 62))
+
+                result = self._analysis_cache.get(self._analysis_current_key())
+                yy = 92
+                expected_label = self._analysis_expected_label()
+
+                if self._analysis_context == "main" and self.review_index == 0:
+                    self.ecra.blit(small_font.render("Antes do primeiro lance", True, COLORS["text"]), (painel_x + 15, yy))
+                    yy += 25
+                elif self._analysis_context == "main":
+                    current_move = self.gs.move_log[self.review_index - 1]["short"]
+                    self.ecra.blit(small_font.render(f"Depois de: {current_move[:34]}", True, COLORS["text"]), (painel_x + 15, yy))
+                    yy += 25
+                elif self._analysis_branch_index == 0:
+                    self.ecra.blit(small_font.render("Ramo a partir desta posição", True, COLORS["text"]), (painel_x + 15, yy))
+                    yy += 25
+                else:
+                    action = self._analysis_branch_actions[self._analysis_branch_index - 1]
+                    label = self._analysis_best_label(action)
+                    self.ecra.blit(small_font.render(f"Ramo: {label[:34]}", True, COLORS["text"]), (painel_x + 15, yy))
+                    yy += 25
+
+                if result is None:
+                    self.ecra.blit(small_font.render("Ares: a analisar esta posição...", True, COLORS["warning"]), (painel_x + 15, yy))
+                    yy += 25
+                elif result["error"]:
+                    self.ecra.blit(small_font.render(f"Ares: erro — {result['error'][:30]}", True, COLORS["danger"]), (painel_x + 15, yy))
+                    yy += 25
+                elif result["best_move"] is None:
+                    self.ecra.blit(small_font.render("Ares: posição terminal / sem jogada.", True, COLORS["success"]), (painel_x + 15, yy))
+                    yy += 25
+                else:
+                    best_label = self._analysis_best_label(result["best_move"])
+                    nodes = result["nodes"] if result["nodes"] is not None else self._analysis_nodes
+                    self.ecra.blit(small_font.render(f"Ares ({nodes:,} nós): {best_label[:29]}", True, COLORS["success"]), (painel_x + 15, yy))
+                    yy += 24
+                    if expected_label:
+                        same = self._analysis_action_key(result["best_move"]) == self._analysis_action_key(self._analysis_expected_next())
+                        verdict = "coincide com o próximo lance" if same else f"próximo: {expected_label[:25]}"
+                        self.ecra.blit(small_font.render(verdict, True, COLORS["text_secondary"] if hasattr(COLORS, "text_secondary") else COLORS["text"]), (painel_x + 15, yy))
+                        yy += 23
+                    self.ecra.blit(small_font.render(f"Tempo: {result['elapsed_ms']:.1f} ms", True, COLORS["text_muted"]), (painel_x + 15, yy))
+                    yy += 23
+
+                is_start = (
+                    (self._analysis_context == "main" and self.review_index == 0)
+                    or (self._analysis_context == "branch" and self._analysis_branch_index == 0)
+                )
+                is_end = total_estados == (
+                    self.review_index if self._analysis_context == "main" else self._analysis_branch_index
+                )
 
                 self.btn_prev = pygame.Rect(painel_x + 20, h - 80, 80, 40)
                 self.btn_next = pygame.Rect(painel_x + 110, h - 80, 80, 40)
                 self.btn_voltar_menu = pygame.Rect(painel_x + 200, h - 80, 130, 40)
 
-                pygame.draw.rect(self.ecra, (80,80,80), self.btn_prev, border_radius=6)
-                pygame.draw.rect(self.ecra, (80,80,80), self.btn_next, border_radius=6)
+                prev_color = (70, 70, 70) if is_start else COLORS["btn_secondary"]
+                next_color = (70, 70, 70) if is_end else COLORS["btn_secondary"]
+                pygame.draw.rect(self.ecra, prev_color, self.btn_prev, border_radius=6)
+                pygame.draw.rect(self.ecra, next_color, self.btn_next, border_radius=6)
                 pygame.draw.rect(self.ecra, COLORS["danger"], self.btn_voltar_menu, border_radius=6)
 
-                fbtn = FontManager.get("arial", 20, bold=True)
-                self.ecra.blit(fbtn.render("Anterior", True, COLORS["text"]), (self.btn_prev.x + 6, self.btn_prev.y + 8))
-                self.ecra.blit(fbtn.render("Próximo", True, COLORS["text"]), (self.btn_next.x + 6, self.btn_next.y + 8))
-                self.ecra.blit(fbtn.render("Sair / Menu", True, COLORS["text"]), (self.btn_voltar_menu.x + 12, self.btn_voltar_menu.y + 8))
+                fbtn = FontManager.get("arial", 18, bold=True)
+                fbtn_color_prev = (135, 135, 135) if is_start else COLORS["text"]
+                fbtn_color_next = (135, 135, 135) if is_end else COLORS["text"]
+                self.ecra.blit(fbtn.render("Anterior", True, fbtn_color_prev), (self.btn_prev.x + 6, self.btn_prev.y + 9))
+                self.ecra.blit(fbtn.render("Próximo", True, fbtn_color_next), (self.btn_next.x + 6, self.btn_next.y + 9))
+                self.ecra.blit(fbtn.render("Sair / Menu", True, COLORS["text"]), (self.btn_voltar_menu.x + 12, self.btn_voltar_menu.y + 9))
             else:
                 if self.fase_atual == "BATALHA":
                     self.btn_surrender = pygame.Rect(
@@ -764,7 +1053,7 @@ class JogoController:
 
             desenhar_pecas(self.ecra, to_draw.board, tam_casa, off_x, off_y_tab)
 
-            if self.gs.game_over:
+            if to_draw.game_over:
                 board_w = COLUNAS * tam_casa
                 board_h = LINHAS * tam_casa
                 banner = pygame.Surface((max(220, board_w - 40), 104), pygame.SRCALPHA)
@@ -773,8 +1062,9 @@ class JogoController:
                 pygame.draw.rect(banner, (180, 90, 210, 255), banner.get_rect(), 2, border_radius=12)
                 title_font = FontManager.get("arial", 40, bold=True)
                 detail_font = FontManager.get("arial", 17)
-                title_text = title_font.render(self._terminal_message(), True, COLORS["success"] if "GANHASTE" in self._terminal_message() or "VITÓRIA" in self._terminal_message() else COLORS["danger"])
-                detail_text = detail_font.render(str(self.gs.winner or "Fim de jogo"), True, COLORS["text"])
+                terminal_title = self._terminal_message(to_draw)
+                title_text = title_font.render(terminal_title, True, COLORS["success"] if "GANHASTE" in terminal_title or "VITÓRIA" in terminal_title else COLORS["danger"])
+                detail_text = detail_font.render(str(to_draw.winner or "Fim de jogo"), True, COLORS["text"])
                 banner.blit(title_text, title_text.get_rect(center=(banner.get_width() // 2, 34)))
                 banner.blit(detail_text, detail_text.get_rect(center=(banner.get_width() // 2, 76)))
                 self.ecra.blit(banner, banner_rect)
