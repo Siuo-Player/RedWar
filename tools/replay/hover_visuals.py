@@ -6,6 +6,7 @@ any active silence aura receive stronger semantic emphasis.
 """
 from __future__ import annotations
 
+import math
 from types import MethodType
 from typing import Any
 
@@ -30,6 +31,60 @@ def _active_silence_cells(gs: Any) -> set[tuple[int, int]]:
     return cells
 
 
+def _silenced_enemy_cells(gs: Any) -> set[tuple[int, int]]:
+    cells: set[tuple[int, int]] = set()
+    sources = []
+    for r, row in enumerate(gs.board):
+        for c, piece in enumerate(row):
+            if piece is not None and piece.name == "Inquisitor" and piece.can_act():
+                sources.append((r, c, piece.team))
+
+    for r, row in enumerate(gs.board):
+        for c, piece in enumerate(row):
+            if piece is None:
+                continue
+            if any(
+                piece.team != source_team
+                and max(abs(r - sr), abs(c - sc)) <= 2
+                for sr, sc, source_team in sources
+            ):
+                cells.add((r, c))
+    return cells
+
+
+def _draw_silence_effect(ecra: Any, gs: Any, tam_casa: int, off_x: int, off_y: int) -> None:
+    import pygame
+    cells = _silenced_enemy_cells(gs)
+    if not cells:
+        return
+
+    ticks = pygame.time.get_ticks()
+    pulse = (math.sin(ticks / 260.0) + 1.0) / 2.0
+    ring_color = (190, 110, 225)
+    radius = max(8, int(tam_casa * (0.40 + 0.025 * pulse)))
+    icon_radius = max(6, int(tam_casa * 0.11))
+
+    for r, c in cells:
+        center = (
+            off_x + c * tam_casa + tam_casa // 2,
+            off_y + r * tam_casa + tam_casa // 2,
+        )
+        pygame.draw.circle(ecra, ring_color, center, radius, 3)
+        icon_center = (
+            off_x + c * tam_casa + tam_casa - icon_radius - 4,
+            off_y + r * tam_casa + icon_radius + 4,
+        )
+        pygame.draw.circle(ecra, (65, 25, 80), icon_center, icon_radius)
+        pygame.draw.circle(ecra, (235, 205, 245), icon_center, icon_radius, 2)
+        pygame.draw.line(
+            ecra,
+            (235, 205, 245),
+            (icon_center[0] - icon_radius + 2, icon_center[1] + icon_radius - 2),
+            (icon_center[0] + icon_radius - 2, icon_center[1] - icon_radius + 2),
+            2,
+        )
+
+
 def _hover_actions(controller: Any, gs: Any) -> list[dict[str, Any]]:
     if not controller.casa_selecionada or not controller.hover_pos:
         return []
@@ -40,15 +95,7 @@ def _hover_actions(controller: Any, gs: Any) -> list[dict[str, Any]]:
 
 def _draw_hover_overlay(ecra: Any, controller: Any, gs: Any, tam_casa: int, off_x: int, off_y: int) -> None:
     import pygame
-    if not controller.casa_selecionada:
-        return
-
-    silence_cells = _active_silence_cells(gs)
-    for r, c in silence_cells:
-        rect = pygame.Rect(off_x + c * tam_casa, off_y + r * tam_casa, tam_casa, tam_casa)
-        pygame.draw.rect(ecra, (155, 90, 180), rect, 2)
-
-    if not controller.hover_pos:
+    if not controller.casa_selecionada or not controller.hover_pos:
         return
     tr, tc = controller.hover_pos
     hover_rect = pygame.Rect(off_x + tc * tam_casa, off_y + tr * tam_casa, tam_casa, tam_casa)
@@ -75,7 +122,7 @@ def _draw_hover_overlay(ecra: Any, controller: Any, gs: Any, tam_casa: int, off_
         pygame.draw.rect(ecra, (255, 255, 255), bg, 1, border_radius=6)
         ecra.blit(surface, surface.get_rect(center=bg.center))
 
-    if controller.hover_pos in silence_cells:
+    if controller.hover_pos in _active_silence_cells(gs):
         font = pygame.font.SysFont("arial", max(12, min(18, int(tam_casa * 0.25))), bold=True)
         text = font.render("SILÊNCIO", True, (255, 235, 255))
         bg = text.get_rect(midtop=(hover_rect.centerx, hover_rect.bottom + 4)).inflate(10, 6)
@@ -166,10 +213,8 @@ def install_hover_visuals(controller: Any) -> None:
     def wrapped_render(self: Any, *args: Any, **kwargs: Any) -> Any:
         result = original_render(*args, **kwargs)
         if self.fase_atual in {"BATALHA", "ANALISE"}:
-            painel_x = kwargs.get("painel_x", args[5] if len(args) > 5 else None)
-            height = kwargs.get("h", args[1] if len(args) > 1 else self.ecra.get_height())
-            if painel_x is not None:
-                _draw_hover_panel_overlay(self.ecra, self, painel_x, height - 40)
+            _, off_x, tam_casa = self.get_ui_metrics()
+            _draw_silence_effect(self.ecra, self.gs, tam_casa, off_x, 80)
         return result
 
     controller.renderizar = MethodType(wrapped_render, controller)
