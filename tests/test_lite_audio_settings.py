@@ -83,7 +83,7 @@ def test_settings_controls_update_session_state():
     controller.btn_sound_toggle = FakeRect(False)
     controller.btn_volume_up = FakeRect(True)
     controller.tratar_cliques(0, 0, (0, 0))
-    assert controller.audio.volume == 0.8
+    assert abs(controller.audio.volume - 0.8) < 1e-9
 
 
 def test_execute_action_with_sound_plays_action_and_terminal_once():
