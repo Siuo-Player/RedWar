@@ -63,7 +63,7 @@ def test_mainline_navigation_clamps_at_initial_and_final_points():
     controller = _controller()
     controller.gs = _two_move_game()
     controller._analysis_generation = 0
-    controller._start_analysis_worker = lambda: None
+    controller._start_analysis_worker = lambda *args, **kwargs: None
     controller._open_analysis_timeline()
 
     controller._analysis_step(-1)
