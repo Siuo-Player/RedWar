@@ -90,7 +90,8 @@ class JogoController:
         self.btn_volume_down = pygame.Rect(0, 0, 0, 0)
         self.btn_volume_up = pygame.Rect(0, 0, 0, 0)
         self.btn_replays_back = pygame.Rect(0, 0, 0, 0)
-        self.replay_buttons = {}
+        # Lista de pares (Rect, replay). pygame.Rect não é hashable, logo não pode ser chave de dict.
+        self.replay_buttons = []
         self.replay_records = []
         self.replay_error = None
 
@@ -426,7 +427,7 @@ class JogoController:
                 self.fase_atual = "MENU"
                 self.replay_error = None
                 return
-            for rect, record in self.replay_buttons.items():
+            for rect, record in self.replay_buttons:
                 if rect.collidepoint(pos):
                     self._open_replay(record)
                     return
@@ -603,18 +604,20 @@ class JogoController:
             (w // 2 - 175, 90),
         )
 
-        self.replay_buttons = {}
+        self.replay_buttons = []
         y = 170
-        for record in self.replay_records:
-            rect = pygame.Rect(w // 2 - 300, y, 600, 54)
-            pygame.draw.rect(self.ecra, COLORS["btn_secondary"], rect, border_radius=8)
-            winner = record.get("result", {}).get("winner", "Resultado desconhecido")
-            created = str(record.get("created_at", "")).replace("T", " ").replace("+00:00", " UTC")
-            label = f"{created[:19]} — {winner}"
-            text = FontManager.get("arial", 17).render(label[:72], True, COLORS["text"])
-            self.ecra.blit(text, (rect.x + 14, rect.y + 15))
-            self.replay_buttons[rect] = record
-            y += 66
+
+        if self.replay_records:
+            for record in self.replay_records:
+                rect = pygame.Rect(w // 2 - 300, y, 600, 54)
+                pygame.draw.rect(self.ecra, COLORS["btn_secondary"], rect, border_radius=8)
+                winner = record.get("result", {}).get("winner", "Resultado desconhecido")
+                created = str(record.get("created_at", "")).replace("T", " ").replace("+00:00", " UTC")
+                label = f"{created[:19]} — {winner}"
+                text = FontManager.get("arial", 17).render(label[:72], True, COLORS["text"])
+                self.ecra.blit(text, (rect.x + 14, rect.y + 15))
+                self.replay_buttons.append((rect, record))
+                y += 66
 
         if not self.replay_records and not self.replay_error:
             msg = FontManager.get("arial", 20).render(
