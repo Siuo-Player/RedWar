@@ -504,6 +504,10 @@ class JogoController:
             self._analysis_branch_index = 0
             self._analysis_branch_states = [self.display_gs.fast_clone()]
             self._analysis_branch_actions = []
+            self._analysis_cache = {
+                key: value for key, value in self._analysis_cache.items()
+                if key[0] != "branch"
+            }
         else:
             # A new choice from an earlier point replaces the abandoned branch tail.
             self._analysis_branch_actions = self._analysis_branch_actions[:self._analysis_branch_index]
