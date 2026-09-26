@@ -514,8 +514,9 @@ class JogoController:
                         self.casa_selecionada = None
 
     def _execute_action_with_sound(self, action):
-        self.gs.execute_action(action)
-        self.audio.play_action(action.get("type", ""))
+        canonical = normalize_action(action)
+        self.gs.execute_action(canonical)
+        self.audio.play_action(canonical.type.value)
         if self.gs.game_over and not self._terminal_sound_played:
             self.audio.play_terminal()
             self._terminal_sound_played = True
