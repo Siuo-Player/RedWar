@@ -190,3 +190,24 @@ def test_build_record_preserves_product_replay_metadata():
     assert record["metadata"]["mode"] == "hotseat"
     assert record["metadata"]["player_side"] == "both"
     assert record["metadata"]["opponent"] == "Local 2P"
+
+
+def test_reconstruct_restores_replay_metadata():
+    gs = GameState()
+    gs.board[7][0] = Ranger("brancas")
+    gs.board[0][0] = Ranger("pretas")
+    gs.compute_initial_hash()
+    initial = snapshot_state(gs)
+    gs.execute_action({"type": "move", "start": (7, 0), "end": (6, 0)})
+
+    gs.replay_metadata = {
+        "mode": "local",
+        "player_side": "brancas",
+        "opponent": "Ares",
+        "ai_nodes": 250000,
+    }
+    record = build_record(gs, initial)
+
+    rebuilt = reconstruct(record, include_history=True)
+
+    assert rebuilt.replay_metadata == record["metadata"]
