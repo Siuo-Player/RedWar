@@ -72,6 +72,23 @@ def test_chunk_archive_seals_and_keeps_old_records(tmp_path, monkeypatch):
     assert store.load("game-0000")["game_id"] == "game-0000"
 
 
+def test_replay_store_rejects_empty_move_stream(tmp_path):
+    record = _record(1)
+    record["moves"] = []
+    record["result"]["plies"] = 0
+    record["record_sha256"] = hashlib.sha256(
+        json.dumps(
+            {k: v for k, v in record.items() if k != "record_sha256"},
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+    ).hexdigest()
+
+    with pytest.raises(ValueError, match="at least one move"):
+        ReplayStore(tmp_path).save(record)
+
+
 def test_corrupt_replay_is_rejected(tmp_path):
     store = ReplayStore(tmp_path)
     store.save(_record(1))
@@ -115,6 +132,22 @@ def test_silenced_spells_are_not_generated_but_authoritative_validator_rejects_d
     assert gs.board[4][0].get_valid_spells(4, 0, gs.board, gs.tile_effects) == []
     with pytest.raises(ValueError, match="SPELL is blocked by Inquisitor silence"):
         gs.execute_action({"type": "spell", "start": (4, 0), "end": (4, 3), "spell_name": "nevada"})
+
+
+def test_finalize_completed_game_skips_zero_ply_game(tmp_path, monkeypatch):
+    monkeypatch.setenv("REDWAR_REPLAY_DIR", str(tmp_path))
+    import tools.replay.storage as storage
+
+    gs = GameState()
+    gs.board[7][0] = Ranger("brancas")
+    gs.board[0][0] = Ranger("pretas")
+    gs.compute_initial_hash()
+    gs.game_over = True
+    gs.winner = "Brancas"
+    storage.capture_initial(gs)
+
+    assert storage.finalize_completed_game(gs) is None
+    assert ReplayStore(tmp_path).recent() == []
 
 
 def test_game_state_capture_and_finalize_persists_completed_game(tmp_path, monkeypatch):
