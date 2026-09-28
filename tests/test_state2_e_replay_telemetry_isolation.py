@@ -3,7 +3,6 @@ from pathlib import Path
 from tools.replay.storage import ReplayStore
 from tools.telemetry.runtime import TelemetryRecorder
 from tools.telemetry.store import TelemetryStore
-from tools.replay.storage import _canonical_json
 
 
 def test_telemetry_failure_does_not_block_replay_storage(tmp_path: Path):
@@ -17,8 +16,8 @@ def test_telemetry_failure_does_not_block_replay_storage(tmp_path: Path):
         "created_at": "2026-09-08T00:00:00+00:00",
         "metadata": {"mode": "test", "engine_commit": "test", "rules_hash": "r", "hero_config_hash": "h"},
         "initial": {"side_to_move": "brancas", "turns_without_capture": 0, "pieces": [], "effects": []},
-        "moves": [],
-        "result": {"winner": "Brancas", "termination_reason": "test", "plies": 0, "final_hash": 0},
+        "moves": [["move", 7, 0, 6, 0, None, None]],
+        "result": {"winner": "Brancas", "termination_reason": "test", "plies": 1, "final_hash": 0},
     }
     import hashlib, json
     event["record_sha256"] = hashlib.sha256(
