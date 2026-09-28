@@ -186,6 +186,9 @@ def finalize_completed_game(gs: Any) -> str | None:
     if initial is None or not gs.game_over:
         return None
 
+    if not gs.move_log:
+        return None
+
     record = build_record(gs, initial)
     ReplayStore().save(record)
     game_id = str(record["game_id"])
@@ -266,6 +269,9 @@ class ReplayStore:
     def save(self, record: dict[str, Any]) -> None:
         if record.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("Unsupported replay schema")
+        moves = record.get("moves", [])
+        if not isinstance(moves, list) or not moves:
+            raise ValueError("Replay must contain at least one move")
         game_id = str(record.get("game_id", ""))
         if not game_id:
             raise ValueError("Replay game_id is required")
