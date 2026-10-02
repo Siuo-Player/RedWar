@@ -153,10 +153,18 @@ def test_failed_bridge_does_not_implicitly_restart():
 
 
 def test_bridge_close_swallows_timeout_from_kill_fallback():
+    class Stdin:
+        def write(self, command):
+            return len(command)
+
+        def flush(self):
+            return None
+
     class StubbornProcess:
         def __init__(self):
             self.terminate_calls = 0
             self.kill_calls = 0
+            self.stdin = Stdin()
 
         def poll(self):
             return None
