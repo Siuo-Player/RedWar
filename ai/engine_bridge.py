@@ -249,7 +249,7 @@ class SubprocessEngineBridge(EngineBridge):
             try:
                 process.kill()
                 process.wait(timeout=1)
-            except OSError:
+            except (subprocess.TimeoutExpired, OSError):
                 pass
 
     def restart(self) -> None:
