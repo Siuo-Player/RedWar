@@ -149,3 +149,35 @@ def test_failed_bridge_does_not_implicitly_restart():
     bridge.last_error = failure
     with pytest.raises(EngineBridgeProcessExit, match="dead"):
         bridge.read_response(timeout=0.001)
+
+
+
+def test_bridge_close_swallows_timeout_from_kill_fallback():
+    class StubbornProcess:
+        def __init__(self):
+            self.terminate_calls = 0
+            self.kill_calls = 0
+
+        def poll(self):
+            return None
+
+        def terminate(self):
+            self.terminate_calls += 1
+
+        def kill(self):
+            self.kill_calls += 1
+
+        def wait(self, timeout=None):
+            raise __import__("subprocess").TimeoutExpired("engine", timeout or 0)
+
+    bridge = SubprocessEngineBridge("/tmp/engine")
+    process = StubbornProcess()
+    bridge.process = process
+    bridge.lifecycle = BridgeLifecycle.RUNNING
+
+    bridge.close()
+
+    assert process.terminate_calls == 1
+    assert process.kill_calls == 1
+    assert bridge.process is None
+    assert bridge.lifecycle is BridgeLifecycle.CLOSED
