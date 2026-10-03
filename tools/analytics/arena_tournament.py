@@ -371,7 +371,7 @@ def start_tournament(
             else:
                 invalid_games += 1
                 outcome = "invalid"
-            aggregate_actions.update(game["action_counts"])
+            aggregate_actions.update(cast(dict[str, int], game["action_counts"]))
             games.append({
                 "game_index": i,
                 "pair_id": pair_id,
@@ -395,7 +395,7 @@ def start_tournament(
             "games": num_games,
             "valid_games": num_games - invalid_games,
             "invalid_games": invalid_games,
-            "invalid_game_reasons": dict(Counter(game["failure_reason"] for game in games if not game["valid"])),
+            "invalid_game_reasons": dict(Counter(cast(str, game["failure_reason"]) for game in games if not game["valid"])),
             "nodes": nodes,
             "win_threshold": win_threshold,
             "challenger_engine": str(Path(challenger_engine).resolve()),
