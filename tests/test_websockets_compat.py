@@ -18,6 +18,7 @@ async def _wait_until(predicate, timeout=3.0):
 
 async def _exercise_authoritative_protocol() -> None:
     app.jogadores.clear()
+    app.prontos.clear()
     app.sessao = None
 
     server = await websockets.serve(app.gerir_conexao, "127.0.0.1", 0)
@@ -98,6 +99,7 @@ async def _exercise_authoritative_protocol() -> None:
         server.close()
         await server.wait_closed()
         app.jogadores.clear()
+        app.prontos.clear()
         app.sessao = None
 
 
