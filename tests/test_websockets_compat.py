@@ -1,4 +1,5 @@
 import asyncio
+import json
 
 import websockets
 
@@ -16,86 +17,111 @@ async def _wait_until(predicate, timeout=3.0):
     raise AssertionError("condition was not reached before timeout")
 
 
+async def _recv_type(websocket, expected_type, timeout=3.0):
+    deadline = asyncio.get_running_loop().time() + timeout
+    while asyncio.get_running_loop().time() < deadline:
+        remaining = max(0.01, deadline - asyncio.get_running_loop().time())
+        message = json.loads(await asyncio.wait_for(websocket.recv(), timeout=remaining))
+        if message.get("tipo") == expected_type:
+            return message
+    raise AssertionError(f"message type {expected_type!r} was not received")
+
+
 async def _exercise_authoritative_protocol() -> None:
     app.jogadores.clear()
     app.prontos.clear()
     app.sessao = None
 
     server = await websockets.serve(app.gerir_conexao, "127.0.0.1", 0)
-    clients = []
+    branca = NetworkClient(host="127.0.0.1", port=server.sockets[0].getsockname()[1])
+    preta = None
+
     try:
-        port = server.sockets[0].getsockname()[1]
-        branca = NetworkClient(host="127.0.0.1", port=port)
-        preta = NetworkClient(host="127.0.0.1", port=port)
-        clients.extend([branca, preta])
+        await _wait_until(lambda: branca.cor_atribuida == "brancas")
+
+        preta = await websockets.connect(
+            f"ws://127.0.0.1:{server.sockets[0].getsockname()[1]}"
+        )
+        setup = json.loads(await asyncio.wait_for(preta.recv(), timeout=2))
+        assert setup == {"tipo": "setup", "cor": "pretas"}
+
+        await preta.send(json.dumps({"tipo": "pronto"}))
+
+        start = await _recv_type(preta, "start_game")
+        assert start == {"tipo": "start_game"}
+
+        initial = await _recv_type(preta, "estado_jogo")
+        assert initial["dados"]["white_to_move"] is True
+        assert len(initial["dados"]["board"]) == 8
+        assert len(initial["dados"]["board"][0]) == 8
 
         await _wait_until(
             lambda: (
-                branca.cor_atribuida == "brancas"
-                and preta.cor_atribuida == "pretas"
-                and branca.latest_state is not None
-                and preta.latest_state is not None
+                isinstance(branca.latest_state, dict)
+                and branca.latest_state["white_to_move"] is True
             )
         )
+        assert branca.latest_state == initial["dados"]
 
-        initial_state = branca.latest_state
-        assert initial_state["white_to_move"] is True
-        assert len(initial_state["board"]) == 8
-        assert len(initial_state["board"][0]) == 8
-        assert preta.latest_state == initial_state
-
-        # A fixture with one legal piece for each side makes the protocol test
-        # independent from future matchmaking/draft initialization.
         app.sessao.state.board[6][0] = Bone("brancas")
         app.sessao.state.board[1][0] = Bone("pretas")
         app.sessao.state.board[1][1] = Bone("pretas")
         await app._broadcast(app._mensagem_estado())
 
+        fixture_state = await _recv_type(preta, "estado_jogo")
         await _wait_until(
             lambda: (
                 isinstance(branca.latest_state, dict)
-                and isinstance(preta.latest_state, dict)
                 and branca.latest_state["board"][6][0]["team"] == "brancas"
-                and preta.latest_state["board"][1][0]["team"] == "pretas"
+                and branca.latest_state["board"][1][0]["team"] == "pretas"
             )
         )
+        assert fixture_state["dados"] == branca.latest_state
 
-        # The black client cannot play while white is the active side.
-        preta.latest_error = None
         before = app.sessao.state.to_rwen()
-        preta.enviar_acao((6, 0), (5, 0), action_type="move")
-        await _wait_until(lambda: preta.latest_error is not None)
-        assert "non-active player" in preta.latest_error
+        await preta.send(
+            json.dumps(
+                {
+                    "tipo": "acao",
+                    "type": "move",
+                    "start": [6, 0],
+                    "end": [5, 0],
+                }
+            )
+        )
+        black_error = await _recv_type(preta, "erro")
+        assert "non-active player" in black_error["mensagem"]
         assert app.sessao.state.to_rwen() == before
 
-        # A legal-looking movement to an occupied square is rejected by the
-        # authoritative legal-action resolver.
         branca.latest_error = None
         branca.enviar_acao((6, 0), (1, 0), action_type="move")
-        await _wait_until(lambda: branca.latest_error is not None)
-        assert "occupied" in branca.latest_error
-        assert app.sessao.state.to_rwen() == before
-
-        # The real NetworkClient protocol now reaches the authoritative
-        # GameState and both clients receive the resulting state.
-        branca.latest_error = None
-        branca.enviar_acao((6, 0), (5, 0), action_type="move")
         await _wait_until(
             lambda: (
-                branca.latest_state
-                and preta.latest_state
-                and branca.latest_state["white_to_move"] is False
-                and preta.latest_state["white_to_move"] is False
-                and branca.latest_state["board"][5][0]["team"] == "brancas"
-                and branca.latest_state["board"][6][0] is None
-                and preta.latest_state == branca.latest_state
+                branca.latest_error is not None
+                and "occupied" in branca.latest_error
             )
         )
+        assert app.sessao.state.to_rwen() == before
+
+        branca.latest_error = None
+        branca.enviar_acao((6, 0), (5, 0), action_type="move")
+        updated = await _recv_type(preta, "estado_jogo")
+        await _wait_until(
+            lambda: (
+                isinstance(branca.latest_state, dict)
+                and branca.latest_state["white_to_move"] is False
+                and branca.latest_state["board"][5][0]["team"] == "brancas"
+                and branca.latest_state["board"][6][0] is None
+            )
+        )
+
+        assert updated["dados"] == branca.latest_state
         assert app.sessao.state.board[5][0].team == "brancas"
         assert app.sessao.state.board[6][0] is None
     finally:
-        for client in clients:
-            client.fechar()
+        if preta is not None:
+            await preta.close()
+        branca.fechar()
         await asyncio.sleep(0.05)
         server.close()
         await server.wait_closed()
