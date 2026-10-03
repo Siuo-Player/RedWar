@@ -22,15 +22,12 @@ async def _broadcast(payload: dict) -> None:
     if not jogadores:
         return
     mensagem = json.dumps(payload)
-    sockets = list(jogadores)
-    resultados = await asyncio.gather(
-        *(ws.send(mensagem) for ws in sockets),
-        return_exceptions=True,
-    )
-    for ws, resultado in zip(sockets, resultados):
-        if isinstance(resultado, websockets.exceptions.ConnectionClosed):
-            jogadores.pop(ws, None)
-            prontos.discard(ws)
+    for websocket in list(jogadores):
+        try:
+            await websocket.send(mensagem)
+        except websockets.exceptions.ConnectionClosed:
+            jogadores.pop(websocket, None)
+            prontos.discard(websocket)
 
 
 async def _enviar_erro(websocket, mensagem: str) -> None:
