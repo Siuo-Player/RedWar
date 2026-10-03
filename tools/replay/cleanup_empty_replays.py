@@ -8,6 +8,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import tempfile
 from datetime import datetime, timezone
@@ -58,7 +59,12 @@ def _rebuild(root: Path, kept_records: list[dict]) -> Path:
     old_index = store._load_index()
     important = old_index.get("important", {}) or {}
 
-    temp_root = Path(tempfile.mkdtemp(prefix=f"{root.name}.cleanup-", dir=str(root.parent)))
+    temp_root = Path(
+        tempfile.mkdtemp(
+            prefix=f"{root.name}.cleanup-",
+            dir=str(root.parent),
+        )
+    )
     backup_root = root.with_name(
         f"{root.name}.backup-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     )
@@ -75,39 +81,37 @@ def _rebuild(root: Path, kept_records: list[dict]) -> Path:
                     str(marker.get("reason", "")) if isinstance(marker, dict) else str(marker),
                 )
 
-        backup_root.mkdir(parents=False)
-        old_archive = root / "archive"
-        old_index_path = root / "index.json"
+        # The replay root is a coupled pair (archive + index). Build the entire
+        # replacement off to the side, then swap the directory itself. Renaming
+        # a directory within one filesystem is atomic, so there is no externally
+        # visible state where a new archive is paired with the old index.
+        root_parent = root.parent
+        root_parent.mkdir(parents=True, exist_ok=True)
+        root_was_present = root.exists()
+        if not root_was_present:
+            raise RuntimeError(f"Replay root disappeared before replacement: {root}")
 
-        if old_archive.exists():
-            shutil.move(str(old_archive), str(backup_root / "archive"))
-        if old_index_path.exists():
-            shutil.move(str(old_index_path), str(backup_root / "index.json"))
+        try:
+            os.rename(str(root), str(backup_root))
+        except OSError as exc:
+            raise RuntimeError(
+                f"Cannot stage replay root replacement: {root} -> {backup_root}"
+            ) from exc
 
-        new_archive = temp_root / "archive"
-        new_index = temp_root / "index.json"
-        if new_archive.exists():
-            shutil.move(str(new_archive), str(root / "archive"))
-        if new_index.exists():
-            shutil.move(str(new_index), str(root / "index.json"))
+        try:
+            os.rename(str(temp_root), str(root))
+        except OSError:
+            # At this point the original root is still fully intact in the
+            # backup because directory rename is atomic.
+            try:
+                os.rename(str(backup_root), str(root))
+            except OSError as restore_exc:
+                raise RuntimeError(
+                    f"Replay replacement failed and rollback also failed: {restore_exc}"
+                ) from restore_exc
+            raise
 
         return backup_root
-    except Exception:
-        restored_archive = backup_root / "archive"
-        restored_index = backup_root / "index.json"
-
-        current_archive = root / "archive"
-        current_index = root / "index.json"
-        if current_archive.exists() and not restored_archive.exists():
-            shutil.move(str(current_archive), str(restored_archive))
-        if current_index.exists() and not restored_index.exists():
-            shutil.move(str(current_index), str(restored_index))
-
-        if restored_archive.exists() and not current_archive.exists():
-            shutil.move(str(restored_archive), str(current_archive))
-        if restored_index.exists() and not current_index.exists():
-            shutil.move(str(restored_index), str(current_index))
-        raise
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)
 
