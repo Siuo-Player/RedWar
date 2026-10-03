@@ -71,7 +71,7 @@ async def _exercise_authoritative_protocol() -> None:
         branca.latest_error = None
         branca.enviar_acao((6, 0), (1, 0), action_type="move")
         await _wait_until(lambda: branca.latest_error is not None)
-        assert "illegal action" in branca.latest_error
+        assert "occupied" in branca.latest_error
         assert app.sessao.state.to_rwen() == before
 
         # The real NetworkClient protocol now reaches the authoritative
