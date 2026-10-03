@@ -1,61 +1,115 @@
 # online/server/app.py
 import asyncio
-import websockets
 import json
 
+import websockets
+
+from online.server.authority import AuthoritativeSession
+
 # Mapeia websocket -> cor ('brancas' ou 'pretas')
-jogadores = {}  
+jogadores = {}
+prontos = set()
+sessao = None
+
+
+def _mensagem_estado() -> dict:
+    if sessao is None:
+        raise RuntimeError("authoritative session is not available")
+    return {"tipo": "estado_jogo", "dados": sessao.state_payload()}
+
+
+async def _broadcast(payload: dict) -> None:
+    if not jogadores:
+        return
+    mensagem = json.dumps(payload)
+    for websocket in list(jogadores):
+        try:
+            await websocket.send(mensagem)
+        except websockets.exceptions.ConnectionClosed:
+            jogadores.pop(websocket, None)
+            prontos.discard(websocket)
+
+
+async def _enviar_erro(websocket, mensagem: str) -> None:
+    try:
+        await websocket.send(json.dumps({"tipo": "erro", "mensagem": mensagem}))
+    except websockets.exceptions.ConnectionClosed:
+        pass
+
 
 async def gerir_conexao(websocket):
-    # 1. Atribuir cor ao novo jogador
+    global sessao
+
     if len(jogadores) == 0:
-        cor = 'brancas'
+        cor = "brancas"
+        sessao = AuthoritativeSession.new()
     elif len(jogadores) == 1:
-        cor = 'pretas'
+        cor = "pretas"
     else:
-        await websocket.send(json.dumps({"tipo": "erro", "mensagem": "Sala cheia. Apenas espetador."}))
+        await _enviar_erro(websocket, "Sala cheia. Apenas espetador.")
         return
 
     jogadores[websocket] = cor
     print(f"[+] Jogador ligado como {cor.upper()}")
-    
-    # 2. Informa o cliente da sua cor
-    await websocket.send(json.dumps({"tipo": "setup", "cor": cor}))
-    
-    # 3. Se dois jogadores estiverem prontos, inicia a partida
-    if len(jogadores) == 2:
-        print("[!] Dois jogadores conectados. A Iniciar Partida na Rede!")
-        for ws in jogadores:
-            await ws.send(json.dumps({"tipo": "start_game"}))
 
     try:
+        # O cliente confirma que já entrou no ciclo de receção antes de o
+        # servidor enviar o primeiro estado autoritativo.
+        await websocket.send(json.dumps({"tipo": "setup", "cor": cor}))
+
         async for mensagem in websocket:
-            dados = json.loads(mensagem)
-            
-            # 4. O SERVIDOR ESPELHO: Recebe a String ("MOVE A2 A4") e retransmite para todos
-            if dados.get("tipo") == "acao_agnostica":
-                acao_str = dados.get("acao")
-                print(f"[{cor.upper()}] Disparou tática: {acao_str}")
-                
-                # Retransmite para TODOS os jogadores ligados para sincronizarem os tabuleiros locais
-                for ws in jogadores:
-                    await ws.send(json.dumps({
-                        "tipo": "acao_agnostica",
-                        "acao": acao_str
-                    }))
-                    
+            try:
+                dados = json.loads(mensagem)
+            except (TypeError, json.JSONDecodeError):
+                await _enviar_erro(websocket, "mensagem JSON inválida")
+                continue
+
+            if not isinstance(dados, dict):
+                await _enviar_erro(websocket, "mensagem deve ser um objeto JSON")
+                continue
+
+            tipo = dados.get("tipo")
+            if tipo == "pronto":
+                prontos.add(websocket)
+                if len(prontos) == 2 and len(jogadores) == 2:
+                    print("[!] Dois jogadores prontos. A iniciar partida autoritativa!")
+                    await _broadcast({"tipo": "start_game"})
+                    await _broadcast(_mensagem_estado())
+                continue
+
+            if tipo != "acao":
+                await _enviar_erro(websocket, "tipo de mensagem desconhecido")
+                continue
+
+            if sessao is None or len(jogadores) != 2 or len(prontos) != 2:
+                await _enviar_erro(websocket, "partida não está ativa")
+                continue
+
+            acao = {key: value for key, value in dados.items() if key != "tipo"}
+            try:
+                sessao.apply_action(cor, acao)
+            except (TypeError, ValueError) as exc:
+                await _enviar_erro(websocket, str(exc))
+                continue
+
+            await _broadcast(_mensagem_estado())
+
     except websockets.exceptions.ConnectionClosed:
         print(f"[-] Jogador {cor.upper()} desconectado.")
     finally:
-        if websocket in jogadores:
-            del jogadores[websocket]
+        jogadores.pop(websocket, None)
+        prontos.discard(websocket)
+        if not jogadores:
+            prontos.clear()
+            sessao = None
+
 
 async def main():
     porto = 8765
-    print(f"🚀 Servidor RedWar (Relay Agnóstico) a iniciar na porta {porto}...")
-    # "0.0.0.0" permite que a rede local/internet se ligue a ti
+    print(f"🚀 Servidor RedWar autoritativo a iniciar na porta {porto}...")
     async with websockets.serve(gerir_conexao, "0.0.0.0", porto):
         await asyncio.Future()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
