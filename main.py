@@ -509,6 +509,23 @@ class JogoController:
             self.replay_error = f"Ramificação rejeitada: {exc}"
             return
 
+        # Keep the existing branch untouched until both semantic execution
+        # validation and the presentation animation have succeeded.
+        try:
+            _, off_x, tam_casa = self.get_ui_metrics()
+            self.desenhar_animacao(
+                self.display_gs,
+                action["start"],
+                action["end"],
+                action["type"],
+                tam_casa,
+                off_x,
+                80,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            self.replay_error = f"Ramificação rejeitada: {exc}"
+            return
+
         if new_branch:
             self._analysis_context = "branch"
             self._analysis_branch_base_index = self.review_index
@@ -525,21 +542,6 @@ class JogoController:
             key: value for key, value in self._analysis_cache.items()
             if key[0] != "branch"
         }
-
-        try:
-            _, off_x, tam_casa = self.get_ui_metrics()
-            self.desenhar_animacao(
-                self.display_gs,
-                action["start"],
-                action["end"],
-                action["type"],
-                tam_casa,
-                off_x,
-                80,
-            )
-        except (KeyError, TypeError, ValueError) as exc:
-            self.replay_error = f"Ramificação rejeitada: {exc}"
-            return
 
         self.replay_error = None
         self.display_gs = candidate_state
