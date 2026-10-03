@@ -509,18 +509,131 @@ def desenhar_definicoes(
     desenhar_botao(ecra, back, "Voltar", COLORS["danger"], font_size=20)
     return back, toggle, minus, plus
 
-def desenhar_selecao_modo(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
+def desenhar_selecao_modo(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]:
     ecra.fill(COLORS["bg"])
     txt_tit = FontManager.get("arial", 48, bold=True).render("Selecione o Modo", True, COLORS["text"])
-    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, h * 0.15))
-    btn_w = min(300, int(w * 0.4))
-    btn_ia = pygame.Rect(w//2 - btn_w//2, h * 0.35, btn_w, 60)
-    desenhar_botao(ecra, btn_ia, "Jogar vs IA", COLORS["btn_primary"])
-    btn_multi = pygame.Rect(w//2 - btn_w//2, h * 0.35 + 90, btn_w, 60)
-    desenhar_botao(ecra, btn_multi, "2 Jogadores (Hot-seat)", COLORS["btn_secondary"], font_size=28)
-    btn_voltar = pygame.Rect(w//2 - 100, h * 0.35 + 230, 200, 50)
-    desenhar_botao(ecra, btn_voltar, "Voltar", COLORS["danger"], font_size=28)
-    return btn_ia, btn_multi, btn_voltar
+    ecra.blit(txt_tit, (w//2 - txt_tit.get_width()//2, h * 0.12))
+    btn_w = min(360, int(w * 0.62))
+    top = max(125, int(h * 0.28))
+    gap = 14
+    altura = 56
+    btn_ia = pygame.Rect(w//2 - btn_w//2, top, btn_w, altura)
+    desenhar_botao(ecra, btn_ia, "Jogar vs IA", COLORS["btn_primary"], font_size=26)
+    btn_multi = pygame.Rect(w//2 - btn_w//2, top + altura + gap, btn_w, altura)
+    desenhar_botao(ecra, btn_multi, "2 Jogadores (Hot-seat)", COLORS["btn_secondary"], font_size=26)
+    btn_lab = pygame.Rect(w//2 - btn_w//2, top + 2 * (altura + gap), btn_w, altura)
+    desenhar_botao(ecra, btn_lab, "IA vs IA Lab", (120, 80, 180), font_size=26, subtexto="Observa duas Ares a jogar")
+    btn_voltar = pygame.Rect(w//2 - 100, top + 3 * (altura + gap) + 18, 200, 50)
+    desenhar_botao(ecra, btn_voltar, "Voltar", COLORS["danger"], font_size=26)
+    return btn_ia, btn_multi, btn_lab, btn_voltar
+
+def desenhar_ia_lab_config(
+    ecra: pygame.Surface,
+    w: int,
+    h: int,
+    white_nodes: int,
+    black_nodes: int,
+) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect, pygame.Rect]:
+    ecra.fill(COLORS["bg"])
+    title = FontManager.get("arial", 44, bold=True)
+    title_surf = title.render("IA vs IA Lab", True, COLORS["text"])
+    ecra.blit(title_surf, title_surf.get_rect(center=(w // 2, int(h * 0.13))))
+
+    sub = FontManager.get("arial", 18)
+    sub_surf = sub.render("Configura cada Ares e inicia uma partida observável.", True, COLORS["text_muted"])
+    ecra.blit(sub_surf, sub_surf.get_rect(center=(w // 2, int(h * 0.20))))
+
+    panel_w = min(680, int(w * 0.82))
+    panel_h = min(390, int(h * 0.54))
+    panel = pygame.Rect(w // 2 - panel_w // 2, int(h * 0.25), panel_w, panel_h)
+    pygame.draw.rect(ecra, COLORS["panel_bg"], panel, border_radius=12)
+    pygame.draw.rect(ecra, (100, 100, 120), panel, 2, border_radius=12)
+
+    label = FontManager.get("arial", 24, bold=True)
+    small = FontManager.get("arial", 17)
+    button_x = panel.right - 118
+    row1 = panel.y + 75
+    row2 = panel.y + 190
+
+    white_title = label.render(f"Brancas — N{int(white_nodes):,}", True, COLORS["white_team"])
+    black_title = label.render(f"Pretas — N{int(black_nodes):,}", True, COLORS["black_team"])
+    ecra.blit(white_title, (panel.x + 28, row1))
+    ecra.blit(black_title, (panel.x + 28, row2))
+    ecra.blit(small.render("Orçamento de procura independente", True, COLORS["text_muted"]), (panel.x + 28, row1 + 32))
+    ecra.blit(small.render("Orçamento de procura independente", True, COLORS["text_muted"]), (panel.x + 28, row2 + 32))
+
+    white_prev = pygame.Rect(button_x, row1 - 7, 45, 40)
+    white_next = pygame.Rect(button_x + 53, row1 - 7, 45, 40)
+    black_prev = pygame.Rect(button_x, row2 - 7, 45, 40)
+    black_next = pygame.Rect(button_x + 53, row2 - 7, 45, 40)
+    for rect, txt in ((white_prev, "‹"), (white_next, "›"), (black_prev, "‹"), (black_next, "›")):
+        pygame.draw.rect(ecra, COLORS["btn_secondary"], rect, border_radius=7)
+        txt_surf = label.render(txt, True, COLORS["text"])
+        ecra.blit(txt_surf, txt_surf.get_rect(center=rect.center))
+
+    start = pygame.Rect(w // 2 - 150, panel.bottom + 25, 300, 56)
+    desenhar_botao(ecra, start, "Iniciar IA vs IA", COLORS["btn_primary"], font_size=26)
+    back = pygame.Rect(w // 2 - 100, start.bottom + 16, 200, 46)
+    desenhar_botao(ecra, back, "Voltar", COLORS["danger"], font_size=22)
+    return white_prev, white_next, black_prev, black_next, start, back
+
+def desenhar_ia_lab_painel(
+    ecra: pygame.Surface,
+    off_x: int,
+    off_y: int,
+    width: int,
+    height: int,
+    white_nodes: int,
+    black_nodes: int,
+    current_side: str,
+    paused: bool,
+    thinking: bool,
+    status: str,
+    game_over: bool,
+    last_result: Optional[dict] = None,
+) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
+    panel = pygame.Rect(off_x, off_y, width, height)
+    pygame.draw.rect(ecra, COLORS["panel_bg"], panel, border_radius=10)
+    pygame.draw.rect(ecra, (120, 90, 160), panel, 2, border_radius=10)
+
+    title = FontManager.get("arial", 24, bold=True)
+    body = FontManager.get("arial", 17)
+    small = FontManager.get("arial", 15)
+    ecra.blit(title.render("IA vs IA Lab", True, COLORS["text"]), (panel.x + 18, panel.y + 18))
+    y = panel.y + 58
+    ecra.blit(body.render(f"Brancas  ·  N{int(white_nodes):,}", True, COLORS["white_team"]), (panel.x + 18, y))
+    y += 30
+    ecra.blit(body.render(f"Pretas    ·  N{int(black_nodes):,}", True, COLORS["black_team"]), (panel.x + 18, y))
+    y += 42
+    state_label = "PAUSADO" if paused else ("A PENSAR" if thinking else f"Turno: {current_side}")
+    state_color = COLORS["warning"] if paused or thinking else COLORS["success"]
+    ecra.blit(body.render(state_label, True, state_color), (panel.x + 18, y))
+    y += 32
+    y = draw_text_wrapped(ecra, status, small, COLORS["text_muted"], panel.x + 18, y, width - 36) + 10
+
+    if last_result:
+        ecra.blit(body.render(f"Última: {last_result.get('side', '?')}", True, COLORS["text"]), (panel.x + 18, y))
+        y += 26
+        action = last_result.get("action") or {}
+        start = action.get("start", ("?", "?"))
+        end = action.get("end", ("?", "?"))
+        action_text = f"{str(action.get('type', '?')).upper()} {start} → {end}"
+        y = draw_text_wrapped(ecra, action_text, small, COLORS["text_muted"], panel.x + 18, y, width - 36) + 4
+        elapsed = last_result.get("elapsed_ms")
+        if elapsed is not None:
+            ecra.blit(small.render(f"Tempo: {float(elapsed):.1f} ms", True, COLORS["text_muted"]), (panel.x + 18, y))
+            y += 24
+
+    button_y = panel.bottom - 158
+    pause = pygame.Rect(panel.x + 18, button_y, width - 36, 44)
+    restart = pygame.Rect(panel.x + 18, button_y + 52, width - 36, 44)
+    menu = pygame.Rect(panel.x + 18, button_y + 104, width - 36, 44)
+    pause_label = "Retomar" if paused else "Pausar"
+    pause_color = COLORS["success"] if paused else COLORS["btn_secondary"]
+    desenhar_botao(ecra, pause, pause_label, pause_color, font_size=20)
+    desenhar_botao(ecra, restart, "Reiniciar partida", COLORS["btn_primary"], font_size=20)
+    desenhar_botao(ecra, menu, "Sair para o menu", COLORS["danger"], font_size=20)
+    return pause, restart, menu
 
 def desenhar_selecao_tipo_ia(ecra: pygame.Surface, w: int, h: int) -> Tuple[pygame.Rect, pygame.Rect, pygame.Rect]:
     ecra.fill(COLORS["bg"])
