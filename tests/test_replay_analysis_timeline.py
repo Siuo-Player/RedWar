@@ -193,6 +193,42 @@ def test_invalid_branch_replacement_preserves_existing_tail():
     assert controller.display_gs.board[1][7] is not None
 
 
+def test_valid_branch_replacement_truncates_abandoned_tail_after_validation():
+    controller = _controller()
+    controller.gs = _two_move_game()
+    controller._analysis_generation = 0
+    controller._start_analysis_worker = lambda *args, **kwargs: None
+    controller._open_analysis_timeline()
+
+    controller._create_analysis_branch({
+        "type": "move",
+        "start": (7, 0),
+        "end": (6, 0),
+    })
+    controller._create_analysis_branch({
+        "type": "move",
+        "start": (0, 7),
+        "end": (1, 7),
+    })
+    controller._analysis_step(-1)
+
+    controller._create_analysis_branch({
+        "type": "move",
+        "start": (0, 7),
+        "end": (0, 6),
+    })
+
+    assert controller.replay_error is None
+    assert controller._analysis_branch_index == 2
+    assert len(controller._analysis_branch_actions) == 2
+    assert controller._analysis_branch_actions[0]["end"] == (6, 0)
+    assert controller._analysis_branch_actions[1]["start"] == (0, 7)
+    assert controller._analysis_branch_actions[1]["end"] == (0, 6)
+    assert controller.display_gs.board[6][0] is not None
+    assert controller.display_gs.board[0][6] is not None
+    assert controller.display_gs.board[1][7] is None
+
+
 def test_replay_analysis_worker_covers_every_mainline_position(monkeypatch):
     controller = _controller()
     controller.gs = _two_move_game()
