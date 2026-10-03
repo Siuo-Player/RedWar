@@ -498,26 +498,19 @@ class JogoController:
             return
 
         new_branch = self._analysis_context != "branch"
-        if new_branch:
-            self._analysis_context = "branch"
-            self._analysis_branch_base_index = self.review_index
-            self._analysis_branch_index = 0
-            self._analysis_branch_states = [self.display_gs.fast_clone()]
-            self._analysis_branch_actions = []
-            self._analysis_cache = {
-                key: value for key, value in self._analysis_cache.items()
-                if key[0] != "branch"
-            }
-        else:
-            # A new choice from an earlier point replaces the abandoned branch tail.
-            self._analysis_branch_actions = self._analysis_branch_actions[:self._analysis_branch_index]
-            self._analysis_branch_states = self._analysis_branch_states[:self._analysis_branch_index + 1]
-            self._analysis_cache = {
-                key: value for key, value in self._analysis_cache.items()
-                if key[0] != "branch"
-            }
-
         action = dict(action)
+
+        # Validate and execute on an isolated state first. This keeps an existing
+        # branch tail intact when a replacement action is rejected.
+        candidate_state = self.display_gs.fast_clone()
+        try:
+            candidate_state.execute_action(action)
+        except (KeyError, TypeError, ValueError) as exc:
+            self.replay_error = f"Ramificação rejeitada: {exc}"
+            return
+
+        # Keep the existing branch untouched until both semantic execution
+        # validation and the presentation animation have succeeded.
         try:
             _, off_x, tam_casa = self.get_ui_metrics()
             self.desenhar_animacao(
@@ -529,16 +522,29 @@ class JogoController:
                 off_x,
                 80,
             )
-            self.display_gs.execute_action(action)
         except (KeyError, TypeError, ValueError) as exc:
             self.replay_error = f"Ramificação rejeitada: {exc}"
-            if new_branch:
-                self._analysis_context = "main"
-                self._analysis_branch_base_index = 0
-                self._analysis_branch_index = 0
-                self._analysis_branch_states = []
-                self._analysis_branch_actions = []
             return
+
+        if new_branch:
+            self._analysis_context = "branch"
+            self._analysis_branch_base_index = self.review_index
+            self._analysis_branch_index = 0
+            self._analysis_branch_states = [self.display_gs.fast_clone()]
+            self._analysis_branch_actions = []
+        else:
+            # Only replace the abandoned tail after the replacement action has
+            # been proved executable on the isolated working state.
+            self._analysis_branch_actions = self._analysis_branch_actions[:self._analysis_branch_index]
+            self._analysis_branch_states = self._analysis_branch_states[:self._analysis_branch_index + 1]
+
+        self._analysis_cache = {
+            key: value for key, value in self._analysis_cache.items()
+            if key[0] != "branch"
+        }
+
+        self.replay_error = None
+        self.display_gs = candidate_state
 
         self.replay_error = None
         self._analysis_branch_actions.append(action)
