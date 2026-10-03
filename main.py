@@ -15,7 +15,7 @@ from engine.setup import validate_complete_pre_match_setup
 # Imports alinhados com o novo renderer.py
 from ui.renderer import (
     desenhar_menu_principal, desenhar_definicoes,
-    desenhar_selecao_modo, desenhar_selecao_tipo_ia, desenhar_selecao_dificuldade,
+    desenhar_selecao_modo, desenhar_selecao_tipo_ia, desenhar_selecao_dificuldade, desenhar_ia_lab_config, desenhar_ia_lab_painel,
     desenhar_tabuleiro, desenhar_pecas,
     desenhar_loja_dinamica, desenhar_log, desenhar_analise,
     desenhar_coordenadas, desenhar_painel_heroi, desenhar_destaques_com_hover,
@@ -59,9 +59,18 @@ class JogoController:
         self.elo_escolhido = 1500
         self.modo_predador = False
         self.modo_local_2p = False
+        self.modo_ia_vs_ia = False
         self.lado_draft_atual = "brancas"
         self.pondering_active = False
         self.bot_ativo = None
+        self.bot_brancas = None
+        self.bot_pretas = None
+        self.ia_lab_nodes_brancas = 500_000
+        self.ia_lab_nodes_pretas = 500_000
+        self.ia_lab_pausado = False
+        self.ia_lab_status = "Pronto para iniciar."
+        self.ia_lab_last_result = None
+        self.ia_lab_finalized = False
         # ---------------------------
 
         self.thread_ia = None
@@ -91,8 +100,12 @@ class JogoController:
         # Variáveis Rect UI
         self.botoes_loja = {}
         self.btn_ready = self.btn_start = self.btn_info = self.btn_confirmar = pygame.Rect(0,0,0,0)
-        self.btn_vs_ia = self.btn_multi = self.btn_voltar_modo = pygame.Rect(0,0,0,0)
+        self.btn_vs_ia = self.btn_multi = self.btn_ia_lab = self.btn_voltar_modo = pygame.Rect(0,0,0,0)
         self.btn_ia_normal = self.btn_ia_predador = self.btn_voltar_tipo = pygame.Rect(0,0,0,0)
+        self.btn_ia_lab_white_prev = self.btn_ia_lab_white_next = pygame.Rect(0,0,0,0)
+        self.btn_ia_lab_black_prev = self.btn_ia_lab_black_next = pygame.Rect(0,0,0,0)
+        self.btn_ia_lab_start = self.btn_ia_lab_back = pygame.Rect(0,0,0,0)
+        self.btn_ia_lab_pause = self.btn_ia_lab_restart = self.btn_ia_lab_menu = pygame.Rect(0,0,0,0)
         self.btn_voltar_dificuldade = self.rect_elo = self.btn_prev = self.btn_next = pygame.Rect(0,0,0,0)
         self.btn_voltar_menu = pygame.Rect(0,0,0,0)
         self.btn_surrender = pygame.Rect(0, 0, 0, 0)
@@ -109,6 +122,92 @@ class JogoController:
         self.replay_error = None
 
         self.arrastando_elo = False
+
+    def _close_ai_lab_bots(self):
+        for bot in (getattr(self, "bot_brancas", None), getattr(self, "bot_pretas", None)):
+            if bot is not None:
+                try:
+                    bot.bridge.close()
+                except Exception:
+                    pass
+        self.bot_brancas = None
+        self.bot_pretas = None
+
+    def _start_ai_lab_config(self):
+        self._close_ai_lab_bots()
+        self.modo_ia_vs_ia = True
+        self.modo_local_2p = False
+        self.modo_predador = False
+        self.bot_ativo = None
+        self.ia_lab_pausado = False
+        self.ia_lab_status = "Escolhe o orçamento de cada Ares."
+        self.ia_lab_last_result = None
+        self.ia_lab_finalized = False
+        self.fase_atual = "IA_LAB_CONFIG"
+        pygame.display.set_caption("RedWar - IA vs IA Lab")
+
+    @staticmethod
+    def _cycle_ai_lab_nodes(value, delta):
+        options = (100_000, 500_000, 1_000_000)
+        index = options.index(int(value))
+        return options[(index + int(delta)) % len(options)]
+
+    def _auto_draft_bot(self, bot, team, budget):
+        resultado = bot.gerar_draft_inteligente(int(budget), self.catalogo, team)
+        for pos in resultado["draft"]:
+            self.gs.board[pos["r"]][pos["c"]] = pos["piece_class"](team)
+
+    def _start_ai_lab_battle(self):
+        self._close_ai_lab_bots()
+        self.thread_ia = None
+        self.resultado_ia.clear()
+        self.resultado_ia = []
+        self.gs = GameState(time_limit_seconds=99999)
+        self.bot_brancas = CppEngineBot(nodes=self.ia_lab_nodes_brancas)
+        self.bot_pretas = CppEngineBot(nodes=self.ia_lab_nodes_pretas)
+        try:
+            self._auto_draft_bot(self.bot_brancas, "brancas", ORCAMENTO_BRANCAS)
+            self._auto_draft_bot(self.bot_pretas, "pretas", ORCAMENTO_PRETAS)
+            validate_complete_pre_match_setup(self.gs.board)
+        except Exception:
+            self._close_ai_lab_bots()
+            raise
+
+        self.lado_draft_atual = "brancas"
+        self.pontos_jogador = ORCAMENTO_BRANCAS
+        self.peca_loja = None
+        self.casa_selecionada = None
+        self.hover_pos = None
+        self._terminal_sound_played = False
+        self._analysis_generation = getattr(self, "_analysis_generation", 0) + 1
+        self.thread_analise = None
+        self.replay_error = None
+        self.ia_lab_pausado = False
+        self.ia_lab_status = "A preparar a primeira jogada..."
+        self.ia_lab_last_result = None
+        self.ia_lab_finalized = False
+        self.gs.replay_metadata = {
+            "mode": "ai_vs_ai_lab",
+            "player_side": "none",
+            "opponent": "Ares vs Ares",
+            "white_ai_nodes": int(self.ia_lab_nodes_brancas),
+            "black_ai_nodes": int(self.ia_lab_nodes_pretas),
+        }
+        capture_initial(self.gs)
+        self.fase_atual = "BATALHA"
+        pygame.display.set_caption(
+            f"IA Lab — Brancas N{self.ia_lab_nodes_brancas:,} vs Pretas N{self.ia_lab_nodes_pretas:,}"
+        )
+
+    def _restart_ai_lab(self):
+        if self.thread_ia is not None and self.thread_ia.is_alive():
+            self.ia_lab_status = "Aguarda a jogada atual terminar antes de reiniciar."
+            return
+        try:
+            self._start_ai_lab_battle()
+        except Exception as exc:
+            self.ia_lab_status = f"Falha ao reiniciar: {exc}"
+            self.replay_error = self.ia_lab_status
 
     def _start_local_2p_draft(self):
         self.modo_local_2p = True
@@ -627,7 +726,10 @@ class JogoController:
         elif self.fase_atual == "MODO_JOGO":
             if self.btn_vs_ia.collidepoint(mx, my):
                 self.modo_local_2p = False
+                self.modo_ia_vs_ia = False
                 self.fase_atual = "TIPO_IA"
+            elif self.btn_ia_lab.collidepoint(mx, my):
+                self._start_ai_lab_config()
             elif self.btn_multi.collidepoint(mx, my):
                 self._start_local_2p_draft()
             elif self.btn_voltar_modo.collidepoint(mx, my):
@@ -642,6 +744,25 @@ class JogoController:
                 self.fase_atual = "DIFICULDADE"
             elif self.btn_voltar_tipo.collidepoint(mx, my):
                 self.fase_atual = "MODO_JOGO"
+
+        elif self.fase_atual == "IA_LAB_CONFIG":
+            if self.btn_ia_lab_white_prev.collidepoint(pos):
+                self.ia_lab_nodes_brancas = self._cycle_ai_lab_nodes(self.ia_lab_nodes_brancas, -1)
+            elif self.btn_ia_lab_white_next.collidepoint(pos):
+                self.ia_lab_nodes_brancas = self._cycle_ai_lab_nodes(self.ia_lab_nodes_brancas, 1)
+            elif self.btn_ia_lab_black_prev.collidepoint(pos):
+                self.ia_lab_nodes_pretas = self._cycle_ai_lab_nodes(self.ia_lab_nodes_pretas, -1)
+            elif self.btn_ia_lab_black_next.collidepoint(pos):
+                self.ia_lab_nodes_pretas = self._cycle_ai_lab_nodes(self.ia_lab_nodes_pretas, 1)
+            elif self.btn_ia_lab_back.collidepoint(pos):
+                self.modo_ia_vs_ia = False
+                self.fase_atual = "MODO_JOGO"
+            elif self.btn_ia_lab_start.collidepoint(pos):
+                try:
+                    self._start_ai_lab_battle()
+                except Exception as exc:
+                    self.ia_lab_status = f"Não foi possível iniciar: {exc}"
+                    self.replay_error = self.ia_lab_status
 
         elif self.fase_atual == "DIFICULDADE":
             if self.rect_elo.collidepoint(mx, my):
@@ -740,6 +861,22 @@ class JogoController:
                     return
 
         elif self.fase_atual == "BATALHA":
+            if self.modo_ia_vs_ia:
+                if self.btn_ia_lab_pause.collidepoint(pos):
+                    if not self.gs.game_over:
+                        self.ia_lab_pausado = not self.ia_lab_pausado
+                        self.ia_lab_status = "IA Lab pausado." if self.ia_lab_pausado else "IA Lab retomado."
+                elif self.btn_ia_lab_restart.collidepoint(pos):
+                    self._restart_ai_lab()
+                elif self.btn_ia_lab_menu.collidepoint(pos):
+                    if self.thread_ia is not None and self.thread_ia.is_alive():
+                        self.ia_lab_status = "Aguarda a jogada atual terminar antes de sair."
+                    else:
+                        self._close_ai_lab_bots()
+                        self.modo_ia_vs_ia = False
+                        self.fase_atual = "MENU"
+                return
+
             current_team = "brancas" if self.gs.white_to_move else "pretas"
             if self.btn_surrender.collidepoint(pos) and not self.gs.game_over:
                 if not self.modo_local_2p and current_team != "brancas":
@@ -827,12 +964,104 @@ class JogoController:
             if "Pretas Vencem" in winner:
                 return "VITÓRIA — PRETAS"
         elif "Brancas Vencem" in winner:
-            return "GANHASTE!"
+            return "VITÓRIA — BRANCAS" if self.modo_ia_vs_ia else "GANHASTE!"
         elif "Pretas Vencem" in winner:
-            return "ARES VENCEU"
+            return "VITÓRIA — PRETAS" if self.modo_ia_vs_ia else "ARES VENCEU"
         return "FIM DE JOGO"
 
     def processar_ia(self):
+        if self.fase_atual == "BATALHA" and self.modo_ia_vs_ia:
+            if self.gs.game_over:
+                if not self.ia_lab_finalized:
+                    try:
+                        finalize_completed_game(self.gs)
+                    except Exception as exc:
+                        self.replay_error = f"Replay não guardado: {exc}"
+                    self.ia_lab_finalized = True
+                    self.ia_lab_status = f"Fim de jogo — {self.gs.winner or 'resultado desconhecido'}"
+                    pygame.display.set_caption("RedWar - IA vs IA Lab — Fim de jogo")
+                return
+
+            if self.ia_lab_pausado:
+                pygame.display.set_caption("RedWar - IA vs IA Lab — PAUSADO")
+                return
+
+            if self.thread_ia is None:
+                bot = self.bot_brancas if self.gs.white_to_move else self.bot_pretas
+                if bot is None:
+                    self.ia_lab_status = "Erro: bot Ares não configurado."
+                    return
+                side = "Brancas" if self.gs.white_to_move else "Pretas"
+                self.ia_lab_status = f"{side} a pensar..."
+                started = time.perf_counter()
+
+                def pensar(bot_ref, estado):
+                    try:
+                        action = bot_ref.escolher_jogada(estado)
+                        self.resultado_ia.append({
+                            "action": action,
+                            "elapsed_ms": (time.perf_counter() - started) * 1000.0,
+                            "error": None,
+                        })
+                    except Exception as exc:
+                        self.resultado_ia.append({
+                            "action": None,
+                            "elapsed_ms": (time.perf_counter() - started) * 1000.0,
+                            "error": str(exc),
+                        })
+
+                self.thread_ia = threading.Thread(
+                    target=pensar,
+                    args=(bot, self.gs.fast_clone()),
+                    daemon=True,
+                )
+                self.thread_ia.start()
+                pygame.display.set_caption(f"RedWar - IA Lab — {side} a pensar...")
+                return
+
+            if self.thread_ia is not None and not self.thread_ia.is_alive():
+                result = self.resultado_ia.pop() if self.resultado_ia else None
+                self.thread_ia = None
+                if result is None:
+                    self.ia_lab_status = "Erro: Ares terminou sem resultado."
+                    return
+                if result["error"]:
+                    self.ia_lab_status = f"Erro Ares: {result['error'][:100]}"
+                    return
+                action = result["action"]
+                if action is None:
+                    self.gs.check_game_over()
+                    if self.gs.game_over:
+                        return
+                    self.ia_lab_status = "Erro: Ares devolveu sem jogada numa posição não terminal."
+                    return
+
+                mover_side = "Brancas" if self.gs.white_to_move else "Pretas"
+                mover_bot = self.bot_brancas if self.gs.white_to_move else self.bot_pretas
+                _, off_x, tam_casa = self.get_ui_metrics()
+                self.desenhar_animacao(
+                    self.gs,
+                    action["start"],
+                    action["end"],
+                    action["type"],
+                    tam_casa,
+                    off_x,
+                    80,
+                )
+                self._execute_action_with_sound(action)
+                self.ia_lab_last_result = {
+                    "side": mover_side,
+                    "action": action,
+                    "elapsed_ms": result["elapsed_ms"],
+                    "nodes": mover_bot.nodes if mover_bot is not None else None,
+                }
+                next_side = "Pretas" if self.gs.white_to_move else "Brancas"
+                self.ia_lab_status = f"{next_side} a aguardar..."
+                pygame.display.set_caption(
+                    f"IA Lab — Brancas N{self.ia_lab_nodes_brancas:,} vs Pretas N{self.ia_lab_nodes_pretas:,}"
+                )
+            return
+
         if self.fase_atual == "BATALHA" and self.gs.white_to_move and not self.gs.game_over:
             if self.modo_predador and not self.pondering_active and self.bot_ativo is not None and hasattr(self.bot_ativo, 'start_pondering'):
                 self.bot_ativo.start_pondering(self.gs)
@@ -953,7 +1182,18 @@ class JogoController:
                 self.ecra, w, h, self.audio.enabled, self.audio.volume
             )
         elif self.fase_atual == "MODO_JOGO":
-            self.btn_vs_ia, self.btn_multi, self.btn_voltar_modo = desenhar_selecao_modo(self.ecra, w, h)
+            self.btn_vs_ia, self.btn_multi, self.btn_ia_lab, self.btn_voltar_modo = desenhar_selecao_modo(self.ecra, w, h)
+        elif self.fase_atual == "IA_LAB_CONFIG":
+            (
+                self.btn_ia_lab_white_prev,
+                self.btn_ia_lab_white_next,
+                self.btn_ia_lab_black_prev,
+                self.btn_ia_lab_black_next,
+                self.btn_ia_lab_start,
+                self.btn_ia_lab_back,
+            ) = desenhar_ia_lab_config(
+                self.ecra, w, h, self.ia_lab_nodes_brancas, self.ia_lab_nodes_pretas
+            )
         elif self.fase_atual == "TIPO_IA":
             self.btn_ia_normal, self.btn_ia_predador, self.btn_voltar_tipo = desenhar_selecao_tipo_ia(self.ecra, w, h)
         elif self.fase_atual == "DIFICULDADE":
@@ -969,9 +1209,13 @@ class JogoController:
 
             replay_meta = getattr(self.gs, "replay_metadata", {}) or {}
             hud_name = (
-                "Jogador 2"
-                if self.modo_local_2p
-                else (self.bot_ativo.nome if self.bot_ativo else replay_meta.get("opponent", "StockWar"))
+                "Ares vs Ares"
+                if self.modo_ia_vs_ia
+                else (
+                    "Jogador 2"
+                    if self.modo_local_2p
+                    else (self.bot_ativo.nome if self.bot_ativo else replay_meta.get("opponent", "StockWar"))
+                )
             )
             desenhar_hud_jogadores(self.ecra, off_x, 20, off_y_tab + LINHAS * tam_casa + 20, tam_casa, hud_name, self.gs)
 
@@ -1083,7 +1327,27 @@ class JogoController:
                 self.ecra.blit(fbtn.render("Próximo", True, fbtn_color_next), (self.btn_next.x + 6, self.btn_next.y + 9))
                 self.ecra.blit(fbtn.render("Sair / Menu", True, COLORS["text"]), (self.btn_voltar_menu.x + 12, self.btn_voltar_menu.y + 9))
             else:
-                if self.fase_atual == "BATALHA":
+                if self.fase_atual == "BATALHA" and self.modo_ia_vs_ia:
+                    (
+                        self.btn_ia_lab_pause,
+                        self.btn_ia_lab_restart,
+                        self.btn_ia_lab_menu,
+                    ) = desenhar_ia_lab_painel(
+                        self.ecra,
+                        painel_x,
+                        20,
+                        350,
+                        h - 40,
+                        self.ia_lab_nodes_brancas,
+                        self.ia_lab_nodes_pretas,
+                        "Brancas" if self.gs.white_to_move else "Pretas",
+                        self.ia_lab_pausado,
+                        self.thread_ia is not None and self.thread_ia.is_alive(),
+                        self.ia_lab_status,
+                        self.gs.game_over,
+                        self.ia_lab_last_result,
+                    )
+                elif self.fase_atual == "BATALHA":
                     self.btn_surrender = pygame.Rect(
                         off_x,
                         min(h - 42, off_y_tab + LINHAS * tam_casa + 54),
