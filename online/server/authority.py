@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from engine.action_parser import ActionParser
-from engine.actions import normalize_action
+from engine.actions import GameAction, normalize_action
 from engine.config import COLUNAS, LINHAS
 from engine.game_state import GameState
 
@@ -30,7 +30,7 @@ class AuthoritativeSession:
         if normalized.type.value == "surrender":
             if normalized.actor_team is not None and normalized.actor_team != player:
                 raise ValueError("surrender actor does not match authenticated player")
-            normalized = normalized.__class__(
+            normalized = GameAction(
                 type=normalized.type,
                 start=None,
                 end=None,
