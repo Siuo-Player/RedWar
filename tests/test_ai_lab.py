@@ -56,4 +56,3 @@ def test_ai_lab_renderers_expose_expected_controls():
     assert len(config_rects) == 6
     assert all(isinstance(rect, pygame.Rect) for rect in mode_rects)
     assert all(isinstance(rect, pygame.Rect) for rect in config_rects)
-    pygame.quit()
