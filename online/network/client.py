@@ -24,7 +24,6 @@ class NetworkClient:
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.loop.run_until_complete(self._connect())
-        self.loop.run_forever()
 
     async def _connect(self):
         try:
@@ -81,11 +80,8 @@ class NetworkClient:
             return
 
         async def _close():
-            try:
-                if websocket is not None:
-                    await websocket.close()
-            finally:
-                loop.stop()
+            if websocket is not None:
+                await websocket.close()
 
         try:
             asyncio.run_coroutine_threadsafe(_close(), loop)
