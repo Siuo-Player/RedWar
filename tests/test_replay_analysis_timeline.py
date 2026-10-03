@@ -76,7 +76,7 @@ def test_mainline_navigation_clamps_at_initial_and_final_points():
     controller._analysis_step(1)
     assert controller.review_index == 2
     assert controller.display_gs.board[6][0] is not None
-    assert controller.display_gs.board[0][7] is not None
+    assert controller.display_gs.board[1][7] is not None
 
 
 def test_analysis_terminal_position_rejects_branch_creation():
@@ -190,7 +190,7 @@ def test_invalid_branch_replacement_preserves_existing_tail():
     assert controller._analysis_branch_actions == original_tail
     assert controller._analysis_branch_states == original_states
     assert controller.display_gs.board[6][0] is not None
-    assert controller.display_gs.board[1][7] is not None
+    assert controller.display_gs.board[0][7] is not None
 
 
 def test_valid_branch_replacement_truncates_abandoned_tail_after_validation():
