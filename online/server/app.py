@@ -8,6 +8,7 @@ from online.server.authority import AuthoritativeSession
 
 # Mapeia websocket -> cor ('brancas' ou 'pretas')
 jogadores = {}
+prontos = set()
 sessao = None
 
 
@@ -96,7 +97,9 @@ async def gerir_conexao(websocket):
     finally:
         if websocket in jogadores:
             del jogadores[websocket]
+        prontos.discard(websocket)
         if not jogadores:
+            prontos.clear()
             sessao = None
 
 
