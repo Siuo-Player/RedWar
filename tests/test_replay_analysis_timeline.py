@@ -180,7 +180,7 @@ def test_invalid_branch_replacement_preserves_existing_tail():
 
     controller._create_analysis_branch({
         "type": "move",
-        "start": (1, 7),
+        "start": (0, 7),
         "end": (6, 0),
     })
 
