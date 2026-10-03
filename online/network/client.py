@@ -37,6 +37,7 @@ class NetworkClient:
                 if dados["tipo"] == "setup":
                     self.cor_atribuida = dados["cor"]
                     print(f"\n[Rede] És o jogador das {self.cor_atribuida.upper()}!")
+                    await self.ws.send(json.dumps({"tipo": "pronto"}))
 
                 elif dados["tipo"] == "estado_jogo":
                     self.latest_state = dados["dados"]
