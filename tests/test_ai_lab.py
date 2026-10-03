@@ -1,6 +1,11 @@
+import sys
 import types
 
 import pygame
+
+fake_search = types.ModuleType("ai.search")
+fake_search.analisar_posicao_continuamente = lambda estado: ()
+sys.modules.setdefault("ai.search", fake_search)
 
 from main import JogoController
 from ui.renderer import desenhar_ia_lab_config, desenhar_selecao_modo
