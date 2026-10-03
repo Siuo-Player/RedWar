@@ -22,13 +22,15 @@ async def _broadcast(payload: dict) -> None:
     if not jogadores:
         return
     mensagem = json.dumps(payload)
+    sockets = list(jogadores)
     resultados = await asyncio.gather(
-        *(ws.send(mensagem) for ws in list(jogadores)),
+        *(ws.send(mensagem) for ws in sockets),
         return_exceptions=True,
     )
-    for ws, resultado in zip(list(jogadores), resultados):
+    for ws, resultado in zip(sockets, resultados):
         if isinstance(resultado, websockets.exceptions.ConnectionClosed):
             jogadores.pop(ws, None)
+            prontos.discard(ws)
 
 
 async def _enviar_erro(websocket, mensagem: str) -> None:
@@ -41,7 +43,6 @@ async def _enviar_erro(websocket, mensagem: str) -> None:
 async def gerir_conexao(websocket):
     global sessao
 
-    # 1. Atribuir cor ao novo jogador
     if len(jogadores) == 0:
         cor = "brancas"
         sessao = AuthoritativeSession.new()
@@ -55,14 +56,9 @@ async def gerir_conexao(websocket):
     print(f"[+] Jogador ligado como {cor.upper()}")
 
     try:
-        # 2. Informa o cliente da sua cor
+        # O cliente confirma que já entrou no ciclo de receção antes de o
+        # servidor enviar o primeiro estado autoritativo.
         await websocket.send(json.dumps({"tipo": "setup", "cor": cor}))
-
-        # 3. Se dois jogadores estiverem prontos, inicia a partida
-        if len(jogadores) == 2:
-            print("[!] Dois jogadores conectados. A iniciar partida autoritativa!")
-            await _broadcast({"tipo": "start_game"})
-            await _broadcast(_mensagem_estado())
 
         async for mensagem in websocket:
             try:
@@ -75,11 +71,20 @@ async def gerir_conexao(websocket):
                 await _enviar_erro(websocket, "mensagem deve ser um objeto JSON")
                 continue
 
-            if dados.get("tipo") != "acao":
+            tipo = dados.get("tipo")
+            if tipo == "pronto":
+                prontos.add(websocket)
+                if len(prontos) == 2 and len(jogadores) == 2:
+                    print("[!] Dois jogadores prontos. A iniciar partida autoritativa!")
+                    await _broadcast({"tipo": "start_game"})
+                    await _broadcast(_mensagem_estado())
+                continue
+
+            if tipo != "acao":
                 await _enviar_erro(websocket, "tipo de mensagem desconhecido")
                 continue
 
-            if sessao is None or len(jogadores) != 2:
+            if sessao is None or len(jogadores) != 2 or len(prontos) != 2:
                 await _enviar_erro(websocket, "partida não está ativa")
                 continue
 
@@ -95,8 +100,7 @@ async def gerir_conexao(websocket):
     except websockets.exceptions.ConnectionClosed:
         print(f"[-] Jogador {cor.upper()} desconectado.")
     finally:
-        if websocket in jogadores:
-            del jogadores[websocket]
+        jogadores.pop(websocket, None)
         prontos.discard(websocket)
         if not jogadores:
             prontos.clear()
