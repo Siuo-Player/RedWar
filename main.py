@@ -227,12 +227,12 @@ class JogoController:
         pygame.display.set_caption("RedWar - Draft das Brancas")
 
     def calcular_nos_por_elo(self, elo):
-        """Traduz o rating ELO para poder computacional no C++"""
-        if elo < 500: return 2000
-        if elo < 1000: return 10000
-        if elo < 1500: return 50000
-        if elo < 2000: return 150000
-        return 250000
+        """Traduz o ELO para um dos perfis Ares documentados do produto."""
+        if elo < 1400:
+            return 100_000
+        if elo < 1900:
+            return 500_000
+        return 1_000_000
 
     def auto_draft_inimigo(self, orcamento: int):
         livro_path = os.path.join("data", "opening_book.json")
