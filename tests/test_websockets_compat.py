@@ -72,7 +72,9 @@ async def _exercise_authoritative_protocol() -> None:
         await _wait_until(
             lambda: (
                 isinstance(branca.latest_state, dict)
+                and isinstance(branca.latest_state["board"][6][0], dict)
                 and branca.latest_state["board"][6][0]["team"] == "brancas"
+                and isinstance(branca.latest_state["board"][1][0], dict)
                 and branca.latest_state["board"][1][0]["team"] == "pretas"
             )
         )
