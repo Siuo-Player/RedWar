@@ -346,3 +346,13 @@ def test_intent_wrapper_game_over_blocks_manual_execution_and_reports_state():
     assert delegated == [True]
     assert executed == []
     assert controller._interaction_state is InteractionState.GAME_OVER
+
+def test_main_ares_profile_mapping_matches_lite_product_budgets():
+    controller = object.__new__(main.JogoController)
+
+    assert controller.calcular_nos_por_elo(100) == 100_000
+    assert controller.calcular_nos_por_elo(1399) == 100_000
+    assert controller.calcular_nos_por_elo(1400) == 500_000
+    assert controller.calcular_nos_por_elo(1899) == 500_000
+    assert controller.calcular_nos_por_elo(1900) == 1_000_000
+    assert controller.calcular_nos_por_elo(2600) == 1_000_000
