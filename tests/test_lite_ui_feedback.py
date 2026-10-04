@@ -61,6 +61,7 @@ def test_sidebar_wraps_long_feedback_without_overflowing_line_width():
 def test_terminal_message_is_explicit_for_player_and_hotseat():
     controller = object.__new__(main.JogoController)
     controller.modo_local_2p = False
+    controller.modo_ia_vs_ia = False
     controller.gs = SimpleNamespace(winner="Aniquilação (Brancas Vencem)")
     assert controller._terminal_message() == "GANHASTE!"
 
