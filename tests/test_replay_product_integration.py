@@ -152,6 +152,7 @@ def test_hotseat_black_ready_starts_battle_with_hotseat_replay_metadata(monkeypa
     controller.gs = _FakeBoardState()
     controller.replay_error = "stale"
     controller.bot_ativo = None
+    controller.modo_ia_vs_ia = False
     calls = []
 
     monkeypatch.setattr(main, "validate_complete_pre_match_setup", lambda board: {"brancas": 199, "pretas": 199})
@@ -180,6 +181,7 @@ def test_hotseat_battle_only_selects_piece_belonging_to_side_to_move(monkeypatch
     controller.pondering_active = False
     controller.modo_predador = False
     controller.bot_ativo = None
+    controller.modo_ia_vs_ia = False
 
     from engine.pieces import Ranger
 
