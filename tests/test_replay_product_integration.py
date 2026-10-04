@@ -68,6 +68,7 @@ def test_game_over_finalization_is_called_once_before_analysis(monkeypatch):
     controller.analise_depth_atual = 0
     controller.analise_resultados_top5 = []
     controller.replay_error = None
+    controller.modo_ia_vs_ia = False
     controller.thread_de_analise = lambda state: None
 
     calls = []
