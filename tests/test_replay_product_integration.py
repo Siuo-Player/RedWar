@@ -42,6 +42,7 @@ def test_draft_to_battle_captures_replay_initial_state(monkeypatch):
     controller.gs = _FakeBoardState()
     controller.replay_error = "stale"
     controller.bot_ativo = None
+    controller.modo_ia_vs_ia = False
 
     calls = []
 
