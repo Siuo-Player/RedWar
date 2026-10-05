@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import os
-from types import SimpleNamespace
-
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
 
 import pygame
@@ -281,4 +279,3 @@ def test_lite_settings_navigation_and_responsive_controls():
             assert rect.right <= width
             assert rect.bottom <= height
 
-    pygame.quit()
