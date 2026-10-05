@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 
 import pygame
 
@@ -108,7 +109,7 @@ def test_lite_gui_vs_ares_journey_reaches_terminal_with_real_ares(monkeypatch):
     controller = _new_controller()
     monkeypatch.setattr(main, "capture_initial", lambda gs: None)
     monkeypatch.setattr(main, "finalize_completed_game", lambda gs: "smoke-replay")
-    monkeypatch.setattr(main, "random.choice", lambda seq: seq[0])
+    monkeypatch.setattr(main.random, "choice", lambda seq: seq[0])
     monkeypatch.setattr(main.threading, "Thread", _ImmediateThread)
     monkeypatch.setattr(controller, "_open_analysis_timeline", lambda: None)
 
