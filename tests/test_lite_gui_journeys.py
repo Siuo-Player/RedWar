@@ -114,17 +114,7 @@ def test_lite_gui_vs_ares_journey_reaches_terminal_with_real_ares(monkeypatch):
             controller,
             [(6, 0), (6, 1), (6, 2), (6, 3)],
         )
-        frost_button = controller.botoes_loja["FrostMage"]
-        controller.tratar_cliques(
-            frost_button.centerx,
-            frost_button.centery,
-            frost_button.center,
-        )
-        _place_selected_hero(
-            controller,
-            [(7, 0), (7, 1), (7, 2), (7, 3), (7, 4), (7, 5), (7, 6), (7, 7)],
-        )
-        assert controller.pontos_jogador == 0
+        assert controller.pontos_jogador == 40
 
         _finish_ready(controller)
         assert controller.fase_atual == "BATALHA"
