@@ -48,19 +48,6 @@ def _safe_action(state):
     raise AssertionError("Could not find a non-terminal legal action")
 
 
-class _ImmediateThread:
-    def __init__(self, target, args=(), kwargs=None):
-        self.target = target
-        self.args = args
-        self.kwargs = kwargs or {}
-
-    def start(self):
-        self.target(*self.args, **self.kwargs)
-
-    def is_alive(self):
-        return False
-
-
 def _new_controller():
     controller = main.JogoController()
     controller.desenhar_animacao = lambda *args, **kwargs: None
@@ -110,7 +97,6 @@ def test_lite_gui_vs_ares_journey_reaches_terminal_with_real_ares(monkeypatch):
     monkeypatch.setattr(main, "capture_initial", lambda gs: None)
     monkeypatch.setattr(main, "finalize_completed_game", lambda gs: "smoke-replay")
     monkeypatch.setattr(main.random, "choice", lambda seq: seq[0])
-    monkeypatch.setattr(main.threading, "Thread", _ImmediateThread)
     monkeypatch.setattr(controller, "_open_analysis_timeline", lambda: None)
 
     try:
@@ -150,8 +136,15 @@ def test_lite_gui_vs_ares_journey_reaches_terminal_with_real_ares(monkeypatch):
         assert controller.gs.white_to_move is False
 
         controller.processar_ia()
-        controller.processar_ia()
+        for _ in range(600):
+            if controller.thread_ia is not None and not controller.thread_ia.is_alive():
+                controller.processar_ia()
+                break
+            time.sleep(0.1)
+        else:
+            raise AssertionError("Ares did not finish its GUI turn within 60 seconds")
 
+        assert controller.thread_ia is None
         assert len(controller.gs.move_log) >= 2
         assert controller.gs.last_move is not None
 
