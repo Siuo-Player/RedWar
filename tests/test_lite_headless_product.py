@@ -9,7 +9,7 @@ from tools.scripts.build_cpp_engine import compile_cpp_project
 LITE_NODES = 100_000
 
 
-def test_frozen_lite_ares_completes_representative_game(tmp_path, monkeypatch):
+def test_frozen_lite_ares_completes_representative_game(monkeypatch):
     """Exercise the frozen 100k Ares profile through the real engine/game loop."""
     monkeypatch.setenv("PYTHONHASHSEED", "0")
 
