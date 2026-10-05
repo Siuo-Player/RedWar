@@ -112,6 +112,8 @@ def test_lite_replay_product_opens_and_navigates_persisted_game(tmp_path, monkey
 def test_lite_analysis_exit_resets_live_state_and_returns_to_menu():
     controller = object.__new__(main.JogoController)
     controller.fase_atual = "ANALISE"
+    controller.btn_prev = _FakeRect(hit=False)
+    controller.btn_next = _FakeRect(hit=False)
     controller.btn_voltar_menu = _FakeRect()
     controller._analysis_generation = 7
     controller._analysis_cache = {("main", 0): {"error": None}}
@@ -148,7 +150,6 @@ def test_lite_main_loop_exits_cleanly_on_quit_event(monkeypatch):
     quit_called = []
 
     monkeypatch.setattr(main.pygame, "quit", lambda: quit_called.append(True))
-    monkeypatch.setattr(controller.clock, "tick", lambda _fps: 0)
 
     pygame.event.clear()
     pygame.event.post(pygame.event.Event(pygame.QUIT))
