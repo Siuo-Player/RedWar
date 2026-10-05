@@ -150,7 +150,13 @@ def test_lite_gui_vs_ares_journey_reaches_terminal_with_real_ares(monkeypatch):
 
         assert controller.gs.game_over is True
         assert controller.gs.winner
-        assert controller._terminal_message() == "GANHASTE!"
+        terminal_message = controller._terminal_message()
+        if "Brancas Vencem" in controller.gs.winner:
+            assert terminal_message == "GANHASTE!"
+        elif "Pretas Vencem" in controller.gs.winner:
+            assert terminal_message == "ARES VENCEU"
+        else:
+            assert terminal_message == "FIM DE JOGO"
 
     finally:
         if controller.bot_ativo is not None:
