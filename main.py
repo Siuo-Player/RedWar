@@ -570,12 +570,33 @@ class JogoController:
         old_state = self.display_gs
         if delta > 0:
             action = self.gs.move_log[old_index]["acao_escolhida"]
-            _, off_x, tam_casa = self.get_ui_metrics()
-            self.desenhar_animacao(old_state, action["start"], action["end"], action["type"], tam_casa, off_x, 80)
         else:
             action = self.gs.move_log[target]["acao_escolhida"]
+
+        # Surrender is a terminal command, not a board animation. Replay
+        # navigation must still advance through it without assuming start/end.
+        if action.get("type") != "surrender":
             _, off_x, tam_casa = self.get_ui_metrics()
-            self.desenhar_animacao(old_state, action["end"], action["start"], action["type"], tam_casa, off_x, 80)
+            if delta > 0:
+                self.desenhar_animacao(
+                    old_state,
+                    action["start"],
+                    action["end"],
+                    action["type"],
+                    tam_casa,
+                    off_x,
+                    80,
+                )
+            else:
+                self.desenhar_animacao(
+                    old_state,
+                    action["end"],
+                    action["start"],
+                    action["type"],
+                    tam_casa,
+                    off_x,
+                    80,
+                )
 
         self.review_index = target
         self.display_gs = self._mainline_state_at(target)
