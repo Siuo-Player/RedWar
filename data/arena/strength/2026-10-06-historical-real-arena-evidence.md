@@ -4,7 +4,7 @@
 **Baseline inspected:** `8bc99ccbf2cf1f7e7e22bd83cab4f8fda762d8f5`  
 **Status:** evidence registration only; #488 remains open and no promotion authority changes.
 
-## Newly registered real edge
+## Newly registered real version edge
 
 PR #507 produced a real authoritative Ares promotion run after the promotion-path import fix in PR #509.
 
@@ -63,23 +63,29 @@ Therefore this edge is:
 
 No attempt is made here to correct, reweight, or reinterpret the promotion result.
 
-## Historical graph status
+## Why the older 100-game control is not a version edge
 
-Before this update, the committed current-schema real edge was:
+The existing committed 100-game real-strength dataset uses:
 
 `37b94d51b810b7ef698139f896afd30eee50fa5a` ↔ `f6a1ee4beb160ee4e23e7e044fba0f78aa5961ac`
 
-The newly registered edge is:
+but that experiment is an A/A control, not a version-to-version comparison. GitHub compare confirms that `f6a1ee4...` adds only `docs/DECISIONS/2026-08-27-strength-control-run.md` on top of `37b94d5...`, with no engine-file changes. Its 50–50 result therefore validates the measurement baseline rather than adding a new historical rating edge.
+
+The older #471 A/B result is also not promoted into the compatible graph because its stored experiment metadata reports `unknown` version/rules identities and uses the older 100-game Arena protocol.
+
+## Historical graph status
+
+The only currently registered compatible version-to-version edge is:
 
 `48dd4df0f6809d072190291bceebb09ddfe52e5f` ↔ `bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613`
 
-These are still two disconnected compatible components. The older #471 A/B artifact is not promoted into the compatible graph because its stored experiment metadata reports `unknown` version/rules identities and uses the older 100-game Arena protocol.
+This is one connected component containing two Ares versions, but it is not yet a multi-version historical graph with a shared intermediate version. The ledger deliberately remains fail-closed:
 
-The ledger therefore deliberately reports:
+**connected historical graph: not yet established for #488 acceptance.**
 
-**connected historical graph: not yet established.**
+The next valid evidence is at least one additional provenance-compatible real Arena comparison sharing one endpoint with the current edge (or an equivalently strong multi-edge set) so the historical calibration can be fit over multiple connected Ares versions.
 
-The next valid step remains obtaining at least one additional provenance-compatible real Arena comparison that bridges the two modern components. Lineage between Git commits is not treated as an Arena comparison edge.
+Commit lineage is not treated as an Arena comparison edge, and A/A controls are not promoted into version comparisons.
 
 ## Authority boundary
 
@@ -91,4 +97,4 @@ This registration does not:
 - convert diagnostic results into promotion evidence;
 - infer strength from NNUE/performance measurements.
 
-It only makes an already-executed real Arena comparison durable and auditable for the remaining #488 historical-evidence work.
+It only makes an already-executed real Arena version comparison durable and auditable for the remaining #488 historical-evidence work.
