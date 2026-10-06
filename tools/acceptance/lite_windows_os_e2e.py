@@ -423,7 +423,7 @@ def launch(log_mode: str = "a") -> tuple[subprocess.Popen[bytes], int]:
     )
     log_handle.close()
 
-    hwnd = find_window_for_process(proc.pid)
+    hwnd = find_window()
     bring_to_front(hwnd)
     return proc, hwnd
 
