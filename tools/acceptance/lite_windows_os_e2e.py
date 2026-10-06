@@ -34,8 +34,10 @@ SWP_NOZORDER = 0x0004
 SWP_SHOWWINDOW = 0x0040
 WM_CLOSE = 0x0010
 
+MOUSEEVENTF_MOVE = 0x0001
 MOUSEEVENTF_LEFTDOWN = 0x0002
 MOUSEEVENTF_LEFTUP = 0x0004
+INPUT_MOUSE = 0
 
 
 class RECT(ctypes.Structure):
@@ -111,6 +113,54 @@ USER32.SetWindowPos.argtypes = [
 USER32.SetWindowPos.restype = wintypes.BOOL
 
 
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", ctypes.c_long),
+        ("dy", ctypes.c_long),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
+class INPUT_UNION(ctypes.Union):
+    _fields_ = [("mi", MOUSEINPUT)]
+
+
+class INPUT(ctypes.Structure):
+    _anonymous_ = ("u",)
+    _fields_ = [
+        ("type", wintypes.DWORD),
+        ("u", INPUT_UNION),
+    ]
+
+
+USER32.SendInput.argtypes = [
+    wintypes.UINT,
+    ctypes.POINTER(INPUT),
+    ctypes.c_int,
+]
+USER32.SendInput.restype = wintypes.UINT
+
+
+def send_mouse_event(flags: int, dx: int = 0, dy: int = 0) -> None:
+    event = INPUT(
+        type=INPUT_MOUSE,
+        mi=MOUSEINPUT(
+            dx=dx,
+            dy=dy,
+            mouseData=0,
+            dwFlags=flags,
+            time=0,
+            dwExtraInfo=0,
+        ),
+    )
+    sent = USER32.SendInput(1, ctypes.byref(event), ctypes.sizeof(INPUT))
+    if sent != 1:
+        raise ctypes.WinError()
+
+
 def get_title(hwnd: int) -> str:
     length = USER32.GetWindowTextLengthW(hwnd)
     buf = ctypes.create_unicode_buffer(length + 1)
@@ -183,9 +233,9 @@ def click_client(hwnd: int, x: float, y: float) -> None:
     sx, sy = client_point(hwnd, x, y)
     if not USER32.SetCursorPos(sx, sy):
         raise ctypes.WinError()
-    USER32.mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    time.sleep(0.04)
-    USER32.mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+    send_mouse_event(MOUSEEVENTF_LEFTDOWN)
+    time.sleep(0.05)
+    send_mouse_event(MOUSEEVENTF_LEFTUP)
     time.sleep(0.30)
 
 
@@ -194,16 +244,23 @@ def drag_client(hwnd: int, x1: float, y1: float, x2: float, y2: float) -> None:
     sx1, sy1 = client_point(hwnd, x1, y1)
     sx2, sy2 = client_point(hwnd, x2, y2)
 
-    USER32.SetCursorPos(sx1, sy1)
-    USER32.mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    for step in range(1, 17):
-        ratio = step / 16.0
-        USER32.SetCursorPos(
-            round(sx1 + (sx2 - sx1) * ratio),
-            round(sy1 + (sy2 - sy1) * ratio),
+    if not USER32.SetCursorPos(sx1, sy1):
+        raise ctypes.WinError()
+    time.sleep(0.10)
+    send_mouse_event(MOUSEEVENTF_LEFTDOWN)
+    current_x, current_y = sx1, sy1
+    for step in range(1, 25):
+        ratio = step / 24.0
+        target_x = round(sx1 + (sx2 - sx1) * ratio)
+        target_y = round(sy1 + (sy2 - sy1) * ratio)
+        send_mouse_event(
+            MOUSEEVENTF_MOVE,
+            dx=target_x - current_x,
+            dy=target_y - current_y,
         )
-        time.sleep(0.025)
-    USER32.mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+        current_x, current_y = target_x, target_y
+        time.sleep(0.035)
+    send_mouse_event(MOUSEEVENTF_LEFTUP)
     time.sleep(0.30)
 
 
@@ -738,7 +795,7 @@ def run_acceptance() -> dict:
             "runner_os": os.environ.get("RUNNER_OS", "unknown"),
             "head_commit": os.environ.get("EXPECTED_HEAD_SHA", os.environ.get("GITHUB_SHA", "unknown")),
             "launcher": "run_redwar.bat",
-            "input": "Win32 SetCursorPos + mouse_event (system-level mouse input)",
+            "input": "Win32 SetCursorPos + SendInput (system-level mouse input)",
             "display": "real SDL Windows display",
             "audio": {
                 "backend_startup_unavailable": audio_backend_unavailable,
