@@ -1,0 +1,86 @@
+name: RedWar Lite Windows Acceptance
+# Unattended desktop acceptance; screenshots are kept as CI evidence.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "main.py"
+      - "engine/**"
+      - "ui/**"
+      - "tools/replay/**"
+      - "tools/acceptance/**"
+      - "tests/test_lite_windows_display_acceptance.py"
+      - "run_redwar.bat"
+      - "requirements.txt"
+      - ".github/workflows/lite_windows_acceptance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "main.py"
+      - "engine/**"
+      - "ui/**"
+      - "tools/replay/**"
+      - "tools/acceptance/**"
+      - "tests/test_lite_windows_display_acceptance.py"
+      - "run_redwar.bat"
+      - "requirements.txt"
+      - ".github/workflows/lite_windows_acceptance.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: redwar-lite-windows-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  windows-blackbox-acceptance:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      PYGAME_HIDE_SUPPORT_PROMPT: "1"
+      PYTHONHASHSEED: "0"
+      PYTHONUTF8: "1"
+      SDL_VIDEO_WINDOW_POS: "40,40"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Prepare launcher virtual environment with wheel-supported Python
+        run: py -3.11 -m venv venv
+
+      - name: Run real Windows launcher smoke
+        run: python tools/acceptance/windows_launcher_smoke.py
+
+      - name: Install acceptance environment dependencies
+        run: venv\Scripts\python.exe -m pip install -r requirements.txt
+
+      - name: Build and verify native Python evaluator
+        run: |
+          venv\Scripts\python.exe setup.py build_ext --inplace
+          venv\Scripts\python.exe -c "import ai.evaluator; print(ai.evaluator.__file__)"
+
+      - name: Build and verify C++ engine
+        run: |
+          venv\Scripts\python.exe tools\scripts\build_cpp_engine.py
+          if (-not (Test-Path "ai\cpp_engine\engine.exe")) { throw "C++ engine executable was not produced" }
+
+      - name: Run real Windows display acceptance
+        run: venv\Scripts\python.exe -m pytest tests/test_lite_windows_display_acceptance.py -q
+
+      - name: Upload black-box evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-lite-windows-acceptance-${{ github.run_id }}
+          path: artifacts/lite-windows-acceptance/
+          if-no-files-found: warn
+          retention-days: 30
