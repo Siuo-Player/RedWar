@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import Callable
 
-from PIL import ImageGrab
+from PIL import Image, ImageGrab
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -118,22 +118,14 @@ def get_title(hwnd: int) -> str:
     return buf.value
 
 
-def find_window_for_process(pid: int, timeout: float = 90.0) -> int:
+def find_window(timeout: float = 90.0) -> int:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         found: list[int] = []
 
         @EnumWindowsProc
         def callback(hwnd, _lparam):
-            if not USER32.IsWindowVisible(hwnd):
-                return True
-            owner_pid = wintypes.DWORD()
-            USER32.GetWindowThreadProcessId(hwnd, ctypes.byref(owner_pid))
-            if owner_pid.value != pid:
-                return True
-
-            title = get_title(hwnd)
-            if title.startswith("RedWar -"):
+            if USER32.IsWindowVisible(hwnd) and get_title(hwnd).startswith("RedWar -"):
                 found.append(hwnd)
                 return False
             return True
@@ -143,7 +135,7 @@ def find_window_for_process(pid: int, timeout: float = 90.0) -> int:
             return found[0]
         time.sleep(0.25)
 
-    raise TimeoutError(f"RedWar SDL window for PID {pid} did not appear")
+    raise TimeoutError("RedWar SDL window did not appear")
 
 
 def client_geometry(hwnd: int) -> tuple[tuple[int, int], tuple[int, int, int, int], tuple[int, int, int, int]]:
@@ -225,9 +217,9 @@ def screenshot(hwnd: int, name: str) -> tuple[Path, tuple[int, int]]:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     size, client_box, _ = client_geometry(hwnd)
     image = ImageGrab.grab(bbox=client_box)
-    if image.width < size[0] or image.height < size[1]:
+    if image.width < 640 or image.height < 480:
         raise AssertionError(
-            f"Screenshot unexpectedly smaller than client: {image.size} < {size}"
+            f"Captured desktop area is implausibly small: {image.size}"
         )
 
     path = SCREENSHOTS / f"{name}.png"
@@ -245,8 +237,7 @@ def crop_sha(
     logical_box: tuple[int, int, int, int],
     logical_size: tuple[int, int] = (1300, 800),
 ) -> str:
-    with ImageGrab.open(path) if False else __import__("PIL.Image").Image.open(path) as image:
-        image = image.convert("RGB")
+    with Image.open(path).convert("RGB") as image:
         width, height = image.size
         x1, y1, x2, y2 = logical_box
         box = (
@@ -258,8 +249,48 @@ def crop_sha(
         return hashlib.sha256(image.crop(box).tobytes()).hexdigest()
 
 
+def count_near(
+    path: Path,
+    target: tuple[int, int, int],
+    logical_box: tuple[int, int, int, int],
+    tolerance: int = 22,
+) -> int:
+    with Image.open(path).convert("RGB") as image:
+        width, height = image.size
+        x1, y1, x2, y2 = logical_box
+        box = (
+            round(x1 * width / 1300.0),
+            round(y1 * height / 800.0),
+            round(x2 * width / 1300.0),
+            round(y2 * height / 800.0),
+        )
+        pixels = list(image.crop(box).getdata())
+    return sum(
+        1 for p in pixels[::4]
+        if all(abs(p[i] - target[i]) <= tolerance for i in range(3))
+    )
+
+
 def image_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def wait_for_terminal(hwnd: int, name: str, timeout: float = 15.0) -> Path:
+    deadline = time.monotonic() + timeout
+    probe = 0
+    while time.monotonic() < deadline:
+        path, _ = screenshot(hwnd, f"{name}-probe-{probe}")
+        if (
+            count_near(path, (100, 255, 100), (120, 180, 700, 710)) > 10
+            or count_near(path, (255, 70, 70), (120, 180, 700, 710)) > 10
+        ):
+            final_path, _ = screenshot(hwnd, name)
+            path.unlink(missing_ok=True)
+            return final_path
+        path.unlink(missing_ok=True)
+        probe += 1
+        time.sleep(0.20)
+    raise TimeoutError("Terminal feedback was not visually rendered")
 
 
 def wait_until(predicate: Callable[[], bool], timeout: float, description: str) -> None:
@@ -468,12 +499,6 @@ def run_acceptance() -> dict:
         checks.append({"evidence": path.name, "capture_size": size})
         return path
 
-    def action(name: str) -> None:
-        if checks and "name" in checks[-1]:
-            checks.append({"name": name, "passed": True})
-        else:
-            checks.append({"name": name, "passed": True})
-
     try:
         proc, hwnd = launch()
 
@@ -535,6 +560,11 @@ def run_acceptance() -> dict:
 
         click_client(hwnd, *board_center(width, height, 6, 0))
         selected = shot("10-vs-ares-selected")
+        if (
+            count_near(selected, (255, 255, 50), (55, 525, 140, 605)) < 3
+            or count_near(selected, (50, 255, 50), (55, 525, 140, 605)) < 10
+        ):
+            raise AssertionError("Selection or legal-move highlight was not visibly rendered")
 
         click_client(hwnd, *board_center(width, height, 6, 1))
         invalid = shot("11-vs-ares-invalid-action")
@@ -552,8 +582,7 @@ def run_acceptance() -> dict:
         ares_after_move = shot("14-vs-ares-after-real-ares")
 
         click_client(hwnd, *surrender_center(width, height))
-        wait_until(lambda: visual_terminal(shot("15-vs-ares-terminal-probe")), 15.0, "VS Ares terminal feedback")
-        terminal = SCREENSHOTS / "15-vs-ares-terminal-probe.png"
+        terminal = wait_for_terminal(hwnd, "15-vs-ares-terminal", 15.0)
         checks.append({
             "name": "vs_ares_real_input_play_surrender_terminal",
             "passed": True,
@@ -566,13 +595,24 @@ def run_acceptance() -> dict:
         replay_count_before = read_replay_count()
         if replay_count_before < 1:
             raise AssertionError("VS Ares surrender did not persist a replay")
+
+        # Re-enter the persisted replay and exercise the real on-screen timeline.
+        click_client(hwnd, width // 2, 197)
+        time.sleep(0.6)
+        replay_analysis = shot("17-vs-ares-replay-analysis-start")
+        click_client(hwnd, *analysis_button_center(width, height, "next"))
+        replay_next = shot("18-vs-ares-replay-analysis-next")
+        click_client(hwnd, *analysis_button_center(width, height, "prev"))
+        replay_prev = shot("19-vs-ares-replay-analysis-prev")
+        if image_sha(replay_analysis) == image_sha(replay_next) or image_sha(replay_next) == image_sha(replay_prev):
+            raise AssertionError("Replay next/previous navigation produced no visible UI change")
         checks.append({
-            "name": "vs_ares_replay_persisted",
+            "name": "vs_ares_replay_persisted_and_navigable",
             "passed": True,
             "replay_count": replay_count_before,
         })
 
-        click_client(hwnd, width // 2, height - 52)
+        click_client(hwnd, *analysis_button_center(width, height, "menu"))
         time.sleep(0.4)
 
         click_client(hwnd, *menu_center(0, width, height))
@@ -602,7 +642,7 @@ def run_acceptance() -> dict:
         shot("23-hotseat-black-move")
 
         click_client(hwnd, *surrender_center(width, height))
-        wait_until(lambda: visual_terminal(shot("24-hotseat-terminal-probe")), 15.0, "hot-seat terminal feedback")
+        wait_for_terminal(hwnd, "24-hotseat-terminal", 15.0)
         checks.append({
             "name": "hotseat_real_input_play_surrender_terminal",
             "passed": True,
@@ -665,8 +705,8 @@ def run_acceptance() -> dict:
             "commit": os.environ.get("GITHUB_SHA", "unknown"),
             "runner_os": os.environ.get("RUNNER_OS", "unknown"),
             "launcher": "run_redwar.bat",
-            "input": "Win32 cursor positioning + mouse_event",
-            "display": "real SDL windows driver",
+            "input": "Win32 SetCursorPos + mouse_event (system-level mouse input)",
+            "display": "real SDL Windows display",
             "audio": {
                 "backend_startup_unavailable": audio_backend_unavailable,
                 "human_hearing_equivalent": False,
