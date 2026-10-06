@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import sys
 import time
+from pathlib import Path
 
 import pygame
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ui.audio import AudioManager
 
