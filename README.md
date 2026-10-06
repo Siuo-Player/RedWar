@@ -243,28 +243,30 @@ O primeiro 1.0-Lite usa um **Ares Balance Baseline congelado** apenas para torna
 
 ## 🔬 Workflows e validação
 
-Os workflows do projeto são intencionalmente separados por responsabilidade. Uma falha experimental não deve mascarar a saúde de outro subsistema.
+Os workflows do projeto são intencionalmente separados por responsabilidade. O routing operacional completo está em [`.github/workflows/README.md`](.github/workflows/README.md). Uma falha experimental não deve mascarar a saúde de outro subsistema.
 
 ```text
 GATES
-├── test_suite.yml          -> correção funcional e regressões gerais
-└── ai_quality_gate.yml     -> única autoridade strength-sensitive nos PRs
+├── test_suite.yml                       -> correção funcional e regressões gerais
+├── ai_quality_gate.yml                  -> única autoridade strength-sensitive nos PRs
+└── lite_windows_acceptance.yml          -> aceitação real do produto Lite em Windows
 
 SECURITY
-└── codeql.yml              -> análise de segurança
+└── codeql.yml                           -> análise de segurança (automático + semanal)
 
 DIAGNOSTICS
-└── arena_diagnostics.yml   -> evidência observacional, sem promoção
+├── arena_diagnostics.yml                -> evidência observacional, sem promoção
+└── auto_balancer.yml                    -> tooling de balanceamento diagnóstico, manual
 
 EXPERIMENTS
-└── arena_experiments.yml   -> experiências manuais, datasets e holdout
+├── arena_experiments.yml                -> experiências manuais, datasets e holdout
+├── lite_baseline_selection.yml          -> seleção controlada do baseline Lite
+├── lite_balance_development.yml         -> desenvolvimento Balance Lab
+└── lite_balance_matched_development.yml -> desenvolvimento matched
 
-NIGHTLY
-├── nnue_nightly.yml        -> teacher data, treino NNUE e modelos experimentais
-└── auto_balancer.yml       -> trainer, telemetria e tooling de balanceamento diagnóstico
-
-TEMPORARY RESEARCH
-└── strength_calibration.yml -> calibração A/A, sem autoridade de promoção
+RESEARCH
+├── nnue_experimental_training.yml       -> teacher data, treino NNUE e modelos experimentais
+└── strength_calibration.yml             -> calibração A/A, sem autoridade de promoção
 ```
 
 A proteção estrutural de `main` pertence ao GitHub Ruleset `Protect main`; não existe um `main_guard.yml` paralelo. `ai_quality_gate.yml` é a única autoridade Action-based para promoção strength-sensitive em PRs.
