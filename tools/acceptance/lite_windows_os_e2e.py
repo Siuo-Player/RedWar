@@ -372,6 +372,8 @@ def image_sha(path: Path) -> str:
 
 def wait_for_terminal(
     hwnd: int,
+    width: int,
+    height: int,
     name: str,
     logical_size: tuple[int, int],
     timeout: float = 15.0,
@@ -380,17 +382,25 @@ def wait_for_terminal(
     probe = 0
     while time.monotonic() < deadline:
         path, _ = screenshot(hwnd, f"{name}-probe-{probe}")
-        if (
-            count_near(path, (100, 255, 100), (120, 160, 860, 620), logical_size) > 10
-            or count_near(path, (255, 70, 70), (120, 160, 860, 620), logical_size) > 10
-        ):
+        if visual_terminal(path, logical_size):
             final_path, _ = screenshot(hwnd, name)
             path.unlink(missing_ok=True)
             return final_path
+
         path.unlink(missing_ok=True)
+
+        # Surrender immediately ends the battle. The real product then opens
+        # the replay analysis timeline; the terminal board state is reached by
+        # advancing that timeline through the recorded actions (including the
+        # non-board surrender action).
+        click_client(
+            hwnd,
+            *analysis_button_center(width, height, "next"),
+            description="advance terminal replay timeline",
+        )
         probe += 1
-        time.sleep(0.20)
-    raise TimeoutError("Terminal feedback was not visually rendered")
+
+    raise TimeoutError("Terminal feedback was not visually rendered in replay analysis")
 
 
 def wait_until(predicate: Callable[[], bool], timeout: float, description: str) -> None:
@@ -726,7 +736,7 @@ def run_acceptance() -> dict:
         ares_after_move = shot("14-vs-ares-after-real-ares")
 
         click_client(hwnd, *surrender_center(width, height))
-        terminal = wait_for_terminal(hwnd, "15-vs-ares-terminal", (width, height), 15.0)
+        terminal = wait_for_terminal(hwnd, width, height, "15-vs-ares-terminal", (width, height), 15.0)
         checks.append({
             "name": "vs_ares_real_input_play_surrender_terminal",
             "passed": True,
@@ -786,7 +796,7 @@ def run_acceptance() -> dict:
         shot("23-hotseat-black-move")
 
         click_client(hwnd, *surrender_center(width, height))
-        wait_for_terminal(hwnd, "24-hotseat-terminal", (width, height), 15.0)
+        wait_for_terminal(hwnd, width, height, "24-hotseat-terminal", (width, height), 15.0)
         checks.append({
             "name": "hotseat_real_input_play_surrender_terminal",
             "passed": True,
