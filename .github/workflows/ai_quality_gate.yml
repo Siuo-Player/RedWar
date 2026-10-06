@@ -126,8 +126,10 @@ jobs:
 
         nnue_eval_hotpath_only=false
         if [ "$actual_files" -eq 2 ] &&            grep -Fxq "ai/cpp_engine/evaluate.cpp" /tmp/changed-files.txt &&            grep -Fxq "tests/cpp_nnue_test.cpp" /tmp/changed-files.txt; then
-          eval_changed_code="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp |             grep -E '^[+-]' | grep -vE '^(---|\+\+\+)' |             grep -vE '^[+-][[:space:]]*//' | sed '/^[+-][[:space:]]*$/d' || true)"
-          if [ "$eval_changed_code" = "-        redwar::nnue::sync_board();" ]; then
+          eval_numstat="$(git diff --numstat "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp)"
+          removed_sync="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "-        redwar::nnue::sync_board();" || true)"
+          added_sync="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "+        redwar::nnue::sync_board();" || true)"
+          if [ "$eval_numstat" = $'3	4	ai/cpp_engine/evaluate.cpp' ] &&              [ "$removed_sync" -eq 1 ] && [ "$added_sync" -eq 0 ]; then
             nnue_eval_hotpath_only=true
           fi
         fi
