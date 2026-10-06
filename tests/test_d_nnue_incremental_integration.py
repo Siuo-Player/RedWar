@@ -56,3 +56,4 @@ def test_cpp_nnue_incremental_matches_full_sync_across_real_mutations(tmp_path: 
     )
     assert run_result.returncode == 0, run_result.stderr or run_result.stdout
     assert "PASS NNUE" in run_result.stdout
+    print(run_result.stdout, end="")
