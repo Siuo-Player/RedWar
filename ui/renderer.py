@@ -165,8 +165,9 @@ def desenhar_tabuleiro(ecra: pygame.Surface, gs: Any, tam_casa: int, off_x: int,
         _RSTATE.board_bg = bg
         _RSTATE.board_size_key = key
     ecra.blit(_RSTATE.board_bg, (off_x, off_y))
-    last_start = gs.last_move["start"] if getattr(gs, 'last_move', None) else None
-    last_end = gs.last_move["end"] if getattr(gs, 'last_move', None) else None
+    last_move = getattr(gs, "last_move", None) or {}
+    last_start = last_move.get("start") if isinstance(last_move, dict) else None
+    last_end = last_move.get("end") if isinstance(last_move, dict) else None
     for r in range(LINHAS):
         for c in range(COLUNAS):
             rect = pygame.Rect(off_x + c * tam_casa, off_y + r * tam_casa, tam_casa, tam_casa)
