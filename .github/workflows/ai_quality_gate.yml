@@ -191,6 +191,13 @@ jobs:
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
         chmod +x ai/cpp_engine/engine
 
+    - name: Run NNUE incremental parity and microbenchmark
+      if: steps.changes.outputs.nnue_eval_hotpath_only == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        python -m pytest -q -s tests/test_d_nnue_incremental_integration.py | tee /tmp/nnue-incremental-benchmark.txt
+
     - name: Benchmark main AI and challenger
       if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
