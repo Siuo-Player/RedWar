@@ -57,9 +57,8 @@ def close_window(proc: subprocess.Popen, hwnd: int) -> None:
         proc.wait(timeout=10)
 
 
-def main() -> None:
-    ARTIFACTS.mkdir(parents=True, exist_ok=True)
-    with open(LOG, "wb", buffering=0) as log:
+def _launch_once(log_path: Path) -> dict:
+    with open(log_path, "wb", buffering=0) as log:
         env = os.environ.copy()
         env["PYTHONUTF8"] = "1"
         env["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
@@ -70,28 +69,31 @@ def main() -> None:
             env=env,
             stdout=log,
             stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
         )
-
         hwnd = find_window()
         title_len = USER32.GetWindowTextLengthW(hwnd)
         buf = ctypes.create_unicode_buffer(title_len + 1)
         USER32.GetWindowTextW(hwnd, buf, title_len + 1)
         title = buf.value
-
         time.sleep(0.5)
         close_window(proc, hwnd)
+    return {"window_title": title, "launcher_returncode": proc.returncode}
+
+
+def main() -> None:
+    ARTIFACTS.mkdir(parents=True, exist_ok=True)
+    first = _launch_once(ARTIFACTS / "launcher-smoke-first.log")
+    second = _launch_once(ARTIFACTS / "launcher-smoke-second.log")
 
     result = {
-        "status": "passed" if proc.returncode == 0 else "failed",
-        "window_title": title,
-        "launcher_returncode": proc.returncode,
-        "launcher_log": str(LOG.relative_to(ROOT)),
+        "status": "passed" if first["launcher_returncode"] == 0 and second["launcher_returncode"] == 0 else "failed",
+        "launches": [first, second],
+        "clean_relaunch": first["launcher_returncode"] == 0 and second["launcher_returncode"] == 0,
     }
-    SUMMARY.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    SUMMARY.write_text(
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     if result["status"] != "passed":
-        raise SystemExit(f"Launcher exited with code {proc.returncode}")
-
-
-if __name__ == "__main__":
-    main()
+        raise SystemExit(f"Launcher smoke failed: {result}")
