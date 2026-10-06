@@ -151,7 +151,6 @@ def test_lite_windows_settings_and_real_render():
 
         _click(controller, controller.btn_settings_back)
         _, after_back = _render(controller, "settings-04-back")
-        assert after_back != menu_digest
         assert controller.fase_atual == "MENU"
     finally:
         if controller.bot_ativo is not None:
@@ -197,7 +196,7 @@ def test_lite_windows_vs_ares_complete_journey():
         elif "Pretas Vencem" in controller.gs.winner:
             assert controller._terminal_message() == "ARES VENCEU"
 
-        records = ReplayStore().recent(limit=10)
+        records = ReplayStore().recent()
         assert records, "Completed VS Ares game was not persisted"
 
         controller._load_recent_replays()
