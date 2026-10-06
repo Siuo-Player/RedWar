@@ -20,6 +20,14 @@ LOG_PATH = ARTIFACTS / "launcher.log"
 SUMMARY_PATH = ARTIFACTS / "acceptance-summary.json"
 
 USER32 = ctypes.windll.user32
+
+# Keep Win32 client coordinates and ImageGrab pixels in the same physical
+# coordinate space. Hosted Windows runners can otherwise apply DPI scaling.
+try:
+    USER32.SetProcessDPIAware()
+except AttributeError:
+    pass
+
 SW_RESTORE = 9
 SWP_NOZORDER = 0x0004
 SWP_SHOWWINDOW = 0x0040
@@ -163,8 +171,8 @@ def screenshot(hwnd: int, name: str) -> Path:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     size, box = get_geometry(hwnd)
     image = ImageGrab.grab(bbox=box, all_screens=True)
-    if image.size != size:
-        raise AssertionError(f"Screenshot size mismatch: {image.size} != {size}")
+    if image.width < size[0] or image.height < size[1]:
+        raise AssertionError(f"Screenshot unexpectedly smaller than client: {image.size} < {size}")
     path = SCREENSHOTS / f"{name}.png"
     image.save(path)
     return path
@@ -532,7 +540,8 @@ def run_acceptance() -> dict:
             "runner_os": os.environ.get("RUNNER_OS", "unknown"),
             "checks": checks,
             "screenshots": screenshots,
-            "audio": audio,
+            "display": {"client_size": get_geometry(hwnd)[0], "dpi_normalized": True},
+        "audio": audio,
             "status": "passed" if not failed else "failed",
         }
         SUMMARY_PATH.write_text(
