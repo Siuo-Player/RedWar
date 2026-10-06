@@ -1,0 +1,155 @@
+{
+  "schema_version": "redwar-historical-real-arena-edges-v1",
+  "purpose": "Registry of provenance-audited real Arena version comparisons for descriptive historical calibration. It is not promotion authority.",
+  "promotion_authority": false,
+  "generated_from_main": "8bc99ccbf2cf1f7e7e22bd83cab4f8fda762d8f5",
+  "edges": [
+    {
+      "edge_id": "strength-calibration-2026-08-27-control",
+      "status": "compatible_real_edge",
+      "source_dataset": "data/arena/strength/2026-08-27-control-100.json",
+      "challenger_version": "f6a1ee4beb160ee4e23e7e044fba0f78aa5961ac",
+      "baseline_version": "37b94d51b810b7ef698139f896afd30eee50fa5a",
+      "rules_version": "37b94d51b810b7ef698139f896afd30eee50fa5a",
+      "games": 100,
+      "complete_pairs": 50,
+      "challenger_wins": 50,
+      "baseline_wins": 50,
+      "draws": 0,
+      "invalid_games": 0,
+      "node_budget": 10000,
+      "workflow_run_id": 33027350530,
+      "artifact_id": 9628952365,
+      "raw_sha256": "19738166542806738c72468e2b10ba87f1dd8762603caa28638f4aa5ea0d98bf",
+      "dataset_canonical_sha256": "bc396752a0791437d487f4aaa5dde57721a6db99930789228f951447a2cbd165",
+      "promotion_authority": false
+    },
+    {
+      "edge_id": "ares-promotion-507-512",
+      "status": "compatible_real_edge",
+      "source_type": "GitHub Actions authoritative Ares promotion artifact",
+      "pull_request": 507,
+      "source_workflow_run_id": 35027785973,
+      "source_artifact_id": 10420239661,
+      "source_artifact_digest": "sha256:6138be65dd5619e3d0122173dfe4d5d00f6d7b4fa73eba8e012c8178ea42b304",
+      "challenger_version": "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613",
+      "baseline_version": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "rules_version": "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613",
+      "games": 512,
+      "complete_pairs": 256,
+      "challenger_wins": 265,
+      "baseline_wins": 247,
+      "draws": 0,
+      "invalid_games": 0,
+      "node_budget": 10000,
+      "openings": 256,
+      "challenger_white_games": 256,
+      "challenger_black_games": 256,
+      "pair_bins": {
+        "WW": 39,
+        "DD_WL_LW": 187,
+        "LL": 30
+      },
+      "reconstructed_raw_sha256": "b33ada8e75ff6d0edaa0df7a4d315c0041c9d6ceb6ccb3e6a1563916cb0fd87e",
+      "stage_files": [
+        {
+          "file": "stage-96.jsonl",
+          "sha256": "c05d561bfd7ed3ffed43bc151e46420703e752eb92862b559ce30881127f2094",
+          "game_index_range": [
+            0,
+            95
+          ],
+          "games": 96
+        },
+        {
+          "file": "stage-192.jsonl",
+          "sha256": "557b3839cf37f6d860d4f84f9994c0b1b884e63397204ce4448c17e27daa0043",
+          "game_index_range": [
+            96,
+            191
+          ],
+          "games": 96
+        },
+        {
+          "file": "stage-320.jsonl",
+          "sha256": "0cc22b8ef6ce703a549358384c177bed3a71713abf2713a9e5f19791c443f257",
+          "game_index_range": [
+            192,
+            319
+          ],
+          "games": 128
+        },
+        {
+          "file": "stage-512.jsonl",
+          "sha256": "3416bff38bbd12eca77b87cabc8715220c2f6379c0ef0915ba212d85e7a1c8a6",
+          "game_index_range": [
+            320,
+            511
+          ],
+          "games": 192
+        }
+      ],
+      "opening_policy": "fresh-opening-pairs-only",
+      "colour_policy": "challenger-white-then-black-per-pair",
+      "termination_policy": "game_over_or_10000_plies",
+      "gate_stages": [
+        {
+          "games": 96,
+          "delta_elo": 0,
+          "lower_bound_elo": -58.45121427129521,
+          "decision": "continue"
+        },
+        {
+          "games": 192,
+          "delta_elo": 14.484869061777882,
+          "lower_bound_elo": -29.06586375595815,
+          "decision": "continue"
+        },
+        {
+          "games": 320,
+          "delta_elo": 26.106692605036596,
+          "lower_bound_elo": -6.515180797889629,
+          "decision": "continue"
+        },
+        {
+          "games": 512,
+          "delta_elo": 12.219568270856852,
+          "lower_bound_elo": -13.578611811075142,
+          "decision": "reject"
+        }
+      ],
+      "lifecycle_context": "promotion_arena.py constructs one challenger and one baseline CppEngineBot per stage; TT persistence is known to be sufficient to reproduce/remove the earlier A/A lifecycle divergence under the tested diagnostic protocol",
+      "interpretation": "valid historical observation under the authoritative promotion instrument; not lifecycle-neutral evidence and not a #372 promotion claim",
+      "promotion_authority_used": true,
+      "promotion_decision": "reject"
+    }
+  ],
+  "graph_policy": {
+    "compatible_edges_only": true,
+    "require_known_rules_version": true,
+    "disconnected_components_fail_closed": true,
+    "no_lineage_as_arena_edge": true,
+    "no_promotion_inference_from_graph": true
+  },
+  "current_graph_status": {
+    "compatible_nodes": [
+      "37b94d51b810b7ef698139f896afd30eee50fa5a",
+      "f6a1ee4beb160ee4e23e7e044fba0f78aa5961ac",
+      "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613"
+    ],
+    "connected_components": 2,
+    "components": [
+      [
+        "37b94d51b810b7ef698139f896afd30eee50fa5a",
+        "f6a1ee4beb160ee4e23e7e044fba0f78aa5961ac"
+      ],
+      [
+        "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+        "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613"
+      ]
+    ],
+    "acceptance_met": false,
+    "remaining_gap": "additional provenance-compatible real Arena comparison(s) connecting the two components into a connected multi-version graph"
+  }
+}
