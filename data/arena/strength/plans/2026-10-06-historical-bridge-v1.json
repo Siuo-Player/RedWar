@@ -1,0 +1,59 @@
+{
+  "schema_version": "redwar-historical-bridge-plan-v1",
+  "experiment_id": "historical-bridge-48dd4df-to-3826b3-2026-10-06",
+  "status": "predeclared_manual_execution",
+  "promotion_authority": false,
+  "purpose": "Acquire one additional provenance-compatible real Arena A/B edge sharing the existing historical endpoint 48dd4df, without changing Ares promotion authority.",
+  "workflow": ".github/workflows/arena_experiments.yml",
+  "mode": "experiment",
+  "baseline_ref": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+  "challenger_ref": "3826b3bfe5c63102677f4a097163aeda4a03f83d",
+  "rules_version": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+  "node_budget": 10000,
+  "games": 100,
+  "expected_complete_pairs": 50,
+  "opening_count": 16,
+  "opening_seeds": [
+    101,
+    211,
+    307,
+    401,
+    503,
+    601,
+    709,
+    809,
+    907,
+    1009,
+    1103,
+    1201,
+    1301,
+    1409,
+    1501,
+    1601
+  ],
+  "seed_policy": "canonical-opening-book-v1",
+  "seed_generation_rule": "canonical-opening-book-v1",
+  "selection_policy": "paired-fixed-openings",
+  "controller_population": "Ares-historical-version-to-version",
+  "skill_context": "fixed-node-budget-10k",
+  "colour_policy": "alternating_per_game",
+  "pairing_policy": "adjacent-games-same-opening-with-inverted-challenger-colour",
+  "opening_policy": "same_opening_per_pair",
+  "validity_policy": "only_game_over_with_declared_winner_counts_as_valid_strength_result",
+  "termination_policy": "game_over_or_10000_plies",
+  "expected_graph_effect": {
+    "existing_edge": [
+      "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613"
+    ],
+    "planned_edge": [
+      "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "3826b3bfe5c63102677f4a097163aeda4a03f83d"
+    ]
+  },
+  "rationale": {
+    "bridge_node": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+    "challenger_baseline_commit": "The current main merge is 3826b3b; the native C++ source delta from 48dd4df to that commit is limited to evaluate.cpp, while the Python GameState delta only adds replay_metadata and does not change transition rules.",
+    "authority_boundary": "This workflow is non-authoritative experiment mode. Its result can supply descriptive historical evidence only and cannot promote or reject an Ares revision."
+  }
+}
