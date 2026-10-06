@@ -1,4 +1,5 @@
 name: RedWar Lite Windows Acceptance
+# Unattended desktop acceptance; screenshots are kept as CI evidence.
 
 on:
   pull_request:
