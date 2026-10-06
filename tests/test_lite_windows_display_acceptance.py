@@ -129,6 +129,10 @@ def _finish_with_surrender(controller: main.JogoController) -> None:
     assert controller.gs.game_over is True
     assert controller.gs.winner
 
+    # The real main loop finalizes completed replays on the next battle tick.
+    controller.processar_ia()
+    assert controller.replay_error is None
+
 
 def test_lite_windows_settings_and_real_render():
     controller = _new_controller()
