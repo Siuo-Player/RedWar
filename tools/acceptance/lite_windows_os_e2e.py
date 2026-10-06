@@ -676,7 +676,7 @@ def run_acceptance() -> dict:
                 raise AssertionError(f"Ranger placement {index} caused no visible change")
 
         click_client(hwnd, *ready_center(width, height))
-        wait_until(lambda: "VS Ares" in get_title(hwnd), 10.0, "VS Ares battle title")
+        wait_for_title(hwnd, "VS StockWar C++ (N100000)", timeout=10.0)
         battle = shot("09-vs-ares-battle")
 
         click_client(hwnd, *board_center(width, height, 6, 0))
