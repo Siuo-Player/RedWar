@@ -919,8 +919,11 @@ def run_acceptance() -> dict:
         hwnd = None
 
         proc2, hwnd2 = launch()
+        # Rebind the screenshot helper's live window handle to the relaunch.
+        hwnd = hwnd2
         shot("25-relaunch-menu")
         close_window(proc2, hwnd2)
+        hwnd = None
         checks.append({
             "name": "real_launcher_relaunch_and_quit",
             "passed": proc2.returncode == 0,
