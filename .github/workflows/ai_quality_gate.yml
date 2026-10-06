@@ -14,6 +14,7 @@ permissions:
 
 env:
   PYTHONHASHSEED: '0'
+  PYTHONPATH: ${{ github.workspace }}
 
 jobs:
   ai-quality-gate:
