@@ -50,6 +50,9 @@ jobs:
       - name: Run Python test suite
         run: python -m pytest tests/
 
+      - name: Build evaluator for real desktop GUI tests
+        run: python setup.py build_ext --inplace
+
       - name: Install real desktop test dependencies
         run: |
           sudo apt-get update
@@ -79,10 +82,7 @@ jobs:
           SDL_VIDEODRIVER: x11
           SDL_AUDIODRIVER: pulse
         run: |
-          python -m pytest \
-            tests/test_lite_gui_journeys.py \
-            tests/test_lite_replay_quit_journey.py \
-            tests/test_lite_desktop_audio_output.py
+          python -m pytest             tests/test_lite_gui_journeys.py             tests/test_lite_replay_quit_journey.py             tests/test_lite_desktop_audio_output.py
 
       - name: Capture real-display UI evidence
         env:
@@ -102,15 +102,10 @@ jobs:
           SDL_VIDEODRIVER: x11
           SDL_AUDIODRIVER: pulse
         run: |
-          monitor="$(pactl list short sources | awk '$2 ~ /\\.monitor$/ {print $2; exit}')"
+          monitor="$(pactl list short sources | awk '$2 ~ /\.monitor$/ {print $2; exit}')"
           test -n "$monitor"
 
-          parecord \
-            --device="$monitor" \
-            --file-format=wav \
-            --rate=22050 \
-            --channels=1 \
-            artifacts/redwar-audio.wav >/tmp/parecord.log 2>&1 &
+          parecord             --device="$monitor"             --file-format=wav             --rate=22050             --channels=1             artifacts/redwar-audio.wav >/tmp/parecord.log 2>&1 &
           recorder_pid=$!
           echo "$recorder_pid" >/tmp/parecord.pid
 
