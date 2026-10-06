@@ -13,6 +13,18 @@ if not paths:
 
 pygame.init()
 try:
+    max_width = 1
+    max_height = 1
+    sizes = {}
+    for path in paths:
+        surface = pygame.image.load(str(path))
+        sizes[path] = surface.get_size()
+        max_width = max(max_width, surface.get_width())
+        max_height = max(max_height, surface.get_height())
+        surface = None
+
+    pygame.display.set_mode((max_width, max_height))
+
     for path in paths:
         surface = pygame.image.load(str(path)).convert()
         raw = pygame.image.tostring(surface, "RGB")
