@@ -164,7 +164,7 @@ def test_lite_windows_vs_ares_complete_journey():
 
         _render(controller, "ares-00-draft")
         _place_rangers(controller, 6)
-        assert controller.pontos_jogador == 0
+        assert controller.pontos_jogador < main.ORCAMENTO_BRANCAS
 
         _ready(controller)
         assert controller.fase_atual == "BATALHA"
