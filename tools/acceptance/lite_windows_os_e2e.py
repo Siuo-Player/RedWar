@@ -688,22 +688,27 @@ def run_acceptance() -> dict:
             off_x + tile,
             off_y + 7 * tile,
         )
-        if (
-            count_near(
-                selected,
-                (255, 255, 50),
-                selection_box,
-                (width, height),
-            ) < 3
-            or count_near(
-                selected,
-                (50, 255, 50),
-                selection_box,
-                (width, height),
-                tolerance=90,
-            ) < 10
-        ):
-            raise AssertionError("Selection or legal-move highlight was not visibly rendered")
+        board_box = (
+            off_x,
+            off_y,
+            off_x + 8 * tile,
+            off_y + 8 * tile,
+        )
+        if count_near(
+            selected,
+            (255, 255, 50),
+            selection_box,
+            (width, height),
+        ) < 3:
+            raise AssertionError("Selected source square was not visibly highlighted")
+        if count_near(
+            selected,
+            (50, 255, 50),
+            board_box,
+            (width, height),
+            tolerance=90,
+        ) < 10:
+            raise AssertionError("No legal-move highlight was visibly rendered on the board")
 
         click_client(hwnd, *board_center(width, height, 6, 1))
         invalid = shot("11-vs-ares-invalid-action")
