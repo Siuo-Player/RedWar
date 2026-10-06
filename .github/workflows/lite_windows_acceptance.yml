@@ -61,7 +61,7 @@ jobs:
         run: python tools/acceptance/windows_launcher_smoke.py
 
       - name: Run real Windows display acceptance
-        run: python -m pytest tests/test_lite_windows_display_acceptance.py -q
+        run: venv\Scripts\python.exe -m pytest tests/test_lite_windows_display_acceptance.py -q
 
       - name: Upload black-box evidence
         if: always()
