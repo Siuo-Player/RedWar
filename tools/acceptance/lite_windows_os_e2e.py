@@ -250,6 +250,28 @@ def wait_for_visual_change(
     raise TimeoutError(f"Timed out waiting for visible change after {description}")
 
 
+def wait_for_visual_stability(
+    hwnd: int,
+    timeout: float = 4.0,
+    settle_seconds: float = 0.25,
+    description: str = "UI",
+) -> None:
+    deadline = time.monotonic() + timeout
+    last_sha = None
+    stable_since = None
+
+    while time.monotonic() < deadline:
+        current_sha = captured_sha(hwnd)
+        if current_sha != last_sha:
+            last_sha = current_sha
+            stable_since = time.monotonic()
+        elif stable_since is not None and time.monotonic() - stable_since >= settle_seconds:
+            return
+        time.sleep(0.08)
+
+    raise TimeoutError(f"Timed out waiting for {description} to settle")
+
+
 def click_client(
     hwnd: int,
     x: float,
@@ -271,6 +293,7 @@ def click_client(
 
     if wait_change:
         wait_for_visual_change(hwnd, before_sha, 3.0, description)
+        wait_for_visual_stability(hwnd, description=f"{description} visual state")
     else:
         time.sleep(0.30)
 
@@ -307,6 +330,7 @@ def drag_client(
         time.sleep(0.035)
     send_mouse_event(MOUSEEVENTF_LEFTUP)
     wait_for_visual_change(hwnd, before_sha, 3.0, description)
+    wait_for_visual_stability(hwnd, description=f"{description} visual state")
 
 
 def screenshot(hwnd: int, name: str) -> tuple[Path, tuple[int, int]]:
@@ -404,8 +428,18 @@ def wait_for_terminal(
     height: int,
     name: str,
     logical_size: tuple[int, int],
+    terminal_steps: int,
     timeout: float = 15.0,
 ) -> Path:
+    # This acceptance journey deliberately creates exactly three replay
+    # actions: one human move, one Ares move, then surrender.
+    for step in range(terminal_steps):
+        click_client(
+            hwnd,
+            *analysis_button_center(width, height, "next"),
+            description=f"advance replay timeline to terminal state ({step + 1}/{terminal_steps})",
+        )
+
     deadline = time.monotonic() + timeout
     probe = 0
     while time.monotonic() < deadline:
@@ -414,21 +448,13 @@ def wait_for_terminal(
             final_path, _ = screenshot(hwnd, name)
             path.unlink(missing_ok=True)
             return final_path
-
         path.unlink(missing_ok=True)
-
-        # Surrender immediately ends the battle. The real product then opens
-        # the replay analysis timeline; the terminal board state is reached by
-        # advancing that timeline through the recorded actions (including the
-        # non-board surrender action).
-        click_client(
-            hwnd,
-            *analysis_button_center(width, height, "next"),
-            description="advance terminal replay timeline",
-        )
+        time.sleep(0.20)
         probe += 1
 
-    raise TimeoutError("Terminal feedback was not visually rendered in replay analysis")
+    raise TimeoutError(
+        "Terminal feedback was not rendered as the terminal replay-analysis state"
+    )
 
 
 def wait_until(predicate: Callable[[], bool], timeout: float, description: str) -> None:
@@ -637,23 +663,25 @@ def ensure_window_size(
 
 
 def visual_terminal(path: Path, logical_size: tuple[int, int]) -> bool:
-    # Terminal banner uses the product's success/danger colors.
-    try:
-        from PIL import Image
-        with Image.open(path).convert("RGB") as image:
-            pixels = list(image.getdata())
-        sample = pixels[::4]
-        near_success = sum(
-            1 for p in sample
-            if abs(p[0] - 100) <= 28 and abs(p[1] - 255) <= 28 and abs(p[2] - 100) <= 28
-        )
-        near_danger = sum(
-            1 for p in sample
-            if abs(p[0] - 255) <= 28 and abs(p[1] - 70) <= 28 and abs(p[2] - 70) <= 28
-        )
-        return near_success > 10 or near_danger > 10
-    except Exception:
-        return False
+    width, height = logical_size
+    _, _, tile = draft_geometry(width, height)
+    panel_x = 60 + 8 * tile + 30
+
+    # In replay analysis, a terminal position is rendered explicitly as the
+    # green semantic result "Ares: posição terminal / sem jogada." on the
+    # right-hand analysis panel. Restrict the probe to that panel so red
+    # board pieces can never satisfy the terminal predicate.
+    terminal_panel_box = (
+        panel_x + 8,
+        90,
+        panel_x + 342,
+        min(height, 185),
+    )
+    return count_green_dominant(
+        path,
+        terminal_panel_box,
+        logical_size,
+    ) >= 8
 
 
 def read_replay_count() -> int:
@@ -811,7 +839,9 @@ def run_acceptance() -> dict:
         ares_after_move = shot("14-vs-ares-after-real-ares")
 
         click_client(hwnd, *surrender_center(width, height))
-        terminal = wait_for_terminal(hwnd, width, height, "15-vs-ares-terminal", (width, height), 15.0)
+        terminal = wait_for_terminal(
+            hwnd, width, height, "15-vs-ares-terminal", (width, height), 3, 15.0
+        )
         checks.append({
             "name": "vs_ares_real_input_play_surrender_terminal",
             "passed": True,
@@ -872,7 +902,9 @@ def run_acceptance() -> dict:
         shot("23-hotseat-black-move")
 
         click_client(hwnd, *surrender_center(width, height))
-        wait_for_terminal(hwnd, width, height, "24-hotseat-terminal", (width, height), 15.0)
+        wait_for_terminal(
+            hwnd, width, height, "24-hotseat-terminal", (width, height), 3, 15.0
+        )
         checks.append({
             "name": "hotseat_real_input_play_surrender_terminal",
             "passed": True,
@@ -901,8 +933,17 @@ def run_acceptance() -> dict:
             ],
         })
 
+        close_window(proc, hwnd)
+        checks.append({
+            "name": "real_window_clean_quit",
+            "passed": proc.returncode == 0,
+        })
+
         launcher_log = LOG_PATH.read_text(encoding="utf-8", errors="replace")
-        audio_backend_unavailable = "Áudio indisponível" in launcher_log
+        audio_backend_unavailable = (
+            "Áudio indisponível:" in launcher_log
+            or "WASAPI can't find requested audio endpoint" in launcher_log
+        )
         checks.append({
             "name": "audio_backend_startup_attempt",
             "passed": True,
@@ -910,11 +951,6 @@ def run_acceptance() -> dict:
             "human_hearing_equivalent": False,
         })
 
-        close_window(proc, hwnd)
-        checks.append({
-            "name": "real_window_clean_quit",
-            "passed": proc.returncode == 0,
-        })
         proc = None
         hwnd = None
 
@@ -942,6 +978,7 @@ def run_acceptance() -> dict:
             "launcher": "run_redwar.bat",
             "input": "Win32 SetCursorPos + SendInput (system-level mouse input), synchronized to visible UI changes",
             "display": "real SDL Windows display",
+            "terminal_feedback": "replay-analysis terminal state rendered by the product",
             "audio": {
                 "backend_startup_unavailable": audio_backend_unavailable,
                 "human_hearing_equivalent": False,
