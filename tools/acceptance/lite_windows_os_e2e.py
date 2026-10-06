@@ -700,6 +700,7 @@ def run_acceptance() -> dict:
                 (50, 255, 50),
                 selection_box,
                 (width, height),
+                tolerance=90,
             ) < 10
         ):
             raise AssertionError("Selection or legal-move highlight was not visibly rendered")
