@@ -228,25 +228,68 @@ def client_point(hwnd: int, x: float, y: float) -> tuple[int, int]:
     return client_box[0] + round(x), client_box[1] + round(y)
 
 
-def click_client(hwnd: int, x: float, y: float) -> None:
+def captured_sha(hwnd: int) -> str:
+    _, client_box, _ = client_geometry(hwnd)
+    image = ImageGrab.grab(bbox=client_box).convert("RGB")
+    return hashlib.sha256(image.tobytes()).hexdigest()
+
+
+def wait_for_visual_change(
+    hwnd: int,
+    before_sha: str,
+    timeout: float = 3.0,
+    description: str = "input",
+) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if captured_sha(hwnd) != before_sha:
+            return
+        time.sleep(0.10)
+    raise TimeoutError(f"Timed out waiting for visible change after {description}")
+
+
+def click_client(
+    hwnd: int,
+    x: float,
+    y: float,
+    wait_change: bool = True,
+    description: str = "click",
+) -> None:
     bring_to_front(hwnd)
     sx, sy = client_point(hwnd, x, y)
     if not USER32.SetCursorPos(sx, sy):
         raise ctypes.WinError()
+    # Let SDL consume the hover motion before taking the baseline image.
+    time.sleep(0.12)
+    before_sha = captured_sha(hwnd)
+
     send_mouse_event(MOUSEEVENTF_LEFTDOWN)
     time.sleep(0.05)
     send_mouse_event(MOUSEEVENTF_LEFTUP)
-    time.sleep(0.30)
+
+    if wait_change:
+        wait_for_visual_change(hwnd, before_sha, 3.0, description)
+    else:
+        time.sleep(0.30)
 
 
-def drag_client(hwnd: int, x1: float, y1: float, x2: float, y2: float) -> None:
+def drag_client(
+    hwnd: int,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    description: str = "drag",
+) -> None:
     bring_to_front(hwnd)
     sx1, sy1 = client_point(hwnd, x1, y1)
     sx2, sy2 = client_point(hwnd, x2, y2)
 
     if not USER32.SetCursorPos(sx1, sy1):
         raise ctypes.WinError()
-    time.sleep(0.10)
+    time.sleep(0.12)
+    before_sha = captured_sha(hwnd)
+
     send_mouse_event(MOUSEEVENTF_LEFTDOWN)
     current_x, current_y = sx1, sy1
     for step in range(1, 25):
@@ -261,7 +304,7 @@ def drag_client(hwnd: int, x1: float, y1: float, x2: float, y2: float) -> None:
         current_x, current_y = target_x, target_y
         time.sleep(0.035)
     send_mouse_event(MOUSEEVENTF_LEFTUP)
-    time.sleep(0.30)
+    wait_for_visual_change(hwnd, before_sha, 3.0, description)
 
 
 def screenshot(hwnd: int, name: str) -> tuple[Path, tuple[int, int]]:
@@ -572,10 +615,10 @@ def run_acceptance() -> dict:
             "passed": width > 0 and height > 0 and "RedWar -" in get_title(hwnd),
         })
 
-        click_client(hwnd, *menu_center(3, width, height))
+        click_client(hwnd, *menu_center(3, width, height), description="open settings")
         settings_before = shot("02-settings-before")
 
-        click_client(hwnd, width // 2, int(height * 0.28) + 81)
+        click_client(hwnd, width // 2, int(height * 0.28) + 81, description="sound toggle")
         settings_toggle = shot("03-settings-toggle")
         toggle_changed = image_sha(settings_before) != image_sha(settings_toggle)
         if not toggle_changed:
@@ -585,7 +628,7 @@ def run_acceptance() -> dict:
             "passed": True,
         })
 
-        click_client(hwnd, width // 2 + 75, int(height * 0.28) + 209)
+        click_client(hwnd, width // 2 + 75, int(height * 0.28) + 209, description="volume increase")
         settings_volume = shot("04-settings-volume")
         if image_sha(settings_toggle) == image_sha(settings_volume):
             raise AssertionError("Real OS click on volume control produced no visible change")
@@ -594,12 +637,12 @@ def run_acceptance() -> dict:
             "passed": True,
         })
 
-        click_client(hwnd, width // 2, height - 48)
+        click_client(hwnd, width // 2, height - 48, description="settings back")
         menu_after_settings = shot("05-menu-after-settings")
 
-        click_client(hwnd, *menu_center(0, width, height))
-        click_client(hwnd, *mode_center(0, width, height))
-        click_client(hwnd, *ai_type_center(0, width, height))
+        click_client(hwnd, *menu_center(0, width, height), description="open game mode")
+        click_client(hwnd, *mode_center(0, width, height), description="select VS IA")
+        click_client(hwnd, *ai_type_center(0, width, height), description="select classic Ares")
 
         # 1500 -> 100 ELO by dragging the real difficulty slider to its left edge.
         slider_w = min(400, int(width * 0.6))
@@ -611,9 +654,15 @@ def run_acceptance() -> dict:
             slider_y,
             slider_x + 1,
             slider_y,
+            description="difficulty slider",
         )
         difficulty = shot("06-difficulty-lite")
-        click_client(hwnd, width // 2, int(height * 0.55) + 30)
+        click_client(
+            hwnd,
+            width // 2,
+            int(height * 0.55) + 30,
+            description="start Lite Ares",
+        )
         wait_for_title(hwnd, "VS StockWar C++ (N100000)")
         draft = shot("07-vs-ares-draft")
 
@@ -704,8 +753,8 @@ def run_acceptance() -> dict:
         click_client(hwnd, *analysis_button_center(width, height, "menu"))
         time.sleep(0.4)
 
-        click_client(hwnd, *menu_center(0, width, height))
-        click_client(hwnd, *mode_center(1, width, height))
+        click_client(hwnd, *menu_center(0, width, height), description="open hot-seat")
+        click_client(hwnd, *mode_center(1, width, height), description="select hot-seat")
         hotseat_white = shot("17-hotseat-white-draft")
 
         click_client(hwnd, ranger_x, ranger_y)
@@ -794,8 +843,9 @@ def run_acceptance() -> dict:
             "commit": os.environ.get("GITHUB_SHA", "unknown"),
             "runner_os": os.environ.get("RUNNER_OS", "unknown"),
             "head_commit": os.environ.get("EXPECTED_HEAD_SHA", os.environ.get("GITHUB_SHA", "unknown")),
+        "git_sha": os.environ.get("GITHUB_SHA", "unknown"),
             "launcher": "run_redwar.bat",
-            "input": "Win32 SetCursorPos + SendInput (system-level mouse input)",
+            "input": "Win32 SetCursorPos + SendInput (system-level mouse input), synchronized to visible UI changes",
             "display": "real SDL Windows display",
             "audio": {
                 "backend_startup_unavailable": audio_backend_unavailable,
