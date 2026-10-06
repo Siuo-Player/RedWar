@@ -590,6 +590,9 @@ def read_replay_count() -> int:
     if isinstance(data, list):
         return len(data)
     if isinstance(data, dict):
+        games = data.get("games")
+        if isinstance(games, dict):
+            return len(games)
         records = data.get("records")
         if isinstance(records, list):
             return len(records)
