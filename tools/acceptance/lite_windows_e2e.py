@@ -45,6 +45,33 @@ EnumWindowsProc = ctypes.WINFUNCTYPE(
     wintypes.BOOL, wintypes.HWND, wintypes.LPARAM
 )
 
+USER32.IsWindowVisible.argtypes = [wintypes.HWND]
+USER32.IsWindowVisible.restype = wintypes.BOOL
+USER32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+USER32.GetWindowTextLengthW.restype = ctypes.c_int
+USER32.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+USER32.GetWindowTextW.restype = ctypes.c_int
+USER32.EnumWindows.argtypes = [EnumWindowsProc, wintypes.LPARAM]
+USER32.EnumWindows.restype = wintypes.BOOL
+USER32.GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(RECT)]
+USER32.GetClientRect.restype = wintypes.BOOL
+USER32.ClientToScreen.argtypes = [wintypes.HWND, ctypes.POINTER(POINT)]
+USER32.ClientToScreen.restype = wintypes.BOOL
+USER32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(RECT)]
+USER32.GetWindowRect.restype = wintypes.BOOL
+USER32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
+USER32.ShowWindow.restype = wintypes.BOOL
+USER32.SetForegroundWindow.argtypes = [wintypes.HWND]
+USER32.SetForegroundWindow.restype = wintypes.BOOL
+USER32.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
+USER32.SetCursorPos.restype = wintypes.BOOL
+USER32.mouse_event.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, wintypes.ULONG_PTR]
+USER32.mouse_event.restype = None
+USER32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+USER32.PostMessageW.restype = wintypes.BOOL
+USER32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
+USER32.SetWindowPos.restype = wintypes.BOOL
+
 
 def find_window(timeout: float = 90.0) -> int:
     deadline = time.monotonic() + timeout
@@ -371,10 +398,10 @@ def run_acceptance() -> dict:
 
         click_client(hwnd, *ranger_center(width, height))
         for col in range(4):
+            before_place = shot(f"07-vs-ares-draft-before-{col + 1}")
             click_client(hwnd, *board_center(width, height, 6, col))
-        draft_selected = shot("07-vs-ares-draft-selected")
-        if count_near(draft_selected, (255, 255, 50), 20, (55, 525, 140, 680)) < 5:
-            raise AssertionError("Draft placement selection was not visibly rendered")
+            after_place = shot(f"07-vs-ares-draft-after-{col + 1}")
+            assert_changed(before_place, after_place, f"Ranger placement {col + 1}")
 
         click_client(hwnd, *ready_center(width, height))
         shot("08-vs-ares-battle-start")
@@ -383,14 +410,21 @@ def run_acceptance() -> dict:
         selected = shot("09-vs-ares-piece-selected")
         if count_near(selected, (255, 255, 50), 20, (55, 525, 140, 605)) < 3:
             raise AssertionError("Piece selection border was not rendered")
+        if count_near(selected, (50, 255, 50), 85, (55, 525, 140, 605)) < 10:
+            raise AssertionError("Legal move highlight was not visibly rendered")
 
-        before_move = shot("10-vs-ares-before-move")
+        click_client(hwnd, *board_center(width, height, 6, 1))
+        invalid_action = shot("10-vs-ares-invalid-action")
+        assert_changed(selected, invalid_action, "invalid occupied-square click clearing selection")
+
+        click_client(hwnd, *board_center(width, height, 6, 0))
+        before_move = shot("11-vs-ares-before-move")
         click_client(hwnd, *board_center(width, height, 5, 0))
-        after_move = shot("11-vs-ares-after-human-move")
+        after_move = shot("12-vs-ares-after-human-move")
         assert_changed(before_move, after_move, "human board move")
 
         wait_until(lambda: "O Teu Turno" in get_title(hwnd), 90.0, "real 100k Ares move")
-        shot("12-vs-ares-after-real-ares-move")
+        shot("13-vs-ares-after-real-ares-move")
 
         click_client(hwnd, *surrender_center(width, height))
         time.sleep(1.0)
@@ -399,7 +433,7 @@ def run_acceptance() -> dict:
         for step in range(6):
             click_client(hwnd, *analysis_next_center(width, height))
             time.sleep(0.25)
-            candidate = shot(f"13-vs-ares-analysis-{step + 1}")
+            candidate = shot(f"14-vs-ares-analysis-{step + 1}")
             green = count_near(candidate, (100, 255, 100), 28, (180, 220, 1120, 620))
             red = count_near(candidate, (255, 70, 70), 28, (180, 220, 1120, 620))
             if green > 10 or red > 10:
@@ -413,7 +447,7 @@ def run_acceptance() -> dict:
         time.sleep(0.5)
         click_client(hwnd, *menu_center(2, width, height))
         time.sleep(0.5)
-        replays = shot("14-replays-after-vs-ares")
+        replays = shot("15-replays-after-vs-ares")
         if count_near(replays, (100, 100, 100), 18, (300, 150, 1000, 650)) < 50:
             raise AssertionError("Persisted replay entry did not render")
         checks.append({"name": "replay_entrypoint_after_completed_game", "passed": True})
@@ -424,21 +458,27 @@ def run_acceptance() -> dict:
         click_client(hwnd, *mode_center(1, width, height))
         click_client(hwnd, *ranger_center(width, height))
         for col in range(4):
+            before_place = shot(f"16-hotseat-white-before-{col + 1}")
             click_client(hwnd, *board_center(width, height, 6, col))
+            after_place = shot(f"16-hotseat-white-after-{col + 1}")
+            assert_changed(before_place, after_place, f"hot-seat white Ranger placement {col + 1}")
         click_client(hwnd, *ready_center(width, height))
-        shot("15-hotseat-black-draft")
+        shot("16-hotseat-black-draft")
 
         click_client(hwnd, *ranger_center(width, height))
         for col in range(4):
+            before_place = shot(f"17-hotseat-black-before-{col + 1}")
             click_client(hwnd, *board_center(width, height, 0, col))
+            after_place = shot(f"17-hotseat-black-after-{col + 1}")
+            assert_changed(before_place, after_place, f"hot-seat black Ranger placement {col + 1}")
         click_client(hwnd, *ready_center(width, height))
-        shot("16-hotseat-battle")
+        shot("17-hotseat-battle")
 
         click_client(hwnd, *board_center(width, height, 6, 0))
         click_client(hwnd, *board_center(width, height, 5, 0))
         click_client(hwnd, *board_center(width, height, 1, 0))
         click_client(hwnd, *board_center(width, height, 2, 0))
-        shot("17-hotseat-after-two-moves")
+        shot("18-hotseat-after-two-moves")
 
         click_client(hwnd, *surrender_center(width, height))
         time.sleep(0.8)
@@ -447,7 +487,7 @@ def run_acceptance() -> dict:
         for step in range(6):
             click_client(hwnd, *analysis_next_center(width, height))
             time.sleep(0.2)
-            candidate = shot(f"18-hotseat-analysis-{step + 1}")
+            candidate = shot(f"19-hotseat-analysis-{step + 1}")
             if count_near(candidate, (100, 255, 100), 28, (180, 220, 1120, 620)) > 10:
                 hotseat_terminal = candidate
                 break
@@ -461,7 +501,7 @@ def run_acceptance() -> dict:
         resize_records = []
         for target in ((980, 700), (1300, 800), (1600, 900), (1920, 1080)):
             ensure_size(hwnd, *target)
-            path = shot(f"19-responsive-{target[0]}x{target[1]}")
+            path = shot(f"20-responsive-{target[0]}x{target[1]}")
             actual = get_geometry(hwnd)[0]
             if actual != target:
                 raise AssertionError(f"Resize mismatch: actual={actual}, target={target}")
@@ -480,7 +520,7 @@ def run_acceptance() -> dict:
 
         proc2, hwnd2 = launch()
         try:
-            shot("20-relaunch-menu")
+            shot("21-relaunch-menu")
         finally:
             close_window(proc2, hwnd2)
         checks.append({"name": "launcher_relaunch_and_quit", "passed": proc2.returncode == 0})
