@@ -22,6 +22,7 @@ on:
       - "ui/**"
       - "tools/replay/**"
       - "tools/acceptance/**"
+      - "tests/test_lite_windows_display_acceptance.py"
       - "run_redwar.bat"
       - "requirements.txt"
       - ".github/workflows/lite_windows_acceptance.yml"
