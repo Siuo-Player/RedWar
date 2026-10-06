@@ -197,3 +197,96 @@ def test_hotseat_battle_only_selects_piece_belonging_to_side_to_move(monkeypatch
     controller.gs.white_to_move = False
     controller.tratar_cliques(0, 0, (0, 0))
     assert controller.casa_selecionada == (0, 0)
+
+
+def test_replay_analysis_coalesces_rapid_navigation_without_concurrent_searches(monkeypatch):
+    controller = object.__new__(main.JogoController)
+    controller._analysis_generation = 0
+    controller._analysis_cache = {}
+    controller._analysis_cache_lock = main.threading.Lock()
+    controller._analysis_nodes = 100
+    controller._analysis_context = "main"
+    controller.review_index = 0
+    controller.gs = _FakeBoardState()
+    controller.gs.game_over = False
+    controller.gs.move_log = [{"acao_escolhida": {"type": "move", "start": (0, 0), "end": (0, 1)}}]
+    controller._analysis_worker_condition = main.threading.Condition()
+    controller._analysis_worker_pending = None
+    controller._analysis_worker_thread = None
+    controller._analysis_worker_stop = False
+
+    first_started = main.threading.Event()
+    release_first = main.threading.Event()
+    second_started = main.threading.Event()
+
+    class _FakeBridge:
+        def close(self):
+            pass
+
+    class _FakeBot:
+        instances = 0
+        active = 0
+        max_active = 0
+        calls = 0
+
+        def __init__(self, nodes):
+            self.nodes = nodes
+            self.bridge = _FakeBridge()
+            self.last_engine_info = "info nodes=100"
+            _FakeBot.instances += 1
+
+        def escolher_jogada(self, _state):
+            _FakeBot.calls += 1
+            call = _FakeBot.calls
+            _FakeBot.active += 1
+            _FakeBot.max_active = max(_FakeBot.max_active, _FakeBot.active)
+            try:
+                if call == 1:
+                    first_started.set()
+                    assert release_first.wait(3.0)
+                elif call == 2:
+                    second_started.set()
+                return {
+                    "type": "move",
+                    "start": (0, 0),
+                    "end": (0, 1),
+                    "call": call,
+                }
+            finally:
+                _FakeBot.active -= 1
+
+    controller._analysis_work_items = lambda: [
+        ("main", 0, controller.gs.fast_clone())
+    ]
+
+    monkeypatch.setattr(main, "CppEngineBot", _FakeBot)
+
+    controller._start_analysis_worker()
+    assert first_started.wait(3.0)
+
+    # Simulate rapid left/right navigation while the first C++ search is busy.
+    for _ in range(6):
+        controller._start_analysis_worker()
+
+    release_first.set()
+    assert second_started.wait(3.0)
+
+    deadline = main.time.monotonic() + 3.0
+    while main.time.monotonic() < deadline:
+        with controller._analysis_cache_lock:
+            cached = controller._analysis_cache.get(("main", 0))
+        if cached is not None:
+            break
+        main.time.sleep(0.02)
+
+    with controller._analysis_cache_lock:
+        cached = controller._analysis_cache.get(("main", 0))
+
+    assert _FakeBot.instances == 1
+    assert _FakeBot.max_active == 1
+    assert _FakeBot.calls == 2
+    assert cached is not None
+    assert cached["best_move"]["call"] == 2
+    assert cached["error"] is None
+
+    controller._shutdown_replay_analysis_worker(join_timeout=3.0)
