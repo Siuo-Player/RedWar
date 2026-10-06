@@ -57,11 +57,9 @@ DIAGNOSTICS
 EXPERIMENTS
 └── arena_experiments.yml
 
-NIGHTLY
-├── nnue_nightly.yml
-└── auto_balancer.yml
-
-TEMPORARY RESEARCH
+MANUAL RESEARCH
+├── nnue_experimental_training.yml
+├── auto_balancer.yml
 └── strength_calibration.yml
 ```
 
