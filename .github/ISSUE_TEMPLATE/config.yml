@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Workflow / Actions routing
+    url: https://github.com/Siuo-Player/RedWar/blob/main/.github/workflows/README.md
+    about: Escolha aqui o workflow certo antes de executar trabalho experimental ou diagnóstico.
+  - name: Canonical roadmap
+    url: https://github.com/Siuo-Player/RedWar/blob/main/docs/ROADMAP.md
+    about: Consulte a cadeia de gates e o estado oficial do projeto.
+  - name: Development workflow
+    url: https://github.com/Siuo-Player/RedWar/blob/main/docs/DEVELOPMENT_WORKFLOW.md
+    about: Processo branch → validação → PR → merge.
