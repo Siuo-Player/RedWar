@@ -43,7 +43,8 @@ jobs:
       PYGAME_HIDE_SUPPORT_PROMPT: "1"
       PYTHONHASHSEED: "0"
       PYTHONUTF8: "1"
-      SDL_VIDEO_WINDOW_POS: "40,40"
+      SDL_VIDEO_WINDOW_POS: "0,0"
+      EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
     steps:
       - name: Checkout
