@@ -73,8 +73,14 @@ jobs:
           venv\Scripts\python.exe tools\scripts\build_cpp_engine.py
           if (-not (Test-Path "ai\cpp_engine\engine.exe")) { throw "C++ engine executable was not produced" }
 
-      - name: Run real Windows display acceptance
+      - name: Run Windows real-display controller acceptance
         run: venv\Scripts\python.exe -m pytest tests/test_lite_windows_display_acceptance.py -q
+
+      - name: Install Pillow for system-level screenshot evidence
+        run: venv\Scripts\python.exe -m pip install Pillow
+
+      - name: Run real Windows OS E2E acceptance
+        run: venv\Scripts\python.exe tools/acceptance/lite_windows_os_e2e.py
 
       - name: Upload black-box evidence
         if: always()
