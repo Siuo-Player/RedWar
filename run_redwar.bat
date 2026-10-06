@@ -23,6 +23,10 @@ echo [1/3] Installing/updating Python dependencies...
 "%PYTHON%" -m pip install -r requirements.txt
 if errorlevel 1 goto :error
 
+echo [2/3] Building native Python evaluator...
+"%PYTHON%" setup.py build_ext --inplace
+if errorlevel 1 goto :error
+
 echo [2/3] Building C++ engine...
 "%PYTHON%" tools\scripts\build_cpp_engine.py
 if errorlevel 1 goto :error
