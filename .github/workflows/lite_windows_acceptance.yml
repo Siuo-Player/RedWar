@@ -40,6 +40,7 @@ jobs:
     env:
       PYGAME_HIDE_SUPPORT_PROMPT: "1"
       PYTHONHASHSEED: "0"
+      PYTHONUTF8: "1"
       SDL_VIDEO_WINDOW_POS: "40,40"
 
     steps:
