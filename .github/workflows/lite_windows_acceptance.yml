@@ -10,6 +10,7 @@ on:
       - "ui/**"
       - "tools/replay/**"
       - "tools/acceptance/**"
+      - "tests/test_lite_windows_display_acceptance.py"
       - "run_redwar.bat"
       - "requirements.txt"
       - ".github/workflows/lite_windows_acceptance.yml"
@@ -55,11 +56,11 @@ jobs:
       - name: Prepare launcher virtual environment with wheel-supported Python
         run: py -3.11 -m venv venv
 
-      - name: Install acceptance screenshot dependency
-        run: python -m pip install --upgrade Pillow
+      - name: Run real Windows launcher smoke
+        run: python tools/acceptance/windows_launcher_smoke.py
 
-      - name: Run real Windows SDL black-box acceptance
-        run: python tools/acceptance/lite_windows_e2e.py
+      - name: Run real Windows display acceptance
+        run: python -m pytest tests/test_lite_windows_display_acceptance.py -q
 
       - name: Upload black-box evidence
         if: always()
