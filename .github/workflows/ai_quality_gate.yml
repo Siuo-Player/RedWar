@@ -124,6 +124,16 @@ jobs:
           done < /tmp/changed-files.txt
         fi
 
+        nnue_eval_hotpath_only=false
+        if [ "$actual_files" -eq 5 ] &&            grep -Fxq ".github/workflows/ai_quality_gate.yml" /tmp/changed-files.txt &&            grep -Fxq "ai/cpp_engine/evaluate.cpp" /tmp/changed-files.txt &&            grep -Fxq "tests/cpp_nnue_test.cpp" /tmp/changed-files.txt &&            grep -Fxq "tests/test_d_nnue_incremental_integration.py" /tmp/changed-files.txt &&            grep -Fxq "tests/test_d_nnue_oracle_boundary.py" /tmp/changed-files.txt; then
+          eval_numstat="$(git diff --numstat "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp)"
+          removed_sync="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "-        redwar::nnue::sync_board();" || true)"
+          added_sync="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "+        redwar::nnue::sync_board();" || true)"
+          if [ "$eval_numstat" = $'3	4	ai/cpp_engine/evaluate.cpp' ] &&              [ "$removed_sync" -eq 1 ] && [ "$added_sync" -eq 0 ]; then
+            nnue_eval_hotpath_only=true
+          fi
+        fi
+
         if [ "$terminal_contract_only" = true ]; then
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "A0.1 terminal contract correctness fix detected; Arena remains diagnostic only."
@@ -136,6 +146,9 @@ jobs:
         elif [ "$teacher_pipeline_only" = true ]; then
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "NNUE teacher-pipeline correctness change detected; Arena remains diagnostic only."
+        elif [ "$nnue_eval_hotpath_only" = true ]; then
+          echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
+          echo "NNUE evaluation hot-path-only change detected; require parity/benchmark evidence, not strength promotion."
         elif grep -Eq '(^|/)tests/test_a0_c1_tt_observability\.py$' /tmp/changed-files.txt && \
              ! grep -Eq '^tools/nnue/' /tmp/changed-files.txt && \
              ! grep -Eq '^ai/cpp_engine/(evaluate|nnue)\.(cpp|h|hpp|cc|cxx)$' /tmp/changed-files.txt; then
@@ -177,6 +190,13 @@ jobs:
         if [[ -f ai/cpp_engine/nnue.cpp ]]; then cpp_sources+=(ai/cpp_engine/nnue.cpp); fi
         g++ -std=c++17 -O3 -march=native -mtune=native -flto -DNDEBUG -pipe "${cpp_sources[@]}" -o ai/cpp_engine/engine
         chmod +x ai/cpp_engine/engine
+
+    - name: Run NNUE incremental parity and microbenchmark
+      if: steps.changes.outputs.has_quality_changes == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        python -m pytest -q -s tests/test_d_nnue_incremental_integration.py | tee /tmp/nnue-incremental-benchmark.txt
 
     - name: Benchmark main AI and challenger
       if: steps.changes.outputs.has_quality_changes == 'true'

@@ -1,6 +1,7 @@
 #include "../ai/cpp_engine/nnue.hpp"
 #include "../ai/cpp_engine/types.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
@@ -15,6 +16,25 @@ void require(bool condition, const std::string& message) {
 void set_position(const std::string& rwen) {
     parse_rwen(rwen);
     redwar::nnue::sync_board();
+}
+
+long long benchmark_evaluations(bool full_sync, int iterations) {
+    for (int i = 0; i < 100; ++i) {
+        if (full_sync) redwar::nnue::sync_board();
+        require(redwar::nnue::evaluate().has_value(), "NNUE warm-up evaluation failed");
+    }
+
+    volatile long long checksum = 0;
+    const auto started = std::chrono::steady_clock::now();
+    for (int i = 0; i < iterations; ++i) {
+        if (full_sync) redwar::nnue::sync_board();
+        const auto value = redwar::nnue::evaluate();
+        require(value.has_value(), "NNUE benchmark evaluation failed");
+        checksum += *value;
+    }
+    const auto elapsed = std::chrono::steady_clock::now() - started;
+    (void)checksum;
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(elapsed).count();
 }
 
 int evaluate_after_incremental_move(const Move& move) {
@@ -90,6 +110,33 @@ int main() {
             "SPELL ignite effect/stun/twc/side updates",
             Move(0, 0, 3, 4, "SPELL", "ignite")
         );
+
+        // Parsing a fresh position must update the incremental accumulator
+        // through the BoardState assignment hooks, without an explicit sync.
+        parse_rwen("W_FrostMage_0_N_0,B_Bone_0_N_0,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,./.,.,.,.,.,.,.,. W 0");
+        const auto parsed_incremental = redwar::nnue::evaluate();
+        require(parsed_incremental.has_value(), "NNUE did not evaluate parsed position incrementally");
+        const int parsed_incremental_value = *parsed_incremental;
+
+        redwar::nnue::sync_board();
+        const auto parsed_full = redwar::nnue::evaluate();
+        require(parsed_full.has_value(), "NNUE did not evaluate parsed position after full sync");
+        require(parsed_incremental_value == *parsed_full, "parsed incremental/full mismatch");
+
+        // The hot-path benchmark compares the old explicit full-sync contract
+        // against direct accumulator inference on the same stable position.
+        constexpr int BENCHMARK_ITERATIONS = 10000;
+        const long long full_sync_ns = benchmark_evaluations(true, BENCHMARK_ITERATIONS);
+        const long long incremental_ns = benchmark_evaluations(false, BENCHMARK_ITERATIONS);
+        require(incremental_ns > 0 && full_sync_ns > 0, "NNUE benchmark produced invalid duration");
+        const double full_sync_per_eval =
+            static_cast<double>(full_sync_ns) / BENCHMARK_ITERATIONS;
+        const double incremental_per_eval =
+            static_cast<double>(incremental_ns) / BENCHMARK_ITERATIONS;
+        const double speedup = full_sync_per_eval / incremental_per_eval;
+        std::cout << "NNUE benchmark full-sync ns/eval=" << full_sync_per_eval
+                  << " incremental ns/eval=" << incremental_per_eval
+                  << " speedup=" << speedup << "x\n";
 
         redwar::nnue::reset();
         require(!redwar::nnue::available(), "NNUE reset did not clear model state");
