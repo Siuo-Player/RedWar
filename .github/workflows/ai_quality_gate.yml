@@ -192,7 +192,7 @@ jobs:
         chmod +x ai/cpp_engine/engine
 
     - name: Run NNUE incremental parity and microbenchmark
-      if: steps.changes.outputs.nnue_eval_hotpath_only == 'true'
+      if: steps.changes.outputs.has_quality_changes == 'true'
       shell: bash
       run: |
         set -euo pipefail
