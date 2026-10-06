@@ -270,12 +270,7 @@ jobs:
           gate_status=${PIPESTATUS[0]}
           set -e
 
-          final_decision="$(python - "$summary_file" <<'PY'
-            import json
-            import sys
-            print(json.loads(open(sys.argv[1], encoding="utf-8").read())["decision"])
-            PY
-          )"
+          final_decision="$(python -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["decision"])' "$summary_file")"
 
           echo "authoritative_gate stage=${stage} decision=${final_decision} exit=${gate_status}"
           if [ "$final_decision" = "accept" ]; then
