@@ -370,6 +370,32 @@ def image_sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def count_green_dominant(
+    path: Path,
+    logical_box: tuple[int, int, int, int],
+    logical_size: tuple[int, int],
+) -> int:
+    with Image.open(path).convert("RGB") as image:
+        width, height = image.size
+        x1, y1, x2, y2 = logical_box
+        box = (
+            round(x1 * width / logical_size[0]),
+            round(y1 * height / logical_size[1]),
+            round(x2 * width / logical_size[0]),
+            round(y2 * height / logical_size[1]),
+        )
+        pixels = list(image.crop(box).getdata())
+
+    # The renderer alpha-blends COLORS["move"] over light/dark board tiles,
+    # so the exact RGB varies with the underlying square. Detect the semantic
+    # property that remains stable: green is substantially dominant.
+    return sum(
+        1
+        for r, g, b in pixels[::4]
+        if g >= 130 and g >= r + 45 and g >= b + 45
+    )
+
+
 def wait_for_terminal(
     hwnd: int,
     width: int,
@@ -714,12 +740,10 @@ def run_acceptance() -> dict:
             (width, height),
         ) < 3:
             raise AssertionError("Selected source square was not visibly highlighted")
-        if count_near(
+        if count_green_dominant(
             selected,
-            (50, 255, 50),
             board_box,
             (width, height),
-            tolerance=90,
         ) < 10:
             raise AssertionError("No legal-move highlight was visibly rendered on the board")
 
