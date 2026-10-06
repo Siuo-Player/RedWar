@@ -17,7 +17,7 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       PYTHONHASHSEED: '0'
     steps:
@@ -49,3 +49,94 @@ jobs:
 
       - name: Run Python test suite
         run: python -m pytest tests/
+
+      - name: Install real desktop test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb pulseaudio pulseaudio-utils x11-utils
+
+      - name: Start real desktop services
+        run: |
+          Xvfb :99 -screen 0 1300x800x24 -ac +extension RANDR >/tmp/xvfb.log 2>&1 &
+          echo $! >/tmp/xvfb.pid
+
+          for i in $(seq 1 20); do
+            if DISPLAY=:99 xdpyinfo >/dev/null 2>&1; then
+              break
+            fi
+            sleep 0.5
+          done
+          DISPLAY=:99 xdpyinfo >/dev/null
+
+          pulseaudio --start --exit-idle-time=-1 --log-target=stderr
+          pactl info
+          pactl list short sinks
+          pactl list short sources
+
+      - name: Run Lite journeys on real X11 and PulseAudio
+        env:
+          DISPLAY: :99
+          SDL_VIDEODRIVER: x11
+          SDL_AUDIODRIVER: pulse
+        run: |
+          python -m pytest \
+            tests/test_lite_gui_journeys.py \
+            tests/test_lite_replay_quit_journey.py \
+            tests/test_lite_desktop_audio_output.py
+
+      - name: Capture real-display UI evidence
+        env:
+          DISPLAY: :99
+          SDL_VIDEODRIVER: x11
+          SDL_AUDIODRIVER: pulse
+        run: |
+          mkdir -p artifacts/ui-scenes
+          python - <<'PY'
+          from tools.ui_scene_validation import capture_all
+          capture_all("artifacts/ui-scenes")
+          PY
+          python tools/lite_desktop_visual_audit.py artifacts/ui-scenes
+
+      - name: Capture and audit real audio output
+        env:
+          SDL_VIDEODRIVER: x11
+          SDL_AUDIODRIVER: pulse
+        run: |
+          monitor="$(pactl list short sources | awk '$2 ~ /\\.monitor$/ {print $2; exit}')"
+          test -n "$monitor"
+
+          parecord \
+            --device="$monitor" \
+            --file-format=wav \
+            --rate=22050 \
+            --channels=1 \
+            artifacts/redwar-audio.wav >/tmp/parecord.log 2>&1 &
+          recorder_pid=$!
+          echo "$recorder_pid" >/tmp/parecord.pid
+
+          sleep 0.2
+          python tools/lite_desktop_audio_probe.py
+          sleep 0.6
+
+          kill "$recorder_pid" || true
+          wait "$recorder_pid" 2>/dev/null || true
+          python tools/lite_desktop_audio_audit.py artifacts/redwar-audio.wav
+
+      - name: Upload real desktop acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: redwar-lite-desktop-acceptance-${{ github.event.pull_request.number || github.run_id }}
+          path: |
+            artifacts/
+            /tmp/xvfb.log
+            /tmp/parecord.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Clean up desktop services
+        if: always()
+        run: |
+          if [ -f /tmp/parecord.pid ]; then kill "$(cat /tmp/parecord.pid)" 2>/dev/null || true; fi
+          pulseaudio --kill 2>/dev/null || true
+          if [ -f /tmp/xvfb.pid ]; then kill "$(cat /tmp/xvfb.pid)" 2>/dev/null || true; fi
