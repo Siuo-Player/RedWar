@@ -772,13 +772,14 @@ def run_acceptance() -> dict:
 
         click_client(hwnd, *analysis_button_center(width, height, "menu"))
         time.sleep(0.5)
+        click_client(hwnd, *menu_center(2, width, height), description="open persisted replays")
         replay_menu = shot("16-vs-ares-replays")
         replay_count_before = read_replay_count()
         if replay_count_before < 1:
             raise AssertionError("VS Ares surrender did not persist a replay")
 
         # Re-enter the persisted replay and exercise the real on-screen timeline.
-        click_client(hwnd, width // 2, 197)
+        click_client(hwnd, width // 2, 197, description="open latest replay")
         time.sleep(0.6)
         replay_analysis = shot("17-vs-ares-replay-analysis-start")
         click_client(hwnd, *analysis_button_center(width, height, "next"))
