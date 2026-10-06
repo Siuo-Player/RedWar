@@ -101,6 +101,9 @@ jobs:
           python tools/lite_desktop_visual_audit.py artifacts/ui-scenes
 
       - name: Capture and audit real audio output
+        env:
+          SDL_AUDIODRIVER: pulse
+          PULSE_SINK: auto_null
         run: |
           monitor="$(pactl list short sources | awk '$2 ~ /\.monitor$/ {print $2; exit}')"
           test -n "$monitor"
@@ -109,9 +112,9 @@ jobs:
           recorder_pid=$!
           echo "$recorder_pid" >/tmp/parecord.pid
 
-          sleep 0.2
+          sleep 0.3
           python tools/lite_desktop_audio_probe.py
-          sleep 0.6
+          sleep 0.8
 
           kill "$recorder_pid" || true
           wait "$recorder_pid" 2>/dev/null || true
