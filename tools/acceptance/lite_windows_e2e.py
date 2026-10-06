@@ -169,12 +169,41 @@ def drag_client(hwnd: int, x1: float, y1: float, x2: float, y2: float) -> None:
 
 def screenshot(hwnd: int, name: str) -> Path:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-    size, box = get_geometry(hwnd)
-    image = ImageGrab.grab(bbox=box, all_screens=True)
-    if image.width < size[0] or image.height < size[1]:
-        raise AssertionError(f"Screenshot unexpectedly smaller than client: {image.size} < {size}")
+    client_size, outer = get_geometry(hwnd)
+
+    image = ImageGrab.grab(window=hwnd, include_layered_windows=True, scale_down=False)
+    outer_size = (outer[2] - outer[0], outer[3] - outer[1])
+
+    if image.size == client_size:
+        client_image = image
+    elif image.size == outer_size:
+        client = RECT()
+        USER32.GetClientRect(hwnd, ctypes.byref(client))
+        point = POINT(0, 0)
+        if not USER32.ClientToScreen(hwnd, ctypes.byref(point)):
+            raise ctypes.WinError()
+        offset_x = point.x - outer[0]
+        offset_y = point.y - outer[1]
+        box = (
+            max(0, offset_x),
+            max(0, offset_y),
+            max(0, offset_x) + client_size[0],
+            max(0, offset_y) + client_size[1],
+        )
+        client_image = image.crop(box)
+    else:
+        raise AssertionError(
+            f"Unexpected HWND screenshot size: {image.size}; "
+            f"client={client_size}, outer={outer_size}"
+        )
+
+    if client_image.size != client_size:
+        raise AssertionError(
+            f"Client screenshot size mismatch: {client_image.size} != {client_size}"
+        )
+
     path = SCREENSHOTS / f"{name}.png"
-    image.save(path)
+    client_image.save(path)
     return path
 
 
