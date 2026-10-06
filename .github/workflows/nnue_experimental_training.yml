@@ -1,17 +1,13 @@
-name: RedWar NNUE Nightly Training
+name: RedWar NNUE Experimental Training
 
 on:
-  # Deliberately NOT triggered by push/pull_request: a series of commits must
-  # never create a series of overlapping two-hour training jobs.
-  schedule:
-    - cron: '0 5 * * *'
+  # Training is deliberately manual: a commit must never create an unattended
+  # two-hour training job. Start it from a governed Issue with frozen inputs.
   workflow_dispatch:
 
 concurrency:
-  # One training job may run at a time. If several newer runs are queued while
-  # one is running, GitHub keeps at most one pending run for this group; the
-  # newest pending run supersedes older pending runs. The active run is never
-  # cancelled, so a two-hour training session is not wasted by a new commit.
+  # One training job may run at a time. Manual reruns remain serialized so a
+  # two-hour training session is not wasted by a second experiment.
   group: redwar-nnue-nightly-training
   cancel-in-progress: false
 

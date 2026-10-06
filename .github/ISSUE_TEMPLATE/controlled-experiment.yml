@@ -1,0 +1,48 @@
+name: Controlled experiment
+description: Definir uma experiência cara ou sensível a evidência antes de a executar.
+title: "[EXP] "
+body:
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Goal / Hypothesis
+      description: Pergunta que a experiência deve responder e hipótese testável.
+    validations:
+      required: true
+  - type: input
+    id: governing_issue
+    attributes:
+      label: Governing Issue
+      description: Issue aberta que governa a experiência.
+      placeholder: "#000"
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Decisões e gates que devem estar estabilizados antes da execução.
+    validations:
+      required: true
+  - type: textarea
+    id: frozen_inputs
+    attributes:
+      label: Frozen inputs
+      description: Refs/SHAs, ruleset, seeds, população, baseline/challenger, orçamento e configuração.
+    validations:
+      required: true
+  - type: input
+    id: workflow
+    attributes:
+      label: Workflow / Evidence destination
+      description: Workflow a executar e localização esperada dos artefactos.
+      placeholder: ".github/workflows/arena_experiments.yml → data/arena/..."
+    validations:
+      required: true
+  - type: textarea
+    id: decision_rule
+    attributes:
+      label: Acceptance / decision rule
+      description: Regra pré-declarada para aceitar, rejeitar ou repetir a experiência.
+    validations:
+      required: true

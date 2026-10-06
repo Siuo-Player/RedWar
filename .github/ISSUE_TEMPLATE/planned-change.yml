@@ -1,0 +1,47 @@
+name: Planned change
+description: Propor uma alteração de produto, arquitetura ou tooling já enquadrada no roadmap.
+title: "[PLAN] "
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: Problema e resultado pretendido.
+    validations:
+      required: true
+  - type: input
+    id: governing_issue
+    attributes:
+      label: Governing Issue
+      description: Issue canónica que governa a alteração.
+      placeholder: "#000"
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: Gates, decisões, branches, contratos ou ficheiros que são pré-requisitos.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Proposed scope
+      description: O que muda e o que explicitamente não muda.
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow / Evidence
+      description: CI, testes, benchmarks ou artefactos que provarão a alteração.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance
+      description: Critérios objetivos de aceitação e condição de rejeição.
+    validations:
+      required: true

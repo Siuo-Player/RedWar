@@ -177,14 +177,14 @@ Esta separação permite que o produto local avance sem transformar cada optimiz
 
 ## Workflows isolados
 
-Cada workflow deve medir uma responsabilidade principal e falhar por motivos que pertençam a essa responsabilidade:
+Cada workflow deve medir uma responsabilidade principal e falhar por motivos que pertençam a essa responsabilidade. Para routing, consultar [`.github/workflows/README.md`](../.github/workflows/README.md):
 
 - `test_suite.yml`: correção funcional e regressões gerais;
 - `ai_quality_gate.yml`: única autoridade strength-sensitive para PRs;
 - `codeql.yml`: análise de segurança;
 - `arena_diagnostics.yml`: diagnósticos observacionais da Arena, sem decisão de promoção;
 - `arena_experiments.yml`: experiências Arena manuais, datasets e holdout, sempre não-authoritativos;
-- `nnue_nightly.yml`: teacher data, treino NNUE e publicação de modelos experimentais;
+- `nnue_experimental_training.yml`: teacher data, treino NNUE e publicação de modelos experimentais;
 - `auto_balancer.yml`: regressões numéricas, trainer/pricer e telemetria;
 - `strength_calibration.yml`: protocolo A/A temporário de calibração, sem autoridade de promoção.
 

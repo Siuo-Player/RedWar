@@ -1,8 +1,7 @@
-name: RedWar Auto-Balancer & ELO Calibration
+name: RedWar Auto-Balancer & ELO Calibration (Manual Diagnostic)
 
 on:
-  schedule:
-    - cron: '0 7 * * *'
+  # Diagnostic only. Expensive balance tooling is never started unattended.
   workflow_dispatch:
 
 concurrency:

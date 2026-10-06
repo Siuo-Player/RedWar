@@ -57,17 +57,19 @@ DIAGNOSTICS
 EXPERIMENTS
 └── arena_experiments.yml
 
-NIGHTLY
-├── nnue_nightly.yml
-└── auto_balancer.yml
-
-TEMPORARY RESEARCH
+MANUAL RESEARCH
+├── nnue_experimental_training.yml
+├── auto_balancer.yml
 └── strength_calibration.yml
 ```
 
 `ai_quality_gate.yml` é a **única autoridade de promoção strength-sensitive em PRs**. O GitHub Ruleset `Protect main` permanece a autoridade estrutural sobre a proteção de `main`.
 
 `arena_diagnostics.yml` é observacional e não decide promoção. `arena_experiments.yml` é manual e não-authoritativo; serve para investigação, datasets, holdout e experiências controladas. `strength_calibration.yml` permanece separado enquanto o protocolo de calibração ainda não tiver closeout metodológico.
+
+## Routing and trigger policy
+
+The detailed goal-to-workflow routing matrix lives in [`.github/workflows/README.md`](../.github/workflows/README.md). Expensive research surfaces are manually invoked and must be governed by an open Issue with frozen inputs, an evidence destination and a predeclared acceptance rule. The legacy Auto-Balancer and NNUE training workflows no longer run on schedules. CodeQL retains its weekly schedule because it is security scanning rather than an experiment.
 
 ## Arena experimental
 

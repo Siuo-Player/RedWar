@@ -39,7 +39,7 @@ The 1.0-Lite path is not an alternative definition of competitive Ares. It estab
 - **#370 Foundation — CLOSED.** Contratos base e fronteira de execução fechados para o ruleset atual.
 - **#371 Gameplay — CLOSED.** Ruleset 1.0 jogável fechado para o escopo declarado.
 - **#372 Ares — OPEN.** Competitive/open-project AI track. It is no longer required to block a first local 1.0-Lite release.
-- **#526 1.0-Lite — CLOSED.** Product split and Ares Balance Baseline are closed; remaining local release acceptance is tracked by #555.
+- **#526 1.0-Lite — CLOSED.** Product split and Ares Balance Baseline are closed; remaining local release acceptance was tracked by #555, now CLOSED after unattended Windows OS-level E2E validation merged in PR #587.
 - **#373 Product — OPEN/BLOCKED for 1.0 Full by #372.** Stable local work may proceed through #526 when contracts are independent of the competitive Ares gate.
 - **#374 Online — BLOCKED for the Full product sequence by #372/#373.**
 - **#375 Release — BLOCKED for the Full product sequence by #372/#373/#374.**
@@ -140,7 +140,7 @@ Current implementation path:
 #555 final product acceptance
 ```
 
-#557 and #558 are merged into `main` at `2c6c9e9` and `e78b6fa`, respectively. PR #561 passed the normal Test Suite, AI Quality Gate and CodeQL. Closing #555 additionally requires the final local smoke-test and validation record; this acceptance gate does not close #372.
+#557 and #558 are merged into `main` at `2c6c9e9` and `e78b6fa`, respectively. PR #561 passed the normal Test Suite, AI Quality Gate and CodeQL. **#555 is now CLOSED**: PR #587 added unattended real Windows OS-level E2E acceptance and the merged `main` baseline passed the corresponding Windows acceptance and CodeQL validation. This acceptance gate does not close #372.
 
 ## Not required for 1.0-Lite
 
