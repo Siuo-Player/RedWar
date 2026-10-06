@@ -85,12 +85,21 @@ class JogoController:
         # Estado da revisão/replay.
         self._analysis_generation = 0
         self._analysis_cache = {}
+        self._analysis_cache_lock = threading.Lock()
         self._analysis_nodes = 250000
         self._analysis_context = "main"
         self._analysis_branch_base_index = 0
         self._analysis_branch_index = 0
         self._analysis_branch_states = []
         self._analysis_branch_actions = []
+
+        # Worker único e reutilizável da análise. A navegação apenas substitui
+        # o pedido pendente; uma busca C++ já iniciada termina sem publicar
+        # resultado obsoleto, mas nunca há uma segunda busca concorrente.
+        self._analysis_worker_condition = threading.Condition()
+        self._analysis_worker_pending = None
+        self._analysis_worker_thread = None
+        self._analysis_worker_stop = False
 
         # Enciclopédia
         self.info_hero_index = 0
@@ -179,8 +188,8 @@ class JogoController:
         self.casa_selecionada = None
         self.hover_pos = None
         self._terminal_sound_played = False
+        self._shutdown_replay_analysis_worker()
         self._analysis_generation = getattr(self, "_analysis_generation", 0) + 1
-        self.thread_analise = None
         self.replay_error = None
         self.ia_lab_pausado = False
         self.ia_lab_status = "A preparar a primeira jogada..."
@@ -373,10 +382,45 @@ class JogoController:
         tam_casa = min(w // (COLUNAS + 1), max(8, (h - off_y_tab - 120) // LINHAS))
         return off_y_tab, off_x, tam_casa
 
+    def _clear_analysis_cache(self):
+        lock = getattr(self, "_analysis_cache_lock", None)
+        if lock is None:
+            lock = threading.Lock()
+            self._analysis_cache_lock = lock
+        with lock:
+            getattr(self, "_analysis_cache", {}).clear()
+
+    def _shutdown_replay_analysis_worker(self, join_timeout=1.0):
+        condition = getattr(self, "_analysis_worker_condition", None)
+        worker = getattr(self, "_analysis_worker_thread", None)
+        if condition is None:
+            self.thread_analise = None
+            return
+
+        with condition:
+            self._analysis_worker_stop = True
+            self._analysis_worker_pending = None
+            condition.notify_all()
+
+        if (
+            worker is not None
+            and worker.is_alive()
+            and threading.current_thread() is not worker
+        ):
+            worker.join(timeout=join_timeout)
+
+        if worker is None or not worker.is_alive():
+            self._analysis_worker_thread = None
+            self.thread_analise = None
+
     def _invalidate_replay_analysis(self):
         self._analysis_generation = getattr(self, "_analysis_generation", 0) + 1
-        self._analysis_cache = {}
-        self.thread_analise = None
+        condition = getattr(self, "_analysis_worker_condition", None)
+        if condition is not None:
+            with condition:
+                self._analysis_worker_pending = None
+                condition.notify_all()
+        self._clear_analysis_cache()
 
     def _mainline_state_at(self, index):
         total = len(self.gs.move_log)
@@ -447,6 +491,13 @@ class JogoController:
         match = re.search(r"nodes=(\d+)", info or "")
         return int(match.group(1)) if match else None
 
+    def _analysis_expected_for_item(self, path, index):
+        if path == "main" and index < len(self.gs.move_log):
+            return self.gs.move_log[index]["acao_escolhida"]
+        if path == "branch" and index < len(self._analysis_branch_actions):
+            return self._analysis_branch_actions[index]
+        return None
+
     def _open_analysis_timeline(self):
         self._invalidate_replay_analysis()
         self.fase_atual = "ANALISE"
@@ -459,7 +510,6 @@ class JogoController:
         self.display_gs = self._mainline_state_at(0)
         self.analise_resultados_top5 = []
         self.analise_depth_atual = 0
-        self._analysis_cache = {}
         self._start_analysis_worker()
 
     def _current_analysis_state(self):
@@ -482,63 +532,140 @@ class JogoController:
         order = [current] + [i for i in range(total + 1) if i != current]
         return [("main", index, self._mainline_state_at(index)) for index in order]
 
-    def _start_analysis_worker(self):
-        self._analysis_generation = getattr(self, "_analysis_generation", 0) + 1
-        generation = self._analysis_generation
-        items = self._analysis_work_items()
+    def _analysis_worker_loop(self):
+        condition = self._analysis_worker_condition
+        bot = None
+        bot_nodes = None
 
-        def worker():
-            bot = None
-            try:
-                nodes = max(1, int(getattr(self, "_analysis_nodes", 250000)))
-                bot = CppEngineBot(nodes=nodes)
-                for path, index, state in items:
-                    if generation != self._analysis_generation:
+        try:
+            while True:
+                with condition:
+                    while (
+                        self._analysis_worker_pending is None
+                        and not self._analysis_worker_stop
+                    ):
+                        condition.wait()
+
+                    if self._analysis_worker_stop:
                         return
-                    if (path, index) in self._analysis_cache:
-                        continue
+
+                    generation, items = self._analysis_worker_pending
+                    self._analysis_worker_pending = None
+
+                node_budget = max(1, int(getattr(self, "_analysis_nodes", 250000)))
+
+                for path, index, state, expected in items:
+                    if generation != self._analysis_generation:
+                        break
+
+                    key = (path, index)
+                    with self._analysis_cache_lock:
+                        if key in self._analysis_cache:
+                            continue
+
+                    if bot is None or bot_nodes != node_budget:
+                        if bot is not None:
+                            try:
+                                bot.bridge.close()
+                            except Exception:
+                                pass
+                        bot = CppEngineBot(nodes=node_budget)
+                        bot_nodes = node_budget
 
                     started = time.perf_counter()
                     error = None
                     best_move = None
+
                     try:
                         best_move = bot.escolher_jogada(state)
                     except Exception as exc:
                         error = str(exc)
+                        try:
+                            bot.bridge.close()
+                        except Exception:
+                            pass
+                        bot = None
+                        bot_nodes = None
+
                     elapsed_ms = (time.perf_counter() - started) * 1000.0
-                    info = bot.last_engine_info or ""
+                    info = getattr(bot, "last_engine_info", None) if bot is not None else None
                     result = {
                         "best_move": best_move,
-                        "nodes": self._analysis_nodes_from_info(info),
+                        "nodes": self._analysis_nodes_from_info(info or ""),
                         "elapsed_ms": elapsed_ms,
                         "error": error,
-                        "expected": (
-                            self.gs.move_log[index]["acao_escolhida"]
-                            if path == "main" and index < len(self.gs.move_log)
-                            else (
-                                self._analysis_branch_actions[index]
-                                if path == "branch" and index < len(self._analysis_branch_actions)
-                                else None
-                            )
-                        ),
+                        "expected": expected,
                     }
+
                     if generation != self._analysis_generation:
-                        return
-                    self._analysis_cache[(path, index)] = result
+                        break
+
+                    with self._analysis_cache_lock:
+                        if generation != self._analysis_generation:
+                            break
+                        self._analysis_cache[key] = result
+
                     current_path, current_index = self._analysis_current_key()
-                    if (path, index) == (current_path, current_index):
+                    if key == (current_path, current_index):
                         self.analise_resultados_top5 = []
                         self.analise_depth_atual = 0
-            finally:
-                if bot is not None:
-                    try:
-                        bot.bridge.close()
-                    except Exception:
-                        pass
+        finally:
+            if bot is not None:
+                try:
+                    bot.bridge.close()
+                except Exception:
+                    pass
 
-        self.thread_analise = threading.Thread(target=worker)
-        self.thread_analise.daemon = True
-        self.thread_analise.start()
+            with condition:
+                if getattr(self, "_analysis_worker_thread", None) is threading.current_thread():
+                    self._analysis_worker_thread = None
+                    self.thread_analise = None
+
+    def _start_analysis_worker(self):
+        self._analysis_generation = getattr(self, "_analysis_generation", 0) + 1
+        generation = self._analysis_generation
+
+        raw_items = self._analysis_work_items()
+        items = [
+            (
+                path,
+                index,
+                state,
+                self._analysis_expected_for_item(path, index),
+            )
+            for path, index, state in raw_items
+        ]
+
+        condition = getattr(self, "_analysis_worker_condition", None)
+        if condition is None:
+            condition = threading.Condition()
+            self._analysis_worker_condition = condition
+        if not hasattr(self, "_analysis_cache_lock"):
+            self._analysis_cache_lock = threading.Lock()
+
+        start_thread = False
+        with condition:
+            self._analysis_worker_stop = False
+            self._analysis_worker_pending = (generation, items)
+
+            worker = getattr(self, "_analysis_worker_thread", None)
+            alive = bool(
+                worker is not None
+                and getattr(worker, "is_alive", lambda: False)()
+            )
+            if not alive:
+                worker = threading.Thread(
+                    target=self._analysis_worker_loop,
+                    daemon=True,
+                )
+                self._analysis_worker_thread = worker
+                start_thread = True
+
+            self.thread_analise = worker
+            condition.notify_all()
+
+        if start_thread:
+            worker.start()
 
     def _analysis_step(self, delta):
         if self._analysis_context == "branch":
@@ -658,10 +785,11 @@ class JogoController:
             self._analysis_branch_actions = self._analysis_branch_actions[:self._analysis_branch_index]
             self._analysis_branch_states = self._analysis_branch_states[:self._analysis_branch_index + 1]
 
-        self._analysis_cache = {
-            key: value for key, value in self._analysis_cache.items()
-            if key[0] != "branch"
-        }
+        with self._analysis_cache_lock:
+            self._analysis_cache = {
+                key: value for key, value in self._analysis_cache.items()
+                if key[0] != "branch"
+            }
 
         self.replay_error = None
         self.display_gs = candidate_state
@@ -700,6 +828,7 @@ class JogoController:
 
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
+                    self._shutdown_replay_analysis_worker()
                     pygame.quit()
                     return
                 elif evento.type == pygame.VIDEORESIZE:
@@ -947,7 +1076,7 @@ class JogoController:
                 self.pontos_jogador = ORCAMENTO_BRANCAS
                 self.bot_ativo = None
                 self.thread_ia = None
-                self.thread_analise = None
+                self._shutdown_replay_analysis_worker()
             else:
                 if self.hover_pos and self.display_gs:
                     r, c = self.hover_pos

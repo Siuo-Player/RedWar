@@ -244,13 +244,6 @@ def test_replay_analysis_worker_covers_every_mainline_position(monkeypatch):
             self.seen.append(state.get_state_hash())
             return None
 
-    class ImmediateThread:
-        def __init__(self, target):
-            self.target = target
-
-        def start(self):
-            self.target()
-
     fake_bots = []
 
     def make_bot(nodes):
@@ -259,14 +252,24 @@ def test_replay_analysis_worker_covers_every_mainline_position(monkeypatch):
         return bot
 
     monkeypatch.setattr(main, "CppEngineBot", make_bot)
-    monkeypatch.setattr(main.threading, "Thread", ImmediateThread)
 
     controller._open_analysis_timeline()
 
-    assert controller._analysis_cache.keys() == {
-        ("main", 0),
-        ("main", 1),
-        ("main", 2),
-    }
+    deadline = main.time.monotonic() + 3.0
+    while main.time.monotonic() < deadline:
+        with controller._analysis_cache_lock:
+            keys = set(controller._analysis_cache)
+        if keys == {("main", 0), ("main", 1), ("main", 2)}:
+            break
+        main.time.sleep(0.02)
+
+    with controller._analysis_cache_lock:
+        assert set(controller._analysis_cache) == {
+            ("main", 0),
+            ("main", 1),
+            ("main", 2),
+        }
     assert len(fake_bots) == 1
     assert len(fake_bots[0].seen) == 3
+
+    controller._shutdown_replay_analysis_worker(join_timeout=3.0)
