@@ -68,6 +68,11 @@ jobs:
           venv\Scripts\python.exe setup.py build_ext --inplace
           venv\Scripts\python.exe -c "import ai.evaluator; print(ai.evaluator.__file__)"
 
+      - name: Build and verify C++ engine
+        run: |
+          venv\Scripts\python.exe tools\scripts\build_cpp_engine.py
+          if (-not (Test-Path "ai\cpp_engine\engine.exe")) { throw "C++ engine executable was not produced" }
+
       - name: Run real Windows display acceptance
         run: venv\Scripts\python.exe -m pytest tests/test_lite_windows_display_acceptance.py -q
 
