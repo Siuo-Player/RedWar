@@ -60,6 +60,9 @@ jobs:
       - name: Run real Windows launcher smoke
         run: python tools/acceptance/windows_launcher_smoke.py
 
+      - name: Install test runner
+        run: venv\Scripts\python.exe -m pip install pytest
+
       - name: Run real Windows display acceptance
         run: venv\Scripts\python.exe -m pytest tests/test_lite_windows_display_acceptance.py -q
 
