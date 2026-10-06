@@ -250,28 +250,6 @@ def wait_for_visual_change(
     raise TimeoutError(f"Timed out waiting for visible change after {description}")
 
 
-def wait_for_visual_stability(
-    hwnd: int,
-    timeout: float = 4.0,
-    settle_seconds: float = 0.25,
-    description: str = "UI",
-) -> None:
-    deadline = time.monotonic() + timeout
-    last_sha = None
-    stable_since = None
-
-    while time.monotonic() < deadline:
-        current_sha = captured_sha(hwnd)
-        if current_sha != last_sha:
-            last_sha = current_sha
-            stable_since = time.monotonic()
-        elif stable_since is not None and time.monotonic() - stable_since >= settle_seconds:
-            return
-        time.sleep(0.08)
-
-    raise TimeoutError(f"Timed out waiting for {description} to settle")
-
-
 def click_client(
     hwnd: int,
     x: float,
@@ -293,7 +271,6 @@ def click_client(
 
     if wait_change:
         wait_for_visual_change(hwnd, before_sha, 3.0, description)
-        wait_for_visual_stability(hwnd, description=f"{description} visual state")
     else:
         time.sleep(0.30)
 
@@ -330,7 +307,6 @@ def drag_client(
         time.sleep(0.035)
     send_mouse_event(MOUSEEVENTF_LEFTUP)
     wait_for_visual_change(hwnd, before_sha, 3.0, description)
-    wait_for_visual_stability(hwnd, description=f"{description} visual state")
 
 
 def screenshot(hwnd: int, name: str) -> tuple[Path, tuple[int, int]]:
