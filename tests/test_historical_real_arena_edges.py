@@ -57,8 +57,8 @@ def test_historical_real_arena_ledger_is_fail_closed():
     assert edge["draws"] == 0
     assert edge["invalid_games"] == 0
     assert edge["node_budget"] == 10_000
-    assert edge["workflow_run_id"] == 35027785973
-    assert edge["artifact_id"] == 10420239661
+    assert edge["source_workflow_run_id"] == 35027785973
+    assert edge["source_artifact_id"] == 10420239661
 
     assert edge["promotion_decision"] == "reject"
     assert edge["promotion_authority_used"] is True
