@@ -50,6 +50,9 @@ jobs:
       - name: Run Python test suite
         run: python -m pytest tests/
 
+      - name: Install build tooling for evaluator
+        run: python -m pip install setuptools
+
       - name: Build evaluator for real desktop GUI tests
         run: python setup.py build_ext --inplace
 
@@ -98,9 +101,6 @@ jobs:
           python tools/lite_desktop_visual_audit.py artifacts/ui-scenes
 
       - name: Capture and audit real audio output
-        env:
-          SDL_VIDEODRIVER: x11
-          SDL_AUDIODRIVER: pulse
         run: |
           monitor="$(pactl list short sources | awk '$2 ~ /\.monitor$/ {print $2; exit}')"
           test -n "$monitor"
