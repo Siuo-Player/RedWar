@@ -55,7 +55,7 @@ cpdef int obter_bonus_posicional(object piece, int r, int c):
 @cython.wraparound(False)
 cpdef int avaliador_mestre(object gs):
     cdef int score = 0
-    cdef int r, c, valor_base
+    cdef int r, c, valor_base, bonus_posicional
     cdef long long safe_cost
     cdef object p
 
@@ -74,13 +74,16 @@ cpdef int avaliador_mestre(object gs):
                     lifespan = max(0, min(MAX_SAFE_LIFESPAN, int(p.lifespan)))
                     valor_base = <int>((safe_cost * lifespan) // 5)
                     valor_base = max(0, min(MAX_SAFE_COST, valor_base))
-                valor_base += obter_bonus_posicional(p, r, c)
+                bonus_posicional = obter_bonus_posicional(p, r, c)
                 if p.stun_timer > 0:
-                    # Keep Python analysis aligned with the canonical classical C++ evaluator.
+                    # Keep Python analysis aligned with the canonical classical C++ evaluator:
+                    # base value and positional bonus are scaled independently before the threat term.
                     valor_base = int(valor_base * 0.4)
+                    bonus_posicional = int(bonus_posicional * 0.4)
                     threat = min(MAX_SAFE_COST, int(safe_cost * 0.5))
                     if p.team == 'brancas': score -= threat
                     else: score += threat
+                valor_base += bonus_posicional
                 if p.team == 'brancas': score += valor_base
                 else: score -= valor_base
                 score = max(-9999999, min(9999999, score))
