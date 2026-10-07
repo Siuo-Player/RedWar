@@ -94,3 +94,27 @@ def test_analysis_ties_are_deterministic(monkeypatch):
     _, first = next(search.analisar_posicao_continuamente(state, max_depth=1))
     _, second = next(search.analisar_posicao_continuamente(state, max_depth=1))
     assert first == second
+
+
+def test_analysis_max_depth_does_not_repeat_one_ply_evaluation(monkeypatch):
+    calls = 0
+
+    def counting_evaluator(_state):
+        nonlocal calls
+        calls += 1
+        return 0
+
+    search = _load_analysis_module(monkeypatch)
+    monkeypatch.setattr(search, "avaliador_mestre", counting_evaluator)
+
+    state = GameState()
+    state.board[4][4] = Bone("brancas")
+    state.board[6][6] = Bone("pretas")
+
+    expected_actions = len(legal_actions(state))
+    results = list(search.analisar_posicao_continuamente(state, max_depth=4))
+
+    assert len(results) == 4
+    assert [depth for depth, _ in results] == [1, 2, 3, 4]
+    assert calls == expected_actions
+    assert results[0][1] == results[1][1] == results[2][1] == results[3][1]

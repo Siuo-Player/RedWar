@@ -21,27 +21,33 @@ def _action_sort_key(action):
 
 
 def analisar_posicao_continuamente(gs, max_depth=6):
-    """Evaluate the complete legal action space at each analysis iteration.
+    """Evaluate the legal action space once and expose compatible depth iterations.
 
-    ``max_depth`` is retained for UI/API compatibility. This routine is still a
-    one-ply evaluator; the previous implementation incorrectly called this
-    iterative deepening while also injecting random tie-breaking noise.
+    ``max_depth`` is retained for UI/API compatibility. This routine remains a
+    one-ply evaluator, so increasing ``max_depth`` must not repeat the same
+    evaluation work. Each requested iteration yields the same deterministically
+    ordered top-five analysis for the current position.
     """
     acoes = get_all_moves_for_analysis(gs)
     if not acoes:
         yield 0, []
         return
 
+    if max_depth < 1:
+        return
+
     for action in acoes:
         action["score"] = 0
 
-    for depth in range(1, max_depth + 1):
-        for action in acoes:
-            gs_clone = gs.fast_clone()
-            gs_clone.execute_action(action)
-            action["score"] = -avaliador_mestre(gs_clone)
+    for action in acoes:
+        gs_clone = gs.fast_clone()
+        gs_clone.execute_action(action)
+        action["score"] = -avaliador_mestre(gs_clone)
 
-        acoes.sort(
-            key=lambda action: (-action["score"], _action_sort_key(action))
-        )
-        yield depth, acoes[:5]
+    acoes.sort(
+        key=lambda action: (-action["score"], _action_sort_key(action))
+    )
+    top_actions = acoes[:5]
+
+    for depth in range(1, max_depth + 1):
+        yield depth, top_actions
