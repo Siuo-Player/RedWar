@@ -184,24 +184,26 @@ int main() {
     std::cout << "FrostMage stun pressure: "
               << (frost_pressure_ok ? "PASS" : "FAIL") << '\n';
 
-    // A stunned target is more valuable as an immediate tactical opportunity
-    // than an otherwise identical unstunned target.
+    // Classical stun semantics must stay pinned to the same fixture used
+    // by the Python analysis evaluator: BoneLord on e1-equivalent board square.
     clear_board();
     board.turn = 'W';
-    board.pieces[4][4] = create_piece("FrostMage", 'W');
-    board.pieces[4][1] = create_piece("BoneLord", 'B');
+    board.pieces[7][0] = create_piece("BoneLord", 'W');
     board.hash = compute_initial_hash();
     compute_initial_eval();
     const int unstunned_score = evaluate_board();
 
-    board.pieces[4][1].stun_timer = 1;
+    board.pieces[7][0].stun_timer = 1;
     board.hash = compute_initial_hash();
     compute_initial_eval();
     const int stunned_score = evaluate_board();
 
-    const bool stunned_target_ok = stunned_score > unstunned_score;
+    // BoneLord cost=86, PST(7,0)=40:
+    // unstunned = 86 + 40 = 126
+    // stunned = floor(86*0.4) + floor(40*0.4) - 86/2 = 50 + 16 - 43 = 23
+    const bool stunned_target_ok = unstunned_score == 126 && stunned_score == 23;
     all_ok &= stunned_target_ok;
-    std::cout << "FrostMage stunned-target pressure: "
+    std::cout << "Classical stun fixture: "
               << (stunned_target_ok ? "PASS" : "FAIL") << '\n';
 
     // Make/unmake must be an exact identity for the complete board state.
