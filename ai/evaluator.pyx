@@ -76,7 +76,8 @@ cpdef int avaliador_mestre(object gs):
                     valor_base = max(0, min(MAX_SAFE_COST, valor_base))
                 valor_base += obter_bonus_posicional(p, r, c)
                 if p.stun_timer > 0:
-                    valor_base = int(valor_base * 0.2)
+                    # Keep Python analysis aligned with the canonical classical C++ evaluator.
+                    valor_base = int(valor_base * 0.4)
                     threat = min(MAX_SAFE_COST, int(safe_cost * 0.5))
                     if p.team == 'brancas': score -= threat
                     else: score += threat
