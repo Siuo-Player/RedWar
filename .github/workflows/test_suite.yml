@@ -44,6 +44,9 @@ jobs:
           python tools/scripts/build_cpp_engine.py --terminal-test
           python tools/scripts/build_cpp_engine.py --reversibility-test
 
+      - name: Build Cython evaluator
+        run: python setup.py build_ext --inplace
+
       - name: Run native reversibility contract
         run: ./cpp_reversibility_test
 
