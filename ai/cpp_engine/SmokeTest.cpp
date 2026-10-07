@@ -185,18 +185,18 @@ int main() {
               << (frost_pressure_ok ? "PASS" : "FAIL") << '\n';
 
     // Classical stun semantics must stay pinned to the same fixture used
-    // by the Python analysis evaluator: BoneLord on e1-equivalent board square.
+    // by the Python analysis evaluator: BoneLord at board[7][0].
     clear_board();
     board.turn = 'W';
     board.pieces[7][0] = create_piece("BoneLord", 'W');
     board.hash = compute_initial_hash();
     compute_initial_eval();
-    const int unstunned_score = evaluate_board();
+    const int unstunned_score = evaluate_classical_board();
 
     board.pieces[7][0].stun_timer = 1;
     board.hash = compute_initial_hash();
     compute_initial_eval();
-    const int stunned_score = evaluate_board();
+    const int stunned_score = evaluate_classical_board();
 
     // BoneLord cost=86, PST(7,0)=40:
     // unstunned = 86 + 40 = 126
