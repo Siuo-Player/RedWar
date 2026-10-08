@@ -50,5 +50,10 @@ jobs:
       - name: Run native reversibility contract
         run: ./cpp_reversibility_test
 
+      - name: Build and run C++ smoke test
+        run: |
+          python tools/scripts/build_cpp_engine.py --smoke
+          ./ai/cpp_engine/SmokeTest
+
       - name: Run Python test suite
         run: python -m pytest tests/
