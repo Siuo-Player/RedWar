@@ -32,7 +32,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
+          python -m pip install --upgrade pip setuptools
           pip install -r requirements.txt
 
       - name: Build C++ differential test helpers
@@ -44,8 +44,16 @@ jobs:
           python tools/scripts/build_cpp_engine.py --terminal-test
           python tools/scripts/build_cpp_engine.py --reversibility-test
 
+      - name: Build Cython evaluator
+        run: python setup.py build_ext --inplace
+
       - name: Run native reversibility contract
         run: ./cpp_reversibility_test
+
+      - name: Build and run C++ smoke test
+        run: |
+          python tools/scripts/build_cpp_engine.py --smoke
+          ./ai/cpp_engine/SmokeTest
 
       - name: Run Python test suite
         run: python -m pytest tests/
