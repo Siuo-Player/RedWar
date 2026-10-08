@@ -200,8 +200,8 @@ int main() {
 
     // BoneLord cost=86, PST(7,0)=40:
     // unstunned = 86 + 40 = 126
-    // stunned = floor(86*0.4) + floor(40*0.4) - 86/2 = 50 + 16 - 43 = 23
-    const bool stunned_target_ok = unstunned_score == 126 && stunned_score == 23;
+    // stunned = floor(86*0.4) + floor(40*0.4) - 86/2 = 34 + 16 - 43 = 7
+    const bool stunned_target_ok = unstunned_score == 126 && stunned_score == 7;
     all_ok &= stunned_target_ok;
     std::cout << "Classical stun fixture: "
               << (stunned_target_ok ? "PASS" : "FAIL") << '\n';
