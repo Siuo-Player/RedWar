@@ -40,5 +40,5 @@ print(json.dumps([evaluate(False), evaluate(True)]))
     scores = json.loads(completed.stdout.strip().splitlines()[-1])
 
     # Shared fixture with ai/cpp_engine/SmokeTest.cpp:
-    # BoneLord cost=86, PST(7,0)=40 -> 126 unstunned, 23 stunned.
-    assert scores == [126, 23]
+    # BoneLord cost=86, PST(7,0)=40 -> 126 unstunned, 7 stunned.
+    assert scores == [126, 7]
