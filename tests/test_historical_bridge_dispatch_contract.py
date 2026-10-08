@@ -11,7 +11,7 @@ def test_historical_bridge_dispatch_is_locked_to_the_predeclared_plan():
     plan = json.loads(PLAN.read_text(encoding="utf-8"))
 
     assert "run/historical-bridge-48dd4df-to-3826b3" in workflow
-    assert "dispatch: predeclared historical bridge v1" in workflow
+    assert "dispatch predeclared historical bridge v1" in workflow
     assert "actions: write" in workflow
     assert "gh workflow run arena_experiments.yml" in workflow
     assert "48dd4df0f6809d072190291bceebb09ddfe52e5f" in workflow
