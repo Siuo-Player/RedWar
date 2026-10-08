@@ -30,6 +30,7 @@ Não usar resultados de workflows diagnósticos ou experimentais como se fossem 
 | `codeql.yml` | Análise de segurança | PR, push-`main`, semanal, manual | Segurança automática | Security evidence | Segurança/código; execução normal também é automática |
 | `arena_diagnostics.yml` | Lifecycle/TT diagnostics da Arena | Manual | Diagnóstico | Não-authoritativo | Issue de diagnóstico com inputs fixos |
 | `arena_experiments.yml` | Experiências A/B, protected holdout e datasets | Manual | Experimento | Não-authoritativo | Issue experimental com hipótese e holdout |
+| `historical_bridge_dispatch.yml` | Dispara exclusivamente o plano predeclarado #488 (100 jogos A/B) através de `arena_experiments.yml` | Push com branch e mensagem de commit exatas | Trigger one-shot com inputs fixos | Não-authoritativo; não altera promoção | Só a Issue #488 e o plano versionado correspondente |
 | `strength_calibration.yml` | Calibração A/A de strength | Manual ou push em branches `calibration/strength/**` | Pesquisa controlada | Não-authoritativo | Protocolo de calibração previamente definido |
 | `lite_baseline_selection.yml` | Seleção do baseline Ares Lite | Manual | Experimento de seleção | Evidência de baseline; não substitui #372 | Issue de baseline com pares/replay checks fixos |
 | `lite_balance_development.yml` | Campanha Balance Lab de desenvolvimento | Manual | Experimento | Desenvolvimento, não holdout/promoção | Issue de balanceamento |
@@ -45,7 +46,7 @@ A execução semanal de CodeQL é deliberadamente mantida: é uma atividade de s
 
 ## O que é manual
 
-Arena, calibração, baseline selection, Balance Lab, NNUE training e Auto-Balancer são acionados manualmente (exceto o trigger de branch explicitamente predeclarado de `strength_calibration.yml`). Esses workflows devem começar com uma Issue aberta que contenha objetivo, dependências, inputs congelados, orçamento, destino da evidência e critério de aceitação.
+Arena, calibração, baseline selection, Balance Lab, NNUE training e Auto-Balancer são normalmente acionados manualmente (exceto o trigger de branch explicitamente predeclarado de `strength_calibration.yml`). `historical_bridge_dispatch.yml` é uma exceção one-shot restrita ao branch `run/historical-bridge-48dd4df-to-3826b3` e à mensagem de commit exata; valida o plano #488 congelado e só então despacha `arena_experiments.yml` com 100 jogos/10.000 nós. O run resultante continua não-autoritativo. Esses workflows devem começar com uma Issue aberta que contenha objetivo, dependências, inputs congelados, orçamento, destino da evidência e critério de aceitação.
 
 ## Autoridade
 
