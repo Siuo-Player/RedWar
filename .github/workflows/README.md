@@ -46,7 +46,7 @@ A execução semanal de CodeQL é deliberadamente mantida: é uma atividade de s
 
 ## O que é manual
 
-Arena, calibração, baseline selection, Balance Lab, NNUE training e Auto-Balancer são normalmente acionados manualmente (exceto o trigger de branch explicitamente predeclarado de `strength_calibration.yml`). `historical_bridge_dispatch.yml` é uma exceção one-shot restrita ao branch `run/historical-bridge-48dd4df-to-3826b3` e à mensagem de commit exata; valida o plano #488 congelado e só então despacha `arena_experiments.yml` com 100 jogos/10.000 nós. O run resultante continua não-autoritativo. Esses workflows devem começar com uma Issue aberta que contenha objetivo, dependências, inputs congelados, orçamento, destino da evidência e critério de aceitação.
+Arena, calibração, baseline selection, Balance Lab, NNUE training e Auto-Balancer são normalmente acionados manualmente (exceto o trigger de branch explicitamente predeclarado de `strength_calibration.yml`). `historical_bridge_dispatch.yml` é uma exceção one-shot restrita ao branch `run/historical-bridge-48dd4df-to-3826b3` e à mensagem de commit exata `dispatch predeclared historical bridge v1`; valida o plano #488 congelado e só então despacha `arena_experiments.yml` com 100 jogos/10.000 nós. O run resultante continua não-autoritativo. Esses workflows devem começar com uma Issue aberta que contenha objetivo, dependências, inputs congelados, orçamento, destino da evidência e critério de aceitação.
 
 ## Autoridade
 
