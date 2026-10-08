@@ -1,0 +1,84 @@
+name: Dispatch predeclared historical bridge
+
+on:
+  push:
+    branches:
+      - run/historical-bridge-48dd4df-to-3826b3
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: redwar-historical-bridge-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    if: github.event.head_commit.message == 'dispatch: predeclared historical bridge v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout pinned plan
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Validate exact predeclared plan
+        shell: bash
+        env:
+          EXPECTED_PLAN_BLOB_SHA: 816e1c11d381c1e2f3a3a5230f693dece3e8a746
+        run: |
+          set -euo pipefail
+          PLAN_PATH='data/arena/strength/plans/2026-10-06-historical-bridge-v1.json'
+          actual_blob_sha="$(git rev-parse "HEAD:${PLAN_PATH}")"
+          test "$actual_blob_sha" = "$EXPECTED_PLAN_BLOB_SHA"
+          python - "$PLAN_PATH" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          plan = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          expected = {
+              'experiment_id': 'historical-bridge-48dd4df-to-3826b3-2026-10-06',
+              'status': 'predeclared_manual_execution',
+              'promotion_authority': False,
+              'baseline_ref': '48dd4df0f6809d072190291bceebb09ddfe52e5f',
+              'challenger_ref': '3826b3bfe5c63102677f4a097163aeda4a03f83d',
+              'rules_version': '48dd4df0f6809d072190291bceebb09ddfe52e5f',
+              'node_budget': 10000,
+              'games': 100,
+              'expected_complete_pairs': 50,
+              'opening_seeds': [101, 211, 307, 401, 503, 601, 709, 809, 907, 1009, 1103, 1201, 1301, 1409, 1501, 1601],
+              'selection_policy': 'paired-fixed-openings',
+              'controller_population': 'Ares-historical-version-to-version',
+              'skill_context': 'fixed-node-budget-10k',
+          }
+          for key, value in expected.items():
+              if plan.get(key) != value:
+                  raise SystemExit(f'Historical bridge plan mismatch for {key}: {plan.get(key)!r} != {value!r}')
+          if plan.get('seed_policy') != 'canonical-opening-book-v1' or plan.get('seed_generation_rule') != 'canonical-opening-book-v1':
+              raise SystemExit('Historical bridge seed policy mismatch')
+          print('Pinned historical bridge plan validated; promotion_authority=false')
+          PY
+
+      - name: Dispatch the existing non-authoritative Arena workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run arena_experiments.yml --repo "$GITHUB_REPOSITORY" --ref main \
+            -f mode=experiment \
+            -f games=100 \
+            -f nodes=10000 \
+            -f baseline_ref=48dd4df0f6809d072190291bceebb09ddfe52e5f \
+            -f challenger_ref=3826b3bfe5c63102677f4a097163aeda4a03f83d \
+            -f opening_seeds=101,211,307,401,503,601,709,809,907,1009,1103,1201,1301,1409,1501,1601 \
+            -f seed_policy=canonical-opening-book-v1 \
+            -f seed_generation_rule=canonical-opening-book-v1 \
+            -f population_id=ares-historical-bridge-v1 \
+            -f selection_policy=paired-fixed-openings \
+            -f controller_population=Ares-historical-version-to-version \
+            -f skill_context=fixed-node-budget-10k
+          echo 'Dispatched the predeclared 100-game experiment. Results remain non-authoritative and cannot promote Ares.'
