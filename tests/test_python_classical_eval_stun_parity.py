@@ -24,6 +24,9 @@ def evaluate(stunned):
     if stunned:
         piece.stun_timer = 1
     state.board[7][0] = piece
+    # Keep both sides alive so the Cython evaluator does not take its
+    # terminal-position fast path. Bone costs 8 and has no positional bonus.
+    state.board[4][4] = criar_peca_por_nome("Bone", "pretas")
     state.turns_without_capture = 0
     return avaliador_mestre(state)
 
@@ -40,5 +43,5 @@ print(json.dumps([evaluate(False), evaluate(True)]))
     scores = json.loads(completed.stdout.strip().splitlines()[-1])
 
     # Shared fixture with ai/cpp_engine/SmokeTest.cpp:
-    # BoneLord cost=86, PST(7,0)=40 -> 126 unstunned, 7 stunned.
-    assert scores == [126, 7]
+    # BoneLord: 126 unstunned / 7 stunned. The opposing Bone contributes -8.
+    assert scores == [118, -1]
