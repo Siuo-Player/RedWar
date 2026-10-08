@@ -1,0 +1,76 @@
+{
+  "schema_version": "redwar-historical-rating-calibration-v1",
+  "status": "descriptive_connected_graph_fit",
+  "promotion_authority": false,
+  "anchor": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+  "source_ledger": "data/arena/strength/historical-real-arena-edges-v1.json",
+  "source_edges": [
+    {
+      "edge_id": "ares-promotion-507-512",
+      "baseline_version": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "challenger_version": "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613",
+      "wins": {
+        "challenger": 265,
+        "baseline": 247,
+        "draws": 0
+      },
+      "games": 512,
+      "source_workflow_run_id": 35027785973
+    },
+    {
+      "edge_id": "ares-historical-bridge-2026-10-08-100",
+      "baseline_version": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "challenger_version": "3826b3bfe5c63102677f4a097163aeda4a03f83d",
+      "wins": {
+        "challenger": 54,
+        "baseline": 46,
+        "draws": 0
+      },
+      "games": 100,
+      "source_workflow_run_id": 37858487666
+    }
+  ],
+  "model": {
+    "implementation": "tools/analytics/historical_rating_calibration.py::fit_global_rating",
+    "family": "regularized Bradley-Terry logistic fit in Elo units",
+    "prior_sigma_elo": 800,
+    "max_iterations": 100,
+    "tolerance": 1e-7,
+    "games_are_aggregated_as_directional_comparisons": true,
+    "draws_supported_by_model": false,
+    "uncertainty_method": "Laplace/Hessian standard-error estimate; not a calibrated confidence interval"
+  },
+  "graph": {
+    "version_nodes": 3,
+    "version_edges": 2,
+    "connected_components": 1,
+    "connected": true
+  },
+  "fit": {
+    "converged": true,
+    "iterations": 4,
+    "ratings": {
+      "48dd4df0f6809d072190291bceebb09ddfe52e5f": {
+        "elo_relative_to_anchor": 0,
+        "standard_error": 0
+      },
+      "3826b3bfe5c63102677f4a097163aeda4a03f83d": {
+        "elo_relative_to_anchor": 63.498030378588524,
+        "standard_error": 79.85136064230343,
+        "approx_1_96_se_half_width": 156.50866685891472
+      },
+      "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613": {
+        "elo_relative_to_anchor": 28.081680969858585,
+        "standard_error": 35.34258306122825,
+        "approx_1_96_se_half_width": 69.27146280000736
+      }
+    }
+  },
+  "limitations": [
+    "Descriptive fit only; it does not change or replace the Ares promotion gate.",
+    "The two source edges were observed under their respective declared Arena lifecycle/process protocols; known TT lifecycle sensitivity means this graph is not lifecycle-neutral evidence.",
+    "The fitted likelihood aggregates win/loss counts per edge and does not model the pair dependence explicitly.",
+    "The new bridge runner's sequential online rating diagnostic (-16.99 ±755.08) is order-sensitive and not used in this global fit; issue #597 tracks the discrepancy.",
+    "The new run's raw 'promoted' flag is produced with win_threshold=0. Its provenance explicitly sets promotion_authority=false and promotion_decision=not_evaluated."
+  ]
+}
