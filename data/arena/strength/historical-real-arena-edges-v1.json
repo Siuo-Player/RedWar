@@ -2,7 +2,7 @@
   "schema_version": "redwar-historical-real-arena-edges-v1",
   "purpose": "Registry of provenance-audited real Arena version comparisons and controls for descriptive historical calibration. It is not promotion authority.",
   "promotion_authority": false,
-  "generated_from_main": "8bc99ccbf2cf1f7e7e22bd83cab4f8fda762d8f5",
+  "generated_from_main": "0eccfa8d0f68af488cce87b6191af26e3b0961a9",
   "edges": [
     {
       "edge_id": "strength-calibration-2026-08-27-control",
@@ -127,6 +127,97 @@
       "interpretation": "valid historical observation under the authoritative promotion instrument; not lifecycle-neutral evidence and not a #372 promotion claim",
       "promotion_authority_used": true,
       "promotion_decision": "reject"
+    },
+    {
+      "edge_id": "historical-bridge-2026-10-08-100",
+      "status": "compatible_real_edge",
+      "comparison_type": "version-to-version A/B (non-authoritative fixed-budget experiment)",
+      "graph_eligible": true,
+      "source_type": "GitHub Actions non-authoritative Arena experiment artifact",
+      "source_workflow_run_id": 37858487666,
+      "source_artifact_id": 11584718698,
+      "source_artifact_digest": "sha256:164b0a332d1a5ad66303ff2053b8386bbbc70de6eedbc880c6d0b7bc0d5a5da8",
+      "raw_sha256": "249a5dc14e551c8cc24406d1ed712f54693b5e00f9d20fd4dc20b26ba53e0bc2",
+      "context_sha256": "cc1c3db889fb4422d71f60475c038ceee77b08fbbb34b67b3dfc511c178a8c55",
+      "challenger_version": "3826b3bfe5c63102677f4a097163aeda4a03f83d",
+      "baseline_version": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "rules_version": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+      "games": 100,
+      "complete_pairs": 50,
+      "challenger_wins": 54,
+      "baseline_wins": 46,
+      "draws": 0,
+      "invalid_games": 0,
+      "node_budget": 10000,
+      "openings": 16,
+      "challenger_white_games": 50,
+      "challenger_black_games": 50,
+      "pair_bins": {
+        "WW": 10,
+        "split": 34,
+        "LL": 6
+      },
+      "opening_seed_set": [
+        101,
+        211,
+        307,
+        401,
+        503,
+        601,
+        709,
+        809,
+        907,
+        1009,
+        1103,
+        1201,
+        1301,
+        1409,
+        1501,
+        1601
+      ],
+      "opening_game_distribution": {
+        "0": 8,
+        "1": 8,
+        "2": 6,
+        "3": 6,
+        "4": 6,
+        "5": 6,
+        "6": 6,
+        "7": 6,
+        "8": 6,
+        "9": 6,
+        "10": 6,
+        "11": 6,
+        "12": 6,
+        "13": 6,
+        "14": 6,
+        "15": 6
+      },
+      "opening_policy": "same_opening_per_pair; predeclared 16-seed set reused across 50 pairs",
+      "colour_policy": "alternating_per_game; each pair inverts challenger colour",
+      "seed_policy": "canonical-opening-book-v1",
+      "seed_generation_rule": "canonical-opening-book-v1",
+      "selection_policy": "paired-fixed-openings",
+      "controller_population": "Ares-historical-version-to-version",
+      "skill_context": "fixed-node-budget-10k",
+      "termination_policy": "game_over_or_10000_plies",
+      "diagnostic_flags": {
+        "colour_imbalance": false,
+        "opening_imbalance": true,
+        "seed_reuse": true
+      },
+      "lifecycle_context": "Independent exact-SHA builds under the predeclared experiment protocol; historical/descriptive only.",
+      "compatibility_audit": {
+        "shared_engine_node": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+        "prior_edge_rules_version": "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613",
+        "this_edge_rules_version": "48dd4df0f6809d072190291bceebb09ddfe52e5f",
+        "rules_semantics_diff_audit": "The source delta 48dd4df..bee74c3 changes ai/cpp_engine/search.cpp plus workflow/docs only; 48dd4df..3826b3 changes ai/cpp_engine/evaluate.cpp plus process-cleanup/replay-metadata changes. No canonical transition/rules implementation changed in these deltas.",
+        "qualification": "rules_version remains each run's exact declared SHA. The edge graph connects engine-version identities; context-specific rating calibration remains descriptive and must not be interpreted as an authoritative or lifecycle-neutral Elo scale."
+      },
+      "promotion_authority_used": false,
+      "promotion_decision": "not_evaluated",
+      "interpretation": "Observed challenger 54-46 over 100 valid games is a descriptive result only. The runner's promoted=true convenience field came from an exploratory zero win-margin threshold and is explicitly overridden by promotion_authority=false. Seed reuse and mildly uneven opening counts were predeclared and are retained as diagnostics, not hidden.",
+      "uncertainty": "The run summary's rating-delta uncertainty proxy is ±755.08 Elo-equivalent points and is not a calibrated confidence interval; paired results were WW=10, split=34, LL=6. No strength-improvement claim follows."
     }
   ],
   "graph_policy": {
@@ -139,18 +230,20 @@
   },
   "current_graph_status": {
     "compatible_nodes": [
+      "3826b3bfe5c63102677f4a097163aeda4a03f83d",
       "48dd4df0f6809d072190291bceebb09ddfe52e5f",
       "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613"
     ],
     "connected_components": 1,
     "components": [
       [
+        "3826b3bfe5c63102677f4a097163aeda4a03f83d",
         "48dd4df0f6809d072190291bceebb09ddfe52e5f",
         "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613"
       ]
     ],
-    "version_edges": 1,
-    "acceptance_met": false,
-    "remaining_gap": "at least one additional provenance-compatible real Arena comparison sharing a version node with the current edge, so the historical graph contains multiple connected Ares versions rather than one isolated A/B edge"
+    "version_edges": 2,
+    "acceptance_met": true,
+    "remaining_gap": "Minimum connected multi-edge historical graph established by two provenance-addressed A/B edges sharing 48dd4df. This closes the structural #488 gap only; the evidence remains descriptive, uses distinct exact rules-version anchors and reused predeclared seeds, and is not a calibrated or promotion-authoritative Ares rating."
   }
 }
