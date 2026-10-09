@@ -87,7 +87,7 @@ def test_historical_real_arena_ledger_is_fail_closed():
     }
     assert bridge["promotion_decision"] == "not_evaluated"
     assert bridge["promotion_authority_used"] is False
-    assert "not a strength claim" in bridge["interpretation"]
+    assert "No strength-improvement claim follows" in bridge["interpretation"]
 
     graph = payload["current_graph_status"]
     components = _components(payload["edges"])
