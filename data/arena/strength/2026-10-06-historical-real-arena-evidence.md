@@ -87,6 +87,34 @@ The next valid evidence is at least one additional provenance-compatible real Ar
 
 Commit lineage is not treated as an Arena comparison edge, and A/A controls are not promoted into version comparisons.
 
+
+## Predeclared historical bridge experiment — completed
+
+The guarded one-shot dispatcher merged in PR #596 launched the frozen #592 plan on canonical `main`.
+
+- Workflow run: `37858487666` (`RedWar Arena Experiments`, `workflow_dispatch`)
+- Run commit: `0eccfa8d0f68af488cce87b6191af26e3b0961a9`
+- Artifact: `11584718698` (`redwar-arena-experiment-0eccfa8d0f68af488cce87b6191af26e3b0961a9`)
+- Artifact digest: `sha256:164b0a332d1a5ad66303ff2053b8386bbbc70de6eedbc880c6d0b7bc0d5a5da8`
+- Raw games JSONL SHA-256: `249a5dc14e551c8cc24406d1ed712f54693b5e00f9d20fd4dc20b26ba53e0bc2`
+- Strength-context JSONL SHA-256: `cc1c3db889fb4422d71f60475c038ceee77b08fbbb34b67b3dfc511c178a8c55`
+- Baseline: `48dd4df0f6809d072190291bceebb09ddfe52e5f`
+- Challenger: `3826b3bfe5c63102677f4a097163aeda4a03f83d`
+- Rules-version anchor: `48dd4df0f6809d072190291bceebb09ddfe52e5f`
+- Fixed budget: 10,000 nodes; 100 games; 50 complete colour-inverted pairs
+- Validity: 100 valid; 0 invalid; 0 draws; every game ended with a declared winner
+- Outcome: 54 challenger wins / 46 baseline wins
+- Paired bins: WW=10, split=34, LL=6
+- Challenger colour: 50 white / 50 black
+
+The opening set was the 16 predeclared seeds. Because 50 pairs are assigned across 16 openings, seeds are reused by design (the first two opening indexes have 8 games each and the rest have 6). The context diagnostic records `seed_reuse=true` and `opening_imbalance=true`, with no colour imbalance. These qualifications remain attached to the edge.
+
+Important: the Arena summary's convenience field `promoted=true` came from this non-authoritative runner using a zero win-margin threshold. The workflow provenance says `promotion_authority=false`; this was **not** an Ares promotion decision. The summary's rating uncertainty proxy is ±755.08 Elo-equivalent points, not a calibrated confidence interval. The 54–46 observation is not evidence that the challenger is stronger.
+
+A source-diff audit supports connecting this edge to the existing 48dd↔bee74 edge as an engine-version graph: 48dd→bee74 changes `search.cpp` plus workflow/docs, while 48dd→3826b changes `evaluate.cpp` plus process-cleanup/replay-metadata only; neither comparison changes canonical transition/rules implementation. The exact `rules_version` fields remain recorded per run rather than rewritten to force equality.
+
+The ledger now contains two provenance-addressed version edges sharing `48dd4df0...`, producing one connected component with three engine-version nodes. This satisfies the minimum structural #488 graph requirement, not a calibrated historical Elo scale and not #372 promotion authority.
+
 ## Authority boundary
 
 This registration does not:
