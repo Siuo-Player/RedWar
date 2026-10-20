@@ -59,3 +59,9 @@ The run's legacy `promoted=true` summary field was caused by `win_threshold=0`; 
 
 ## Follow-up methodology
 Issue [#617](https://github.com/Siuo-Player/RedWar/issues/617) tracks the unresolved calibration problem: the connected graph is descriptive, while opening-population, pair dependence and process-lifecycle differences must be modeled or standardized before publishing a calibrated global rating.
+
+## Persistent scientific dataset
+
+The derived scientific dataset is committed at `data/arena/strength/2026-10-20-historical-bridge-100.json` (canonical SHA-256 `374e49f4a6470dd3e9501cdcf974bc4c15c1ddd0a2cb5ad2915b89f8ffae4154`). It preserves the 100 per-game scientific records and 50 complete paired resampling units, with raw artifact, validation, provenance and summary hashes in the manifest. The reproducible paired audit is stored at `data/arena/strength/2026-10-20-historical-bridge-100.audit.json` using 20,000 bootstrap samples and seed 0.
+
+The paired descriptive estimate is `+27.5774` Elo-equivalent with percentile bounds `[-27.5774, +84.1677]`. The interval includes zero and is **not** a calibrated confidence interval. It must not be conflated with the unpaired aggregate-score transformation (`+27.8544`) or the order-dependent legacy sequential rating (`-16.9931`).
