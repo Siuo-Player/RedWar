@@ -73,3 +73,48 @@ def test_non_authoritative_experiment_does_not_promote_even_with_wins():
     from tools.analytics.arena_tournament import _promotion_decision
 
     assert not _promotion_decision(100, 0, 0, 0, False)
+
+
+
+def test_aggregate_score_elo_equivalent_is_order_invariant():
+    from tools.analytics.arena_tournament import _aggregate_score_elo_equivalent
+
+    first_order = [
+        game("challenger", index=0),
+        game("challenger", index=1),
+        game("baseline", index=2),
+        game("baseline", index=3),
+    ]
+    second_order = [
+        game("challenger", index=0),
+        game("baseline", index=1),
+        game("challenger", index=2),
+        game("baseline", index=3),
+    ]
+
+    assert _aggregate_score_elo_equivalent(first_order) == _aggregate_score_elo_equivalent(second_order)
+    assert _aggregate_score_elo_equivalent(first_order) == 0.0
+
+
+def test_sequential_elo_diagnostic_is_explicitly_order_dependent():
+    first_order = [
+        game("challenger", index=0),
+        game("challenger", index=1),
+        game("baseline", index=2),
+        game("baseline", index=3),
+    ]
+    second_order = [
+        game("challenger", index=0),
+        game("baseline", index=1),
+        game("challenger", index=2),
+        game("baseline", index=3),
+    ]
+
+    assert _strength_from_games(first_order)[2] != _strength_from_games(second_order)[2]
+
+
+def test_aggregate_score_elo_equivalent_is_undefined_for_extreme_or_empty_results():
+    from tools.analytics.arena_tournament import _aggregate_score_elo_equivalent
+
+    assert _aggregate_score_elo_equivalent([]) is None
+    assert _aggregate_score_elo_equivalent([game("challenger", index=0)]) is None
