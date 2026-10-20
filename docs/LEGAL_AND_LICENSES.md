@@ -23,10 +23,10 @@ A auditoria atual identifica pelo menos:
 | Componente | Localização / origem | Licença verificada | Observação |
 | --- | --- | --- | --- |
 | nlohmann/json 3.12.0 | `ai/cpp_engine/nlohmann/json.hpp` | MIT | O próprio ficheiro contém `SPDX-License-Identifier: MIT`. |
-| pygame 2.6.1 | `requirements.txt` / PyPI | LGPL-2.1 | Dependência Python com versão exata fixada. |
-| pytest 9.1.1 | `requirements.txt` / PyPI | MIT | Dependência de testes com versão exata fixada. |
-| websockets 17.1 | `requirements.txt` / PyPI | BSD-3-Clause | Dependência de rede/websocket com versão exata fixada. |
-| Cython >=3.3.0 | `requirements.txt` / PyPI | Apache-2.0 | Ferramenta/dependência de build; só existe um limite inferior, não um lock da versão efetivamente instalada. |
+| pygame `==2.6.1` | `requirements.txt` / PyPI | LGPL-2.1 | Dependência Python com versão exata fixada. |
+| pytest `==9.1.1` | `requirements.txt` / PyPI | MIT | Dependência de testes com versão exata fixada. |
+| websockets `==17.1` | `requirements.txt` / PyPI | BSD-3-Clause | Dependência de rede/websocket com versão exata fixada. |
+| Cython `>=3.3.0` | `requirements.txt` / PyPI | Apache-2.0 | Ferramenta/dependência de build; só existe um limite inferior, não um lock da versão efetivamente instalada. |
 
 Os valores acima refletem os *specifiers* declarados em `requirements.txt`, não um lockfile. Para reproduzir um ambiente, regista também as versões resolvidas pelo instalador.
 
