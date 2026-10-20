@@ -46,3 +46,30 @@ def test_invalid_games_break_pair_completeness_instead_of_becoming_draws():
     assert summary["paired_games_used"] == 0
     assert summary["complete_pairs"] == 0
     assert summary["incomplete_pair_ids"] == ["pair-000000"]
+
+
+
+def test_experiment_mode_cannot_promote_with_zero_threshold():
+    from tools.analytics.arena_tournament import _promotion_decision
+
+    assert not _promotion_decision(
+        wins_challenger=54,
+        wins_baseline=46,
+        invalid_games=0,
+        win_threshold=0,
+        promotion_authority=False,
+    )
+
+
+def test_authoritative_promotion_gate_keeps_existing_margin_semantics():
+    from tools.analytics.arena_tournament import _promotion_decision
+
+    assert _promotion_decision(60, 50, 0, 10, True)
+    assert not _promotion_decision(59, 50, 0, 10, True)
+    assert not _promotion_decision(60, 50, 1, 10, True)
+
+
+def test_non_authoritative_experiment_does_not_promote_even_with_wins():
+    from tools.analytics.arena_tournament import _promotion_decision
+
+    assert not _promotion_decision(100, 0, 0, 0, False)
