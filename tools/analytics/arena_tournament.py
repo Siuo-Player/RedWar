@@ -312,7 +312,39 @@ def _winner_side(winner: object) -> str | None:
     return None
 
 
+def _aggregate_score_elo_equivalent(games: list[dict[str, object]]) -> float | None:
+    """Return the Elo-equivalent of the aggregate score, not a calibrated rating.
+
+    Unlike sequential Elo replay, this descriptive value depends only on the final
+    win/draw/loss counts. It is undefined for no games or a 0%/100% score.
+    """
+    wins = losses = draws = 0
+    for game in games:
+        if not game.get("valid", True):
+            continue
+        outcome = str(game["outcome"])
+        if outcome == "challenger":
+            wins += 1
+        elif outcome == "baseline":
+            losses += 1
+        elif outcome == "draw":
+            draws += 1
+        else:
+            raise ValueError(f"unknown valid Arena outcome: {outcome!r}")
+
+    total = wins + losses + draws
+    if total == 0:
+        return None
+    score = (wins + 0.5 * draws) / total
+    if score <= 0.0 or score >= 1.0:
+        return None
+    from math import log10
+
+    return 400.0 * log10(score / (1.0 - score))
+
+
 def _strength_from_games(games: list[dict[str, object]]) -> tuple[float, float, float, float]:
+    """Replay Elo sequentially; output is order-dependent and diagnostic only."""
     results: list[MatchResult] = []
     for game in games:
         if not game.get("valid", True):
@@ -410,6 +442,7 @@ def start_tournament(
             wins_challenger, wins_baseline, invalid_games, win_threshold, promotion_authority
         )
         rating_challenger, rating_baseline, rating_delta, rating_uncertainty_proxy_half_width = _strength_from_games(games)
+        aggregate_score_elo_equivalent = _aggregate_score_elo_equivalent(games)
         balance = summarize_experiment_balance(games)
         pentanomial = summarize_pentanomial(games)
         summary: dict[str, object] = {
@@ -434,9 +467,13 @@ def start_tournament(
             "win_rate_challenger": win_rate,
             "promoted": promoted,
             "strength_model": "elo_compatible_baseline_v1",
+            "rating_delta_semantics": "sequential_order_dependent_diagnostic",
             "rating_challenger": rating_challenger,
             "rating_baseline": rating_baseline,
             "rating_delta": rating_delta,
+            "rating_delta_sequential_elo_diagnostic": rating_delta,
+            "rating_delta_aggregate_score_elo_equivalent": aggregate_score_elo_equivalent,
+            "rating_delta_aggregate_score_semantics": "descriptive_final_score_only_not_calibrated_strength",
             "rating_delta_uncertainty_proxy_half_width": rating_uncertainty_proxy_half_width,
             "rating_delta_uncertainty_type": "engineering_uncertainty_proxy_v1",
             "balance_audit": balance,
@@ -446,7 +483,13 @@ def start_tournament(
         print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws} | Inválidos {invalid_games}")
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
-        print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (uncertainty proxy ±{rating_uncertainty_proxy_half_width:.1f})")
+        aggregate_label = (
+            f"{aggregate_score_elo_equivalent:+.1f}"
+            if aggregate_score_elo_equivalent is not None
+            else "undefined (extreme or empty score)"
+        )
+        print(f"Sequential Elo diagnostic: Δ {rating_delta:+.1f} (order-dependent; uncertainty proxy ±{rating_uncertainty_proxy_half_width:.1f})")
+        print(f"Aggregate-score Elo equivalent: Δ {aggregate_label} (descriptive only; not a calibrated strength estimate)")
         print(f"Pentanomial: {pentanomial['bins']} | Pares completos: {pentanomial['complete_pairs']}")
         if invalid_games:
             print(f"⚠️ {invalid_games} jogos inválidos; a experiência não pode promover uma revisão com observações inválidas.")
