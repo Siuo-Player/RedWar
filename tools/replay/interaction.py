@@ -187,6 +187,16 @@ def _selected_piece(controller: Any) -> Any:
     return controller.gs.board[r][c]
 
 
+def _selected_piece_silence_reason(gs: Any, piece: Any, position: tuple[int, int] | None) -> str | None:
+    """Explain spell suppression using the engine's authoritative read-only query."""
+    if piece is None or position is None:
+        return None
+    row, col = position
+    if not gs.is_piece_silenced(piece, row, col):
+        return None
+    return "A aura do Inquisitor bloqueia spells. Afasta-te do raio para voltar a usar NEVADA."
+
+
 def _sync_encyclopedia_selection(controller: Any) -> HeroEncyclopediaPanelState:
     piece = _selected_piece(controller)
     hero_name = getattr(piece, "name", None)
@@ -327,6 +337,9 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
         team_label = "Brancas" if piece.team == "brancas" else "Pretas"
         ecra.blit(small.render(team_label, True, SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, selected_rect.y + 72))
         status = []
+        selected_pos = getattr(controller, "casa_selecionada", None)
+        if _selected_piece_silence_reason(controller.gs, piece, selected_pos):
+            status.append("Silenciado: spells bloqueadas")
         if piece.stun_timer > 0:
             status.append(f"Atordoado: {piece.stun_timer}")
         if getattr(piece, "lifespan", None) is not None:
@@ -337,7 +350,7 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
             status.append("Estado: normal")
         y = selected_rect.y + 96
         for line in status[:2]:
-            ecra.blit(small.render(line, True, SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, y))
+            ecra.blit(small.render(line, True, SIDEBAR_THEME.warning if line.startswith("Silenciado:") else SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, y))
             y += 20
         if state.open:
             label = "FECHAR ENCICLOPÉDIA"
@@ -356,11 +369,26 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
     else:
         target = _hover_target(controller)
         _draw_section(ecra, context_rect, "CASA EM HOVER")
+        selected = getattr(controller, "casa_selecionada", None)
+        selected_piece = _selected_piece(controller)
+        silence_reason = _selected_piece_silence_reason(controller.gs, selected_piece, selected)
+        context_y = context_rect.y + 48
+        if silence_reason:
+            context_y = _draw_wrapped_text(
+                ecra,
+                silence_reason,
+                small,
+                SIDEBAR_THEME.warning,
+                context_rect.x + 12,
+                context_y,
+                max(80, context_rect.width - 24),
+                max_lines=2,
+            ) + 4
         if target is None:
-            ecra.blit(body.render("Move o cursor sobre o tabuleiro", True, SIDEBAR_THEME.text_muted), (context_rect.x + 12, context_rect.y + 52))
+            ecra.blit(body.render("Move o cursor sobre o tabuleiro", True, SIDEBAR_THEME.text_muted), (context_rect.x + 12, context_y))
         else:
             r, c = target
-            y = context_rect.y + 48
+            y = context_y
             ecra.blit(body.render(f"Casa: {r + 1},{c + 1}", True, SIDEBAR_THEME.text_primary), (context_rect.x + 12, y))
             y += 24
             target_piece = controller.gs.board[r][c]
