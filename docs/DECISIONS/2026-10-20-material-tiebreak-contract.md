@@ -6,7 +6,7 @@
 
 ## Context
 
-The canonical README and GAME_RULES documents said that only permanent pieces count toward the material tie-break and described the winning colour as an adaptive balancing policy. The current Python terminal resolver summed the cost of every on-board piece. The C++ search used `board.material_score`, which is an evaluation score containing positional bonuses, temporary lifespan scaling and stun adjustments. These paths could disagree on the winner for the same position, despite both preferring Black on exact equality.
+The canonical README and GAME_RULES documents said that only permanent pieces count toward the material tie-break and described the winning colour as an adaptive balancing policy. The current Python terminal resolver summed the cost of every on-board piece. The C++ search used `board.material_score`, which is an evaluation score containing positional bonuses, temporary lifespan scaling and stun adjustments. These paths could disagree on the winner for the same position: Python awarded Black on equal raw costs, while C++ could award White when positional/effect terms made the evaluation score positive despite equal raw material.
 
 Temporary summons such as Bone, Ghoul and StoneWall have non-zero costs. Their removal does not reset the no-capture counter, but they can affect the material score while present.
 
