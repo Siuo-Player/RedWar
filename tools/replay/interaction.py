@@ -350,7 +350,7 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
             status.append("Estado: normal")
         y = selected_rect.y + 96
         for line in status[:2]:
-            ecra.blit(small.render(line, True, SIDEBAR_THEME.warning if line.startswith("Silenciado:") else SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, y))
+            ecra.blit(small.render(line, True, SIDEBAR_THEME.status_warning if line.startswith("Silenciado:") else SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, y))
             y += 20
         if state.open:
             label = "FECHAR ENCICLOPÉDIA"
@@ -378,7 +378,7 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
                 ecra,
                 silence_reason,
                 small,
-                SIDEBAR_THEME.warning,
+                SIDEBAR_THEME.status_warning,
                 context_rect.x + 12,
                 context_y,
                 max(80, context_rect.width - 24),
