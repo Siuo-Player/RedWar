@@ -86,7 +86,7 @@ The Arena summary happened to mark the run as `promoted` because that experiment
 
 ## Additional historical bridge (non-authoritative)
 
-The predeclared 100-game bridge from [run 37858487666](https://github.com/Siuo-Player/RedWar/actions/runs/37858487666) is now recorded in `data/arena/strength/historical-real-arena-edges-v1.json` and documented in [the evidence record](../data/arena/strength/2026-10-20-historical-bridge-100-evidence.md). It connects the existing baseline version `48dd4df` to `3826b3b`, with 100 valid games, 50 complete colour-inverted pairs and no promotion authority.
+The predeclared 100-game bridge from [run 37858487666](https://github.com/Siuo-Player/RedWar/actions/runs/37858487666) is now preserved as the [scientific dataset](../data/arena/strength/2026-10-20-historical-bridge-100.json), [paired audit](../data/arena/strength/2026-10-20-historical-bridge-100.audit.json), and [evidence record](../data/arena/strength/2026-10-20-historical-bridge-100-evidence.md), and is registered in `data/arena/strength/historical-real-arena-edges-v1.json`. It connects baseline version `48dd4df` to `3826b3b`, with 100 valid games, 50 complete colour-inverted pairs and no promotion authority.
 
 This bridge is distinct from the older 100-game A/A control above: the candidate changes the C++ NNUE incremental-evaluation path, while the A/A control changes documentation only. The raw artifact, validation output and pair structure were independently checked before registration.
 
