@@ -150,7 +150,7 @@ O limite atual é de **50 turnos sem captura**. O limite e a repetição de uma 
 
 ## 10. Desempate material
 
-O valor material atual é a soma dos custos configurados de **todas as peças que continuam no tabuleiro**, incluindo invocações temporárias enquanto estiverem presentes. A regra de reinício do contador e a regra de contagem material são distintas: uma peça temporária não reinicia o contador quando morre, mas o seu custo conta para o material enquanto permanece no tabuleiro.
+O valor material do desempate é a soma dos custos configurados das **peças permanentes** que continuam no tabuleiro. Invocações temporárias não contam para esse valor. A regra de reinício do contador e a regra de contagem material são distintas: uma peça temporária não reinicia o contador quando morre, e também não altera o material usado no desempate.
 
 A regra determinística atual é:
 
