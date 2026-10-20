@@ -25,5 +25,5 @@ Align the implementations to the documented permanent-only material rule. This i
 ## Consequences
 
 - Canonical rules documentation must describe the behavior actually implemented in both engine paths.
-- Tests protect temporary-piece exclusion and equal-material outcomes in Python and C++; the C++ equality case includes a stunned hero to prove that evaluation discounts do not alter terminal material.
+- Tests protect temporary-piece exclusion and equal-material outcomes in Python and C++; the C++ smoke suite calls the same terminal-material helper used by search, and its equality case includes a stunned hero to prove that evaluation discounts do not alter terminal material.
 - A future change to material policy or adaptive colour compensation requires a separate balance/rules decision with controlled evidence.
