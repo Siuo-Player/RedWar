@@ -224,7 +224,8 @@
       "population_context": "16 canonical openings are repeated across 50 pairs (8 games each for openings 0 and 1; 6 games each for openings 2-15), unlike the 256 fresh opening pairs in the promotion edge.",
       "interpretation": "Descriptive historical observation only. The candidate's C++ delta is the NNUE incremental-accumulator hot path; the Python GameState delta only adds replay metadata. The outcome is 54-46 (+27.85 aggregate-score Elo-equivalent; legacy sequential rating -16.99 is order-dependent), but neither value is calibrated or promotion evidence. Do not interpret this edge as lifecycle-neutral or population-identical to the 512-game promotion edge.",
       "promotion_authority_used": false,
-      "promotion_decision": "not_authorized"
+      "promotion_decision": "not_authorized",
+      "source_commit": "0eccfa8d0f68af488cce87b6191af26e3b0961a9"
     }
   ],
   "graph_policy": {
@@ -239,9 +240,9 @@
   },
   "current_graph_status": {
     "compatible_nodes": [
+      "3826b3bfe5c63102677f4a097163aeda4a03f83d",
       "48dd4df0f6809d072190291bceebb09ddfe52e5f",
-      "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613",
-      "3826b3bfe5c63102677f4a097163aeda4a03f83d"
+      "bee74c3dd07d4f41224d7ab9c67f0d0ad2c3c613"
     ],
     "connected_components": 1,
     "components": [
