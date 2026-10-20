@@ -59,3 +59,8 @@ Once the exact state is available, the audit should answer deterministically whe
 ## Ares implication
 
 This case is also a concrete reminder for victory-directed search: Ares must enumerate **all winning terminal classes** before concluding that a position is lost. A strategic route to a favorable tie-break must not be pruned merely because it does not contain an elimination of the last opposing piece.
+
+
+## Material tie-break contract update (#607)
+
+The current 1.0 rule is now recorded in [`docs/DECISIONS/2026-10-20-material-tiebreak-contract.md`](2026-10-20-material-tiebreak-contract.md): all on-board pieces, including temporary summons, contribute their configured cost while present; if White does not have strictly more material, Black receives the tie-break. This is a fixed deterministic rule, not an adaptive estimate of colour disadvantage. The 16-FrostMage/1-Inquisitor issue still requires its exact manual state for reproduction.
