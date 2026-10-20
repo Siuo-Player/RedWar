@@ -6,7 +6,7 @@ Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O c
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-> **Estado atual:** projeto em desenvolvimento. As regras continuam a poder mudar. O primeiro objetivo de produto é um **1.0-Lite local**, enquanto o Ares continua a evoluir como open-project separado.
+> **Estado atual:** o **1.0-Lite local passou a aceitação final**; RedWar continua em desenvolvimento e as regras podem mudar. O foco competitivo continua no gate Ares #372, enquanto o produto Full e o online seguem a sequência canónica do roadmap.
 
 ## O projeto em duas partes
 
