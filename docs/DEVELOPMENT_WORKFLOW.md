@@ -11,14 +11,14 @@ main
  ↓
 branch nova
  ↓
-atualizar ROADMAP
+Issue governante com objetivo + critérios de aceitação
  ↓
-registar decisão/hipótese, quando aplicável
+registar decisão/hipótese em docs quando aplicável
  ↓
 desenvolver
 ```
 
-O roadmap é obrigatório porque a intenção da branch deve ser recuperável sem depender do histórico da conversa.
+A Issue/PR deve preservar o objetivo, o âmbito, os critérios de aceitação e o progresso transitório da branch. Atualizar o `ROADMAP.md` apenas quando mudam de forma durável as prioridades, o estado de um gate ou a sequência operacional. Não copiar para o roadmap o estado temporário de cada branch, commit, PR ou execução de CI.
 
 ## Regra de conhecimento
 
