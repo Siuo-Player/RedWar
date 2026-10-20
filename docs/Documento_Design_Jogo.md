@@ -70,7 +70,7 @@ Peças temporárias:
 
 - podem existir além do exército inicial;
 - podem ter lifespan/cooldown próprio;
-- contam para o resultado material enquanto estiverem no tabuleiro quando a regra de desempate assim o exigir;
+- não contam para o desempate material no ruleset 1.0 atual; consulta `docs/GAME_RULES.md`, que prevalece sobre este documento transitório;
 - não reiniciam o contador de turnos sem captura quando morrem, se tiverem existência temporária.
 
 ## 6. Condições de vitória
