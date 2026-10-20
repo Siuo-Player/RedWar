@@ -277,8 +277,9 @@ int main() {
               << (temporary_piece_excluded ? "PASS" : "FAIL") << '\n';
 
     clear_board();
-    board.pieces[0][0] = create_piece("Templar", 'W');
-    board.pieces[7][7] = create_piece("Templar", 'B');
+    board.pieces[0][0] = create_piece("FrostMage", 'W');
+    board.pieces[0][0].stun_timer = 2;
+    board.pieces[7][7] = create_piece("FrostMage", 'B');
     const bool equal_material_black_tiebreak =
         terminal_material_score() == 0 && terminal_tiebreak_score(0) < 0;
     all_ok &= equal_material_black_tiebreak;
