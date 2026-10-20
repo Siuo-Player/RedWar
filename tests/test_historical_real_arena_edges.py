@@ -77,6 +77,7 @@ def test_historical_real_arena_ledger_is_fail_closed():
     assert bridge["invalid_games"] == 0
     assert bridge["node_budget"] == 10_000
     assert bridge["source_workflow_run_id"] == 37858487666
+    assert bridge["source_commit"] == "0eccfa8d0f68af488cce87b6191af26e3b0961a9"
     assert bridge["source_artifact_id"] == 11584718698
     assert bridge["source_artifact_digest"] == "sha256:164b0a332d1a5ad66303ff2053b8386bbbc70de6eedbc880c6d0b7bc0d5a5da8"
     assert bridge["source_raw_sha256"] == "249a5dc14e551c8cc24406d1ed712f54693b5e00f9d20fd4dc20b26ba53e0bc2"
