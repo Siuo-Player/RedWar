@@ -1,5 +1,5 @@
 from engine.game_state import GameState
-from engine.pieces import Pyromancer
+from engine.pieces import Pyromancer, criar_peca_por_nome
 
 
 def _put(state, row, col, team="brancas"):
@@ -39,3 +39,31 @@ def test_check_game_over_third_repetition_uses_material():
 
     assert state.game_over is True
     assert state.winner.startswith("Desempate por Material")
+
+
+
+def test_material_tiebreak_counts_temporary_summons_while_present():
+    state = GameState()
+    state.board[0][0] = criar_peca_por_nome("Templar", "brancas")  # 15
+    temporary_bone = criar_peca_por_nome("Bone", "brancas")  # 8
+    temporary_bone.lifespan = 5
+    state.board[0][1] = temporary_bone
+    state.board[7][7] = criar_peca_por_nome("Geomancer", "pretas")  # 21
+    state.turns_without_capture = 50
+
+    state.check_game_over()
+
+    assert state.game_over is True
+    assert state.winner == "Desempate por Material (23 vs 21) - Brancas Vencem"
+
+
+def test_equal_material_tiebreak_currently_awards_black():
+    state = GameState()
+    state.board[0][0] = criar_peca_por_nome("Templar", "brancas")  # 15
+    state.board[7][7] = criar_peca_por_nome("Templar", "pretas")  # 15
+    state.turns_without_capture = 50
+
+    state.check_game_over()
+
+    assert state.game_over is True
+    assert state.winner == "Desempate por Material (15 vs 15) - Pretas Vencem no Desempate"
