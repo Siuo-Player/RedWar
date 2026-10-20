@@ -28,3 +28,7 @@ Align the implementations to the documented permanent-only material rule. This i
 - Tests protect temporary-piece exclusion and equal-material outcomes in Python and C++; the C++ smoke suite calls the same terminal-material helper used by search, and its equality case includes a stunned hero to prove that evaluation discounts do not alter terminal material.
 - A future change to material policy or adaptive colour compensation requires a separate balance/rules decision with controlled evidence.
 - A promotion decision is valid only when the authoritative Arena completes and emits `accept` or `reject`; shell/import failures are execution failures, not promotion evidence.
+
+## Validation status
+
+The terminal-material correctness tests and Windows acceptance have passed, but the strength-sensitive AI Quality Gate remains a separate, mandatory gate for this PR. Its first end-to-end attempt exposed an infrastructure defect in the workflow: repeated `--results` options caused the evaluator to read only the latest incremental Arena batch instead of all cumulative batches. The resulting `continue` after 192 games is not a valid terminal promotion decision. PR #610 fixes this by passing all stage files under one `--results` option and adds a regression test. Do not interpret the failed run as a strength rejection or merge this change until a fresh authoritative run emits `accept` or `reject` on the corrected cumulative dataset.
