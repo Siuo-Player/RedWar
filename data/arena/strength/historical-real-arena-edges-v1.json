@@ -222,7 +222,7 @@
       "validity_policy": "only_game_over_with_declared_winner_counts_as_valid_strength_result",
       "lifecycle_context": "arena_tournament.py creates one challenger and one baseline CppEngineBot for the whole 100-game run, so each subprocess persists across games. This differs from the 512-game promotion edge, which creates fresh bots per stage; process-global TT lifecycle effects are known to matter under the tested diagnostic protocol.",
       "population_context": "16 canonical openings are repeated across 50 pairs (8 games each for openings 0 and 1; 6 games each for openings 2-15), unlike the 256 fresh opening pairs in the promotion edge.",
-      "interpretation": "Descriptive historical observation only. The candidate's C++ delta is the NNUE incremental-accumulator hot path; the Python GameState delta only adds replay metadata. The outcome is 54-46 (+27.85 aggregate-score Elo-equivalent; legacy sequential rating -16.99 is order-dependent), but neither value is calibrated or promotion evidence. Do not interpret this edge as lifecycle-neutral or population-identical to the 512-game promotion edge.",
+      "interpretation": "Descriptive historical observation only. The candidate's C++ delta is the NNUE incremental-accumulator hot path; the Python GameState delta only adds replay metadata. The aggregate score is 54% (+27.8544 Elo-equivalent), the legacy sequential rating is -16.9931 and order-dependent, and the paired bootstrap is +27.5774 with descriptive percentile bounds [-27.5774, +84.1677] including zero. None is a calibrated strength estimate or promotion evidence. Do not interpret this edge as lifecycle-neutral or population-identical to the 512-game promotion edge.",
       "promotion_authority_used": false,
       "promotion_decision": "not_authorized",
       "source_commit": "0eccfa8d0f68af488cce87b6191af26e3b0961a9",
@@ -243,7 +243,8 @@
     "no_lineage_as_arena_edge": true,
     "no_promotion_inference_from_graph": true,
     "heterogeneous_context_requires_explicit_caveat": true,
-    "promotion_authority_not_inferred": true
+    "promotion_authority_not_inferred": true,
+    "durable_dataset_required_for_new_edges": true
   },
   "current_graph_status": {
     "compatible_nodes": [
