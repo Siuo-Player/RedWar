@@ -56,3 +56,6 @@ This comparison is registered as a provenance-addressed edge for **descriptive g
 4. The historical ledger's graph-connectivity criterion is now met, but this does **not** establish a calibrated global Elo scale. Future calibration must standardise or model lifecycle/opening context and be repeated across real Arena experiments.
 
 The run's legacy `promoted=true` summary field was caused by `win_threshold=0`; provenance explicitly says `promotion_authority=false`. PR #600 corrects the reporting contract. This artifact does not promote or reject Ares and does not alter the authoritative #372 gate.
+
+## Follow-up methodology
+Issue [#617](https://github.com/Siuo-Player/RedWar/issues/617) tracks the unresolved calibration problem: the connected graph is descriptive, while opening-population, pair dependence and process-lifecycle differences must be modeled or standardized before publishing a calibrated global rating.
