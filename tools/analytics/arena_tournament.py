@@ -36,6 +36,21 @@ def verificar_promocao(vitorias_desafiante: int, vitorias_atual: int, margem: in
     return vitorias_desafiante - vitorias_atual >= margem
 
 
+def _promotion_decision(
+    wins_challenger: int,
+    wins_baseline: int,
+    invalid_games: int,
+    win_threshold: int,
+    promotion_authority: bool,
+) -> bool:
+    """Return True only when an authoritative run satisfies the existing gate."""
+    return (
+        promotion_authority
+        and invalid_games == 0
+        and verificar_promocao(wins_challenger, wins_baseline, win_threshold)
+    )
+
+
 def parse_opening_seeds(raw: str, openings: int = 16) -> tuple[int, ...]:
     """Parse and validate an explicit ordered opening-seed set."""
     if not isinstance(raw, str) or not raw.strip():
@@ -324,8 +339,12 @@ def start_tournament(
     opening_seeds: Sequence[int] | None = None,
     seed_policy: str | None = None,
     seed_generation_rule: str | None = None,
+    mode: Literal["promotion", "experiment"] = "promotion",
 ) -> int:
-    print(f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS (margem exigida: {win_threshold}, nodes: {nodes})")
+    if mode not in ("promotion", "experiment"):
+        raise ValueError(f"unsupported Arena mode: {mode}")
+    promotion_authority = mode == "promotion"
+    print(f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS (modo: {mode}, margem exigida: {win_threshold}, nodes: {nodes})")
     print(f"Challenger: {challenger_engine}")
     print(f"Baseline:   {baseline_engine}")
     wins_challenger = wins_baseline = draws = invalid_games = 0
@@ -387,11 +406,18 @@ def start_tournament(
 
         diferenca = wins_challenger - wins_baseline
         win_rate = wins_challenger / max(1, wins_challenger + wins_baseline + draws) * 100.0
-        promoted = invalid_games == 0 and verificar_promocao(wins_challenger, wins_baseline, win_threshold)
+        promoted = _promotion_decision(
+            wins_challenger, wins_baseline, invalid_games, win_threshold, promotion_authority
+        )
         rating_challenger, rating_baseline, rating_delta, rating_uncertainty_proxy_half_width = _strength_from_games(games)
         balance = summarize_experiment_balance(games)
         pentanomial = summarize_pentanomial(games)
         summary: dict[str, object] = {
+            "mode": mode,
+            "promotion_authority": promotion_authority,
+            "promotion_decision": (
+                "promoted" if promoted else "not_promoted" if promotion_authority else "not_authorized"
+            ),
             "games": num_games,
             "valid_games": num_games - invalid_games,
             "invalid_games": invalid_games,
@@ -426,7 +452,9 @@ def start_tournament(
             print(f"⚠️ {invalid_games} jogos inválidos; a experiência não pode promover uma revisão com observações inválidas.")
         if pentanomial["incomplete_pair_ids"]:
             print(f"Pares incompletos: {pentanomial['incomplete_pair_ids']}")
-        if promoted:
+        if not promotion_authority:
+            print("ℹ️ EXECUÇÃO EXPERIMENTAL: sem autoridade de promoção; nenhuma decisão de promoção foi tomada.")
+        elif promoted:
             print("👑 SUCESSO: Challenger superou a baseline por margem suficiente.")
         else:
             print("❌ FALHA: Challenger não atingiu a margem exigida.")
@@ -440,6 +468,8 @@ def start_tournament(
             summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"📦 Jogos: {output}")
             print(f"📊 Resumo: {summary_path}")
+        if not promotion_authority and invalid_games == 0:
+            return 0
         return 0 if promoted else 1
     finally:
         for bot in (challenger, baseline):
@@ -454,6 +484,12 @@ def main() -> int:
     parser.add_argument("--margem-vitorias", type=int, default=10)
     parser.add_argument("--nodes", type=int, default=10_000)
     parser.add_argument("--results", help="JSONL de jogos + .summary.json")
+    parser.add_argument(
+        "--mode",
+        choices=("promotion", "experiment"),
+        default="promotion",
+        help="promotion applies the authoritative gate; experiment is explicitly non-authoritative",
+    )
     parser.add_argument("--challenger-version", default="unknown")
     parser.add_argument("--baseline-version", default="unknown")
     parser.add_argument("--rules-version", default="unknown")
@@ -478,6 +514,7 @@ def main() -> int:
         opening_seeds,
         seed_policy,
         seed_generation_rule,
+        args.mode,
     )
 
 
