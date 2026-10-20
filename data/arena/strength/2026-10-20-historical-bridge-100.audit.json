@@ -1,0 +1,22 @@
+{
+  "dataset": "data/arena/strength/2026-10-20-historical-bridge-100.json",
+  "dataset_schema_version": "redwar-strength-dataset-v1",
+  "evidence_class": "real_arena",
+  "source_dataset_canonical_sha256": "374e49f4a6470dd3e9501cdcf974bc4c15c1ddd0a2cb5ad2915b89f8ffae4154",
+  "audit": {
+    "units": 50,
+    "bootstrap_samples": 20000,
+    "seed": 0,
+    "mean_implied_elo_delta": 27.577419754675415,
+    "empirical_p02_5": -27.57741975467541,
+    "empirical_p97_5": 84.16771513422982,
+    "empirical_half_width": 55.87256744445261,
+    "audit_status": "descriptive_paired_resampling_only_with_boundary_smoothing",
+    "proxy_half_width": null,
+    "proxy_to_empirical_half_width": null,
+    "aggregate_implied_elo_delta": 27.577419754675415,
+    "boundary_smoothing": "0.5_decisive_count_each_side_for_paired_bootstrap_only"
+  },
+  "interpretation": "Descriptive paired bootstrap over 50 complete opening/colour-inverted pairs only. The 16-opening repeated population and persistent-process lifecycle differ from the 512-game promotion edge; this is not a calibrated confidence interval, global Elo estimate, or promotion decision.",
+  "status": "descriptive_empirical_audit_only"
+}
