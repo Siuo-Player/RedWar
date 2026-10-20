@@ -291,24 +291,24 @@ Scripts obsoletos não devem permanecer apenas porque “podem ser úteis um dia
 O ciclo de branch é deliberadamente simples:
 
 ```text
+Issue governante + critérios de aceitação
+   ↓
 branch nova
    ↓
-roadmap atualizado
+implementação + regressões
    ↓
-bloco completo
-   ↓
-testes + benchmark
+validação apropriada
    ↓
 PR
    ↓
-merge
+CI + revisão + merge
    ↓
-apagar branch
+limpeza da branch
    ↓
-próxima branch
+próximo bloco
 ```
 
-Erros encontrados durante o bloco são corrigidos na própria branch.
+O roadmap só é atualizado quando muda uma prioridade, a sequência operacional ou o estado durável de um gate. O objetivo, os critérios de aceitação e o progresso transitório de cada branch pertencem à Issue/PR/CI; não devem ser copiados para o roadmap. Erros encontrados durante o bloco são corrigidos na própria branch.
 
 ## 🌐 Aplicação e web
 
