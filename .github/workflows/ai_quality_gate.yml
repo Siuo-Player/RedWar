@@ -269,7 +269,7 @@ jobs:
           result_file="$PROMOTION_DIR/stage-${stage}.jsonl"
           summary_file="$PROMOTION_DIR/gate-${stage}.json"
 
-          python tools/analytics/promotion_arena.py \
+          PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_arena.py \
             --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
             --baseline-engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine \
             --stage-games "$stage" \
