@@ -122,3 +122,18 @@ def test_selected_piece_silence_feedback_does_not_block_movement_or_allies():
     gs.board[4][5] = ranger
     assert interaction._selected_piece_silence_reason(gs, ranger, (4, 5)) is None
 
+def test_silence_feedback_does_not_misname_other_heroes_spells():
+    from engine.game_state import GameState
+    from engine.pieces import Cleric, Inquisitor
+
+    gs = GameState()
+    cleric = Cleric("brancas")
+    inquisitor = Inquisitor("pretas")
+    gs.board[4][4] = inquisitor
+    gs.board[4][5] = cleric
+
+    reason = interaction._selected_piece_silence_reason(gs, cleric, (4, 5))
+    assert reason is not None
+    assert "spells" in reason
+    assert "NEVADA" not in reason
+
