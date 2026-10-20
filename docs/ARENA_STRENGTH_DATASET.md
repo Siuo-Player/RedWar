@@ -90,7 +90,7 @@ The predeclared 100-game bridge from [run 37858487666](https://github.com/Siuo-P
 
 This bridge is distinct from the older 100-game A/A control above: the candidate changes the C++ NNUE incremental-evaluation path, while the A/A control changes documentation only. The raw artifact, validation output and pair structure were independently checked before registration.
 
-**Do not treat the connected graph as a calibrated global Elo scale.** The bridge repeats 16 fixed openings and keeps the engine subprocesses alive for all 100 games; the 512-game promotion edge uses 256 fresh opening pairs and recreates bots per stage. These lifecycle/population differences are retained in the ledger and limit cross-edge interpretation. The graph now supports descriptive connectivity only; repeated experiments and a context-aware calibration are still required before making a general strength claim.
+**Do not treat the connected graph as a calibrated global Elo scale.** Follow-up work on context-aware calibration is tracked in [#617](https://github.com/Siuo-Player/RedWar/issues/617). The bridge repeats 16 fixed openings and keeps the engine subprocesses alive for all 100 games; the 512-game promotion edge uses 256 fresh opening pairs and recreates bots per stage. These lifecycle/population differences are retained in the ledger and limit cross-edge interpretation. The graph now supports descriptive connectivity only; repeated experiments and a context-aware calibration are still required before making a general strength claim.
 
 ## Empirical uncertainty audit
 
