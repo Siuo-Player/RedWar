@@ -254,6 +254,6 @@
     ],
     "version_edges": 2,
     "acceptance_met": true,
-    "remaining_gap": "The descriptive graph is connected, but a calibrated global Elo claim remains out of scope: the registered edges differ in opening population and engine-process lifecycle. Future calibration must model or standardize these contexts and use repeated real Arena experiments."
+    "remaining_gap": "The descriptive graph is connected. Calibrated global ratings remain out of scope until the context-aware methodology tracked in #617 models or standardizes opening population, paired dependence and engine-process lifecycle."
   }
 }
