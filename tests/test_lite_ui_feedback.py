@@ -77,3 +77,42 @@ def test_battle_render_does_not_draw_legacy_sidebar_over_intent_sidebar():
 
     assert 'desenhar_painel_heroi(' not in source
     assert 'desenhar_log(' not in source
+
+def test_selected_frostmage_explains_spell_silence_from_active_inquisitor():
+    from engine.game_state import GameState
+    from engine.pieces import FrostMage, Inquisitor
+
+    gs = GameState()
+    mage = FrostMage("brancas")
+    inquisitor = Inquisitor("pretas")
+    gs.board[4][4] = inquisitor
+    gs.board[4][5] = mage
+
+    reason = interaction._selected_piece_silence_reason(gs, mage, (4, 5))
+    assert reason is not None
+    assert "Inquisitor" in reason
+    assert "NEVADA" in reason
+
+    # The UI must follow the engine's active-source rule, not infer silence
+    # from proximity alone when the Inquisitor is stunned.
+    inquisitor.stun_timer = 2
+    assert interaction._selected_piece_silence_reason(gs, mage, (4, 5)) is None
+
+
+def test_selected_piece_silence_feedback_does_not_block_movement_or_allies():
+    from engine.game_state import GameState
+    from engine.pieces import FrostMage, Inquisitor
+
+    gs = GameState()
+    mage = FrostMage("brancas")
+    enemy_inquisitor = Inquisitor("pretas")
+    allied_inquisitor = Inquisitor("brancas")
+    gs.board[4][4] = enemy_inquisitor
+    gs.board[4][5] = mage
+
+    assert interaction._selected_piece_silence_reason(gs, mage, (4, 5)) is not None
+    assert mage.get_valid_moves(4, 5, gs.board, gs.tile_effects)
+
+    gs.board[4][4] = allied_inquisitor
+    assert interaction._selected_piece_silence_reason(gs, mage, (4, 5)) is None
+
