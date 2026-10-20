@@ -83,6 +83,12 @@ inline int piece_cost(const Piece& piece) {
     return 50;
 }
 
+inline int terminal_piece_cost(const Piece& piece) {
+    if (piece.is_empty) return 0;
+    if (piece.id >= 0 && piece.id < MAX_HEROES && PIECE_COSTS[piece.id] > 0) return PIECE_COSTS[piece.id];
+    return std::max(0, piece.cost);
+}
+
 inline int no_capture_terminal_score(int ply) {
     return terminal_tiebreak_score(ply);
 }
@@ -522,7 +528,7 @@ int terminal_material_score() {
         for (int c = 0; c < COLUNAS; ++c) {
             const Piece& piece = board.pieces[r][c];
             if (piece.is_empty || piece.lifespan != 999) continue;
-            const int value = piece_cost(piece);
+            const int value = terminal_piece_cost(piece);
             if (piece.team == 'W') score += value;
             else if (piece.team == 'B') score -= value;
         }
