@@ -133,7 +133,7 @@
       "status": "compatible_real_edge",
       "comparison_type": "version-to-version A/B",
       "graph_eligible": true,
-      "graph_eligibility_basis": "Predeclared bridge plan; exact baseline/challenger/rules identities; same 10,000-node budget; 50 complete colour-inverted pairs; raw artifact, provenance, validation and pairing structure independently verified. Eligible for descriptive graph connectivity only; context differences remain explicit.",
+      "graph_eligibility_basis": "Predeclared bridge plan; explicit baseline/challenger/rules identities; same 10,000-node budget; 50 complete colour-inverted pairs; raw artifact, provenance, validation and pairing structure independently verified. Eligible for descriptive graph connectivity only; context differences remain explicit.",
       "source_type": "GitHub Actions non-authoritative Arena experiment artifact",
       "source_workflow_run_id": 37858487666,
       "source_artifact_id": 11584718698,
