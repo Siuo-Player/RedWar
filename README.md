@@ -404,19 +404,18 @@ O script usa uma lista explícita de fontes e inclui o caminho NNUE quando aplic
 
 ## 🗺️ Estado do projeto
 
-RedWar ainda não é um produto lançado.
+RedWar ainda não é um produto lançado publicamente. A aceitação local do **1.0-Lite** está concluída: o baseline Ares Lite (#526) e a aceitação final do produto local (#555) foram fechados, incluindo validação E2E real em Windows integrada no PR #587.
 
-A prioridade atual é:
+**Importante:** a aceitação do 1.0-Lite valida um produto local com baseline congelado; não certifica força competitiva da Ares e não fecha o gate #372.
 
-1. definir e congelar o **Ares Balance Baseline** e o protocolo mínimo do Balance Lab para o 1.0-Lite;
-2. completar a aplicação local 1.0-Lite: fluxo de partida, draft, Battle UI, VFX/som, dificuldades, replay básico e usabilidade;
-3. manter regras, legalidade e regressões continuamente protegidas;
-4. manter Arena, datasets e tooling reproduzíveis;
-5. lançar a primeira versão local jogável sem depender de servidor ou matchmaking;
-6. continuar o desenvolvimento competitivo da Ares como open-project sob #372;
-7. desenvolver a versão web e o multiplayer;
-8. criar contas, matchmaking, ranking e histórico;
-9. só então considerar o lançamento público completo/Full.
+As prioridades atuais, alinhadas com [`docs/ROADMAP.md`](docs/ROADMAP.md), são:
+
+1. manter a correção do ruleset, a legalidade e as regressões protegidas;
+2. continuar o programa competitivo Ares sob **#372**: correctness, capability, eficiência e evidência Arena independente antes de qualquer promoção;
+3. manter Arena, datasets, provenance e tooling reproduzíveis; a validação do rating histórico continua sob #488;
+4. preparar o Product Full (#373) apenas nas áreas que não contornem os bloqueios de Ares;
+5. avançar para o online (#374) e o release público (#375) pela sequência canónica, sem tratar protótipos como aceitação final;
+6. manter a auditoria de licenças, assets, segurança e distribuição como requisito antes de um lançamento público.
 
 ### 10×10 e outros modos
 
