@@ -522,6 +522,7 @@ int alpha_beta(
 
 } // namespace
 
+// Signed permanent material (White minus Black), deliberately separate from the evaluator score.
 int terminal_material_score() {
     int score = 0;
     for (int r = 0; r < LINHAS; ++r) {
