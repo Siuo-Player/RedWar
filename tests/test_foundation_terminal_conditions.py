@@ -42,7 +42,7 @@ def test_check_game_over_third_repetition_uses_material():
 
 
 
-def test_material_tiebreak_counts_temporary_summons_while_present():
+def test_material_tiebreak_ignores_temporary_summons():
     state = GameState()
     state.board[0][0] = criar_peca_por_nome("Templar", "brancas")  # 15
     temporary_bone = criar_peca_por_nome("Bone", "brancas")  # 8
@@ -54,7 +54,7 @@ def test_material_tiebreak_counts_temporary_summons_while_present():
     state.check_game_over()
 
     assert state.game_over is True
-    assert state.winner == "Desempate por Material (23 vs 21) - Brancas Vencem"
+    assert state.winner == "Desempate por Material (21 vs 15) - Pretas Vencem no Desempate"
 
 
 def test_equal_material_tiebreak_currently_awards_black():
