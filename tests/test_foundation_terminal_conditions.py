@@ -60,6 +60,7 @@ def test_material_tiebreak_ignores_temporary_summons():
 def test_equal_material_tiebreak_currently_awards_black():
     state = GameState()
     state.board[0][0] = criar_peca_por_nome("Templar", "brancas")  # 15
+    state.board[0][0].stun_timer = 2
     state.board[7][7] = criar_peca_por_nome("Templar", "pretas")  # 15
     state.turns_without_capture = 50
 
