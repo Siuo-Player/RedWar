@@ -279,10 +279,10 @@ jobs:
             --baseline-version "$BASE" \
             --rules-version "$RULES_VERSION"
 
-          result_files+=(--results "$result_file")
+          result_files+=("$result_file")
           set +e
           PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_gate.py \
-            "${result_files[@]}" \
+            --results "${result_files[@]}" \
             --bootstrap-replicates 2000 \
             --bootstrap-seed 0 \
             --summary-output "$summary_file" \
