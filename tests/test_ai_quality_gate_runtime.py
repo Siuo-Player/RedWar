@@ -17,3 +17,9 @@ def test_authoritative_gate_decision_capture_uses_valid_shell_command():
     assert 'PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_arena.py' in text
     assert 'PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_gate.py' in text
     assert "<<'PY'" not in text
+
+def test_authoritative_gate_receives_all_cumulative_arena_batches():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert 'result_files+=("$result_file")' in text
+    assert '--results "${result_files[@]}"' in text
+    assert 'result_files+=(--results "$result_file")' not in text
