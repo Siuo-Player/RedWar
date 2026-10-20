@@ -179,3 +179,24 @@ def test_experiment_summary_never_reports_promotion(monkeypatch, tmp_path):
     assert summary["promotion_decision"] == "not_authorized"
     assert summary["promoted"] is False
     assert summary["wins_challenger"] == 2
+
+
+def test_arena_cli_defaults_to_non_authoritative_experiment(monkeypatch):
+    import sys
+    from tools.analytics import arena_tournament
+
+    captured = {}
+
+    def fake_start_tournament(*args):
+        captured["mode"] = args[-1]
+        return 0
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["arena_tournament.py", "--challenger-engine", "candidate", "--baseline-engine", "baseline"],
+    )
+    monkeypatch.setattr(arena_tournament, "start_tournament", fake_start_tournament)
+
+    assert arena_tournament.main() == 0
+    assert captured["mode"] == "experiment"
