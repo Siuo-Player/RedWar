@@ -19,8 +19,8 @@ Align the implementations to the documented permanent-only material rule. This i
 3. Positional bonuses, stun adjustments and lifespan-scaled evaluation values do not contribute to terminal material.
 4. If White's permanent material is strictly greater, White wins.
 5. Otherwise Black wins, including exact equality.
-4. The no-capture counter is a separate contract: only removal of a permanent piece resets it. A temporary piece's lifespan/removal does not reset the counter.
-5. The Black-on-equality rule is a fixed deterministic rule. It is not evidence that Black is statistically disadvantaged and is not an adaptive colour-compensation algorithm.
+6. The no-capture counter is a separate contract: only removal of a permanent piece resets it. A temporary piece's lifespan/removal does not reset the counter.
+7. The Black-on-equality rule is a fixed deterministic rule. It is not evidence that Black is statistically disadvantaged and is not an adaptive colour-compensation algorithm.
 
 ## Consequences
 
