@@ -225,7 +225,14 @@
       "interpretation": "Descriptive historical observation only. The candidate's C++ delta is the NNUE incremental-accumulator hot path; the Python GameState delta only adds replay metadata. The outcome is 54-46 (+27.85 aggregate-score Elo-equivalent; legacy sequential rating -16.99 is order-dependent), but neither value is calibrated or promotion evidence. Do not interpret this edge as lifecycle-neutral or population-identical to the 512-game promotion edge.",
       "promotion_authority_used": false,
       "promotion_decision": "not_authorized",
-      "source_commit": "0eccfa8d0f68af488cce87b6191af26e3b0961a9"
+      "source_commit": "0eccfa8d0f68af488cce87b6191af26e3b0961a9",
+      "dataset_path": "data/arena/strength/2026-10-20-historical-bridge-100.json",
+      "dataset_canonical_sha256": "374e49f4a6470dd3e9501cdcf974bc4c15c1ddd0a2cb5ad2915b89f8ffae4154",
+      "audit_path": "data/arena/strength/2026-10-20-historical-bridge-100.audit.json",
+      "audit_status": "descriptive_paired_resampling_only_with_boundary_smoothing",
+      "empirical_paired_elo_delta": 27.577419754675415,
+      "empirical_paired_p02_5": -27.57741975467541,
+      "empirical_paired_p97_5": 84.16771513422982
     }
   ],
   "graph_policy": {
