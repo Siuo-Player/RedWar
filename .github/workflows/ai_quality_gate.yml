@@ -281,7 +281,7 @@ jobs:
 
           result_files+=(--results "$result_file")
           set +e
-          python tools/analytics/promotion_gate.py \
+          PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_gate.py \
             "${result_files[@]}" \
             --bootstrap-replicates 2000 \
             --bootstrap-seed 0 \
