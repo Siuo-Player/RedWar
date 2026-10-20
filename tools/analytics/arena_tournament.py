@@ -371,7 +371,7 @@ def start_tournament(
     opening_seeds: Sequence[int] | None = None,
     seed_policy: str | None = None,
     seed_generation_rule: str | None = None,
-    mode: Literal["promotion", "experiment"] = "promotion",
+    mode: Literal["promotion", "experiment"] = "experiment",
 ) -> int:
     if mode not in ("promotion", "experiment"):
         raise ValueError(f"unsupported Arena mode: {mode}")
@@ -530,8 +530,8 @@ def main() -> int:
     parser.add_argument(
         "--mode",
         choices=("promotion", "experiment"),
-        default="promotion",
-        help="promotion applies the authoritative gate; experiment is explicitly non-authoritative",
+        default="experiment",
+        help="experiment is the safe non-authoritative default; promotion mode must be requested explicitly",
     )
     parser.add_argument("--challenger-version", default="unknown")
     parser.add_argument("--baseline-version", default="unknown")
