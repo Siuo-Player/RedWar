@@ -1,6 +1,8 @@
 # Estrutura e Arquitetura do Projeto RedWar
 
-Este documento é um mapa operacional do repositório. Caminhos descritos como atuais devem existir; objetivos futuros estão explicitamente marcados.
+> **Estado do documento: TRANSITÓRIO / LEGADO.** Mantido para compatibilidade e contexto histórico. Para a arquitetura atual, usa [`ARCHITECTURE.md`](ARCHITECTURE.md); para encontrar os contratos canónicos por área, consulta [`00_INDEX.md`](00_INDEX.md). Este mapa não prevalece sobre o código, os testes ou os documentos canónicos atuais.
+
+Este documento é um mapa operacional histórico do repositório. Caminhos descritos como atuais podem ter mudado; objetivos futuros estão explicitamente marcados.
 
 ## 1. Estrutura atual
 
