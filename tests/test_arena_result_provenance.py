@@ -118,3 +118,64 @@ def test_aggregate_score_elo_equivalent_is_undefined_for_extreme_or_empty_result
 
     assert _aggregate_score_elo_equivalent([]) is None
     assert _aggregate_score_elo_equivalent([game("challenger", index=0)]) is None
+
+
+
+def test_experiment_summary_never_reports_promotion(monkeypatch, tmp_path):
+    from tools.analytics import arena_tournament
+
+    class FakeBot:
+        def __init__(self, nodes, executable_path):
+            self.executable_path = executable_path
+
+        def __del__(self):
+            pass
+
+    call_count = {"value": 0}
+
+    def fake_match(bot_white, bot_black, opening_index, opening_seed):
+        # Challenger wins both colour-inverted games.
+        winner = "Brancas" if call_count["value"] == 0 else "Pretas"
+        call_count["value"] += 1
+        return {
+            "winner": winner,
+            "seed": opening_seed,
+            "opening_index": opening_index,
+            "initial_rwen": "initial",
+            "final_rwen": "final",
+            "plies": 1,
+            "actions": [],
+            "action_counts": {},
+            "termination_reason": "game_over",
+            "valid": True,
+            "failure_reason": None,
+            "failure_exception_type": None,
+            "failure_detail": None,
+        }
+
+    monkeypatch.setattr(arena_tournament, "CppEngineBot", FakeBot)
+    monkeypatch.setattr(arena_tournament, "run_headless_match", fake_match)
+    results_path = tmp_path / "experiment.jsonl"
+
+    exit_code = arena_tournament.start_tournament(
+        challenger_engine="challenger",
+        baseline_engine="baseline",
+        num_games=2,
+        win_threshold=0,
+        nodes=1,
+        results_path=str(results_path),
+        challenger_version="candidate",
+        baseline_version="baseline",
+        rules_version="rules",
+        mode="experiment",
+    )
+
+    import json
+
+    summary = json.loads(results_path.with_suffix(".jsonl.summary.json").read_text(encoding="utf-8"))
+    assert exit_code == 0
+    assert summary["mode"] == "experiment"
+    assert summary["promotion_authority"] is False
+    assert summary["promotion_decision"] == "not_authorized"
+    assert summary["promoted"] is False
+    assert summary["wins_challenger"] == 2
