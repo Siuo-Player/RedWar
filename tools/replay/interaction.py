@@ -202,6 +202,22 @@ def _selected_piece_silence_reason(gs: Any, piece: Any, position: tuple[int, int
     return "A aura do Inquisitor bloqueia spells. Afasta-te do raio para voltar a usá-las."
 
 
+def _selected_piece_status_lines(gs: Any, piece: Any, position: tuple[int, int] | None) -> list[str]:
+    """Prioritize the actionable silence explanation over secondary status details."""
+    if piece is None:
+        return ["Estado: normal"]
+    if _selected_piece_silence_reason(gs, piece, position):
+        return ["Silenciado: spells bloqueadas", "Sai do raio do Inquisitor"]
+    status = []
+    if piece.stun_timer > 0:
+        status.append(f"Atordoado: {piece.stun_timer}")
+    if getattr(piece, "lifespan", None) is not None:
+        status.append(f"Duração: {piece.lifespan}")
+    if getattr(piece, "spawn_cooldown", 0):
+        status.append(f"Cooldown: {piece.spawn_cooldown}")
+    return status or ["Estado: normal"]
+
+
 def _sync_encyclopedia_selection(controller: Any) -> HeroEncyclopediaPanelState:
     piece = _selected_piece(controller)
     hero_name = getattr(piece, "name", None)
@@ -341,18 +357,8 @@ def _draw_sidebar(ecra: Any, controller: Any, *, action_labels: list[str] | None
         ecra.blit(name, (selected_rect.x + 12, selected_rect.y + 48))
         team_label = "Brancas" if piece.team == "brancas" else "Pretas"
         ecra.blit(small.render(team_label, True, SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, selected_rect.y + 72))
-        status = []
         selected_pos = getattr(controller, "casa_selecionada", None)
-        if _selected_piece_silence_reason(controller.gs, piece, selected_pos):
-            status.append("Silenciado: spells bloqueadas")
-        if piece.stun_timer > 0:
-            status.append(f"Atordoado: {piece.stun_timer}")
-        if getattr(piece, "lifespan", None) is not None:
-            status.append(f"Duração: {piece.lifespan}")
-        if getattr(piece, "spawn_cooldown", 0):
-            status.append(f"Cooldown: {piece.spawn_cooldown}")
-        if not status:
-            status.append("Estado: normal")
+        status = _selected_piece_status_lines(controller.gs, piece, selected_pos)
         y = selected_rect.y + 96
         for line in status[:2]:
             ecra.blit(small.render(line, True, SIDEBAR_THEME.status_warning if line.startswith("Silenciado:") else SIDEBAR_THEME.text_secondary), (selected_rect.x + 12, y))
