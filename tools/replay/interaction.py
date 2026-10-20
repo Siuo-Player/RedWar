@@ -191,6 +191,9 @@ def _selected_piece_silence_reason(gs: Any, piece: Any, position: tuple[int, int
     """Explain spell suppression using the engine's authoritative read-only query."""
     if piece is None or position is None:
         return None
+    from engine.pieces import HERO_DEFS
+    if not (HERO_DEFS.get(piece.name, {}).get("spells") or []):
+        return None
     row, col = position
     if not gs.is_piece_silenced(piece, row, col):
         return None
