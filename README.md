@@ -69,7 +69,7 @@ Uma partida termina quando uma das cores:
 
 O projeto procura eliminar empates. As regras de desempate são portanto consideradas parte do design oficial, embora ainda sejam um sistema em calibração.
 
-Quando é necessário desempatar por material, a cor vencedora atual é determinada pelo maior valor das peças permanentes que continuam no tabuleiro. O balanceamento de cores é validado empiricamente e pode levar a alterações no orçamento ou nas condições de desempate.
+No desempate por material, somam-se os custos de todas as peças ainda no tabuleiro, incluindo invocações temporárias enquanto existirem. Se o material branco for estritamente superior, vencem as Brancas; caso contrário, vencem as Pretas, incluindo em igualdade exata. Esta é a regra determinística atual, não uma compensação adaptativa por cor; qualquer alteração futura exige evidência de balanceamento e uma decisão própria.
 
 ### Contador sem captura
 
