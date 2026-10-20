@@ -197,7 +197,9 @@ def _selected_piece_silence_reason(gs: Any, piece: Any, position: tuple[int, int
     row, col = position
     if not gs.is_piece_silenced(piece, row, col):
         return None
-    return "A aura do Inquisitor bloqueia spells. Afasta-te do raio para voltar a usar NEVADA."
+    if piece.name == "FrostMage":
+        return "A aura do Inquisitor bloqueia NEVADA. Afasta-te do raio para voltar a lançar NEVADA."
+    return "A aura do Inquisitor bloqueia spells. Afasta-te do raio para voltar a usá-las."
 
 
 def _sync_encyclopedia_selection(controller: Any) -> HeroEncyclopediaPanelState:
