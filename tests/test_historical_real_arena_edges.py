@@ -87,6 +87,14 @@ def test_historical_real_arena_ledger_is_fail_closed():
     assert bridge["lifecycle_context"]
     assert bridge["population_context"]
     assert "not lifecycle-neutral" in bridge["interpretation"]
+    dataset_path = Path(bridge["dataset_path"])
+    audit_path = Path(bridge["audit_path"])
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    assert dataset["manifest"]["canonical_sha256"] == bridge["dataset_canonical_sha256"]
+    assert dataset["manifest"]["source_artifact"]["raw_sha256"] == bridge["source_raw_sha256"]
+    assert audit["source_dataset_canonical_sha256"] == bridge["dataset_canonical_sha256"]
+    assert audit["status"] == "descriptive_empirical_audit_only"
 
     graph = payload["current_graph_status"]
     components = _components(payload["edges"])
