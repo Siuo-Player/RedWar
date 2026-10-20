@@ -194,6 +194,7 @@ jobs:
             --rules-version "$RULES_VERSION" \
             --jogos "$GAMES" \
             --margem-vitorias 0 \
+            --mode experiment \
             --nodes "$NODES" \
             --opening-seeds "$OPENING_SEEDS" \
             --seed-policy "$SEED_POLICY" \
