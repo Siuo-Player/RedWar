@@ -45,6 +45,15 @@ O registo deve ser suficiente para reconstruir a experiência:
 - resultado;
 - contadores úteis.
 
+#### Modos de execução e interpretação
+
+`arena_tournament.py` tem dois modos explícitos:
+
+- `--mode promotion`: usa o resultado para a decisão do gate chamador; é o default legado para não alterar silenciosamente os callers existentes.
+- `--mode experiment`: é sempre não-authoritativo. O resumo deve conter `promotion_authority=false`, `promotion_decision=not_authorized` e `promoted=false`, mesmo quando a margem exigida é zero. Workflows e wrappers experimentais devem passar este modo explicitamente, não depender de um limiar impossível para simular ausência de autoridade.
+
+O campo legado `rating_delta` é um diagnóstico Elo sequencial dependente da ordem dos jogos, não uma estimativa calibrada de força. `rating_delta_aggregate_score_elo_equivalent` transforma apenas o score agregado num valor Elo-equivalente descritivo e invariável à ordem; também não é uma estimativa calibrada, intervalo de confiança ou critério de promoção. A análise de força continua a depender do protocolo emparelhado, cores, provenance e gate oficial.
+
 A Arena não deve ser usada como parser/relatório. Produz dados.
 
 ### Análise
