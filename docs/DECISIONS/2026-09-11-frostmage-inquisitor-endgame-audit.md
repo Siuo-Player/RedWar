@@ -63,4 +63,4 @@ This case is also a concrete reminder for victory-directed search: Ares must enu
 
 ## Material tie-break contract update (#607)
 
-The current 1.0 rule is now recorded in [`docs/DECISIONS/2026-10-20-material-tiebreak-contract.md`](2026-10-20-material-tiebreak-contract.md): all on-board pieces, including temporary summons, contribute their configured cost while present; if White does not have strictly more material, Black receives the tie-break. This is a fixed deterministic rule, not an adaptive estimate of colour disadvantage. The 16-FrostMage/1-Inquisitor issue still requires its exact manual state for reproduction.
+The current 1.0 rule is recorded in [`docs/DECISIONS/2026-10-20-material-tiebreak-contract.md`](2026-10-20-material-tiebreak-contract.md): only permanent pieces contribute their configured costs to terminal material; temporary summons, positional bonuses and stun evaluation do not affect the material tie-break. If White does not have strictly more permanent material, Black receives the tie-break. The 16-FrostMage/1-Inquisitor issue still requires its exact manual state for reproduction.
