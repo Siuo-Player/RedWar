@@ -40,6 +40,7 @@ def test_control_command_binds_frozen_revision_seed_set_and_disables_promotion()
     assert command[command.index("--baseline-version") + 1] == run["baseline_version"]
     assert run["challenger_version"] == run["baseline_version"]
     assert command[command.index("--margem-vitorias") + 1] == "101"
+    assert command[command.index("--mode") + 1] == "experiment"
     assert command[command.index("--opening-seeds") + 1] == ",".join(str(seed) for seed in run["opening_seeds"])
     assert command[command.index("--seed-policy") + 1] == run["seed_policy"]
     assert command[command.index("--seed-generation-rule") + 1] == run["seed_generation_rule"]
