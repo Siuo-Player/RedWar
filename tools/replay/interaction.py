@@ -198,15 +198,21 @@ def _selected_piece_silence_reason(gs: Any, piece: Any, position: tuple[int, int
     if not gs.is_piece_silenced(piece, row, col):
         return None
     if piece.name == "FrostMage":
+        if piece.stun_timer > 0:
+            return "A aura do Inquisitor bloqueia NEVADA. Aguarda o fim do atordoamento; depois sai do raio para voltar a lançar NEVADA."
         return "A aura do Inquisitor bloqueia NEVADA. Afasta-te do raio para voltar a lançar NEVADA."
+    if piece.stun_timer > 0:
+        return "A aura do Inquisitor bloqueia spells. Aguarda o fim do atordoamento; depois sai do raio para voltar a usá-las."
     return "A aura do Inquisitor bloqueia spells. Afasta-te do raio para voltar a usá-las."
 
 
 def _selected_piece_status_lines(gs: Any, piece: Any, position: tuple[int, int] | None) -> list[str]:
-    """Prioritize the actionable silence explanation over secondary status details."""
+    """Show stun recovery before the spell-silence recovery action."""
     if piece is None:
         return ["Estado: normal"]
     if _selected_piece_silence_reason(gs, piece, position):
+        if piece.stun_timer > 0:
+            return [f"Atordoado: {piece.stun_timer}", "Silenciado: spells bloqueadas"]
         return ["Silenciado: spells bloqueadas", "Sai do raio do Inquisitor"]
     status = []
     if piece.stun_timer > 0:
