@@ -36,14 +36,22 @@ jobs:
         pip install -r requirements.txt
 
     - name: Fetch PR base
-      run: git fetch origin "${{ github.event.pull_request.base.ref || 'main' }}" --no-tags
+      id: base
+      shell: bash
+      run: |
+        set -euo pipefail
+        BASE_REF="${{ github.event.pull_request.base.ref || 'main' }}"
+        git fetch origin "$BASE_REF" --no-tags
+        BASE_SHA="$(git rev-parse FETCH_HEAD)"
+        echo "Resolved target base: $BASE_SHA"
+        echo "sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
 
     - name: Detect AI and quality changes
       id: changes
       shell: bash
       run: |
         set -euo pipefail
-        BASE="${{ github.event.pull_request.base.sha }}"
+        BASE="${{ steps.base.outputs.sha }}"
         git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
 
         if grep -Eq '^(ai/.*\.(py|pyx|pyi|cpp|hpp|h|c|cc|cxx)$|tools/nnue/)' /tmp/changed-files.txt; then
@@ -179,7 +187,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        BASE="${{ github.event.pull_request.base.sha }}"
+        BASE="${{ steps.base.outputs.sha }}"
         git worktree add --detach /tmp/redwar-quality-base-ai HEAD
         if ! git -C /tmp/redwar-quality-base-ai restore --source="$BASE" -- ai; then
           echo "Could not overlay main AI onto current PR rules."
@@ -258,7 +266,7 @@ jobs:
       shell: bash
       run: |
         set -euo pipefail
-        BASE="${{ github.event.pull_request.base.sha }}"
+        BASE="${{ steps.base.outputs.sha }}"
         RULES_VERSION="${{ github.sha }}"
         PROMOTION_DIR=/tmp/authoritative-promotion
         mkdir -p "$PROMOTION_DIR"
@@ -269,7 +277,7 @@ jobs:
           result_file="$PROMOTION_DIR/stage-${stage}.jsonl"
           summary_file="$PROMOTION_DIR/gate-${stage}.json"
 
-          python tools/analytics/promotion_arena.py \
+          PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_arena.py \
             --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
             --baseline-engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine \
             --stage-games "$stage" \
@@ -279,10 +287,10 @@ jobs:
             --baseline-version "$BASE" \
             --rules-version "$RULES_VERSION"
 
-          result_files+=(--results "$result_file")
+          result_files+=("$result_file")
           set +e
-          python tools/analytics/promotion_gate.py \
-            "${result_files[@]}" \
+          PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_gate.py \
+            --results "${result_files[@]}" \
             --bootstrap-replicates 2000 \
             --bootstrap-seed 0 \
             --summary-output "$summary_file" \
@@ -290,12 +298,7 @@ jobs:
           gate_status=${PIPESTATUS[0]}
           set -e
 
-          final_decision="$(python - "$summary_file" <<'PY'
-            import json
-            import sys
-            print(json.loads(open(sys.argv[1], encoding="utf-8").read())["decision"])
-            PY
-          )"
+          final_decision="$(python -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["decision"])' "$summary_file")"
 
           echo "authoritative_gate stage=${stage} decision=${final_decision} exit=${gate_status}"
           if [ "$final_decision" = "accept" ]; then
