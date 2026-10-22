@@ -65,3 +65,40 @@ Issue [#617](https://github.com/Siuo-Player/RedWar/issues/617) tracks the unreso
 The derived scientific dataset is committed at `data/arena/strength/2026-10-20-historical-bridge-100.json` (canonical SHA-256 `374e49f4a6470dd3e9501cdcf974bc4c15c1ddd0a2cb5ad2915b89f8ffae4154`). It preserves the 100 per-game scientific records and 50 complete paired resampling units, with raw artifact, validation, provenance and summary hashes in the manifest. The reproducible paired audit is stored at `data/arena/strength/2026-10-20-historical-bridge-100.audit.json` using 20,000 bootstrap samples and seed 0.
 
 The paired descriptive estimate is `+27.5774` Elo-equivalent with percentile bounds `[-27.5774, +84.1677]`. The interval includes zero and is **not** a calibrated confidence interval. It must not be conflated with the unpaired aggregate-score transformation (`+27.8544`) or the order-dependent legacy sequential rating (`-16.9931`).
+
+
+## Preliminary opening-cluster uncertainty sensitivity — 2026-10-22
+
+The committed paired audit resamples 50 complete colour-inverted pairs and reports a descriptive Elo-equivalent interval of **[-27.5774, +84.1677]**. That resampling preserves the two-game colour pair, but it does not preserve repeated-opening clusters: the experiment contains only **16 distinct opening seeds**, with two seeds repeated across four pairs and the remaining fourteen across three pairs. All games also share persistent engine processes, so neither pairs nor opening clusters can be assumed independent without further evidence.
+
+As a sensitivity diagnostic (not a replacement calibrated interval), each opening seed was treated as one cluster. The outcome statistic is the per-seed challenger win fraction, then an equal-weight mean over the 16 predeclared seeds. A 20,000-resample percentile bootstrap sampled 16 seed clusters with replacement using NumPy `default_rng(0)`.
+
+| Quantity | Result |
+| --- | ---: |
+| Opening clusters | 16 |
+| Seed-level game counts | 8 games for seeds 101 and 211; 6 for each other seed |
+| Equal-opening mean challenger win rate | 53.90625% |
+| Bootstrap 2.5th / median / 97.5th percentiles | 43.48958% / 53.90625% / 64.32292% |
+| Descriptive Elo-equivalent transform of those percentiles | -45.4973 / +27.1988 / +102.3906 |
+
+The opening-cluster result is wider than the pair-resampling interval and reinforces that uncertainty depends on the resampling unit. It does **not** establish a valid population confidence interval: the 16 openings were predeclared rather than sampled randomly, opening clusters share the same persistent engine lifecycle, and there is only one bridge experiment. The 54–46 overall outcome remains descriptive, not evidence for promotion.
+
+Reproduction sketch from `games` in the canonical JSON dataset:
+
+```python
+from collections import defaultdict
+import numpy as np
+
+by_seed = defaultdict(list)
+for game in dataset["games"]:
+    by_seed[game["seed"]].append(game["outcome"] == "challenger")
+seed_rates = np.array([
+    np.mean(by_seed[seed])
+    for seed in dataset["manifest"]["experiment"]["opening_seeds"]
+])
+rng = np.random.default_rng(0)
+sample = seed_rates[rng.integers(0, len(seed_rates), (20_000, len(seed_rates)))].mean(axis=1)
+quantiles = np.quantile(sample, [0.025, 0.5, 0.975])
+```
+
+Issue [#617](https://github.com/Siuo-Player/RedWar/issues/617) must resolve the inferential target and test lifecycle/opening protocols on independent matched experiments before any historical rating is called calibrated.
