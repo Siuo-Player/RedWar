@@ -31,7 +31,7 @@ The direct dependencies currently declared in `requirements.txt` are:
 | --- | --- | --- |
 | pygame | `==2.6.1` | LGPL-2.1 |
 | pytest | `==9.1.1` | MIT |
-| websockets | `==17.1` | BSD-3-Clause |
+| websockets | `==17.2` | BSD-3-Clause |
 | Cython | `>=3.3.0` | Apache-2.0 |
 
 These specifiers mirror `requirements.txt`: the first three dependencies are pinned exactly, while Cython has only a minimum version. They do not by themselves lock the complete resolved environment.
@@ -40,7 +40,7 @@ Package metadata and license sources checked for the declared versions:
 
 - pygame 2.6.1: https://pypi.org/project/pygame/2.6.1/
 - pytest 9.1.1: https://pypi.org/project/pytest/9.1.1/
-- websockets 17.1: https://pypi.org/project/websockets/17.1/
+- websockets 17.2: https://pypi.org/project/websockets/17.2/
 - Cython 3.3.0: https://pypi.org/project/Cython/3.3.0/
 
 ## Vendored C++ dependency
