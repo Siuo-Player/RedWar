@@ -115,3 +115,36 @@ def test_promotion_507_stage_records_account_for_final_budget():
     assert sum(stage["games"] for stage in edge["stage_files"]) == 512
     assert edge["stage_files"][0]["game_index_range"] == [0, 95]
     assert edge["stage_files"][-1]["game_index_range"] == [320, 511]
+
+
+def test_bridge_opening_cluster_sensitivity_is_reproducible():
+    """Opening-cluster resampling is a caveated sensitivity, not a calibrated CI."""
+    from collections import defaultdict
+    import math
+    import random
+
+    dataset_path = Path("data/arena/strength/2026-10-20-historical-bridge-100.json")
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
+    by_seed = defaultdict(list)
+    for game in dataset["games"]:
+        if game["valid"]:
+            by_seed[game["seed"]].append(game["outcome"] == "challenger")
+
+    seeds = dataset["manifest"]["experiment"]["opening_seeds"]
+    assert len(seeds) == 16
+    assert len(by_seed) == 16
+    assert sorted(len(by_seed[seed]) for seed in seeds) == [6] * 14 + [8] * 2
+    seed_rates = [sum(by_seed[seed]) / len(by_seed[seed]) for seed in seeds]
+    assert math.isclose(sum(seed_rates) / len(seed_rates), 0.5390625)
+
+    # Fixed-opening-cluster sensitivity; nearest-rank percentiles are explicit.
+    rng = random.Random(0)
+    samples = sorted(
+        sum(seed_rates[rng.randrange(len(seed_rates))] for _ in seed_rates) / len(seed_rates)
+        for _ in range(20_000)
+    )
+    lower, median, upper = samples[499], samples[9_999], samples[19_499]
+    assert math.isclose(lower, 0.4270833333333333)
+    assert math.isclose(median, 0.5390625)
+    assert math.isclose(upper, 0.6432291666666666)
+    # Repeated fixed seeds and persistent process state still limit inference.
