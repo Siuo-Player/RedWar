@@ -144,21 +144,22 @@ Não existe uma condição de vitória baseada num “rei” específico.
 
 O projeto procura eliminar empates por design.
 
-Existe um contador de turnos sem captura para impedir partidas potencialmente infinitas.
+Existe um contador de turnos sem captura para impedir partidas potencialmente infinitas. O contador só reinicia quando ocorre a **morte de uma peça permanente**; a morte ou expiração de uma invocação temporária não o reinicia.
 
-O contador só reinicia quando ocorre a **morte de uma peça permanente**.
-
-O limite atual é de **50 turnos sem captura**.
-
-Quando o limite é atingido, aplica-se o desempate material atualmente definido.
+O limite atual é de **50 turnos sem captura**. O limite e a repetição de uma posição são terminais e resolvem-se pelo desempate material; não produzem um resultado de empate.
 
 ## 10. Desempate material
 
-Quando necessário, comparam-se os valores das peças permanentes que permanecem no tabuleiro.
+O valor material do desempate é a soma dos custos configurados das **peças permanentes** que continuam no tabuleiro. Invocações temporárias não contam para esse valor. A regra de reinício do contador e a regra de contagem material são distintas: uma peça temporária não reinicia o contador quando morre, e também não altera o material usado no desempate.
 
-A regra de qual cor recebe a vitória nesse caso é uma variável de balanceamento. Atualmente existe uma preferência por dar o desempate à cor que demonstrar desvantagem estatística, em vez de assumir que uma cor é sempre a correta.
+A regra determinística atual é:
 
-O objetivo de longo prazo é manter as duas cores aproximadamente equilibradas, com uma tolerância de cerca de 4% durante os testes.
+- se o material branco for estritamente superior ao preto, vencem as Brancas;
+- caso contrário, vencem as Pretas, incluindo quando os totais são exatamente iguais.
+
+Isto é uma regra fixa do ruleset atual, não uma política adaptativa que calcula em tempo real qual cor está estatisticamente em desvantagem. Qualquer futura alteração ao material contado ou à compensação de cor deve ser sustentada por evidência de balanceamento controlada e registada numa decisão própria.
+
+O objetivo de longo prazo é manter as duas cores aproximadamente equilibradas, com uma tolerância de cerca de 4% durante os testes; essa meta não altera implicitamente a regra terminal executada.
 
 ## 11. Balanceamento
 

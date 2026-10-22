@@ -658,8 +658,18 @@ class GameState:
         adversario_vencedor = "Brancas" if self.white_to_move else "Pretas"
 
         def resolver_por_material():
-            white_mat = sum(getattr(p, "cost", 0) for row in self.board for p in row if p and p.team == "brancas")
-            black_mat = sum(getattr(p, "cost", 0) for row in self.board for p in row if p and p.team == "pretas")
+            white_mat = sum(
+                getattr(p, "cost", 0)
+                for row in self.board
+                for p in row
+                if p and p.team == "brancas" and getattr(p, "lifespan", None) is None
+            )
+            black_mat = sum(
+                getattr(p, "cost", 0)
+                for row in self.board
+                for p in row
+                if p and p.team == "pretas" and getattr(p, "lifespan", None) is None
+            )
             if white_mat > black_mat:
                 return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem"
             return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate"

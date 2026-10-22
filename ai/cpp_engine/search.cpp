@@ -76,16 +76,21 @@ inline void check_limits() {
     }
 }
 
-inline int no_capture_terminal_score(int ply) {
-    const int margin = MAX_PLY - ply;
-    return board.material_score > 0 ? INFINITO - margin : -INFINITO + margin;
-}
-
 inline int piece_cost(const Piece& piece) {
     if (piece.is_empty) return 0;
     if (piece.id >= 0 && piece.id < MAX_HEROES && PIECE_COSTS[piece.id] > 0) return PIECE_COSTS[piece.id];
     if (piece.cost > 0) return piece.cost;
     return 50;
+}
+
+inline int terminal_piece_cost(const Piece& piece) {
+    if (piece.is_empty) return 0;
+    if (piece.id >= 0 && piece.id < MAX_HEROES && PIECE_COSTS[piece.id] > 0) return PIECE_COSTS[piece.id];
+    return std::max(0, piece.cost);
+}
+
+inline int no_capture_terminal_score(int ply) {
+    return terminal_tiebreak_score(ply);
 }
 
 int action_type_index(const Move& move) {
@@ -516,6 +521,26 @@ int alpha_beta(
 }
 
 } // namespace
+
+// Signed permanent material (White minus Black), deliberately separate from the evaluator score.
+int terminal_material_score() {
+    int score = 0;
+    for (int r = 0; r < LINHAS; ++r) {
+        for (int c = 0; c < COLUNAS; ++c) {
+            const Piece& piece = board.pieces[r][c];
+            if (piece.is_empty || piece.lifespan != 999) continue;
+            const int value = terminal_piece_cost(piece);
+            if (piece.team == 'W') score += value;
+            else if (piece.team == 'B') score -= value;
+        }
+    }
+    return score;
+}
+
+int terminal_tiebreak_score(int ply) {
+    const int margin = MAX_PLY - ply;
+    return terminal_material_score() > 0 ? INFINITO - margin : -INFINITO + margin;
+}
 
 std::string search_best_move(int max_depth) {
     ensure_hero_behaviors_loaded();
