@@ -80,7 +80,7 @@ def test_battle_render_does_not_draw_legacy_sidebar_over_intent_sidebar():
 
 def test_selected_frostmage_explains_spell_silence_from_active_inquisitor():
     from engine.game_state import GameState
-    from engine.pieces import FrostMage, Inquisitor, Ranger
+    from engine.pieces import FrostMage, Inquisitor, Templar
 
     gs = GameState()
     mage = FrostMage("brancas")
@@ -118,9 +118,9 @@ def test_selected_piece_silence_feedback_does_not_block_movement_or_allies():
 
     # The same aura should not clutter the UI for a hero with no spells.
     gs.board[4][4] = enemy_inquisitor
-    ranger = Ranger("brancas")
-    gs.board[4][5] = ranger
-    assert interaction._selected_piece_silence_reason(gs, ranger, (4, 5)) is None
+    no_spell_hero = Templar("brancas")
+    gs.board[4][5] = no_spell_hero
+    assert interaction._selected_piece_silence_reason(gs, no_spell_hero, (4, 5)) is None
 
 def test_silence_feedback_does_not_misname_other_heroes_spells():
     from engine.game_state import GameState
