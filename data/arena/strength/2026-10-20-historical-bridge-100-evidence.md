@@ -71,7 +71,7 @@ The paired descriptive estimate is `+27.5774` Elo-equivalent with percentile bou
 
 The committed paired audit resamples 50 complete colour-inverted pairs and reports a descriptive Elo-equivalent interval of **[-27.5774, +84.1677]**. That resampling preserves the two-game colour pair, but it does not preserve repeated-opening clusters: the experiment contains only **16 distinct opening seeds**, with two seeds repeated across four pairs and the remaining fourteen across three pairs. All games also share persistent engine processes, so neither pairs nor opening clusters can be assumed independent without further evidence.
 
-As a sensitivity diagnostic (not a replacement calibrated interval), each opening seed was treated as one cluster. The outcome statistic is the per-seed challenger win fraction, then an equal-weight mean over the 16 predeclared seeds. A 20,000-resample percentile bootstrap sampled 16 seed clusters with replacement using NumPy `default_rng(0)`.
+As a sensitivity diagnostic (not a replacement calibrated interval), each opening seed was treated as one cluster. The outcome statistic is the per-seed challenger win fraction, then an equal-weight mean over the 16 predeclared seeds. A 20,000-resample percentile bootstrap sampled 16 seed clusters with replacement using Python's standard-library `random.Random(0)` and nearest-rank percentiles. This gives mean challenger win rate 53.90625%, percentile range 42.70833%–64.32292%, and descriptive Elo-equivalent transformed bounds **[-51.0315, +102.3906]**.
 
 | Quantity | Result |
 | --- | ---: |
@@ -87,18 +87,21 @@ Reproduction sketch from `games` in the canonical JSON dataset:
 
 ```python
 from collections import defaultdict
-import numpy as np
+import random
 
 by_seed = defaultdict(list)
 for game in dataset["games"]:
     by_seed[game["seed"]].append(game["outcome"] == "challenger")
-seed_rates = np.array([
-    np.mean(by_seed[seed])
+seed_rates = [
+    sum(by_seed[seed]) / len(by_seed[seed])
     for seed in dataset["manifest"]["experiment"]["opening_seeds"]
-])
-rng = np.random.default_rng(0)
-sample = seed_rates[rng.integers(0, len(seed_rates), (20_000, len(seed_rates)))].mean(axis=1)
-quantiles = np.quantile(sample, [0.025, 0.5, 0.975])
+]
+rng = random.Random(0)
+sample = sorted(
+    sum(seed_rates[rng.randrange(len(seed_rates))] for _ in seed_rates) / len(seed_rates)
+    for _ in range(20_000)
+)
+quantiles = [sample[499], sample[9999], sample[19499]]  # nearest-rank 2.5%, 50%, 97.5%
 ```
 
 Issue [#617](https://github.com/Siuo-Player/RedWar/issues/617) must resolve the inferential target and test lifecycle/opening protocols on independent matched experiments before any historical rating is called calibrated.
