@@ -74,3 +74,7 @@ def test_start_tournament_persists_invalid_games_and_continues(monkeypatch, tmp_
     assert summary["invalid_games"] == 2
     assert summary["valid_games"] == 0
     assert summary["invalid_game_reasons"] == {"timeout": 2}
+    assert summary["mode"] == "experiment"
+    assert summary["promotion_authority"] is False
+    assert summary["promotion_decision"] == "not_authorized"
+    assert summary["promoted"] is False
