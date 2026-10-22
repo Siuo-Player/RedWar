@@ -281,6 +281,14 @@ class GameState:
                     return True
         return False
 
+    def is_piece_silenced(self, piece, row, col) -> bool:
+        """Public, read-only query for the active Inquisitor spell-silence rule.
+
+        UI and diagnostics should call this method instead of duplicating aura
+        radius, team, or active/stunned-source logic.
+        """
+        return self._is_silenced_piece(piece, row, col)
+
     def _validate_transition(
         self,
         start_pos,
