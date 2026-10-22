@@ -269,7 +269,7 @@ jobs:
           result_file="$PROMOTION_DIR/stage-${stage}.jsonl"
           summary_file="$PROMOTION_DIR/gate-${stage}.json"
 
-          python tools/analytics/promotion_arena.py \
+          PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_arena.py \
             --challenger-engine /tmp/redwar-quality-head/ai/cpp_engine/engine \
             --baseline-engine /tmp/redwar-quality-base-ai/ai/cpp_engine/engine \
             --stage-games "$stage" \
@@ -279,10 +279,10 @@ jobs:
             --baseline-version "$BASE" \
             --rules-version "$RULES_VERSION"
 
-          result_files+=(--results "$result_file")
+          result_files+=("$result_file")
           set +e
-          python tools/analytics/promotion_gate.py \
-            "${result_files[@]}" \
+          PYTHONPATH="${PYTHONPATH:+$PYTHONPATH:}." python tools/analytics/promotion_gate.py \
+            --results "${result_files[@]}" \
             --bootstrap-replicates 2000 \
             --bootstrap-seed 0 \
             --summary-output "$summary_file" \
@@ -290,12 +290,7 @@ jobs:
           gate_status=${PIPESTATUS[0]}
           set -e
 
-          final_decision="$(python - "$summary_file" <<'PY'
-            import json
-            import sys
-            print(json.loads(open(sys.argv[1], encoding="utf-8").read())["decision"])
-            PY
-          )"
+          final_decision="$(python -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["decision"])' "$summary_file")"
 
           echo "authoritative_gate stage=${stage} decision=${final_decision} exit=${gate_status}"
           if [ "$final_decision" = "accept" ]; then
