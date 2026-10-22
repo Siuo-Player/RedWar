@@ -52,7 +52,7 @@ jobs:
       run: |
         set -euo pipefail
         BASE="${{ steps.base.outputs.sha }}"
-        git diff --name-only "$BASE...HEAD" > /tmp/changed-files.txt
+        git diff --name-only "$BASE" HEAD > /tmp/changed-files.txt
 
         if grep -Eq '^(ai/.*\.(py|pyx|pyi|cpp|hpp|h|c|cc|cxx)$|tools/nnue/)' /tmp/changed-files.txt; then
           echo "has_ai_changes=true" >> "$GITHUB_OUTPUT"
@@ -72,7 +72,7 @@ jobs:
         fi
 
         terminal_contract_only=false
-        search_numstat="$(git diff --numstat "$BASE...HEAD" -- ai/cpp_engine/search.cpp)"
+        search_numstat="$(git diff --numstat "$BASE" HEAD -- ai/cpp_engine/search.cpp)"
         search_added="${search_numstat%%$'\t'*}"
         search_deleted="${search_numstat#*$'\t'}"
         search_deleted="${search_deleted%%$'\t'*}"
@@ -93,7 +93,7 @@ jobs:
             esac
           done < /tmp/changed-files.txt
 
-          search_guard_count="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/search.cpp | grep -F -c 'is_terminal_score(evaluate_board())')"
+          search_guard_count="$(git diff --unified=0 "$BASE" HEAD -- ai/cpp_engine/search.cpp | grep -F -c 'is_terminal_score(evaluate_board())')"
           if [ "$search_guard_count" -ne 1 ]; then
             terminal_contract_only=false
           fi
@@ -134,9 +134,9 @@ jobs:
 
         nnue_eval_hotpath_only=false
         if [ "$actual_files" -eq 5 ] &&            grep -Fxq ".github/workflows/ai_quality_gate.yml" /tmp/changed-files.txt &&            grep -Fxq "ai/cpp_engine/evaluate.cpp" /tmp/changed-files.txt &&            grep -Fxq "tests/cpp_nnue_test.cpp" /tmp/changed-files.txt &&            grep -Fxq "tests/test_d_nnue_incremental_integration.py" /tmp/changed-files.txt &&            grep -Fxq "tests/test_d_nnue_oracle_boundary.py" /tmp/changed-files.txt; then
-          eval_numstat="$(git diff --numstat "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp)"
-          removed_sync="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "-        redwar::nnue::sync_board();" || true)"
-          added_sync="$(git diff --unified=0 "$BASE...HEAD" -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "+        redwar::nnue::sync_board();" || true)"
+          eval_numstat="$(git diff --numstat "$BASE" HEAD -- ai/cpp_engine/evaluate.cpp)"
+          removed_sync="$(git diff --unified=0 "$BASE" HEAD -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "-        redwar::nnue::sync_board();" || true)"
+          added_sync="$(git diff --unified=0 "$BASE" HEAD -- ai/cpp_engine/evaluate.cpp |             grep -F -c -- "+        redwar::nnue::sync_board();" || true)"
           if [ "$eval_numstat" = $'3	4	ai/cpp_engine/evaluate.cpp' ] &&              [ "$removed_sync" -eq 1 ] && [ "$added_sync" -eq 0 ]; then
             nnue_eval_hotpath_only=true
           fi

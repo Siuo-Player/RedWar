@@ -33,3 +33,11 @@ def test_ai_quality_gate_uses_one_fetched_target_sha_for_all_baseline_operations
     assert 'echo "sha=$BASE_SHA" >> "$GITHUB_OUTPUT"' in text
     assert text.count('BASE="${{ steps.base.outputs.sha }}"') == 3
     assert "github.event.pull_request.base.sha" not in text
+
+
+def test_ai_quality_gate_classifies_direct_target_tree_diff_not_merge_base_diff():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    assert 'git diff --name-only "$BASE" HEAD' in text
+    assert text.count('git diff --numstat "$BASE" HEAD') == 2
+    assert text.count('git diff --unified=0 "$BASE" HEAD') == 3
+    assert '"$BASE...HEAD"' not in text
