@@ -152,3 +152,24 @@ def test_silence_status_prioritizes_recovery_action():
         "Sai do raio do Inquisitor",
     ]
 
+
+
+def test_silence_feedback_does_not_suggest_movement_while_selected_hero_is_stunned():
+    from engine.game_state import GameState
+    from engine.pieces import FrostMage, Inquisitor
+
+    gs = GameState()
+    mage = FrostMage("brancas")
+    inquisitor = Inquisitor("pretas")
+    inquisitor.stun_timer = 0
+    mage.stun_timer = 2
+    gs.board[4][4] = inquisitor
+    gs.board[4][5] = mage
+
+    reason = interaction._selected_piece_silence_reason(gs, mage, (4, 5))
+    assert reason is not None
+    assert "Aguarda o fim do atordoamento" in reason
+    assert interaction._selected_piece_status_lines(gs, mage, (4, 5)) == [
+        "Atordoado: 2",
+        "Silenciado: spells bloqueadas",
+    ]
