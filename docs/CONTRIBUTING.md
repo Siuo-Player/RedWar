@@ -12,7 +12,7 @@ O princípio é semelhante ao usado em projetos de engines maiores: mudar uma hi
 
 ## Ciclo de uma branch
 
-1. Ao criar/abrir uma branch, atualizar o `docs/ROADMAP.md` com o estado confirmado, objetivo, passos seguintes e critérios de aceitação.
+1. Antes de implementar, identificar a Issue governante e garantir que contém objetivo, âmbito e critérios de aceitação. Registar progresso transitório na Issue/PR/CI. Atualizar `docs/ROADMAP.md` apenas se a prioridade, a sequência operacional ou o estado durável de um gate realmente mudar.
 2. Desenvolver o bloco inteiro na própria branch.
 3. Qualquer erro encontrado durante o bloco é corrigido **na mesma branch**, antes do PR.
 4. Atualizar documentação e testes à medida que o comportamento real muda.
