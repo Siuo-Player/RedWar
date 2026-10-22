@@ -86,7 +86,8 @@ def test_historical_real_arena_ledger_is_fail_closed():
     assert bridge["pair_bins"] == {"WW": 10, "DD_WL_LW": 34, "LL": 6}
     assert bridge["lifecycle_context"]
     assert bridge["population_context"]
-    assert "not lifecycle-neutral" in bridge["interpretation"]
+    assert "lifecycle-neutral" in bridge["interpretation"]
+    assert "population-identical" in bridge["interpretation"]
     dataset_path = Path(bridge["dataset_path"])
     audit_path = Path(bridge["audit_path"])
     dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
