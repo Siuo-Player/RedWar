@@ -386,21 +386,29 @@ python tools/scripts/build_cpp_engine.py --smoke
 
 O script usa uma lista explícita de fontes e inclui o caminho NNUE quando aplicável.
 
-## 📚 Documentação atual
+## 📚 Documentação
 
-| Documento | Conteúdo |
+O índice canónico é [`docs/00_INDEX.md`](docs/00_INDEX.md). Usa-o para encontrar o contrato atual de cada área; decisões históricas em `docs/DECISIONS/` explicam o porquê de escolhas anteriores, mas não substituem o contrato atual.
+
+| Documento canónico | Conteúdo |
 |---|---|
-| `README.md` | Visão geral, jogo, produto e estado atual |
-| `docs/Documento_Design_Jogo.md` | Filosofia e decisões de design do jogo |
-| `docs/Estrutura_Projeto.md` | Estrutura do projeto |
-| `docs/ARCHITECTURE.md` | Fronteiras e dependências técnicas |
-| `docs/AI_ENGINE.md` | Ares, search, avaliação, NNUE e Arena |
-| `docs/NNUE.md` | Arquitetura, formato, treino e validação NNUE |
-| `docs/TOOLING.md` | Ferramentas e contratos de tooling |
-| `docs/DEVELOPMENT_WORKFLOW.md` | Ciclo branch → validação → PR → merge |
-| `docs/CONTRIBUTING.md` | Regras de contribuição e validação |
-| `docs/ROADMAP.md` | Estado, prioridades e próximos blocos |
-| `engine/HEROES_SCHEMA.md` | Formato técnico de `heroes_config.json` |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Ordem operacional, gates e prioridades duráveis |
+| [`docs/GAME_RULES.md`](docs/GAME_RULES.md) | Regras do jogo |
+| [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) | Visão e decisões de design |
+| [`docs/HERO_SYSTEM.md`](docs/HERO_SYSTEM.md) | Sistema e fronteiras de comportamento dos heróis |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Fronteiras e invariantes técnicos |
+| [`docs/AI_ENGINE.md`](docs/AI_ENGINE.md) | Ares, pesquisa, avaliação e promoção |
+| [`docs/ARES_BALANCE_BASELINE_1_0_LITE.md`](docs/ARES_BALANCE_BASELINE_1_0_LITE.md) | Baseline congelado do 1.0-Lite |
+| [`docs/NNUE.md`](docs/NNUE.md) | Formato, features, treino e validação NNUE |
+| [`docs/ARENA_STATISTICAL_METHODOLOGY.md`](docs/ARENA_STATISTICAL_METHODOLOGY.md) | Metodologia estatística da Arena |
+| [`docs/STRENGTH_EVALUATION.md`](docs/STRENGTH_EVALUATION.md) | Avaliação e evidência de força |
+| [`docs/BALANCE_METHODOLOGY.md`](docs/BALANCE_METHODOLOGY.md) | Metodologia do Balance Lab |
+| [`docs/TOOLING.md`](docs/TOOLING.md) | Ferramentas e contratos de tooling |
+| [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md) | Issue, branch, validação e PR |
+| [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Regras de contribuição |
+| [`engine/HEROES_SCHEMA.md`](engine/HEROES_SCHEMA.md) | Formato técnico de `heroes_config.json` |
+
+`docs/Documento_Design_Jogo.md` e `docs/Estrutura_Projeto.md` permanecem como documentos de transição/contexto histórico; não são fontes canónicas quando existe um documento dedicado acima.
 
 ## 🗺️ Estado do projeto
 
