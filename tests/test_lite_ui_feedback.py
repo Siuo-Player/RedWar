@@ -101,7 +101,7 @@ def test_selected_frostmage_explains_spell_silence_from_active_inquisitor():
 
 def test_selected_piece_silence_feedback_does_not_block_movement_or_allies():
     from engine.game_state import GameState
-    from engine.pieces import FrostMage, Inquisitor, Ranger
+    from engine.pieces import FrostMage, Inquisitor, Templar
 
     gs = GameState()
     mage = FrostMage("brancas")
