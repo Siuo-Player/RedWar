@@ -37,7 +37,7 @@ CAMPAIGN_SPLIT = "development"
 OPENING_BANK_ID = "lite-balance-development-bank-v1"
 OPENING_BANK_COUNT = 96
 TOTAL_GAMES = OPENING_BANK_COUNT
-MAX_OPENING_RESOLUTION_ATTEMPTS = 10_000
+MAX_OPENING_RESOLUTION_ATTEMPTS = 25_000
 
 # Requested condition identifiers are disjoint between development and future
 # protected hold-out. Each requested seed is resolved to the first deterministic
@@ -51,19 +51,21 @@ _HOLDOUT_REQUESTED_SEEDS = tuple(2_000_000_000 + 7 * index for index in range(96
 def development_opening_conditions() -> tuple[dict[str, Any], ...]:
     used_position_hashes: set[str] = set()
     used_resolved_seeds: set[int] = set()
+    known_invalid_seeds: set[int] = set()
     conditions: list[dict[str, Any]] = []
 
     for opening_index, requested_seed in enumerate(_DEVELOPMENT_REQUESTED_SEEDS):
         resolved = None
         for attempt in range(MAX_OPENING_RESOLUTION_ATTEMPTS):
             candidate_seed = requested_seed + attempt
-            if candidate_seed in used_resolved_seeds:
+            if candidate_seed in used_resolved_seeds or candidate_seed in known_invalid_seeds:
                 continue
 
             board = gerar_abertura(candidate_seed)
             try:
                 draft_costs = validate_complete_pre_match_setup(board)
             except ValueError:
+                known_invalid_seeds.add(candidate_seed)
                 continue
 
             state = GameState()
@@ -71,6 +73,7 @@ def development_opening_conditions() -> tuple[dict[str, Any], ...]:
             initial_rwen = state.to_rwen()
             position_sha256 = _sha256_text(initial_rwen)
             if position_sha256 in used_position_hashes:
+                known_invalid_seeds.add(candidate_seed)
                 continue
 
             resolved = {
