@@ -50,3 +50,5 @@ data/estatisticas_treino.json
 
 # Replays locais: dados do jogador, não conteúdo do repositório
 data/replays/
+
+artifacts/

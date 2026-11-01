@@ -35,6 +35,9 @@ IGNORED_TOP_LEVEL = {
     "__pycache__",
     "build",
     "dist",
+    "artifacts",
+    "assets",
+    "RESEARCH_INBOX",
 }
 
 LEGACY_PATHS = {

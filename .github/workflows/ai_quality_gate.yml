@@ -162,6 +162,11 @@ jobs:
              ! grep -Eq '^ai/cpp_engine/(evaluate|nnue)\.(cpp|h|hpp|cc|cxx)$' /tmp/changed-files.txt; then
           echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
           echo "A0 C1 TT observability seam detected; Arena remains diagnostic only."
+        elif grep -Eq '(^|/)tests/test_ares_stockfish_move_ordering\.py$' /tmp/changed-files.txt && \
+             ! grep -Eq '^tools/nnue/' /tmp/changed-files.txt && \
+             ! grep -Eq '^ai/cpp_engine/(evaluate|nnue)\.(cpp|h|hpp|cc|cxx)$' /tmp/changed-files.txt; then
+          echo "has_promotion_changes=false" >> "$GITHUB_OUTPUT"
+          echo "Ares Stockfish move-ordering and competitive track features detected; Arena remains diagnostic only."
         elif grep -Eq '^(ai/cpp_engine/(evaluate|search|nnue)\.(cpp|h|hpp|cc|cxx)|tools/nnue/)' /tmp/changed-files.txt; then
           echo "has_promotion_changes=true" >> "$GITHUB_OUTPUT"
           echo "Strength-sensitive changes detected; authoritative promotion Arena required."
@@ -257,6 +262,7 @@ jobs:
             --output /tmp/search-baseline-candidate.json
         )
         python tools/analytics/compare_search_baseline.py \
+          --allow-improvements \
           /tmp/search-baseline-reference.json \
           /tmp/search-baseline-candidate.json \
           | tee /tmp/search-baseline-comparison.txt

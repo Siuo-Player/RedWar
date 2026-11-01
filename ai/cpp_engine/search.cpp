@@ -17,8 +17,8 @@ namespace {
 
 constexpr int QSEARCH_MAX_DEPTH = 5;
 constexpr int TT_MOVE_SCORE = 1'000'000;
-constexpr int CAPTURE_SCORE = 50'000;
-constexpr int STUN_SCORE = 40'000;
+constexpr int LETHAL_KILL_SCORE = 100'000;
+constexpr int TACTICAL_STUN_SCORE = 50'000;
 constexpr int SPELL_SCORE = 30'000;
 constexpr int SPAWN_SCORE = 20'000;
 constexpr int KILLER1_SCORE = 10'000;
@@ -134,9 +134,10 @@ bool stun_hits_stunned_enemy(const Move& move, char moving_team) {
 
 bool is_forcing_move(const Move& move) {
     if (move.type == "ATTACK") return true;
-    if (move.type == "STUN") return stun_hits_stunned_enemy(move, board.turn);
+    if (move.type == "STUN") return stun_hits_enemy(move, board.turn);
     if (move.type == "SPELL") {
-        if (move.spell_name == "ignite") return true;
+        if (move.spell_name == "ignite" || move.spell_name == "nevada" ||
+            move.spell_name == "aimed_shot" || move.spell_name == "purify") return true;
         if (move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty) return true;
     }
     return false;
@@ -199,12 +200,20 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
 
         if (move.type == "ATTACK" ||
             (move.type == "SPELL" && move.spell_name == "jump" && !board.pieces[move.er][move.ec].is_empty)) {
-            const int victim = piece_cost(board.pieces[move.er][move.ec]);
+            const Piece& target = board.pieces[move.er][move.ec];
+            const int victim = piece_cost(target);
             const int attacker = piece_cost(board.pieces[move.sr][move.sc]);
-            move.score = CAPTURE_SCORE + victim * 100 - attacker;
+            if (!target.is_empty && target.stun_timer > 0) {
+                // Second stun lethal strike: target is destroyed!
+                move.score = LETHAL_KILL_SCORE + victim * 100 - attacker;
+            } else {
+                // First stun on active piece
+                move.score = TACTICAL_STUN_SCORE + victim * 50 - attacker;
+            }
         }
         else if (move.type == "STUN") {
             int value_sum = 0;
+            bool has_lethal = false;
             constexpr int DR[5] = {0, -1, 1, 0, 0};
             constexpr int DC[5] = {0, 0, 0, -1, 1};
             for (int i = 0; i < 5; ++i) {
@@ -214,13 +223,23 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
                 const Piece& target = board.pieces[r][c];
                 if (target.is_empty || target.team == current_turn) continue;
                 const int value = piece_cost(target);
-                value_sum += value * (target.stun_timer > 0 ? 100 : 60);
+                if (target.stun_timer > 0) {
+                    has_lethal = true;
+                    value_sum += value * 100;
+                } else {
+                    value_sum += value * 50;
+                }
             }
-            move.score = STUN_SCORE + value_sum;
+            if (value_sum > 0) {
+                move.score = (has_lethal ? LETHAL_KILL_SCORE : TACTICAL_STUN_SCORE) + value_sum;
+            } else {
+                move.score = 0;
+            }
         }
         else if (move.type == "SPELL") {
-            if (move.spell_name == "ignite") {
+            if (move.spell_name == "ignite" || move.spell_name == "nevada") {
                 int value_sum = 0;
+                bool has_lethal = false;
                 constexpr int DR[5] = {0, -1, 1, 0, 0};
                 constexpr int DC[5] = {0, 0, 0, -1, 1};
                 for (int i = 0; i < 5; ++i) {
@@ -228,9 +247,27 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
                     const int c = move.ec + DC[i];
                     if (r < 0 || r >= LINHAS || c < 0 || c >= COLUNAS) continue;
                     const Piece& target = board.pieces[r][c];
-                    if (!target.is_empty && target.team != current_turn) value_sum += piece_cost(target) * 60;
+                    if (!target.is_empty && target.team != current_turn) {
+                        const int value = piece_cost(target);
+                        const int center_bonus = (i == 0) ? 20 : 0;
+                        if (target.stun_timer > 0) {
+                            has_lethal = true;
+                            value_sum += value * 100 + center_bonus;
+                        } else {
+                            value_sum += value * 50 + center_bonus;
+                        }
+                    }
                 }
-                move.score = SPELL_SCORE + value_sum;
+                move.score = (has_lethal ? LETHAL_KILL_SCORE : TACTICAL_STUN_SCORE) + value_sum;
+            } else if (move.spell_name == "aimed_shot") {
+                const Piece& target = board.pieces[move.er][move.ec];
+                if (!target.is_empty && target.team != current_turn) {
+                    const int victim = piece_cost(target);
+                    const bool lethal = (target.stun_timer > 0);
+                    move.score = (lethal ? LETHAL_KILL_SCORE : TACTICAL_STUN_SCORE) + victim * 100;
+                } else {
+                    move.score = SPELL_SCORE;
+                }
             } else {
                 move.score = SPELL_SCORE;
             }
@@ -440,7 +477,9 @@ int alpha_beta(
     if (current_turn == 'W') {
         int best_value = -INFINITO;
         bool first_move = true;
+        int move_count = 0;
         for (const Move& move : moves) {
+            ++move_count;
             UndoInfo undo = make_move(move);
             const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
             const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
@@ -449,7 +488,16 @@ int alpha_beta(
                 value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 first_move = false;
             } else {
-                value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
+                const bool do_lmr = (depth >= 4 && move_count >= 6 && !is_forcing_move(move) && !tactical_context);
+                if (do_lmr) {
+                    const int reduced_depth = std::max(1, child_depth - 1);
+                    value = alpha_beta(reduced_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
+                    if (!abort_search && value > alpha) {
+                        value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
+                    }
+                } else {
+                    value = alpha_beta(child_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
+                }
                 if (!abort_search && value > alpha && value < beta) {
                     value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 }
@@ -481,7 +529,9 @@ int alpha_beta(
 
     int best_value = INFINITO;
     bool first_move = true;
+    int move_count = 0;
     for (const Move& move : moves) {
+        ++move_count;
         UndoInfo undo = make_move(move);
         const int child_depth = child_depth_for_move(move, depth, current_turn, continuation);
         const StunContinuation child_continuation = continuation_after_move(move, current_turn, continuation);
@@ -490,7 +540,16 @@ int alpha_beta(
             value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             first_move = false;
         } else {
-            value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
+            const bool do_lmr = (depth >= 4 && move_count >= 6 && !is_forcing_move(move) && !tactical_context);
+            if (do_lmr) {
+                const int reduced_depth = std::max(1, child_depth - 1);
+                value = alpha_beta(reduced_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
+                if (!abort_search && value < beta) {
+                    value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
+                }
+            } else {
+                value = alpha_beta(child_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
+            }
             if (!abort_search && value < beta && value > alpha) {
                 value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             }
@@ -581,6 +640,17 @@ std::string search_best_move(int max_depth) {
 
     std::vector<Move> root_moves = generate_valid_moves(board.turn);
     if (root_moves.empty()) return "";
+
+    const uint64_t initial_key = search_position_key();
+    TTEntry* initial_slot = nullptr;
+    if (use_transposition_table) {
+        initial_slot = &transposition_table[initial_key & TT_MASK];
+    }
+    const bool initial_hit = initial_slot != nullptr && initial_slot->occupied && initial_slot->zobrist_key == initial_key;
+    const Move initial_tt_move = initial_hit ? initial_slot->best_move : Move();
+
+    score_moves(root_moves, initial_tt_move, 0, board.turn);
+    std::sort(root_moves.begin(), root_moves.end());
 
     Move best_overall_move = root_moves.front();
 

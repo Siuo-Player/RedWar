@@ -2,3 +2,4 @@ pygame==2.6.1
 pytest==9.1.1
 websockets==17.2
 Cython>=3.3.0
+setuptools>=69.0.0
