@@ -52,18 +52,18 @@ RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabele
 
 **Objetivo Central:** Tornar o Ares o motor definitivo de RedWar, aplicando as técnicas consolidadas do Stockfish adaptadas à mecânica de combate por stun/morte e utilizando a sua força de cálculo para auditar e balancear o jogo de forma contínua.
 
-### 1. Algoritmos de Busca Avançada (Stockfish-like)
-- **Late Move Reductions (LMR):** Redução seletiva de profundidade em lances calmos (quiet moves) em profundidades elevadas, preservando lances táteis (ataques de stun, ataques letais de segundo stun, feitiços ofensivos).
-- **Move Ordering Aperfeiçoado:**
-  1. *PV Move / Hash Move* proveniente da Transposition Table (TT).
-  2. *Lethal Captures:* Segundo stun letal ordenado por valor da peça capturada (MVV-LVA).
-  3. *Tactical Stuns:* Primeiro stun em alvos de alto custo.
-  4. *Spells Ofensivas:* Feitiços que alteram controlo de área ou provocam dano/bloqueio.
-  5. *Killer Moves:* Heurística de dois lances assassinos por nível de profundidade ply.
-  6. *History Heuristic:* Tabela de histórico ponderando lances calmos que causaram beta-cutoffs.
+### 1. Algoritmos de Busca Avançada (Stockfish-like) - IMPLEMENTADO EM PR #622
+- **Late Move Reductions (LMR):** [x] Redução seletiva de profundidade em lances calmos (quiet moves) para `depth >= 4` e `move_count >= 6`, preservando lances táticos (ataques de stun, ataques letais de segundo stun, feitiços ofensivos diretos).
+- **Move Ordering Aperfeiçoado:** [x]
+  1. *PV Move / Hash Move* proveniente da Transposition Table (TT) com score 1.000.000.
+  2. *Lethal Captures:* Segundo stun letal ordenado por valor da peça capturada (MVV-LVA: score 100.000 + victim*100 - attacker).
+  3. *Tactical Stuns:* Primeiro stun em alvos de alto custo (score 50.000 + victim*50 - attacker).
+  4. *Spells Ofensivas:* Feitiços de área (`ignite`, `nevada`, `aimed_shot`) com bónus de alvo central direto (+20 pts).
+  5. *Killer Moves:* Heurística de dois lances assassinos por nível de profundidade ply (scores 10.000 e 5.000).
+  6. *History Heuristic:* Tabela de histórico por equipa e por tipo de ação (score até 2.000).
   7. *Lances Calmos restantes.*
-- **Quiescence Search (Busca de Tranquilidade):** Extensão tática para resolver trocas pendentes e ameaças iminentes de morte antes de avaliar folhas estáticas, eliminando o efeito horizonte.
-- **Transposition Table (TT) Otimizada:** Refinamento do hashing Zobrist incluindo estados dinâmicos (timers de stun, cooldowns de feitiços e efeitos de terreno de fogo/gelo) com políticas eficientes de substituição por profundidade/idade.
+- **Quiescence Search (Busca de Tranquilidade):** [x] Extensão tática para resolver trocas pendentes e ameaças iminentes de morte antes de avaliar folhas estáticas, eliminando o efeito horizonte.
+- **Transposition Table (TT) Otimizada:** [x] Hashing Zobrist dinâmico incluindo timers de stun, cooldowns e terreno com observabilidade de warmup/reutilização comprovada em testes nativos.
 
 ### 2. Avaliação e NNUE
 - **Avaliação Clássica Heurística:** Calibração contínua de mobilidade de heróis, controlo das casas centrais, linhas de visão, suporte defensivo mútuo e evasão de perigos de terreno (fogo).
@@ -88,14 +88,23 @@ RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabele
   - Compensação empírica de iniciativa (primeiro jogador / Brancas vs Pretas).
   - Calibração de durações de terreno (fogo e gelo), alcance de feitiços e cooldowns.
 
-### 2. Múltiplos Modos de Jogo Balanceados (Chess.com-like)
-1. **Modo Clássico 8×8 (Padrão):** Orçamento de 200 pontos, regras normais, 50 turnos de TWC.
-2. **Modo Grand RedWar 10×10:** Tabuleiro expandido para manobras de flanco e maior profundidade tática; orçamento calibrado (ex.: 300 pontos) e ajuste de alcances.
-3. **Modos com Controlo de Tempo:**
-   - **Bullet:** 1 min + 0s por lance.
-   - **Blitz:** 3 min + 2s ou 5 min + 0s.
-   - **Rápido:** 10 min + 0s ou 15 min + 10s.
-4. **Modo Puzzles & Táticas:** Problemas táticos gerados automaticamente a partir de partidas reais ("Encontra a cadeia de stun e mate em 2 turnos").
+### 2. Múltiplos Modos de Jogo Balanceados (Chess.com-like) - IMPLEMENTADO EM PR #622
+1. **Modo Clássico 8×8 (Padrão):** [x] Orçamento de 200 pontos, regras normais, 50 turnos de TWC (`GameMode.standard_8x8()`).
+2. **Modo Grand RedWar 10×10:** [x] Tabuleiro 10×10 expandido para manobras de flanco e maior profundidade tática; orçamento de 300 pontos, 60 turnos de TWC, hash Zobrist e clonagem dinâmica (`GameMode.grand_10x10()`).
+3. **Modos com Controlo de Tempo:** [x]
+   - **Bullet:** 1 min + 0s por lance (`TimeControl.bullet_1_0()`).
+   - **Blitz:** 3 min + 2s ou 5 min + 0s (`TimeControl.blitz_3_2()`, `TimeControl.blitz_5_0()`).
+   - **Rápido:** 10 min + 0s ou 15 min + 10s (`TimeControl.rapid_10_0()`, `TimeControl.rapid_15_10()`).
+   - **Relógio de Partida Autorizado:** `GameClock` com decremento por lance, incremento e deteção de bandeira caída.
+4. **Modo Puzzles & Táticas:** [x] Runner de problemas táticos (`TacticalPuzzle`, `PuzzleRunner`, `PUZZLE_BANK`) para treino e avaliação de soluções jogada a jogada.
+5. **Bot Difficulty Tiers & ELO Calibrado:** [x]
+   - *Ares Apprentice:* ELO 800, profundidade 2, taxa de erro/inaccuracy de 25%.
+   - *Ares Intermediate:* ELO 1400, profundidade 4, taxa de erro de 8%.
+   - *Ares Advanced:* ELO 1900, profundidade 6, taxa de erro de 1%.
+   - *Ares Master:* ELO 2500+, sem ruído intencional, busca máxima.
+6. **Sistema de Classificação e Leaderboard:** [x]
+   - Cálculo de Elo FIDE/Glicko adaptativo (K=40 provisório, K=20 padrão, K=10 mestre).
+   - Histórico e ranking por modo de jogo com persistência em JSON (`LeaderboardManager`, `PlayerRatingProfile`).
 5. **Variantes de Draft:**
    - *Draft Espelho (Mirror Draft):* Ambos os jogadores partilham a mesma composição de heróis.
    - *Draft às Cegas (Blind Draft):* Escolhas em tempo real sem conhecimento antecipado da equipa inimiga.
