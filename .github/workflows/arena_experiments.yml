@@ -193,11 +193,12 @@ jobs:
             --baseline-version "$BASELINE_SHA" \
             --rules-version "$RULES_VERSION" \
             --jogos "$GAMES" \
+            --margem-vitorias 0 \
+            --mode experiment \
             --nodes "$NODES" \
             --opening-seeds "$OPENING_SEEDS" \
             --seed-policy "$SEED_POLICY" \
             --seed-generation-rule "$SEED_GENERATION_RULE" \
-            --experiment-only \
             --results "${PREFIX}-games.jsonl" \
             2>&1 | tee "${PREFIX}-arena.txt"
           rc=${PIPESTATUS[0]}

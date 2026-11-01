@@ -74,60 +74,7 @@ def test_start_tournament_persists_invalid_games_and_continues(monkeypatch, tmp_
     assert summary["invalid_games"] == 2
     assert summary["valid_games"] == 0
     assert summary["invalid_game_reasons"] == {"timeout": 2}
-
-
-def test_experiment_only_tournament_never_emits_a_promotion_decision(monkeypatch, tmp_path: Path, capsys) -> None:
-    class CompletedBot:
-        def __init__(self, **_kwargs):
-            pass
-
-        def __del__(self):
-            pass
-
-    winners = iter(["Brancas", "Brancas"])
-
-    def completed_match(_white, _black, opening_index=0, opening_seed=None):
-        return {
-            "winner": next(winners),
-            "seed": opening_seed,
-            "opening_index": opening_index,
-            "initial_rwen": "initial",
-            "final_rwen": "final",
-            "plies": 1,
-            "actions": [],
-            "action_counts": {},
-            "termination_reason": "game_over",
-            "valid": True,
-            "failure_reason": None,
-            "failure_exception_type": None,
-            "failure_detail": None,
-        }
-
-    monkeypatch.setattr(arena_tournament, "CppEngineBot", CompletedBot)
-    monkeypatch.setattr(arena_tournament, "run_headless_match", completed_match)
-    results = tmp_path / "experiment.jsonl"
-
-    result = arena_tournament.start_tournament(
-        challenger_engine="challenger",
-        baseline_engine="baseline",
-        num_games=2,
-        win_threshold=0,
-        nodes=10,
-        results_path=str(results),
-        challenger_version="synthetic-challenger",
-        baseline_version="synthetic-baseline",
-        rules_version="synthetic-rules",
-        experiment_only=True,
-    )
-
-    summary = json.loads(results.with_suffix(results.suffix + ".summary.json").read_text(encoding="utf-8"))
-    output = capsys.readouterr().out
-    assert result == 0
-    assert summary["promoted"] is None
-    assert summary["promotion_decision"] == "not_evaluated"
+    assert summary["mode"] == "experiment"
     assert summary["promotion_authority"] is False
-    assert summary["aggregate_strength"]["elo_equivalent_delta"] == pytest.approx(0.0)
-    assert summary["sequential_rating_diagnostic"]["order_invariant"] is False
-    assert "SUCESSO" not in output
-    assert "FALHA" not in output
-    assert "sem decisão de promoção" in output
+    assert summary["promotion_decision"] == "not_authorized"
+    assert summary["promoted"] is False

@@ -6,7 +6,7 @@ Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O c
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-> **Estado atual:** O marco **1.0-Lite local** está concluído e validado. O foco ativo agora é a evolução competitiva da IA **Ares** (inspirada no **Stockfish**), o balanceamento empírico de heróis via **Balance Lab**, e a expansão para a plataforma estilo **Chess.com** (múltiplos modos balanceados, ELO, leaderboard, multiplayer online e cliente web).
+> **Estado atual:** o **1.0-Lite local passou a aceitação final**; RedWar continua em desenvolvimento e as regras podem mudar. O foco competitivo continua no gate Ares #372, enquanto o produto Full e o online seguem a sequência canónica do roadmap.
 
 ## O projeto em duas partes
 
@@ -69,7 +69,7 @@ Uma partida termina quando uma das cores:
 
 O projeto procura eliminar empates. As regras de desempate são portanto consideradas parte do design oficial, embora ainda sejam um sistema em calibração.
 
-Quando é necessário desempatar por material, a cor vencedora atual é determinada pelo maior valor das peças permanentes que continuam no tabuleiro. O balanceamento de cores é validado empiricamente e pode levar a alterações no orçamento ou nas condições de desempate.
+No desempate por material, somam-se os custos das peças permanentes que continuam no tabuleiro; invocações temporárias não contam. Se o material branco for estritamente superior, vencem as Brancas; caso contrário, vencem as Pretas, incluindo em igualdade exata. Esta é a regra determinística atual, não uma compensação adaptativa por cor; qualquer alteração futura exige evidência de balanceamento e uma decisão própria.
 
 ### Contador sem captura
 
@@ -291,24 +291,24 @@ Scripts obsoletos não devem permanecer apenas porque “podem ser úteis um dia
 O ciclo de branch é deliberadamente simples:
 
 ```text
+Issue governante + critérios de aceitação
+   ↓
 branch nova
    ↓
-roadmap atualizado
+implementação + regressões
    ↓
-bloco completo
-   ↓
-testes + benchmark
+validação apropriada
    ↓
 PR
    ↓
-merge
+CI + revisão + merge
    ↓
-apagar branch
+limpeza da branch
    ↓
-próxima branch
+próximo bloco
 ```
 
-Erros encontrados durante o bloco são corrigidos na própria branch.
+O roadmap só é atualizado quando muda uma prioridade, a sequência operacional ou o estado durável de um gate. O objetivo, os critérios de aceitação e o progresso transitório de cada branch pertencem à Issue/PR/CI; não devem ser copiados para o roadmap. Erros encontrados durante o bloco são corrigidos na própria branch.
 
 ## 🌐 Aplicação e web
 
@@ -386,43 +386,50 @@ python tools/scripts/build_cpp_engine.py --smoke
 
 O script usa uma lista explícita de fontes e inclui o caminho NNUE quando aplicável.
 
-## 📚 Documentação atual
+## 📚 Documentação
 
-| Documento | Conteúdo |
+O índice canónico é [`docs/00_INDEX.md`](docs/00_INDEX.md). Usa-o para encontrar o contrato atual de cada área; decisões históricas em `docs/DECISIONS/` explicam o porquê de escolhas anteriores, mas não substituem o contrato atual.
+
+| Documento canónico | Conteúdo |
 |---|---|
-| `README.md` | Visão geral, jogo, produto e estado atual |
-| `docs/Documento_Design_Jogo.md` | Filosofia e decisões de design do jogo |
-| `docs/Estrutura_Projeto.md` | Estrutura do projeto |
-| `docs/ARCHITECTURE.md` | Fronteiras e dependências técnicas |
-| `docs/AI_ENGINE.md` | Ares, search, avaliação, NNUE e Arena |
-| `docs/NNUE.md` | Arquitetura, formato, treino e validação NNUE |
-| `docs/TOOLING.md` | Ferramentas e contratos de tooling |
-| `docs/DEVELOPMENT_WORKFLOW.md` | Ciclo branch → validação → PR → merge |
-| `docs/CONTRIBUTING.md` | Regras de contribuição e validação |
-| `docs/ROADMAP.md` | Estado, prioridades e próximos blocos |
-| `engine/HEROES_SCHEMA.md` | Formato técnico de `heroes_config.json` |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Ordem operacional, gates e prioridades duráveis |
+| [`docs/GAME_RULES.md`](docs/GAME_RULES.md) | Regras do jogo |
+| [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) | Visão e decisões de design |
+| [`docs/HERO_SYSTEM.md`](docs/HERO_SYSTEM.md) | Sistema e fronteiras de comportamento dos heróis |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Fronteiras e invariantes técnicos |
+| [`docs/AI_ENGINE.md`](docs/AI_ENGINE.md) | Ares, pesquisa, avaliação e promoção |
+| [`docs/ARES_BALANCE_BASELINE_1_0_LITE.md`](docs/ARES_BALANCE_BASELINE_1_0_LITE.md) | Baseline congelado do 1.0-Lite |
+| [`docs/NNUE.md`](docs/NNUE.md) | Formato, features, treino e validação NNUE |
+| [`docs/ARENA_STATISTICAL_METHODOLOGY.md`](docs/ARENA_STATISTICAL_METHODOLOGY.md) | Metodologia estatística da Arena |
+| [`docs/STRENGTH_EVALUATION.md`](docs/STRENGTH_EVALUATION.md) | Avaliação e evidência de força |
+| [`docs/BALANCE_METHODOLOGY.md`](docs/BALANCE_METHODOLOGY.md) | Metodologia do Balance Lab |
+| [`docs/TOOLING.md`](docs/TOOLING.md) | Ferramentas e contratos de tooling |
+| [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md) | Issue, branch, validação e PR |
+| [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Regras de contribuição |
+| [`engine/HEROES_SCHEMA.md`](engine/HEROES_SCHEMA.md) | Formato técnico de `heroes_config.json` |
+
+`docs/Documento_Design_Jogo.md` e `docs/Estrutura_Projeto.md` permanecem como documentos de transição/contexto histórico; não são fontes canónicas quando existe um documento dedicado acima.
 
 ## 🗺️ Estado do projeto
 
-Com a conclusão e validação do **1.0-Lite local**, o projeto avança diretamente na evolução da IA e na construção da plataforma completa:
+RedWar ainda não é um produto lançado publicamente. A aceitação local do **1.0-Lite** está concluída: o baseline Ares Lite (#526) e a aceitação final do produto local (#555) foram fechados, incluindo validação E2E real em Windows integrada no PR #587.
 
-### Prioridades Atuais:
-1. **Evolução Competitiva da IA Ares (#372 - Stockfish Model):**
-   - Otimizações de busca avançadas: Late Move Reductions (LMR), ordenação refinada por capturas letais de 2º stun (MVV-LVA), Killer Moves, History Heuristic e Quiescence Search.
-   - Refinamento da avaliação clássica e validação contínua da rede NNUE na Arena.
-2. **Balance Lab com Oráculo de IA (#373 - Balanceamento Empírico):**
-   - Simulação massiva de confrontos e composições com o Ares para auditar e calibrar custos de draft (200 pts) e regras.
-   - Equilíbrio formal de múltiplos modos de jogo:
-     - **Modo Padrão 8×8 (200 pts):** competitivo principal.
-     - **Modo Grand RedWar 10×10 (300 pts):** tabuleiro expandido com mais manobras táticas.
-     - **Modos de Tempo (Chess.com-like):** Bullet (1+0), Blitz (3+2, 5+0) e Rápido (10+0, 15+10).
-     - **Modo Puzzles & Táticas:** desafios para encontrar sequências de stun e morte.
-3. **Plataforma Online & Web (#374 - Chess.com Model):**
-   - Bots com níveis de dificuldade e ELO calibrados (800 a 2500+).
-   - Servidor autoritativo WebSocket (`online/server/`) com relógios estilo xadrez e prevenção de batota.
-   - Matchmaking por ELO/Glicko-2, leaderboards, perfis e transição para o cliente Web.
-4. **Lançamento Full (#375):**
-   - Unificação Desktop e Web, auditoria de licenças de assets e temporadas competitivas.
+**Importante:** a aceitação do 1.0-Lite valida um produto local com baseline congelado; não certifica força competitiva da Ares e não fecha o gate #372.
+
+As prioridades atuais, alinhadas com [`docs/ROADMAP.md`](docs/ROADMAP.md), são:
+
+1. manter a correção do ruleset, a legalidade e as regressões protegidas;
+2. continuar o programa competitivo Ares sob **#372**: correctness, capability, eficiência e evidência Arena independente antes de qualquer promoção;
+3. manter Arena, datasets, provenance e tooling reproduzíveis; a validação do rating histórico continua sob #488;
+4. preparar o Product Full (#373) apenas nas áreas que não contornem os bloqueios de Ares;
+5. avançar para o online (#374) e o release público (#375) pela sequência canónica, sem tratar protótipos como aceitação final;
+6. manter a auditoria de licenças, assets, segurança e distribuição como requisito antes de um lançamento público.
+
+### 10×10 e outros modos
+
+8×8 continua a ser o formato normal.
+
+Um tabuleiro 10×10 é uma possibilidade futura, mas só depois de a base 1.0-Lite e a Ares serem suficientemente rápidas/estáveis para justificar o modo. Também é possível que diferentes tamanhos, orçamentos e regras se tornem modos separados, em vez de substituir o modo normal.
 
 ## Licenças e conteúdo de terceiros
 
