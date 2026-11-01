@@ -335,7 +335,7 @@ class GameState:
 
             # These branches are transition semantics, not a capability whitelist:
             # the spell identity above always comes from heroes_config.json.
-            if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot"}:
+            if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot", "chain_lightning"}:
                 target = self.board[end_row][end_col]
                 if not target or target.team == piece.team:
                     raise ValueError("Special attack spell requires an enemy target")
@@ -434,7 +434,7 @@ class GameState:
         elif action_type == "spell" and spell_name:
             spell_name = str(spell_name).lower()
 
-            if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot"}:
+            if spell_name in {"bone_v", "spectral_strike", "aimed_shot", "sentinel_shot", "chain_lightning"}:
                 target = self.board[end_row][end_col]
                 captured_real_piece = target.lifespan is None
                 self.remove_piece_hash(end_row, end_col)

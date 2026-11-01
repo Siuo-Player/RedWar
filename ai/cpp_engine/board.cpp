@@ -466,7 +466,8 @@ UndoInfo make_move(const Move& m) {
         update_piece(m.sr, m.sc, updated_actor);
     } else if (m.type == "SPELL") {
         if (m.spell_name == "bone_v" || m.spell_name == "spectral_strike" ||
-            m.spell_name == "aimed_shot" || m.spell_name == "sentinel_shot") {
+            m.spell_name == "aimed_shot" || m.spell_name == "sentinel_shot" ||
+            m.spell_name == "chain_lightning") {
             if (undo.target_piece.is_empty || undo.target_piece.team == undo.actor_piece.team) {
                 throw std::runtime_error("Special attack spell requires an enemy target");
             }

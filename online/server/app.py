@@ -162,6 +162,7 @@ async def gerir_conexao(websocket: Any):
                     "tipo": "room_joined",
                     "room_id": room_id,
                     "cor": assigned_role,
+                    "reconnect_token": room.player_tokens.get(player_id),
                     "room": room.state_payload(),
                 }))
                 continue
@@ -207,6 +208,62 @@ async def gerir_conexao(websocket: Any):
                             "reason": "resignation",
                             "room": room.state_payload(),
                         })
+                continue
+
+            # Reconnection with token
+            if tipo == "reconnect":
+                token = str(dados.get("token", ""))
+                room_id = str(dados.get("room_id", ""))
+                room = manager.get_room(room_id)
+                if room:
+                    success, role = room.reconnect_player(meta["player_id"], token)
+                    if success and role:
+                        meta["room_id"] = room_id
+                        meta["cor"] = role
+                        meta["is_legacy"] = False
+                        if room_id not in _room_sockets:
+                            _room_sockets[room_id] = set()
+                        _room_sockets[room_id].add(websocket)
+                        await websocket.send(json.dumps({
+                            "tipo": "reconnect_success",
+                            "room_id": room_id,
+                            "cor": role,
+                            "reconnect_token": token,
+                            "room": room.state_payload(),
+                        }))
+                        continue
+                await _enviar_erro(websocket, "reconexao falhou: token ou sala invalida")
+                continue
+
+            # Rematch proposal
+            if tipo == "rematch":
+                if not meta["is_legacy"] and meta.get("room_id"):
+                    room = manager.get_room(meta["room_id"])
+                    if room:
+                        room.propose_rematch(meta["player_id"])
+                        await _broadcast_room(meta["room_id"], {
+                            "tipo": "rematch_update",
+                            "room": room.state_payload(),
+                        })
+                        if room.is_started and not room.is_finished:
+                            await _broadcast_room(meta["room_id"], {
+                                "tipo": "start_game",
+                                "room": room.state_payload(),
+                            })
+                            await _broadcast_room(meta["room_id"], {
+                                "tipo": "estado_jogo",
+                                "dados": room.session.state_payload(),
+                                "room": room.state_payload(),
+                            })
+                continue
+
+            # Tactical chat emote
+            if tipo == "emote":
+                if not meta["is_legacy"] and meta.get("room_id"):
+                    room = manager.get_room(meta["room_id"])
+                    if room:
+                        msg = room.process_emote(meta["player_id"], str(dados.get("emote", "gg")))
+                        await _broadcast_room(meta["room_id"], msg)
                 continue
 
             # Action request

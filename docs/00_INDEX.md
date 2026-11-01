@@ -42,6 +42,7 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | UI | `BATTLE_UI_SIDEBAR.md` |
 | Replay/telemetria | `REPLAY_STORAGE.md` + `TELEMETRY.md` |
 | Online | `WEB_MULTIPLAYER.md` |
+| Segurança | `../SECURITY.md` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
 
 ## 1.0-Lite baseline selection

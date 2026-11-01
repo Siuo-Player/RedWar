@@ -661,12 +661,28 @@ class Sentry(DataPiece):
     def __init__(self, team): super().__init__(team, "Sentry")
 
 
+class Paladin(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Paladin")
+
+
+class Shadowblade(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Shadowblade")
+
+
+class Stormcaller(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Stormcaller")
+
+
 TODAS_AS_PECAS = [
     Bone, Ghoul, Obelisk, BoneLord,
     Phantom, Sentry,
     FrostMage, Lich,
     Ranger, Nightshade, Templar, StoneWall, Inquisitor, Berserker,
     Pyromancer, Dragoon, Cleric, Trickster, Geomancer,
+    Paladin, Shadowblade, Stormcaller,
 ]
 
 

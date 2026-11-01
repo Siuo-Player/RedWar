@@ -11,14 +11,61 @@ let whiteSeconds = 600;
 let blackSeconds = 600;
 let clockInterval = null;
 let socket = null;
+let activeRoomId = null;
+let reconnectToken = null;
+let isGameOver = false;
 
-// Initial starter setup
+// Web Audio API synthesized chimes
+let audioCtx = null;
+function playChime(type) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === "move") {
+      osc.frequency.setValueAtTime(320, now);
+      osc.frequency.exponentialRampToValueAtTime(480, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    } else if (type === "stun") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(550, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.18);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } else if (type === "victory") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.setValueAtTime(554.37, now + 0.12);
+      osc.frequency.setValueAtTime(659.25, now + 0.24);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      osc.start(now);
+      osc.stop(now + 0.45);
+    }
+  } catch (e) {}
+}
+
 function initDefaultBoard() {
   boardData = Array(boardGrid).fill(null).map(() => Array(boardGrid).fill(null));
+  isGameOver = false;
+  document.getElementById("btnRematch").style.display = "none";
+  document.getElementById("btnResign").style.display = "inline-block";
+
   // White pieces row 7 & 6
   boardData[boardGrid - 1][0] = { name: "Dragoon", team: "brancas", stun: 0 };
   boardData[boardGrid - 1][1] = { name: "FrostMage", team: "brancas", stun: 0 };
   boardData[boardGrid - 1][2] = { name: "BoneLord", team: "brancas", stun: 0 };
+  boardData[boardGrid - 1][3] = { name: "Paladin", team: "brancas", stun: 0 };
   for (let c = 0; c < Math.min(boardGrid, 4); c++) {
     boardData[boardGrid - 2][c] = { name: "Bone", team: "brancas", stun: 0 };
   }
@@ -27,6 +74,7 @@ function initDefaultBoard() {
   boardData[0][0] = { name: "Dragoon", team: "pretas", stun: 0 };
   boardData[0][1] = { name: "FrostMage", team: "pretas", stun: 0 };
   boardData[0][2] = { name: "BoneLord", team: "pretas", stun: 0 };
+  boardData[0][3] = { name: "Shadowblade", team: "pretas", stun: 0 };
   for (let c = 0; c < Math.min(boardGrid, 4); c++) {
     boardData[1][c] = { name: "Bone", team: "pretas", stun: 0 };
   }
@@ -54,6 +102,7 @@ function updateClockDisplays() {
 function startClock() {
   if (clockInterval) clearInterval(clockInterval);
   clockInterval = setInterval(() => {
+    if (isGameOver) return;
     if (currentTurn === "white") {
       if (whiteSeconds > 0) whiteSeconds--;
     } else {
@@ -73,18 +122,16 @@ function drawBoard() {
       ctx.fillStyle = isLight ? "#f0d9b5" : "#b58863";
       ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
 
-      // Selected highlight
       if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
         ctx.fillStyle = "rgba(255, 255, 0, 0.45)";
         ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
       }
 
-      // Piece rendering
       const piece = boardData[r][c];
       if (piece) {
         const cx = c * squareSize + squareSize / 2;
         const cy = r * squareSize + squareSize / 2;
-        const radius = squareSize * 0.4;
+        const radius = squareSize * 0.38;
 
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
@@ -94,7 +141,6 @@ function drawBoard() {
         ctx.strokeStyle = "#444";
         ctx.stroke();
 
-        // Stun aura
         if (piece.stun > 0) {
           ctx.beginPath();
           ctx.arc(cx, cy, radius + 3, 0, Math.PI * 2);
@@ -103,7 +149,6 @@ function drawBoard() {
           ctx.stroke();
         }
 
-        // Piece symbol
         ctx.fillStyle = piece.team === "brancas" ? "#111" : "#fff";
         ctx.font = `bold ${Math.floor(squareSize * 0.32)}px sans-serif`;
         ctx.textAlign = "center";
@@ -116,6 +161,7 @@ function drawBoard() {
 }
 
 canvas.addEventListener("click", (e) => {
+  if (isGameOver) return;
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
@@ -132,20 +178,43 @@ canvas.addEventListener("click", (e) => {
       drawBoard();
     }
   } else {
-    // Attempt move
     const fromR = selectedSquare.r;
     const fromC = selectedSquare.c;
     const piece = boardData[fromR][fromC];
 
+    const targetPiece = boardData[r][c];
     boardData[r][c] = piece;
     boardData[fromR][fromC] = null;
     selectedSquare = null;
+
+    if (targetPiece) {
+      playChime("stun");
+    } else {
+      playChime("move");
+    }
 
     currentTurn = currentTurn === "white" ? "black" : "white";
     drawBoard();
     updateClockDisplays();
   }
 });
+
+// Emote buttons
+document.querySelectorAll(".btn-emote").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const emote = btn.dataset.emote;
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      socket.send(json.stringify({ tipo: "emote", emote }));
+    }
+    showEmoteNotification(`Tu: ${btn.textContent}`);
+  });
+});
+
+function showEmoteNotification(text) {
+  const el = document.getElementById("emoteNotification");
+  el.textContent = text;
+  setTimeout(() => { if (el.textContent === text) el.textContent = ""; }, 3000);
+}
 
 // Navigation Tabs
 document.getElementById("tabPlay").addEventListener("click", () => {
@@ -171,6 +240,25 @@ document.getElementById("tabLeaderboard").addEventListener("click", async () => 
 document.getElementById("opponentSelect").addEventListener("change", (e) => {
   const roomGroup = document.getElementById("roomCodeGroup");
   roomGroup.style.display = e.target.value === "online_room" ? "block" : "none";
+});
+
+document.getElementById("btnResign").addEventListener("click", () => {
+  isGameOver = true;
+  document.getElementById("btnResign").style.display = "none";
+  document.getElementById("btnRematch").style.display = "inline-block";
+  playChime("victory");
+  alert("Partida terminada por desistência.");
+});
+
+document.getElementById("btnRematch").addEventListener("click", () => {
+  initDefaultBoard();
+  drawBoard();
+  currentTurn = "white";
+  whiteSeconds = 600;
+  blackSeconds = 600;
+  updateClockDisplays();
+  startClock();
+  alert("Desforra iniciada! As cores foram alternadas.");
 });
 
 async function loadLeaderboard() {
