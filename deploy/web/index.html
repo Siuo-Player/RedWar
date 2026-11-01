@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RedWar — Competitive Strategy & AI Platform</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>RedWar</h1>
+      <span class="badge">Ares Engine v2.0</span>
+    </div>
+    <nav class="nav-links">
+      <button class="nav-btn active" id="tabPlay">Jogar</button>
+      <button class="nav-btn" id="tabPuzzles">Puzzles</button>
+      <button class="nav-btn" id="tabLeaderboard">Leaderboard</button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="board-container">
+      <div class="player-bar" id="blackPlayerBar">
+        <div class="player-info">
+          <span id="blackPlayerName">Ares Bot</span>
+          <span id="blackPlayerElo">(1400)</span>
+        </div>
+        <div class="clock-timer" id="blackClock">10:00</div>
+      </div>
+
+      <canvas id="gameBoard" width="560" height="560"></canvas>
+
+      <div class="player-bar" id="whitePlayerBar">
+        <div class="player-info">
+          <span id="whitePlayerName">Jogador</span>
+          <span id="whitePlayerElo">(1200)</span>
+        </div>
+        <div class="clock-timer active" id="whiteClock">10:00</div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel-card" id="playPanel">
+        <h2>Modo de Jogo</h2>
+        <div class="select-group">
+          <label for="modeSelect">Tabuleiro / Modo:</label>
+          <select id="modeSelect">
+            <option value="standard_8x8">Padrão 8×8 (200 pts)</option>
+            <option value="grand_10x10">Grand RedWar 10×10 (300 pts)</option>
+          </select>
+        </div>
+
+        <div class="select-group">
+          <label for="timeControlSelect">Controlo de Tempo:</label>
+          <select id="timeControlSelect">
+            <option value="bullet_1_0">Bullet (1+0)</option>
+            <option value="blitz_3_2">Blitz (3+2)</option>
+            <option value="blitz_5_0">Blitz (5+0)</option>
+            <option value="rapid_10_0" selected>Rápido (10+0)</option>
+            <option value="rapid_15_10">Rápido (15+10)</option>
+          </select>
+        </div>
+
+        <div class="select-group">
+          <label for="opponentSelect">Oponente:</label>
+          <select id="opponentSelect">
+            <option value="bot_apprentice">Ares Apprentice (ELO 800)</option>
+            <option value="bot_intermediate" selected>Ares Intermediate (ELO 1400)</option>
+            <option value="bot_advanced">Ares Advanced (ELO 1900)</option>
+            <option value="bot_master">Ares Master (ELO 2500+)</option>
+            <option value="online_room">Partida Online (WebSocket)</option>
+          </select>
+        </div>
+
+        <div class="select-group" id="roomCodeGroup" style="display: none;">
+          <label for="roomCodeInput">Código da Sala:</label>
+          <input type="text" id="roomCodeInput" placeholder="Ex: SALA_01">
+        </div>
+
+        <button class="btn-primary" id="btnStartGame">Iniciar Partida</button>
+        <button class="btn-primary" id="btnResign" style="background: var(--accent-red); margin-top: 6px; display: none;">Abandonar</button>
+      </div>
+
+      <div class="panel-card" id="puzzlesPanel" style="display: none;">
+        <h2>Treino de Táticas</h2>
+        <div class="select-group">
+          <label for="puzzleSelect">Problema:</label>
+          <select id="puzzleSelect"></select>
+        </div>
+        <p id="puzzleDesc" style="font-size: 0.9rem; margin-bottom: 12px;"></p>
+        <button class="btn-primary" id="btnLoadPuzzle">Carregar Problema</button>
+      </div>
+
+      <div class="panel-card" id="leaderboardPanel" style="display: none;">
+        <h2>Classificação ELO</h2>
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jogador</th>
+              <th>ELO</th>
+              <th>V/D</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

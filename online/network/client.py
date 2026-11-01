@@ -1,16 +1,31 @@
 # network/client.py
+from __future__ import annotations
+
 import asyncio
 import json
 import threading
+from typing import Any, Optional
 
 import websockets
 
 
 class NetworkClient:
-    def __init__(self, host="localhost", port=8765):
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 8765,
+        room_id: Optional[str] = None,
+        player_id: Optional[str] = None,
+        time_control: Optional[str] = None,
+    ):
         self.uri = f"ws://{host}:{port}"
+        self.room_id = room_id
+        self.player_id = player_id or f"Player_{id(self)}"
+        self.time_control = time_control
         self.ws = None
         self.latest_state = None
+        self.latest_room = None
+        self.latest_clock = None
         self.latest_error = None
         self.cor_atribuida = None
         self.ligado = False
@@ -31,18 +46,48 @@ class NetworkClient:
             self.ligado = True
             print("[Rede] Conectado ao servidor com sucesso!")
 
+            # Se foi especificada uma sala, envia o pedido de adesão à sala
+            if self.room_id:
+                join_payload = {
+                    "tipo": "join_room",
+                    "room_id": self.room_id,
+                    "player_id": self.player_id,
+                }
+                if self.time_control:
+                    join_payload["time_control"] = self.time_control
+                await self.ws.send(json.dumps(join_payload))
+
             async for mensagem in self.ws:
                 dados = json.loads(mensagem)
+                tipo = dados.get("tipo")
 
-                if dados["tipo"] == "setup":
+                if tipo == "setup":
                     self.cor_atribuida = dados["cor"]
                     print(f"\n[Rede] És o jogador das {self.cor_atribuida.upper()}!")
                     await self.ws.send(json.dumps({"tipo": "pronto"}))
 
-                elif dados["tipo"] == "estado_jogo":
-                    self.latest_state = dados["dados"]
+                elif tipo == "room_joined":
+                    self.cor_atribuida = dados["cor"]
+                    self.latest_room = dados.get("room")
+                    print(f"\n[Rede] Sala '{dados.get('room_id')}' aderida como {self.cor_atribuida.upper()}!")
+                    await self.ws.send(json.dumps({"tipo": "pronto"}))
 
-                elif dados["tipo"] == "erro":
+                elif tipo == "start_game":
+                    if "room" in dados:
+                        self.latest_room = dados["room"]
+                        self.latest_clock = dados["room"].get("clock")
+
+                elif tipo == "estado_jogo":
+                    self.latest_state = dados["dados"]
+                    if "room" in dados:
+                        self.latest_room = dados["room"]
+                        self.latest_clock = dados["room"].get("clock")
+
+                elif tipo == "game_over":
+                    if "room" in dados:
+                        self.latest_room = dados["room"]
+
+                elif tipo == "erro":
                     self.latest_error = dados["mensagem"]
                     print(f"\n[Erro de Rede] {dados['mensagem']}")
 
@@ -69,6 +114,14 @@ class NetworkClient:
         # Envia a jogada de forma segura para a thread assíncrona
         asyncio.run_coroutine_threadsafe(
             self.ws.send(json.dumps(pacote)),
+            self.loop,
+        )
+
+    def enviar_resignation(self):
+        if not self.ligado or not self.ws or self.loop is None:
+            return
+        asyncio.run_coroutine_threadsafe(
+            self.ws.send(json.dumps({"tipo": "resign"})),
             self.loop,
         )
 

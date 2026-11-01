@@ -38,7 +38,9 @@ class AuthoritativeSession:
             )
         else:
             start_row, start_col = normalized.start
-            if not (0 <= start_row < LINHAS and 0 <= start_col < COLUNAS):
+            rows = getattr(self.state, "rows", len(self.state.board))
+            cols = getattr(self.state, "cols", len(self.state.board[0]))
+            if not (0 <= start_row < rows and 0 <= start_col < cols):
                 raise ValueError("action source is outside the board")
             piece = self.state.board[start_row][start_col]
             if piece is None or piece.team != player:

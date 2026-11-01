@@ -118,19 +118,21 @@ RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabele
 
 ---
 
-## #374 — Online Multiplayer & Plataforma Web
+## #374 — Online Multiplayer & Plataforma Web (IMPLEMENTADO EM PR #622 & #374)
 
 **Objetivo Central:** Construir a infraestrutura online que suportará partidas em tempo real, rankings competitivos e a versão Web no mesmo ecossistema.
 
-### 1. Servidor Autoritativo WebSocket (`online/server/`)
-- Servidor autoritativo que valida cada ação legal antes de mutar o estado, impossibilitando batota via cliente.
-- Gestão de sessões, salas privadas com código e fila de matchmaking automático baseado em ELO/MMR por modo de jogo.
-- Gestão formal de relógios de jogo (tempo por turno e relógio global) com derrota por timeout e tolerância a reconexões breves.
+### 1. Servidor Autoritativo WebSocket e Gestão de Salas (`online/server/`)
+- [x] **Salas Autoritativas (`online/server/room.py`):** Gestão isolada de partidas (`GameRoom`, `RoomManager`) com modos configuráveis (Standard 8×8, Grand 10×10) e controlos de tempo (Bullet, Blitz, Rápido).
+- [x] **Relógios de Partida Sincronizados:** Gestão formal de tempo (`GameClock`) com contagem decrescente no turno ativo, adição de incrementos por lance e derrota automática por queda de bandeira (`flag_fall`).
+- [x] **Integração de ELO em Partidas Concluídas:** Atualização automática de ratings e estatísticas de vitória/derrota no `LeaderboardManager` em partidas pontuadas (rated).
+- [x] **Modo Espetador:** Jogadores adicionais além de Brancas e Pretas são admitidos na sala como espetadores e recebem todos os broadcasts de estado sem interferir nas jogadas.
+- [x] **Protocolo WebSocket com Salas (`online/server/app.py`, `online/network/client.py`):** Suporte tanto a pedidos de sala (`join_room`, `acao`, `resign`, `pronto`) como compatibilidade total com clientes e testes legados.
 
-### 2. Plataforma Web e Aplicação Unificada
-- Transição/portabilidade para versão Web jogável diretamente no browser.
-- Perfis de jogador: registo de partidas, histórico de ELO, gráficos de precisão e estatísticas de utilização de heróis.
-- Modo Espetador ao vivo e análise pós-jogo interativa no browser com o Ares WebAssembly/servidor.
+### 2. Plataforma Web e REST API (`online/server/web_app.py`, `deploy/web/`)
+- [x] **REST Web API:** Endpoints `/api/leaderboard`, `/api/bot_tiers`, `/api/puzzles`, `/api/rooms` e `/api/game_modes`.
+- [x] **Cliente Web HTML5/Canvas (`deploy/web/`):** Interface web inspirada no Chess.com com tabuleiro interativo, auras de stun, relógios digitais, alternador de abas (Jogar, Puzzles, Leaderboard) e integração online.
+- [x] **HUD de Relógios no Pygame (`online/client/multiplayer_main.py`):** Renderização visual dos relógios digitais com destaque luminoso na equipa ativa.
 
 ---
 
