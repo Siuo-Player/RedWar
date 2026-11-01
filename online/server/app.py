@@ -11,6 +11,9 @@ from engine.game_modes import GameMode, TimeControl
 from engine.ratings import LeaderboardManager
 from online.server.authority import AuthoritativeSession
 from online.server.room import GameRoom, RoomManager
+from online.server.security import SecurityGuard, TokenBucketRateLimiter
+
+rate_limiter = TokenBucketRateLimiter()
 
 manager = RoomManager(leaderboard_manager=LeaderboardManager(storage_path="data/leaderboards/ratings.json"))
 
@@ -118,15 +121,22 @@ async def gerir_conexao(websocket: Any):
         else:
             await _enviar_erro(websocket, "Sala cheia. Apenas espetador.")
 
+        client_key = str(getattr(websocket, "remote_address", None) or id(websocket))
         async for mensagem in websocket:
-            try:
-                dados = json.loads(mensagem)
-            except (TypeError, json.JSONDecodeError):
-                await _enviar_erro(websocket, "mensagem JSON inválida")
+            if not rate_limiter.allow_request(client_key):
+                await _enviar_erro(websocket, "taxa de mensagens excedida")
                 continue
 
-            if not isinstance(dados, dict):
-                await _enviar_erro(websocket, "mensagem deve ser um objeto JSON")
+            valid, dados, err_code = SecurityGuard.parse_and_validate_json(mensagem)
+            if not valid or dados is None:
+                if err_code == "payload_too_large":
+                    await _enviar_erro(websocket, "payload excede limite maximo de 64 KB")
+                elif err_code == "root_not_an_object":
+                    await _enviar_erro(websocket, "mensagem deve ser um objeto JSON")
+                elif err_code == "missing_or_invalid_tipo":
+                    await _enviar_erro(websocket, "campo 'tipo' ausente ou invalido")
+                else:
+                    await _enviar_erro(websocket, "mensagem JSON inválida")
                 continue
 
             tipo = dados.get("tipo")
