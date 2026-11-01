@@ -244,11 +244,12 @@ void score_moves(std::vector<Move>& moves, const Move& tt_move, int ply, char cu
                     const Piece& target = board.pieces[r][c];
                     if (!target.is_empty && target.team != current_turn) {
                         const int value = piece_cost(target);
+                        const int center_bonus = (i == 0) ? 20 : 0;
                         if (target.stun_timer > 0) {
                             has_lethal = true;
-                            value_sum += value * 100;
+                            value_sum += value * 100 + center_bonus;
                         } else {
-                            value_sum += value * 50;
+                            value_sum += value * 50 + center_bonus;
                         }
                     }
                 }

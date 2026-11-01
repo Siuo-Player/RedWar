@@ -84,9 +84,9 @@ class GameState:
         "_last_history_hash", "replay_metadata", "clock", "game_mode", "max_twc",
     )
 
-    def __init__(self, time_limit_seconds: float = 600.0):
-        self.board: list[list[Any]] = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
-        self.tile_effects: list[list[Any]] = [[None for _ in range(COLUNAS)] for _ in range(LINHAS)]
+    def __init__(self, time_limit_seconds: float = 600.0, rows: int = LINHAS, cols: int = COLUNAS):
+        self.board: list[list[Any]] = [[None for _ in range(cols)] for _ in range(rows)]
+        self.tile_effects: list[list[Any]] = [[None for _ in range(cols)] for _ in range(rows)]
         self.white_to_move = True
         self.game_over = False
         self.winner: str | None = None
@@ -108,8 +108,8 @@ class GameState:
     def compute_initial_hash(self):
         h = ZOBRIST_WTM if self.white_to_move else 0
         h ^= get_counter_zobrist_key(self.turns_without_capture)
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
+        for r in range(len(self.board)):
+            for c in range(len(self.board[0])):
                 p = self.board[r][c]
                 if p is not None:
                     h ^= get_piece_zobrist_key(r, c, p)
@@ -180,8 +180,8 @@ class GameState:
         novo_gs.board = [row[:] for row in self.board]
         novo_gs.tile_effects = [row[:] for row in self.tile_effects]
 
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
+        for r in range(len(self.board)):
+            for c in range(len(self.board[0])):
                 piece = novo_gs.board[r][c]
                 if piece:
                     cloned_piece = piece.__class__(piece.team)

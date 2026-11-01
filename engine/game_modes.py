@@ -110,6 +110,40 @@ class GameMode:
         setattr(state, "game_mode", self)
         setattr(state, "max_twc", self.max_twc)
 
+    def create_game_state(self) -> Any:
+        from engine.game_state import GameState
+        state = GameState(
+            time_limit_seconds=self.time_control.initial_seconds,
+            rows=self.board_rows,
+            cols=self.board_cols,
+        )
+        self.apply_to_game_state(state)
+        return state
+
+    @classmethod
+    def standard_8x8(cls) -> GameMode:
+        return get_preset_mode(GameModeType.STANDARD_8X8)
+
+    @classmethod
+    def grand_10x10(cls) -> GameMode:
+        return get_preset_mode(GameModeType.GRAND_10X10)
+
+    @classmethod
+    def bullet(cls) -> GameMode:
+        return get_preset_mode(GameModeType.BULLET)
+
+    @classmethod
+    def blitz(cls) -> GameMode:
+        return get_preset_mode(GameModeType.BLITZ)
+
+    @classmethod
+    def rapid(cls) -> GameMode:
+        return get_preset_mode(GameModeType.RAPID)
+
+    @classmethod
+    def puzzle(cls) -> GameMode:
+        return get_preset_mode(GameModeType.PUZZLE)
+
 
 _PRESETS: dict[GameModeType, GameMode] = {
     GameModeType.STANDARD_8X8: GameMode(
