@@ -482,7 +482,7 @@ int alpha_beta(
                 value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
                 first_move = false;
             } else {
-                const bool do_lmr = (depth >= 3 && move_count > 3 && !is_forcing_move(move) && !tactical_context);
+                const bool do_lmr = (depth >= 4 && move_count >= 6 && !is_forcing_move(move) && !tactical_context);
                 if (do_lmr) {
                     const int reduced_depth = std::max(1, child_depth - 1);
                     value = alpha_beta(reduced_depth, alpha, alpha + 1, board.turn, ply + 1, child_continuation);
@@ -534,7 +534,7 @@ int alpha_beta(
             value = alpha_beta(child_depth, alpha, beta, board.turn, ply + 1, child_continuation);
             first_move = false;
         } else {
-            const bool do_lmr = (depth >= 3 && move_count > 3 && !is_forcing_move(move) && !tactical_context);
+            const bool do_lmr = (depth >= 4 && move_count >= 6 && !is_forcing_move(move) && !tactical_context);
             if (do_lmr) {
                 const int reduced_depth = std::max(1, child_depth - 1);
                 value = alpha_beta(reduced_depth, beta - 1, beta, board.turn, ply + 1, child_continuation);
