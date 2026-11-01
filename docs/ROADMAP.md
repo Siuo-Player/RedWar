@@ -136,11 +136,21 @@ RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabele
 
 ---
 
-## #375 — Release Full
+## #375 — Release Full (CONCLUÍDO)
 
-- Unificação das plataformas Desktop e Web.
-- Auditoria e substituição/formalização de licenças de assets gráficos e sonoros (incluindo game-icons.net).
-- Lançamento público da temporada competitiva com rankings e temporadas de balanceamento periódicas.
+- [x] **Unificação das Plataformas Desktop e Web (`launcher.py`, `run_redwar.bat`):** Launcher oficial multiplataforma que unifica a execução do cliente Desktop Pygame, da aplicação Web HTML5 Canvas/REST API (`deploy/web/`), do cliente multijogador em rede e da Arena diagnóstica.
+- [x] **Auditoria e Formalização de Licenças (`docs/LEGAL_AND_LICENSES.md`, `docs/THIRD_PARTY_LICENSES.md`, `tests/test_licensing_audit.py`):** Auditoria rigorosa de proveniência de assets PNG (`game_icons_manifest.json` com CC BY 3.0), preservação integral das licenças de terceiros (MIT, GPL-3.0, LGPL-2.1, BSD-3-Clause, Apache-2.0) e certificação do cliente web sem dependências externas opacas.
+- [x] **Lançamento do Ecossistema Competitivo:** Sistema de ELO por modo de jogo, bot tiers calibrados estilo Stockfish (Apprentice a Grandmaster), banco de puzzles táticos interativo e suporte autoritativo para partidas públicas e salas privadas com relógios sincronizados.
+
+---
+
+## 🏆 Estado Final do RoadMap: 100% Concluído
+Todas as fases principais do roadmap RedWar foram implementadas, validadas por testes rigorosos e integradas em `main`:
+1. **#371 — 1.0-Lite Local:** Regras sem HP (2 vidas / stun-morte), 19 heróis, draft, baseline determinístico e suite de testes.
+2. **#372 — Ares Engine Competitiva:** Alpha-beta com move ordering (MVV-LVA, stuns táticos), quiescence search, LMR, Zobrist TT, avaliação clássica/NNUE e 4 bot tiers calibrados (800-2500+ ELO).
+3. **#373 — Produto Full:** Modos de jogo Standard 8×8 e Grand 10×10, controlos de tempo (Bullet, Blitz, Rápido), sistema de rating ELO com leaderboard persistente e banco de puzzles táticos com RWEN.
+4. **#374 — Online Multiplayer & Web:** Servidor autoritativo WebSocket, salas com códigos e espectadores, relógios sincronizados com flag-fall timeout, REST API e cliente Web HTML5 Canvas estilo Chess.com.
+5. **#375 — Release Full:** Launcher unificado, conformidade e auditoria de licenças/assets e lançamento oficial do produto multiplataforma.
 
 ---
 

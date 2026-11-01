@@ -54,6 +54,10 @@ SPDX-License-Identifier: MIT
 
 Its MIT notice must remain intact.
 
+## Web Platform Assets and Code
+
+The web client in `deploy/web/` (`index.html`, `styles.css`, `app.js`) is implemented using native standard HTML5 Canvas, modern CSS, and vanilla ES6 JavaScript without external runtime dependencies, node packages, or remote CDN imports. All styling, SVG icons, and drawing code are licensed under the repository's root MIT license.
+
 ## General rule
 
 Third-party material is not relicensed by RedWar merely because it is stored in this repository. Copyright notices, SPDX identifiers and attribution requirements must remain attached to the original material.

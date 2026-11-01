@@ -86,3 +86,8 @@ Nunca incorporar material apenas porque "está na internet".
 O repositório é público. Não devem ser adicionados tokens, passwords, API keys, private keys ou quaisquer credenciais.
 
 Uma auditoria de padrões de secrets no conteúdo atual não encontrou correspondências para `ghp_` nem para `BEGIN PRIVATE KEY`. Isso não substitui uma análise histórica especializada nem constitui garantia absoluta de ausência de secrets no histórico.
+
+## 7. Plataforma Web e Release 1.0 Full
+
+A plataforma web em `deploy/web/` utiliza código próprio em HTML5 Canvas, CSS e JavaScript nativo, sem bibliotecas de terceiros ou recursos obtidos por CDN. Todo o código do cliente web e da API REST (`online/server/web_app.py`) rege-se pela licença MIT do projeto. Todas as dependências externas declaradas em `requirements.txt` e ficheiros C++ vendorizados mantêm as suas respetivas licenças de software livre (MIT, LGPL-2.1, BSD-3-Clause, Apache-2.0).
+

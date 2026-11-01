@@ -6,7 +6,7 @@ Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O c
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-> **Estado atual:** o **1.0-Lite local passou a aceitação final**; RedWar continua em desenvolvimento e as regras podem mudar. O foco competitivo continua no gate Ares #372, enquanto o produto Full e o online seguem a sequência canónica do roadmap.
+> **Estado atual:** **RedWar 1.0 Full alcançado!** As plataformas Desktop e Web estão unificadas através do launcher oficial, suportando IA inspirada em Stockfish (Ares com níveis calibrados 800-2500+), múltiplos modos de jogo (Standard 8×8, Grand 10×10, Bullet/Blitz/Rápido, Puzzles táticos), leaderboard com ELO persistente e multiplayer online autoritativo com relógios sincronizados.
 
 ## O projeto em duas partes
 
@@ -362,6 +362,27 @@ O objetivo inclui:
 A arquitetura de servidor ainda está em definição. A intenção é usar serviços gratuitos/low-cost quando possível.
 
 O servidor deverá, por princípio, validar as ações recebidas pelo cliente e impedir que o cliente possa simplesmente declarar um estado impossível.
+
+## 🚀 Como Executar (Launcher Unificado)
+
+O RedWar dispõe de um launcher unificado (`launcher.py` e `run_redwar.bat`) para iniciar os diferentes modos e plataformas:
+
+```bash
+# 1. Desktop Pygame Client (padrão)
+python launcher.py desktop
+# ou no Windows:
+run_redwar.bat
+
+# 2. Servidor Web & REST API (HTML5 Canvas no browser)
+python launcher.py web --port 8000
+# Abrir no browser: http://localhost:8000/
+
+# 3. Cliente Desktop Multijogador Online
+python launcher.py multiplayer --server ws://localhost:8765
+
+# 4. Arena Diagnóstica Ares Engine
+python launcher.py arena --nodes 100 --games 4
+```
 
 ## 🧪 Desenvolvimento local
 

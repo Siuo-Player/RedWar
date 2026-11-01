@@ -33,7 +33,7 @@ if errorlevel 1 goto :error
 
 echo [3/3] Starting RedWar...
 echo.
-"%PYTHON%" main.py
+"%PYTHON%" launcher.py %*
 set "EXIT_CODE=%ERRORLEVEL%"
 
 echo.
