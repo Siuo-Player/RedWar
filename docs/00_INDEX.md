@@ -42,6 +42,8 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | UI | `BATTLE_UI_SIDEBAR.md` |
 | Replay/telemetria | `REPLAY_STORAGE.md` + `TELEMETRY.md` |
 | Online | `WEB_MULTIPLAYER.md` |
+| Publicação & Deployment | `DEPLOYMENT_GUIDE.md` |
+| RoadMap 2.0 | `ROADMAP_2_0.md` |
 | Segurança | `../SECURITY.md` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
 

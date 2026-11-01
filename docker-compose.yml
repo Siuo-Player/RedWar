@@ -1,0 +1,10 @@
+services:
+  redwar-web:
+    build: .
+    container_name: redwar-platform
+    ports:
+      - "8000:8000"
+      - "8765:8765"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
