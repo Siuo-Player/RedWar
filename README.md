@@ -6,7 +6,7 @@ Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O c
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-> **Estado atual:** **RedWar 1.0 Full alcançado!** As plataformas Desktop e Web estão unificadas através do launcher oficial, suportando IA inspirada em Stockfish (Ares com níveis calibrados 800-2500+), múltiplos modos de jogo (Standard 8×8, Grand 10×10, Bullet/Blitz/Rápido, Puzzles táticos), leaderboard com ELO persistente e multiplayer online autoritativo com relógios sincronizados.
+> **Estado atual:** **RedWar 2.0 Flagship Platform alcançado!** As plataformas Desktop e Web estão unificadas através do launcher oficial, suportando IA inspirada em Stockfish (Ares 2.0 com Killer Moves, History Heuristics e gestão dinâmica de relógio), modos de jogo competitivos (Standard 8×8, Grand 10×10, Tournament Snake Draft e Hazard Arena com lava e barreiras mágicas), análise pós-partida com precisão e curva de centipawns (Game Review no estilo Chess.com), leaderboard com ELO persistente, multiplayer online seguro e resiliente (reconexão em voo, desforras, rate limiting defensivo) e deploy automatizado e gratuito no GitHub Pages e Docker.
 
 ## O projeto em duas partes
 

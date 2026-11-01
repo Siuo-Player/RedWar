@@ -10,13 +10,14 @@
   <header>
     <div class="brand">
       <h1>RedWar</h1>
-      <span class="badge">Ares Engine 1.1</span>
+      <span class="badge">RedWar 2.0 (Flagship)</span>
       <span class="badge" id="spectatorBadge" style="display: none; background: #3b82f6; margin-left: 8px;">👀 <span id="spectatorCount">0</span> espetadores</span>
     </div>
     <nav class="nav-links">
       <button class="nav-btn active" id="tabPlay">Jogar</button>
       <button class="nav-btn" id="tabPuzzles">Puzzles</button>
       <button class="nav-btn" id="tabLeaderboard">Leaderboard</button>
+      <button class="nav-btn" id="tabReview">Game Review</button>
     </nav>
   </header>
 
@@ -61,6 +62,8 @@
           <select id="modeSelect">
             <option value="standard_8x8">Padrão 8×8 (200 pts)</option>
             <option value="grand_10x10">Grand RedWar 10×10 (300 pts)</option>
+            <option value="snake_draft">Tournament Snake Draft</option>
+            <option value="hazard_arena">Hazard Arena (Lava & Barreiras)</option>
           </select>
         </div>
 
@@ -93,6 +96,7 @@
 
         <button class="btn-primary" id="btnStartGame">Iniciar Partida</button>
         <button class="btn-primary" id="btnRematch" style="background: #22c55e; margin-top: 6px; display: none;">Propor Desforra (Rematch)</button>
+        <button class="btn-primary" id="btnGameReview" style="background: #8b5cf6; margin-top: 6px; display: none;">📊 Análise de Partida (Game Review)</button>
         <button class="btn-primary" id="btnResign" style="background: var(--accent-red); margin-top: 6px; display: none;">Abandonar</button>
       </div>
 
@@ -119,6 +123,18 @@
           </thead>
           <tbody id="leaderboardBody"></tbody>
         </table>
+      <div class="panel-card" id="reviewPanel" style="display: none;">
+        <h2>Análise de Precisão (Game Review)</h2>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem;">
+          <div>Brancas: <strong id="whiteAccScore" style="color: #22c55e;">98.5%</strong></div>
+          <div>Pretas: <strong id="blackAccScore" style="color: #38bdf8;">94.2%</strong></div>
+        </div>
+        <div style="margin-bottom: 8px; font-size: 0.85rem; color: #888;">Evolução de Vantagem (Centipawns):</div>
+        <canvas id="evalChartCanvas" width="280" height="90" style="background: #111; border-radius: 4px; width: 100%; margin-bottom: 12px;"></canvas>
+        <div id="reviewBreakdown" style="font-size: 0.85rem; color: #ccc; line-height: 1.4;">
+          <p>✨ <strong>Brilhantes:</strong> 1 | ⭐ <strong>Melhores:</strong> 6</p>
+          <p>👍 <strong>Excelentes:</strong> 4 | ⚠️ <strong>Imprecisões:</strong> 0</p>
+        </div>
       </div>
     </div>
   </main>

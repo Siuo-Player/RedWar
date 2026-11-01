@@ -44,6 +44,9 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | Online | `WEB_MULTIPLAYER.md` |
 | Publicação & Deployment | `DEPLOYMENT_GUIDE.md` |
 | RoadMap 2.0 | `ROADMAP_2_0.md` |
+| Modos Avançados & Draft | `ROADMAP_2_0.md` + `engine/draft_tournament.py` |
+| Ares Engine 2.0 | `ROADMAP_2_0.md` + `ai/ares2.py` |
+| Game Review & Precisão | `ROADMAP_2_0.md` + `engine/review.py` |
 | Segurança | `../SECURITY.md` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
 
