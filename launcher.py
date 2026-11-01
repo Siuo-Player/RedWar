@@ -18,9 +18,13 @@ VERSION = "1.0.0"
 def run_desktop() -> None:
     """Launch the Pygame desktop application."""
     from main import JogoController
+    from tools.replay.hover_visuals import install_hover_visuals
+    from tools.replay.interaction import install_intent_interaction
 
     app = JogoController()
-    app.executar()
+    install_hover_visuals(app)
+    install_intent_interaction(app)
+    app.run()
 
 
 def run_web(host: str = "0.0.0.0", port: int = 8000) -> None:
