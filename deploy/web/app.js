@@ -18,6 +18,113 @@ let moveHistory = [];
 let evalHistory = [15, 30, -20, 45, 80, 110, 95, 240, 450];
 let activeHazards = [];
 
+// Hero Academy Curriculum & Interactive Lessons
+const HERO_LESSONS = {
+  paladin: {
+    title: "Paladin: O Bastião da Linha de Frente",
+    lore: "Treinado nos mosteiros de ferro das montanhas do norte, o Paladino é um guerreiro sagrado inabalável. Serve como âncora defensiva da equipa.",
+    ability: "Avanço Ortogonal: Move-se até 2 casas em linha reta e atordoa o alvo ao colidir.",
+    objective: "Avança 2 casas para cima para aplicar o segundo stun no Dragoon inimigo enfraquecido e eliminá-lo.",
+    pieces: [
+      { r: 4, c: 3, name: "Paladin", team: "brancas", stun: 0 },
+      { r: 2, c: 3, name: "Dragoon", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 4, fromC: 3, toR: 2, toC: 3 },
+    explanation: "Correto! O avanço de 2 casas ortogonais do Paladino permitiu colidir com a unidade atordoada e garantir uma eliminação imediata."
+  },
+  shadowblade: {
+    title: "Shadowblade: A Lâmina Fantasma",
+    lore: "Criada nas sombras das criptas ancestrais, a Shadowblade maneja adagas de éter e transita entre dimensões. Ignora quaisquer bloqueios na sua rota diagonal.",
+    ability: "Mobilidade Fantasma: Move-se até 3 casas em diagonal atravessando peças aliadas e inimigas sem bloqueios.",
+    objective: "Usa a mobilidade fantasma da Shadowblade para atravessar o soldado aliado e abater o FrostMage inimigo na casa (1, 1).",
+    pieces: [
+      { r: 3, c: 3, name: "Shadowblade", team: "brancas", stun: 0 },
+      { r: 2, c: 2, name: "Bone", team: "brancas", stun: 0 },
+      { r: 1, c: 1, name: "FrostMage", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 3, fromC: 3, toR: 1, toC: 1 },
+    explanation: "Excelente! A Shadowblade atravessou o soldado sem colidir, demonstrando a capacidade única de ignorar bloqueios e alcançar alvos protegidos."
+  },
+  stormcaller: {
+    title: "Stormcaller: O Mestre dos Relâmpagos",
+    lore: "Capaz de canalizar as correntes elétricas da estratosfera, o Stormcaller domina o combate à distância sem se expor.",
+    ability: "Chain Lightning: Feitiço de raio direto disparado em linha reta até 4 casas de distância.",
+    objective: "Dispara o teu raio elétrico ao longo da coluna para atordoar o BoneLord inimigo.",
+    pieces: [
+      { r: 5, c: 2, name: "Stormcaller", team: "brancas", stun: 0 },
+      { r: 2, c: 2, name: "BoneLord", team: "pretas", stun: 0 }
+    ],
+    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
+    explanation: "Vitória! O raio do Stormcaller atingiu o alvo com precisão cirúrgica sem expor a sua posição defensiva."
+  },
+  dragoon: {
+    title: "Dragoon: O Salto do Dragão",
+    lore: "Armado com lança forjada em escamas de dragão, combina velocidade e poder aéreo fulminante.",
+    ability: "Salto Tático em L: Salta sobre obstáculos alcançando alvos em posições protegidas.",
+    objective: "Salta sobre a barreira e neutraliza o Paladin inimigo.",
+    pieces: [
+      { r: 4, c: 4, name: "Dragoon", team: "brancas", stun: 0 },
+      { r: 2, c: 5, name: "Paladin", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 4, fromC: 4, toR: 2, toC: 5 },
+    explanation: "Excelente! O salto do Dragoon contornou as linhas defensivas com maestria."
+  },
+  frostmage: {
+    title: "FrostMage: O Domínio do Gelo",
+    lore: "Especialista em magia glacial arcaica, controla o ritmo da partida reduzindo a temperatura ao redor dos oponentes.",
+    ability: "Congelamento Remoto: Aplica stun à distância até 3 casas ortogonais, paralisando unidades chave.",
+    objective: "Congela o atacante inimigo antes que ele consiga romper as tuas defesas.",
+    pieces: [
+      { r: 4, c: 1, name: "FrostMage", team: "brancas", stun: 0 },
+      { r: 4, c: 3, name: "Dragoon", team: "pretas", stun: 0 }
+    ],
+    solution: { fromR: 4, fromC: 1, toR: 4, toC: 3 },
+    explanation: "Perfeito! O atordoamento de gelo paralisou a ameaça antes do seu próximo turno."
+  },
+  bonelord: {
+    title: "BoneLord: O Soberano das Criptas",
+    lore: "Necromante lendário que ergue soldados esqueléticos para criar superioridade numérica no tabuleiro.",
+    ability: "Invocação de Minions: Invoca soldados em casas adjacentes livres, criando obstáculos e peões de sacrifício.",
+    objective: "Move o BoneLord para a casa central para consolidar o controle da área.",
+    pieces: [
+      { r: 4, c: 3, name: "BoneLord", team: "brancas", stun: 0 },
+      { r: 1, c: 3, name: "FrostMage", team: "pretas", stun: 0 }
+    ],
+    solution: { fromR: 4, fromC: 3, toR: 3, toC: 3 },
+    explanation: "Muito bem! O avanço do BoneLord estabelece a presença central necessária para invocar tropas nos turnos seguintes."
+  }
+};
+
+let activeLessonKey = "paladin";
+let isAcademyMode = false;
+
+function loadAcademyLesson(heroKey) {
+  const lesson = HERO_LESSONS[heroKey];
+  if (!lesson) return;
+  activeLessonKey = heroKey;
+  isAcademyMode = true;
+
+  document.getElementById("heroTitle").textContent = lesson.title;
+  document.getElementById("heroLore").textContent = lesson.lore;
+  document.getElementById("heroAbility").textContent = lesson.ability;
+  document.getElementById("heroObjective").textContent = lesson.objective;
+
+  const feedback = document.getElementById("academyFeedback");
+  feedback.style.display = "none";
+
+  boardGrid = 8;
+  boardData = Array(boardGrid).fill(null).map(() => Array(boardGrid).fill(null));
+  selectedSquare = null;
+  currentTurn = "white";
+
+  lesson.pieces.forEach(p => {
+    boardData[p.r][p.c] = { name: p.name, team: p.team, stun: p.stun };
+  });
+
+  drawBoard();
+}
+
+
 // Web Audio API synthesized chimes
 let audioCtx = null;
 function playChime(type) {
@@ -250,6 +357,27 @@ canvas.addEventListener("click", (e) => {
     boardData[fromR][fromC] = null;
     selectedSquare = null;
 
+    if (isAcademyMode && HERO_LESSONS[activeLessonKey]) {
+      const lesson = HERO_LESSONS[activeLessonKey];
+      const sol = lesson.solution;
+      const feedback = document.getElementById("academyFeedback");
+      feedback.style.display = "block";
+      if (fromR === sol.fromR && fromC === sol.fromC && r === sol.toR && c === sol.toC) {
+        feedback.style.background = "rgba(34, 197, 94, 0.2)";
+        feedback.style.border = "1px solid #22c55e";
+        feedback.style.color = "#22c55e";
+        feedback.innerHTML = `<strong>✨ Sucesso!</strong> ${lesson.explanation}`;
+        playChime("victory");
+      } else {
+        feedback.style.background = "rgba(239, 68, 68, 0.2)";
+        feedback.style.border = "1px solid #ef4444";
+        feedback.style.color = "#f87171";
+        feedback.innerHTML = "<strong>Lance Incorreto.</strong> Tenta novamente observando as capacidades únicas do herói.";
+        playChime("stun");
+      }
+    }
+
+
     if (targetPiece) {
       playChime("stun");
     } else {
@@ -282,8 +410,29 @@ function showEmoteNotification(text) {
 }
 
 // Navigation Tabs
+
+document.getElementById("heroSelect").addEventListener("change", (e) => {
+  loadAcademyLesson(e.target.value);
+});
+
+document.getElementById("btnStartLesson").addEventListener("click", () => {
+  const heroKey = document.getElementById("heroSelect").value;
+  loadAcademyLesson(heroKey);
+});
+
+document.getElementById("tabAcademy").addEventListener("click", () => {
+  document.getElementById("playPanel").style.display = "none";
+  document.getElementById("academyPanel").style.display = "block";
+  document.getElementById("puzzlesPanel").style.display = "none";
+  document.getElementById("leaderboardPanel").style.display = "none";
+  document.getElementById("reviewPanel").style.display = "none";
+  loadAcademyLesson(document.getElementById("heroSelect").value || "paladin");
+});
+
 document.getElementById("tabPlay").addEventListener("click", () => {
   document.getElementById("playPanel").style.display = "block";
+  document.getElementById("academyPanel").style.display = "none";
+  isAcademyMode = false;
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "none";
   document.getElementById("reviewPanel").style.display = "none";
@@ -292,6 +441,8 @@ document.getElementById("tabPlay").addEventListener("click", () => {
 document.getElementById("tabPuzzles").addEventListener("click", async () => {
   document.getElementById("playPanel").style.display = "none";
   document.getElementById("puzzlesPanel").style.display = "block";
+  document.getElementById("academyPanel").style.display = "none";
+  isAcademyMode = false;
   document.getElementById("leaderboardPanel").style.display = "none";
   document.getElementById("reviewPanel").style.display = "none";
   loadPuzzles();
@@ -303,6 +454,8 @@ document.getElementById("tabReview").addEventListener("click", () => {
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "none";
   document.getElementById("reviewPanel").style.display = "block";
+  document.getElementById("academyPanel").style.display = "none";
+  isAcademyMode = false;
   renderCentipawnChart(evalHistory);
 });
 
@@ -311,6 +464,8 @@ document.getElementById("btnGameReview").addEventListener("click", () => {
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "none";
   document.getElementById("reviewPanel").style.display = "block";
+  document.getElementById("academyPanel").style.display = "none";
+  isAcademyMode = false;
   renderCentipawnChart(evalHistory);
 });
 
@@ -318,6 +473,8 @@ document.getElementById("tabLeaderboard").addEventListener("click", async () => 
   document.getElementById("playPanel").style.display = "none";
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "block";
+  document.getElementById("academyPanel").style.display = "none";
+  isAcademyMode = false;
   document.getElementById("reviewPanel").style.display = "none";
   loadLeaderboard();
 });
