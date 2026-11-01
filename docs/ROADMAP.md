@@ -3,182 +3,136 @@
 ## Gate chain 1.0 Full
 
 ```text
-#370 Foundation
+#370 Foundation (CLOSED)
       ↓
-#371 Gameplay
+#371 Gameplay (CLOSED)
       ↓
-#372 Ares competitive/product-strength gate
+#372 Ares Competitive Track (OPEN - Foco Stockfish-like AI & Avaliação de Balanceamento)
       ↓
-#373 Product Full
+#373 Product Full & Game Modes (OPEN - Modos balanceados, Leaderboards e Puzzles)
       ↓
-#374 Online
+#374 Online Multiplayer & Web (OPEN - Chess.com model: WebSocket, ELO, Web app)
       ↓
 #375 Release Full
 ```
 
-## 1.0-Lite path
+## 1.0-Lite path (CONCLUÍDO)
 
-RedWar distinguishes the first **local playable release** from the longer-term competitive Ares programme.
-
-```text
-#370 Foundation
-      ↓
-#371 Gameplay
-      ↓
-#526 1.0-Lite / Ares Balance Baseline
-      ↓
-local Product acceptance
-      ↓
-local 1.0-Lite release
-```
-
-The 1.0-Lite path is not an alternative definition of competitive Ares. It establishes a frozen, reproducible Ares execution baseline that is sufficiently reliable to play and to serve as one controlled agent inside the Balance Lab.
-
-## Estado
-
-- **#370 Foundation — CLOSED.** Contratos base e fronteira de execução fechados para o ruleset atual.
-- **#371 Gameplay — CLOSED.** Ruleset 1.0 jogável fechado para o escopo declarado.
-- **#372 Ares — OPEN.** Competitive/open-project AI track. It is no longer required to block a first local 1.0-Lite release.
-- **#526 1.0-Lite — CLOSED.** Product split and Ares Balance Baseline are closed; remaining local release acceptance was tracked by #555, now CLOSED after unattended Windows OS-level E2E validation merged in PR #587.
-- **#373 Product — OPEN/BLOCKED for 1.0 Full by #372.** Stable local work may proceed through #526 when contracts are independent of the competitive Ares gate.
-- **#374 Online — BLOCKED for the Full product sequence by #372/#373.**
-- **#375 Release — BLOCKED for the Full product sequence by #372/#373/#374.**
-
-## #372 — Ares competitive track
-
-Objective: make Ares strong enough, fast enough and scientifically trustworthy enough for competitive/product-strength promotion.
-
-This track remains open after 1.0-Lite and is explicitly suitable for continued open-project development.
-
-Order:
+RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabelece um produto desktop jogável, regras canónicas estáveis e um baseline congelado para a IA Ares.
 
 ```text
-correctness
-→ deterministic capability
-→ controlled performance
-→ independent Arena strength
-→ promotion
-```
-
-Rules:
-
-- `fast_clone()` não é hot path C++ nem preflight de legalidade;
-- benchmark, NPS, node count, dataset size ou training loss não são prova de strength;
-- search changes devem ser hipóteses isoladas com validação própria;
-- NNUE só pode ser promovida após paridade, custo e evidência competitiva adequados;
-- não alterar as regras do jogo para contornar um blocker de Ares.
-
-## #526 — 1.0-Lite / Ares Balance Baseline
-
-The Lite baseline is a **product execution contract**, not a balance certificate and not a competitive strength claim.
-
-Minimum Ares confidence for Lite:
-
-- correctness/regression suites green;
-- legal action generation and state transitions reliable;
-- reliable termination with no known hangs in representative matches;
-- deterministic/reproducible fixed-budget behaviour;
-- stable, documented difficulty levels;
-- frozen exact engine revision, ruleset, search budget, seed policy and experimental population/context;
-- sufficient capability to generate complete, provenance-valid controlled evidence for Balance Lab analysis.
-
-### Balance methodology constraint
-
-The baseline does not make Ares into the Balance Lab. Ares is one experimental agent used by the Balance Lab.
-
-Hero/economy balance must not be inferred from a single marginal statistic such as:
-
-```text
-hero → global win rate
-```
-
-The evidence model must retain, where applicable:
-
-```text
-hero
-× position
-× allied composition
-× opponent / matchup
-× initiative / colour
-× ruleset
-× seed
-× Ares policy / player-skill context
-× outcome / terminal reason
-```
-
-The controlled flow is:
-
-```text
-freeze baseline
-→ matched games / seeds / colours
-→ selection + provenance audit
-→ contextual matchup / composition / counter evidence
-→ candidate intervention
-→ independent hold-out
-→ manual/design decision
-```
-
-For colour/first-player compensation, calibration games and hold-out games must remain separate; repeatedly selecting compensation from the same observations does not create independent confirmation.
-
-For hero pricing, integer cost is normally the first intervention and should be explored coarse-to-fine. If cost cannot repair the observed strategic defect, escalate to the smallest hero-specific mechanic intervention justified by the evidence. Candidate evaluation must include contextual/matchup and ecosystem effects rather than only the changed hero's aggregate win rate.
-
-`tools/balance/auto_pricer.py` is legacy diagnostic tooling, not an authoritative balance method. It must not automatically justify a price, mechanic or roster change. Its aggregate occurrence/performance heuristic does not replace contextual matchup, composition, positional, population and hold-out analysis.
-
-Balance results remain descriptive and conditional on the frozen baseline, declared population and protocol. They are not claims of intrinsic hero power, universal game balance or competitive Ares strength.
-
-## Local 1.0-Lite acceptance — #555
-
-Current implementation path:
-
-```text
-#526 Lite baseline — CLOSED
+#370 Foundation — CLOSED
       ↓
-#557 Local 2P / hot-seat — CLOSED
+#371 Gameplay — CLOSED
       ↓
-#558 Settings + audio — CLOSED (PR #561 merged)
+#526 1.0-Lite / Ares Balance Baseline — CLOSED
       ↓
-#555 final product acceptance
+#557 Local 2P / Hot-seat — CLOSED
+      ↓
+#558 Settings & Audio — CLOSED
+      ↓
+#555 Windows Acceptance & E2E — CLOSED (PR #587)
 ```
 
-#557 and #558 are merged into `main` at `2c6c9e9` and `e78b6fa`, respectively. PR #561 passed the normal Test Suite, AI Quality Gate and CodeQL. **#555 is now CLOSED**: PR #587 added unattended real Windows OS-level E2E acceptance and the merged `main` baseline passed the corresponding Windows acceptance and CodeQL validation. This acceptance gate does not close #372.
+---
 
-## Not required for 1.0-Lite
+## Estado Geral dos Gates
 
-- statistically significant improvement over previous Ares versions;
-- NNUE as default;
-- continued search optimisation such as LMR;
-- historical competitive rating;
-- closure of #372;
-- an authoritative automatic price change produced by `auto_pricer.py`.
+- **#370 Foundation — CLOSED.** Contratos base, normalização de ações e fronteira de execução fechados.
+- **#371 Gameplay — CLOSED.** Ruleset jogável fechado (stun, morte, turnos sem captura, efeitos de fogo/gelo).
+- **#526 1.0-Lite — CLOSED.** Baseline local e produto desktop com aceitação real no Windows.
+- **#372 Ares Competitive Track — EM PROGRESSO (FOCO ATUAL).** Evolução competitiva contínua inspirada no **Stockfish** (busca alfa-beta otimizada, LMR, ordenação de lances, quiescence, TT e NNUE) servindo também como oráculo para o Balance Lab.
+- **#373 Product Full & Múltiplos Modos — EM DESENVOLVIMENTO PARALELO.** Implementação de múltiplos modos balanceados (8×8, 10×10, controlos de tempo Bullet/Blitz/Rápido, puzzles táticos e variantes de draft) e leaderboards.
+- **#374 Online Multiplayer & Web — EM PREPARAÇÃO.** Transição para o modelo **Chess.com**: servidor WebSocket autoritativo, matchmaking baseado em ELO/Glicko-2, relógios sincronizados e cliente Web.
+- **#375 Release Full — PLANEADO.** Lançamento multiplataforma unificado (Desktop + Web).
 
-## Execution model
+---
 
-The Ares programme and the local product can proceed in parallel once the Lite baseline is frozen:
+## #372 — Ares Competitive Track (Stockfish-like AI Core)
 
-```text
-                         Ares
-                           │
-               ┌───────────┴───────────┐
-               │                       │
-       Lite Balance Baseline     Competitive Ares
-               │                       │
-       Balance Lab input          #372 research
-       + local opponent           Arena / search /
-                                  evaluation / NNUE
-               │                       │
-               └──────────┬────────────┘
-                          │
-                    future integration
-```
+**Objetivo Central:** Tornar o Ares o motor definitivo de RedWar, aplicando as técnicas consolidadas do Stockfish adaptadas à mecânica de combate por stun/morte e utilizando a sua força de cálculo para auditar e balancear o jogo de forma contínua.
 
-An Ares improvement remains open-project research until explicitly selected as the product baseline. Changing the product Ares baseline requires revalidation of dependent balance evidence; it does not automatically happen because a competitive experiment succeeded.
+### 1. Algoritmos de Busca Avançada (Stockfish-like)
+- **Late Move Reductions (LMR):** Redução seletiva de profundidade em lances calmos (quiet moves) em profundidades elevadas, preservando lances táteis (ataques de stun, ataques letais de segundo stun, feitiços ofensivos).
+- **Move Ordering Aperfeiçoado:**
+  1. *PV Move / Hash Move* proveniente da Transposition Table (TT).
+  2. *Lethal Captures:* Segundo stun letal ordenado por valor da peça capturada (MVV-LVA).
+  3. *Tactical Stuns:* Primeiro stun em alvos de alto custo.
+  4. *Spells Ofensivas:* Feitiços que alteram controlo de área ou provocam dano/bloqueio.
+  5. *Killer Moves:* Heurística de dois lances assassinos por nível de profundidade ply.
+  6. *History Heuristic:* Tabela de histórico ponderando lances calmos que causaram beta-cutoffs.
+  7. *Lances Calmos restantes.*
+- **Quiescence Search (Busca de Tranquilidade):** Extensão tática para resolver trocas pendentes e ameaças iminentes de morte antes de avaliar folhas estáticas, eliminando o efeito horizonte.
+- **Transposition Table (TT) Otimizada:** Refinamento do hashing Zobrist incluindo estados dinâmicos (timers de stun, cooldowns de feitiços e efeitos de terreno de fogo/gelo) com políticas eficientes de substituição por profundidade/idade.
 
-## Execution parallel
+### 2. Avaliação e NNUE
+- **Avaliação Clássica Heurística:** Calibração contínua de mobilidade de heróis, controlo das casas centrais, linhas de visão, suporte defensivo mútuo e evasão de perigos de terreno (fogo).
+- **NNUE (Efficiently Updatable Neural Network):** Manutenção do caminho incremental validado; promoção para avaliação padrão apenas quando demonstrar ganho de força comprovado por CPU-segundo na Arena.
 
-Trabalho posterior pode preparar-se em paralelo quando não falsifica uma dependência. Uma preparação não fecha nem ultrapassa um gate anterior.
+### 3. Validação por Arena Automatizada
+- Validação empírica rigorosa com emparelhamento de sementes e alternância de cores (evitando viés de primeiro jogador).
+- Adoção de métricas descritivas invariantes à ordem (modelo pentanomial de pares de jogos) para promoção de código sensível à força.
 
-The 1.0-Lite path is specifically allowed to progress while #372 remains open, because it uses a frozen execution baseline rather than claiming that Ares has completed the competitive-strength programme.
+---
 
-## Regra documental
+## #373 — Product Full, Múltiplos Modos & Balance Lab
 
-Este é o único roadmap operacional. Estado transitório, SHAs, resultados de CI e notas de handoff pertencem ao Git/Issues/CI. Decisões duráveis pertencem a `docs/DECISIONS/`.
+**Objetivo Central:** Garantir que RedWar oferece uma experiência rica com múltiplos modos de jogo equilibrados, apoiando-se no motor Ares como oráculo analítico de balanceamento.
+
+### 1. Pipeline de Balanceamento Orientado por IA (Balance Lab)
+- **Ares como Oráculo Analítico:** Simulação de milhares de partidas self-play e confrontos de composições para alimentar matrizes de desempenho herói × posição × composição × adversário.
+- **Calibração de Custos de Draft:**
+  - Ajuste iterativo e progressivo em números inteiros (coarse-to-fine) no orçamento de draft (200 pts padrão).
+  - Prevenção de "metas" estagnados: heróis hiperdominantes têm o custo aumentado; heróis pouco viáveis têm o custo reduzido.
+- **Balanceamento de Regras e Mecânicas:**
+  - Compensação empírica de iniciativa (primeiro jogador / Brancas vs Pretas).
+  - Calibração de durações de terreno (fogo e gelo), alcance de feitiços e cooldowns.
+
+### 2. Múltiplos Modos de Jogo Balanceados (Chess.com-like)
+1. **Modo Clássico 8×8 (Padrão):** Orçamento de 200 pontos, regras normais, 50 turnos de TWC.
+2. **Modo Grand RedWar 10×10:** Tabuleiro expandido para manobras de flanco e maior profundidade tática; orçamento calibrado (ex.: 300 pontos) e ajuste de alcances.
+3. **Modos com Controlo de Tempo:**
+   - **Bullet:** 1 min + 0s por lance.
+   - **Blitz:** 3 min + 2s ou 5 min + 0s.
+   - **Rápido:** 10 min + 0s ou 15 min + 10s.
+4. **Modo Puzzles & Táticas:** Problemas táticos gerados automaticamente a partir de partidas reais ("Encontra a cadeia de stun e mate em 2 turnos").
+5. **Variantes de Draft:**
+   - *Draft Espelho (Mirror Draft):* Ambos os jogadores partilham a mesma composição de heróis.
+   - *Draft às Cegas (Blind Draft):* Escolhas em tempo real sem conhecimento antecipado da equipa inimiga.
+
+### 3. Bots com Níveis de Dificuldade Calibrados
+- Roster de Bots com personalidades e ratings simulados:
+  - *Bot Iniciante (ELO ~800):* Profundidade 1-2, ruído de busca introduzido intencionalmente.
+  - *Bot Intermédio (ELO ~1400):* Profundidade 3-4, busca tática básica.
+  - *Bot Avançado (ELO ~1900):* Profundidade 5-6 com TT e avaliação clássica completa.
+  - *Bot Mestre Ares (ELO ~2500+):* Full nodes, avaliação NNUE e busca máxima.
+
+---
+
+## #374 — Online Multiplayer & Plataforma Web
+
+**Objetivo Central:** Construir a infraestrutura online que suportará partidas em tempo real, rankings competitivos e a versão Web no mesmo ecossistema.
+
+### 1. Servidor Autoritativo WebSocket (`online/server/`)
+- Servidor autoritativo que valida cada ação legal antes de mutar o estado, impossibilitando batota via cliente.
+- Gestão de sessões, salas privadas com código e fila de matchmaking automático baseado em ELO/MMR por modo de jogo.
+- Gestão formal de relógios de jogo (tempo por turno e relógio global) com derrota por timeout e tolerância a reconexões breves.
+
+### 2. Plataforma Web e Aplicação Unificada
+- Transição/portabilidade para versão Web jogável diretamente no browser.
+- Perfis de jogador: registo de partidas, histórico de ELO, gráficos de precisão e estatísticas de utilização de heróis.
+- Modo Espetador ao vivo e análise pós-jogo interativa no browser com o Ares WebAssembly/servidor.
+
+---
+
+## #375 — Release Full
+
+- Unificação das plataformas Desktop e Web.
+- Auditoria e substituição/formalização de licenças de assets gráficos e sonoros (incluindo game-icons.net).
+- Lançamento público da temporada competitiva com rankings e temporadas de balanceamento periódicas.
+
+---
+
+## Regra Documental
+
+Este é o único roadmap operacional do projeto. Estado transitório, SHAs, resultados de CI e notas de handoff pertencem ao Git/Issues/CI. Decisões duráveis de arquitetura pertencem a `docs/DECISIONS/`.

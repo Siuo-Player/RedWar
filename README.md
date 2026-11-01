@@ -6,7 +6,7 @@ Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O c
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-> **Estado atual:** projeto em desenvolvimento. As regras continuam a poder mudar. O primeiro objetivo de produto é um **1.0-Lite local**, enquanto o Ares continua a evoluir como open-project separado.
+> **Estado atual:** O marco **1.0-Lite local** está concluído e validado. O foco ativo agora é a evolução competitiva da IA **Ares** (inspirada no **Stockfish**), o balanceamento empírico de heróis via **Balance Lab**, e a expansão para a plataforma estilo **Chess.com** (múltiplos modos balanceados, ELO, leaderboard, multiplayer online e cliente web).
 
 ## O projeto em duas partes
 
@@ -404,25 +404,25 @@ O script usa uma lista explícita de fontes e inclui o caminho NNUE quando aplic
 
 ## 🗺️ Estado do projeto
 
-RedWar ainda não é um produto lançado.
+Com a conclusão e validação do **1.0-Lite local**, o projeto avança diretamente na evolução da IA e na construção da plataforma completa:
 
-A prioridade atual é:
-
-1. definir e congelar o **Ares Balance Baseline** e o protocolo mínimo do Balance Lab para o 1.0-Lite;
-2. completar a aplicação local 1.0-Lite: fluxo de partida, draft, Battle UI, VFX/som, dificuldades, replay básico e usabilidade;
-3. manter regras, legalidade e regressões continuamente protegidas;
-4. manter Arena, datasets e tooling reproduzíveis;
-5. lançar a primeira versão local jogável sem depender de servidor ou matchmaking;
-6. continuar o desenvolvimento competitivo da Ares como open-project sob #372;
-7. desenvolver a versão web e o multiplayer;
-8. criar contas, matchmaking, ranking e histórico;
-9. só então considerar o lançamento público completo/Full.
-
-### 10×10 e outros modos
-
-8×8 continua a ser o formato normal.
-
-Um tabuleiro 10×10 é uma possibilidade futura, mas só depois de a base 1.0-Lite e a Ares serem suficientemente rápidas/estáveis para justificar o modo. Também é possível que diferentes tamanhos, orçamentos e regras se tornem modos separados, em vez de substituir o modo normal.
+### Prioridades Atuais:
+1. **Evolução Competitiva da IA Ares (#372 - Stockfish Model):**
+   - Otimizações de busca avançadas: Late Move Reductions (LMR), ordenação refinada por capturas letais de 2º stun (MVV-LVA), Killer Moves, History Heuristic e Quiescence Search.
+   - Refinamento da avaliação clássica e validação contínua da rede NNUE na Arena.
+2. **Balance Lab com Oráculo de IA (#373 - Balanceamento Empírico):**
+   - Simulação massiva de confrontos e composições com o Ares para auditar e calibrar custos de draft (200 pts) e regras.
+   - Equilíbrio formal de múltiplos modos de jogo:
+     - **Modo Padrão 8×8 (200 pts):** competitivo principal.
+     - **Modo Grand RedWar 10×10 (300 pts):** tabuleiro expandido com mais manobras táticas.
+     - **Modos de Tempo (Chess.com-like):** Bullet (1+0), Blitz (3+2, 5+0) e Rápido (10+0, 15+10).
+     - **Modo Puzzles & Táticas:** desafios para encontrar sequências de stun e morte.
+3. **Plataforma Online & Web (#374 - Chess.com Model):**
+   - Bots com níveis de dificuldade e ELO calibrados (800 a 2500+).
+   - Servidor autoritativo WebSocket (`online/server/`) com relógios estilo xadrez e prevenção de batota.
+   - Matchmaking por ELO/Glicko-2, leaderboards, perfis e transição para o cliente Web.
+4. **Lançamento Full (#375):**
+   - Unificação Desktop e Web, auditoria de licenças de assets e temporadas competitivas.
 
 ## Licenças e conteúdo de terceiros
 

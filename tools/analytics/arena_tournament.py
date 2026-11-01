@@ -8,6 +8,7 @@ import argparse
 import json
 import sys
 from collections import Counter
+from math import inf, log10
 from pathlib import Path
 from typing import Literal, Sequence, cast
 
@@ -297,7 +298,14 @@ def _winner_side(winner: object) -> str | None:
     return None
 
 
-def _strength_from_games(games: list[dict[str, object]]) -> tuple[float, float, float, float]:
+def _sequential_rating_diagnostic_from_games(games: list[dict[str, object]]) -> tuple[float, float, float, float]:
+    """Return the legacy order-dependent Elo update as a diagnostic only.
+
+    ``strength_rating.estimate`` deliberately replays observations in order, so
+    the terminal delta can change when the same outcomes are reordered.  It is
+    useful for debugging a particular execution trace, but it is not a batch
+    matchup estimate and must not be used for an Arena promotion decision.
+    """
     results: list[MatchResult] = []
     for game in games:
         if not game.get("valid", True):
@@ -309,6 +317,34 @@ def _strength_from_games(games: list[dict[str, object]]) -> tuple[float, float, 
     ratings = estimate({"challenger": Rating(), "baseline": Rating()}, results)
     relative = compare(ratings["challenger"], ratings["baseline"])
     return ratings["challenger"].value, ratings["baseline"].value, relative.delta, 1.96 * relative.delta_uncertainty
+
+
+def _aggregate_elo_equivalent_from_games(games: list[dict[str, object]]) -> tuple[float | None, float | None, int]:
+    """Derive an order-invariant descriptive Elo-equivalent from valid totals.
+
+    This is the two-player maximum-likelihood Elo-equivalent of the aggregate
+    score, with draws contributing half a point.  It is intentionally kept
+    separate from the paired bootstrap promotion model in
+    ``strength_statistics``: it describes the observed batch, but does not
+    provide its uncertainty or a promotion decision.
+    """
+    outcomes = [
+        str(game["outcome"])
+        for game in games
+        if game.get("valid", True) and str(game.get("outcome")) in {"challenger", "baseline", "draw"}
+    ]
+    if not outcomes:
+        return None, None, 0
+
+    wins = outcomes.count("challenger")
+    draws = outcomes.count("draw")
+    valid_games = len(outcomes)
+    challenger_score = (wins + 0.5 * draws) / valid_games
+    if challenger_score == 0.0:
+        return challenger_score, -inf, valid_games
+    if challenger_score == 1.0:
+        return challenger_score, inf, valid_games
+    return challenger_score, 400.0 * log10(challenger_score / (1.0 - challenger_score)), valid_games
 
 
 def start_tournament(
@@ -324,6 +360,8 @@ def start_tournament(
     opening_seeds: Sequence[int] | None = None,
     seed_policy: str | None = None,
     seed_generation_rule: str | None = None,
+    *,
+    experiment_only: bool = False,
 ) -> int:
     print(f"⚔️ A INICIAR A/B ARENA: {num_games} JOGOS (margem exigida: {win_threshold}, nodes: {nodes})")
     print(f"Challenger: {challenger_engine}")
@@ -387,11 +425,18 @@ def start_tournament(
 
         diferenca = wins_challenger - wins_baseline
         win_rate = wins_challenger / max(1, wins_challenger + wins_baseline + draws) * 100.0
-        promoted = invalid_games == 0 and verificar_promocao(wins_challenger, wins_baseline, win_threshold)
-        rating_challenger, rating_baseline, rating_delta, rating_uncertainty_proxy_half_width = _strength_from_games(games)
+        promoted: bool | None = None if experiment_only else (
+            invalid_games == 0 and verificar_promocao(wins_challenger, wins_baseline, win_threshold)
+        )
+        promotion_decision = "not_evaluated" if experiment_only else ("accept" if promoted else "reject")
+        rating_challenger, rating_baseline, rating_delta, rating_uncertainty_proxy_half_width = (
+            _sequential_rating_diagnostic_from_games(games)
+        )
+        aggregate_score, aggregate_elo_equivalent, aggregate_valid_games = _aggregate_elo_equivalent_from_games(games)
         balance = summarize_experiment_balance(games)
         pentanomial = summarize_pentanomial(games)
         summary: dict[str, object] = {
+            "summary_schema_version": "redwar-arena-summary-v2",
             "games": num_games,
             "valid_games": num_games - invalid_games,
             "invalid_games": invalid_games,
@@ -407,12 +452,26 @@ def start_tournament(
             "margin": diferenca,
             "win_rate_challenger": win_rate,
             "promoted": promoted,
-            "strength_model": "elo_compatible_baseline_v1",
-            "rating_challenger": rating_challenger,
-            "rating_baseline": rating_baseline,
-            "rating_delta": rating_delta,
-            "rating_delta_uncertainty_proxy_half_width": rating_uncertainty_proxy_half_width,
-            "rating_delta_uncertainty_type": "engineering_uncertainty_proxy_v1",
+            "promotion_decision": promotion_decision,
+            "promotion_authority": not experiment_only,
+            "aggregate_strength": {
+                "model": "aggregate-outcome-elo-equivalent-v1",
+                "description": "order-invariant descriptive batch estimate; not a promotion decision",
+                "valid_games": aggregate_valid_games,
+                "challenger_score": aggregate_score,
+                "elo_equivalent_delta": aggregate_elo_equivalent,
+            },
+            "sequential_rating_diagnostic": {
+                "model": "elo-compatible-sequential-diagnostic-v1",
+                "description": "order-dependent execution-trace diagnostic; not a batch strength estimate or promotion decision",
+                "order": "stored_game_index_order",
+                "order_invariant": False,
+                "rating_challenger": rating_challenger,
+                "rating_baseline": rating_baseline,
+                "rating_delta": rating_delta,
+                "rating_delta_uncertainty_proxy_half_width": rating_uncertainty_proxy_half_width,
+                "rating_delta_uncertainty_type": "engineering_uncertainty_proxy_v1",
+            },
             "balance_audit": balance,
             "pentanomial": pentanomial,
             "action_counts": dict(aggregate_actions),
@@ -420,13 +479,16 @@ def start_tournament(
         print(f"\n\nResultados: Challenger {wins_challenger} | Baseline {wins_baseline} | Empates {draws} | Inválidos {invalid_games}")
         print(f"Taxa de Vitória do Challenger: {win_rate:.2f}%")
         print(f"Margem Challenger-Baseline: {diferenca:+d}")
-        print(f"Strength Rating: Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (uncertainty proxy ±{rating_uncertainty_proxy_half_width:.1f})")
+        print(f"Elo-equivalente agregado (descritivo, invariante à ordem): Δ {aggregate_elo_equivalent:+.1f}" if aggregate_elo_equivalent is not None else "Elo-equivalente agregado: sem jogos válidos")
+        print(f"Diagnóstico Elo sequencial (dependente da ordem): Challenger {rating_challenger:.1f} | Baseline {rating_baseline:.1f} | Δ {rating_delta:+.1f} (uncertainty proxy ±{rating_uncertainty_proxy_half_width:.1f})")
         print(f"Pentanomial: {pentanomial['bins']} | Pares completos: {pentanomial['complete_pairs']}")
         if invalid_games:
             print(f"⚠️ {invalid_games} jogos inválidos; a experiência não pode promover uma revisão com observações inválidas.")
         if pentanomial["incomplete_pair_ids"]:
             print(f"Pares incompletos: {pentanomial['incomplete_pair_ids']}")
-        if promoted:
+        if experiment_only:
+            print("ℹ️ EXPERIMENTO: execução concluída sem decisão de promoção; use a análise pareada e a proveniência declarada.")
+        elif promoted:
             print("👑 SUCESSO: Challenger superou a baseline por margem suficiente.")
         else:
             print("❌ FALHA: Challenger não atingiu a margem exigida.")
@@ -440,7 +502,7 @@ def start_tournament(
             summary_path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(f"📦 Jogos: {output}")
             print(f"📊 Resumo: {summary_path}")
-        return 0 if promoted else 1
+        return 0 if experiment_only or promoted else 1
     finally:
         for bot in (challenger, baseline):
             bot.__del__()
@@ -460,6 +522,11 @@ def main() -> int:
     parser.add_argument("--opening-seeds", help="Explicit ordered comma-separated opening seed set (exactly 16 unique non-negative integers).")
     parser.add_argument("--seed-policy", help="Declared seed policy stored in experiment provenance")
     parser.add_argument("--seed-generation-rule", help="Declared seed-generation rule stored in experiment provenance")
+    parser.add_argument(
+        "--experiment-only",
+        action="store_true",
+        help="Record a completed non-authoritative experiment without evaluating a promotion decision",
+    )
     args = parser.parse_args()
 
     opening_seeds = parse_opening_seeds(args.opening_seeds) if args.opening_seeds else None
@@ -478,6 +545,7 @@ def main() -> int:
         opening_seeds,
         seed_policy,
         seed_generation_rule,
+        experiment_only=args.experiment_only,
     )
 
 

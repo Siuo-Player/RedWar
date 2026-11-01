@@ -18,3 +18,5 @@ def test_arena_does_not_label_uncertainty_as_confidence_interval():
     assert "IC95" not in text
     assert "rating_delta_uncertainty_proxy_half_width" in text
     assert "rating_delta_uncertainty_type" in text
+    assert "Strength Rating:" not in text
+    assert "order-dependent execution-trace diagnostic" in text

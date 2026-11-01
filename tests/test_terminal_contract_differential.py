@@ -7,7 +7,9 @@ from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
 
 ROOT = Path(__file__).resolve().parents[1]
-BINARY = ROOT / "cpp_terminal_contract_test"
+import os
+BINARY_NAME = "cpp_terminal_contract_test.exe" if os.name == "nt" else "cpp_terminal_contract_test"
+BINARY = ROOT / BINARY_NAME
 
 
 def _run_native(states: list[GameState]) -> list[tuple[str, int, str]]:
