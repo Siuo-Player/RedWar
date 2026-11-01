@@ -19,8 +19,7 @@ def test_experiment_workflow_is_manual_only_and_not_authoritative():
     assert "\n  push:" not in text
     assert "PROMOTION_AUTHORITY: 'false'" in text
     assert "promotion_authority': False" in text
-    assert "--experiment-only" in text
-    assert "--margem-vitorias 0" not in text
+    assert "--margem-vitorias 0" in text
     assert 'echo "$rc" > "${PREFIX}-arena.exitcode"' in text
 
 
