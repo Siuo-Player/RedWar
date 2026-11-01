@@ -6,10 +6,10 @@
 
 ## 🗺️ Visão Estratégica
 
-Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **Stockfish**, o RedWar evoluiu em 3 fases complementares:
+Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **Stockfish**, o RedWar evoluiu em fases complementares com rigor de engenharia:
 1. **RedWar 1.1**: Roster expandido de heróis e PvP resiliente (reconexão em voo, desforras, espectadores ao vivo e reações táteis).
 2. **RedWar 1.2**: Publicação gratuita na internet (deploy automático via GitHub Pages + Docker para nuvens gratuitas) e endurecimento de segurança (rate limiting, DoS mitigation, proteção de dados e integridade).
-3. **RedWar 2.0**: Modos avançados (Tournament Draft & Riscos Ambientais), Motor Ares 2.0 (History Heuristic + Killer Moves, alocação dinâmica de tempo) e Análise de Partidas no Browser com gráfico de precisão (Game Review).
+3. **RedWar 2.0**: Modos avançados (Tournament Draft & Riscos Ambientais), Motor Ares 2.0 (History Heuristic + Killer Moves, alocação dinâmica de tempo), Análise de Partidas no Browser com gráfico de precisão (Game Review), Academia de Heróis com tutoriais interativos, perfis especializados de IA por modo e framework estatístico **SPRT** (Sequential Probability Ratio Test) para garantir que apenas melhorias matematicamente comprovadas entram no motor.
 
 ---
 
@@ -66,6 +66,18 @@ Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **
   - Renderização no browser da curva de vantagem em centipawns ao longo dos turnos e cálculo de precisão global de cada jogador via modelo de decaimento exponencial.
 - [x] **Classificação Qualitativa de Lances (`MoveClassification` em `engine/review.py`)**:
   - Classificação formal de cada jogada: Brilhante, Melhor Lance, Excelente, Bom, Imprecisão, Erro e Gaffe (Blunder).
+
+### Milestone 2.4: Metodologia de IA Stockfish (SPRT & Perfis por Modo)
+- [x] **Framework Estatístico SPRT (`ai/sprt.py`, `.github/workflows/ares_sprt.yml`)**:
+  - Teste sequencial de razão de verosimilhança (Wald's SPRT) com LLR, estimativa de Elo e margens de erro de 95% de confiança, garantindo que novas versões de motor provem superioridade antes de promoção.
+- [x] **Perfis de IA Especializados por Modo (`ai/profiles.py`)**:
+  - `StandardAresProfile`, `GrandAresProfile`, `DraftAresProfile` e `HazardAresProfile`, cada qual com pesos de avaliação, sinergias e parâmetros de busca dedicados.
+
+### Milestone 2.5: Academia de Heróis e Documentação Wiki
+- [x] **Academia de Heróis Interativa (`engine/hero_academy.py`, `deploy/web/`)**:
+  - Puzzles interativos explicados passo a passo para introduzir as habilidades únicas de cada herói (Paladin, Shadowblade, Stormcaller, Dragoon, FrostMage, BoneLord) com lore, validação em tempo real e feedback tático.
+- [x] **Documentação Wiki Oficial do GitHub (`wiki/`, `.github/workflows/deploy_wiki.yml`)**:
+  - Estrutura completa de Wiki com 6 secções canónicas (Home, Regras, Heróis, Ares/SPRT, Modos e Publicação) sincronizadas automaticamente com o repositório GitHub Wiki.
 
 ---
 

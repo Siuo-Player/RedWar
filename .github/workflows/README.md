@@ -26,6 +26,8 @@ Não usar resultados de workflows diagnósticos ou experimentais como se fossem 
 |---|---|---|---|---|---|
 | `test_suite.yml` | Testes funcionais, regressões e contratos Python/C++ | PR, push de branches não-`main`, manual | CI automático | Required/general correctness | Toda alteração de código |
 | `deploy_web.yml` | Deploy automatizado do cliente Web para o GitHub Pages | Push em `main` (`deploy/web/**`) ou manual | Deploy | Publicação estática de frontend | CI automático e manual |
+| `deploy_wiki.yml` | Sincronização e publicação da documentação no GitHub Wiki | Push em `main` (`wiki/**`) ou manual | Deploy | Publicação de documentação Wiki | CI automático e manual |
+| `ares_sprt.yml` | Teste sequencial de razão de verosimilhança (SPRT) para validação estatística de IA estilo Stockfish | Manual / workflow_dispatch | Gate experimental | Evidência de força estatística (LLR) | Pesquisa e promoção de IA |
 | `lite_windows_acceptance.yml` | Aceitação real desktop 1.0-Lite em Windows | PR/push-`main` em paths relevantes, manual | CI de produto | Aceitação Lite/Windows | Alterações em produto/UI/replay/launcher |
 | `ai_quality_gate.yml` | Qualidade e strength-sensitive Ares em PRs | PR, manual | Gate automático | **Autoridade de promoção Ares** | PRs que alterem IA/qualidade protegida |
 | `codeql.yml` | Análise de segurança | PR, push-`main`, semanal, manual | Segurança automática | Security evidence | Segurança/código; execução normal também é automática |

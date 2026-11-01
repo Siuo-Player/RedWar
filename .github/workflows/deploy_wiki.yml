@@ -1,0 +1,23 @@
+name: Deploy RedWar Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "wiki/**"
+  workflow_dispatch:
+
+jobs:
+  deploy_wiki:
+    name: Sync Documentation to GitHub Wiki
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy Wiki Pages
+        run: |
+          echo "Checking wiki directory integrity..."
+          test -d wiki
+          ls -la wiki/

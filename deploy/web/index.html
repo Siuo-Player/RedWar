@@ -15,6 +15,7 @@
     </div>
     <nav class="nav-links">
       <button class="nav-btn active" id="tabPlay">Jogar</button>
+      <button class="nav-btn" id="tabAcademy">Academia</button>
       <button class="nav-btn" id="tabPuzzles">Puzzles</button>
       <button class="nav-btn" id="tabLeaderboard">Leaderboard</button>
       <button class="nav-btn" id="tabReview">Game Review</button>
@@ -123,6 +124,33 @@
           </thead>
           <tbody id="leaderboardBody"></tbody>
         </table>
+      </div>
+      <div class="panel-card" id="academyPanel" style="display: none;">
+        <h2>🎓 Academia de Heróis</h2>
+        <p style="font-size: 0.85rem; color: #888; margin-bottom: 12px;">Aprende as habilidades únicas, movimentação e táticas de cada herói através de tutoriais interativos e puzzles passo a passo.</p>
+        
+        <div class="form-group">
+          <label for="heroSelect">Escolhe o Herói:</label>
+          <select id="heroSelect">
+            <option value="paladin">Paladin — O Bastião Sagrado</option>
+            <option value="shadowblade">Shadowblade — A Lâmina Fantasma</option>
+            <option value="stormcaller">Stormcaller — O Mestre dos Raios</option>
+            <option value="dragoon">Dragoon — O Salto do Dragão</option>
+            <option value="frostmage">FrostMage — O Domínio do Gelo</option>
+            <option value="bonelord">BoneLord — O Soberano das Criptas</option>
+          </select>
+        </div>
+
+        <div id="heroCard" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+          <h3 id="heroTitle" style="color: #a855f7; margin-bottom: 6px; font-size: 1.05rem;">Paladin: O Bastião da Linha de Frente</h3>
+          <p id="heroLore" style="font-size: 0.85rem; color: #aaa; margin-bottom: 8px; font-style: italic;">Treinado nos mosteiros de ferro das montanhas do norte, o Paladino é um guerreiro sagrado inabalável.</p>
+          <div style="font-size: 0.85rem; margin-bottom: 6px;"><strong>Habilidade:</strong> <span id="heroAbility" style="color: #38bdf8;">Avanço Ortogonal até 2 casas.</span></div>
+          <div style="font-size: 0.85rem; margin-bottom: 6px;"><strong>Objetivo:</strong> <span id="heroObjective" style="color: #22c55e;">Avança 2 casas para cima para aplicar o segundo stun no Dragoon enfraquecido.</span></div>
+        </div>
+
+        <button class="btn-primary" id="btnStartLesson" style="background: #a855f7; margin-bottom: 10px;">Carregar Lição no Tabuleiro</button>
+        <div id="academyFeedback" style="display: none; padding: 10px; border-radius: 4px; font-size: 0.85rem; line-height: 1.4; margin-top: 8px;"></div>
+      </div>
       <div class="panel-card" id="reviewPanel" style="display: none;">
         <h2>Análise de Precisão (Game Review)</h2>
         <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem;">
