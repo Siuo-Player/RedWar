@@ -257,6 +257,7 @@ jobs:
             --output /tmp/search-baseline-candidate.json
         )
         python tools/analytics/compare_search_baseline.py \
+          --allow-improvements \
           /tmp/search-baseline-reference.json \
           /tmp/search-baseline-candidate.json \
           | tee /tmp/search-baseline-comparison.txt

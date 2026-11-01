@@ -77,3 +77,65 @@ def test_bestmove_change_fails(tmp_path: Path) -> None:
     assert completed.returncode == 1
     assert "bestmove" in completed.stderr
     assert "SEARCH REGRESSION: FAIL" in completed.stderr
+
+
+def test_allow_improvements_permits_tactical_gain(tmp_path: Path) -> None:
+    reference = tmp_path / "reference.json"
+    candidate = tmp_path / "candidate.json"
+
+    ref_payload = {
+        "schema_version": 1,
+        "cases": ["case-a"],
+        "node_budgets": [10],
+        "results": [
+            {
+                "case": "case-a",
+                "return_code": 0,
+                "validation_errors": [],
+                "results": [
+                    {
+                        "nodes": 10,
+                        "bestmove": "A1A2",
+                        "elapsed_seconds": 0.01,
+                        "legal": "move",
+                        "mode": "normal",
+                        "passed": False,
+                    }
+                ],
+            }
+        ],
+    }
+    cand_payload = {
+        "schema_version": 1,
+        "cases": ["case-a"],
+        "node_budgets": [10],
+        "results": [
+            {
+                "case": "case-a",
+                "return_code": 0,
+                "validation_errors": [],
+                "results": [
+                    {
+                        "nodes": 10,
+                        "bestmove": "SPELL nevada A5 D5",
+                        "elapsed_seconds": 0.01,
+                        "legal": "spell",
+                        "mode": "normal",
+                        "passed": True,
+                    }
+                ],
+            }
+        ],
+    }
+    reference.write_text(json.dumps(ref_payload), encoding="utf-8")
+    candidate.write_text(json.dumps(cand_payload), encoding="utf-8")
+
+    completed = subprocess.run(
+        [sys.executable, str(SCRIPT), "--allow-improvements", str(reference), str(candidate)],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert completed.returncode == 0
+    assert "SEARCH REGRESSION: PASS" in completed.stdout
