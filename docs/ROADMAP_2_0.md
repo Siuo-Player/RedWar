@@ -6,7 +6,7 @@
 
 ## 🗺️ Visão Estratégica
 
-Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **Stockfish**, o RedWar evolui em 3 fases complementares:
+Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **Stockfish**, o RedWar evoluiu em 3 fases complementares:
 1. **RedWar 1.1**: Roster expandido de heróis e PvP resiliente (reconexão em voo, desforras, espectadores ao vivo e reações táteis).
 2. **RedWar 1.2**: Publicação gratuita na internet (deploy automático via GitHub Pages + Docker para nuvens gratuitas) e endurecimento de segurança (rate limiting, DoS mitigation, proteção de dados e integridade).
 3. **RedWar 2.0**: Modos avançados (Tournament Draft & Riscos Ambientais), Motor Ares 2.0 (History Heuristic + Killer Moves, alocação dinâmica de tempo) e Análise de Partidas no Browser com gráfico de precisão (Game Review).
@@ -34,12 +34,12 @@ Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **
 
 ## 📌 Fase 2: RedWar 1.2 — Publicação Gratuita e Segurança
 
-- [ ] **Publicação Frontend no GitHub Pages (`.github/workflows/deploy_web.yml`)**:
+- [x] **Publicação Frontend no GitHub Pages (`.github/workflows/deploy_web.yml`)**:
   - Deploy automatizado e 100% gratuito do cliente web em `https://<user>.github.io/RedWar/`.
-- [ ] **Containerização Docker (`Dockerfile`, `docker-compose.yml`)**:
+- [x] **Containerização Docker (`Dockerfile`, `docker-compose.yml`)**:
   - Imagem Docker leve e multi-stage para servidor WebSocket e API REST.
   - Compatibilidade com plataformas de nuvem gratuitas (Render.com, Fly.io, HuggingFace Spaces).
-- [ ] **Endurecimento de Segurança e Proteção DoS (`online/server/security.py`, `SECURITY.md`)**:
+- [x] **Endurecimento de Segurança e Proteção DoS (`online/server/security.py`, `SECURITY.md`)**:
   - Rate limiting por Token Bucket (máximo de 30 mensagens/segundo por conexão).
   - Limite estrito de 64 KB por payload WebSocket para prevenir exaustão de memória.
   - Verificação de CORS e headers HTTP defensivos (CSP, X-Content-Type-Options, X-Frame-Options).
@@ -50,22 +50,22 @@ Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **
 ## 📌 Fase 3: RedWar 2.0 — Plataforma Competitiva de Última Geração
 
 ### Milestone 2.1: Modos Táticos Avançados
-- [ ] **Tournament Snake Draft Mode**:
-  - Seleção alternada (1-2-2-1) a partir de um pool partilhado gerado aleatoriamente, estimulando contra-escolhas estratégicas.
-- [ ] **Hazard Arena (Terrenos Dinâmicos)**:
-  - Fissuras de lava e barreiras mágicas geradas proceduralmente para enriquecer a navegação no tabuleiro.
+- [x] **Tournament Snake Draft Mode (`engine/draft_tournament.py`, `tests/test_snake_draft.py`)**:
+  - Seleção alternada (1-2-2-1) com banimento inicial a partir de um pool partilhado gerado aleatoriamente, estimulando contra-escolhas estratégicas.
+- [x] **Hazard Arena — Terrenos Dinâmicos (`engine/hazards.py`, `tests/test_hazard_arena.py`)**:
+  - Terrenos dinâmicos (`Lava`, `MagicBarrier`, `HealingSpring`) gerados de forma procedural e simétrica, com interações táticas como incineração e purificação de atordoamento.
 
 ### Milestone 2.2: Ares AI Engine 2.0
-- [ ] **History Heuristic & 2-Slot Killer Move Ordering**:
-  - Tabela de histórico de lances calmos que geraram cortes beta na pesquisa alpha-beta, acelerando a poda em 15–25%.
-- [ ] **Gestão Dinâmica de Relógio**:
-  - Ajuste dinâmico do orçamento de nós em função da complexidade tática da posição e do tempo restante no relógio.
+- [x] **History Heuristic & 2-Slot Killer Move Ordering (`ai/ares2.py`, `tests/test_ares2_engine.py`)**:
+  - Tabela de histórico de lances calmos com pontuação quadrática por profundidade ($depth^2$) e tabela de dois slots de killer moves por ply, reduzindo a árvore de busca e antecipando podas $\beta$.
+- [x] **Gestão Dinâmica de Relógio (`DynamicTimeManager` em `ai/ares2.py`)**:
+  - Ajuste dinâmico de tempo e nós em função da complexidade tática, heróis ativos e tempo remanescente no relógio.
 
 ### Milestone 2.3: Análise de Partida Interativa (Game Review)
-- [ ] **Gráfico de Probabilidade de Vitória e Centipawns**:
-  - Renderização no browser da barra de avaliação ao longo dos turnos da partida.
-- [ ] **Classificação Qualitativa de Lances**:
-  - Classificação no cliente Web de cada jogada: Brilhante, Melhor Lance, Excelente, Imprecisão, Erro e Gaffe.
+- [x] **Gráfico de Probabilidade de Vitória e Centipawns (`engine/review.py`, `deploy/web/app.js`, `deploy/web/index.html`)**:
+  - Renderização no browser da curva de vantagem em centipawns ao longo dos turnos e cálculo de precisão global de cada jogador via modelo de decaimento exponencial.
+- [x] **Classificação Qualitativa de Lances (`MoveClassification` em `engine/review.py`)**:
+  - Classificação formal de cada jogada: Brilhante, Melhor Lance, Excelente, Bom, Imprecisão, Erro e Gaffe (Blunder).
 
 ---
 

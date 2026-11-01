@@ -17,6 +17,8 @@ class GameModeType(str, Enum):
     BLITZ = "blitz"
     RAPID = "rapid"
     PUZZLE = "puzzle"
+    SNAKE_DRAFT = "snake_draft"
+    HAZARD_ARENA = "hazard_arena"
 
 
 @dataclass(frozen=True)
@@ -144,6 +146,14 @@ class GameMode:
     def puzzle(cls) -> GameMode:
         return get_preset_mode(GameModeType.PUZZLE)
 
+    @classmethod
+    def snake_draft(cls) -> GameMode:
+        return get_preset_mode(GameModeType.SNAKE_DRAFT)
+
+    @classmethod
+    def hazard_arena(cls) -> GameMode:
+        return get_preset_mode(GameModeType.HAZARD_ARENA)
+
 
 _PRESETS: dict[GameModeType, GameMode] = {
     GameModeType.STANDARD_8X8: GameMode(
@@ -199,6 +209,24 @@ _PRESETS: dict[GameModeType, GameMode] = {
         draft_budget=0,
         max_twc=10,
         time_control=TimeControl(initial_seconds=300.0, increment_seconds=0.0),
+    ),
+    GameModeType.SNAKE_DRAFT: GameMode(
+        mode_type=GameModeType.SNAKE_DRAFT,
+        name="Tournament Snake Draft",
+        board_rows=8,
+        board_cols=8,
+        draft_budget=200,
+        max_twc=50,
+        time_control=TimeControl.rapid_10_0(),
+    ),
+    GameModeType.HAZARD_ARENA: GameMode(
+        mode_type=GameModeType.HAZARD_ARENA,
+        name="Hazard Arena",
+        board_rows=8,
+        board_cols=8,
+        draft_budget=200,
+        max_twc=50,
+        time_control=TimeControl.rapid_10_0(),
     ),
 }
 

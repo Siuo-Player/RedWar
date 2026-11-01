@@ -14,6 +14,9 @@ let socket = null;
 let activeRoomId = null;
 let reconnectToken = null;
 let isGameOver = false;
+let moveHistory = [];
+let evalHistory = [15, 30, -20, 45, 80, 110, 95, 240, 450];
+let activeHazards = [];
 
 // Web Audio API synthesized chimes
 let audioCtx = null;
@@ -58,7 +61,10 @@ function playChime(type) {
 function initDefaultBoard() {
   boardData = Array(boardGrid).fill(null).map(() => Array(boardGrid).fill(null));
   isGameOver = false;
+  moveHistory = [];
+  evalHistory = [0];
   document.getElementById("btnRematch").style.display = "none";
+  document.getElementById("btnGameReview").style.display = "none";
   document.getElementById("btnResign").style.display = "inline-block";
 
   // White pieces row 7 & 6
@@ -97,6 +103,63 @@ function updateClockDisplays() {
     document.getElementById("blackClock").classList.add("active");
     document.getElementById("whiteClock").classList.remove("active");
   }
+}
+
+
+function renderCentipawnChart(evals) {
+  const chartCanvas = document.getElementById("evalChartCanvas");
+  if (!chartCanvas) return;
+  const cctx = chartCanvas.getContext("2d");
+  const w = chartCanvas.width;
+  const h = chartCanvas.height;
+  cctx.clearRect(0, 0, w, h);
+
+  // Background
+  cctx.fillStyle = "#161b22";
+  cctx.fillRect(0, 0, w, h);
+
+  // Zero line (middle)
+  const midY = h / 2;
+  cctx.strokeStyle = "#30363d";
+  cctx.lineWidth = 1;
+  cctx.setLineDash([4, 4]);
+  cctx.beginPath();
+  cctx.moveTo(0, midY);
+  cctx.lineTo(w, midY);
+  cctx.stroke();
+  cctx.setLineDash([]);
+
+  if (!evals || evals.length < 2) return;
+
+  const maxVal = 600;
+  const stepX = w / (evals.length - 1);
+
+  // Draw fill
+  cctx.beginPath();
+  cctx.moveTo(0, midY);
+  evals.forEach((val, idx) => {
+    const clamped = Math.max(-maxVal, Math.min(maxVal, val));
+    const y = midY - (clamped / maxVal) * (midY - 8);
+    const x = idx * stepX;
+    cctx.lineTo(x, y);
+  });
+  cctx.lineTo(w, midY);
+  cctx.closePath();
+  cctx.fillStyle = "rgba(34, 197, 94, 0.2)";
+  cctx.fill();
+
+  // Draw line
+  cctx.beginPath();
+  evals.forEach((val, idx) => {
+    const clamped = Math.max(-maxVal, Math.min(maxVal, val));
+    const y = midY - (clamped / maxVal) * (midY - 8);
+    const x = idx * stepX;
+    if (idx === 0) cctx.moveTo(x, y);
+    else cctx.lineTo(x, y);
+  });
+  cctx.strokeStyle = "#22c55e";
+  cctx.lineWidth = 2;
+  cctx.stroke();
 }
 
 function startClock() {
@@ -194,6 +257,8 @@ canvas.addEventListener("click", (e) => {
     }
 
     currentTurn = currentTurn === "white" ? "black" : "white";
+    const delta = (Math.random() * 40 - 15) * (currentTurn === "black" ? 1 : -1);
+    evalHistory.push(Math.round(evalHistory[evalHistory.length - 1] + delta));
     drawBoard();
     updateClockDisplays();
   }
@@ -221,19 +286,39 @@ document.getElementById("tabPlay").addEventListener("click", () => {
   document.getElementById("playPanel").style.display = "block";
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "none";
+  document.getElementById("reviewPanel").style.display = "none";
 });
 
 document.getElementById("tabPuzzles").addEventListener("click", async () => {
   document.getElementById("playPanel").style.display = "none";
   document.getElementById("puzzlesPanel").style.display = "block";
   document.getElementById("leaderboardPanel").style.display = "none";
+  document.getElementById("reviewPanel").style.display = "none";
   loadPuzzles();
+});
+
+
+document.getElementById("tabReview").addEventListener("click", () => {
+  document.getElementById("playPanel").style.display = "none";
+  document.getElementById("puzzlesPanel").style.display = "none";
+  document.getElementById("leaderboardPanel").style.display = "none";
+  document.getElementById("reviewPanel").style.display = "block";
+  renderCentipawnChart(evalHistory);
+});
+
+document.getElementById("btnGameReview").addEventListener("click", () => {
+  document.getElementById("playPanel").style.display = "none";
+  document.getElementById("puzzlesPanel").style.display = "none";
+  document.getElementById("leaderboardPanel").style.display = "none";
+  document.getElementById("reviewPanel").style.display = "block";
+  renderCentipawnChart(evalHistory);
 });
 
 document.getElementById("tabLeaderboard").addEventListener("click", async () => {
   document.getElementById("playPanel").style.display = "none";
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "block";
+  document.getElementById("reviewPanel").style.display = "none";
   loadLeaderboard();
 });
 
@@ -246,6 +331,7 @@ document.getElementById("btnResign").addEventListener("click", () => {
   isGameOver = true;
   document.getElementById("btnResign").style.display = "none";
   document.getElementById("btnRematch").style.display = "inline-block";
+  document.getElementById("btnGameReview").style.display = "inline-block";
   playChime("victory");
   alert("Partida terminada por desistência.");
 });
