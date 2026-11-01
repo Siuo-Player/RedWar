@@ -1,250 +1,75 @@
-# RedWar — Web, App e Multiplayer
+# RedWar — Web Platform, Online Multiplayer & Free Hosting
 
-## Objetivo
+## 1. Visão Geral e Arquitetura
 
-O objetivo final é uma experiência semelhante ao Chess.com, mas para o sistema de RPG de tabuleiro do RedWar.
+O RedWar oferece um ecossistema competitivo completo inspirado no modelo do **Chess.com**, suportando tanto a aplicação Desktop nativa em Pygame como a versão Web acessível no navegador sem necessidade de instalação:
 
-A visão inclui:
-
-- aplicação desktop;
-- versão web;
-- possível versão mobile;
-- partidas contra IA;
-- análise;
-- multiplayer 1v1;
-- matchmaking;
-- ranking;
-- replays/histórico;
-- espectadores;
-- contas de utilizador.
-
-Este documento descreve a direção do produto, não uma implementação já concluída.
-
-## Aplicação
-
-A aplicação atual é Python/Pygame.
-
-O objetivo é manter a tecnologia simples enquanto isso não prejudicar desempenho percebido.
-
-Características desejadas:
-
-- menu principal;
-- seleção de IA/dificuldade;
-- jogo local contra IA;
-- dois jogadores locais;
-- análise;
-- replays;
-- histórico das partidas;
-- definições;
-- som;
-- animações;
-- partículas e VFX;
-- suporte a diferentes resoluções;
-- possível versão mobile.
-
-O jogador local não deve sentir lag causado pela IA ou pelo rendering.
-
-## Estilo visual
-
-A direção atual é minimalista, com mais qualidade visual que o protótipo existente.
-
-Os efeitos mágicos devem utilizar partículas e animações com uma linguagem visual própria.
-
-Movimentos de peças devem ser animados entre casas.
-
-Spells e passivas importantes devem ter VFX claros.
-
-O restante pode permanecer minimalista quando não existir uma identidade visual específica para a habilidade.
-
-## Web
-
-A tecnologia da versão web ainda não foi escolhida.
-
-Critérios:
-
-1. baixo custo;
-2. simplicidade;
-3. suporte adequado a 1v1 em tempo real;
-4. WebSocket ou tecnologia equivalente;
-5. possibilidade de reutilizar a lógica do jogo;
-6. boa experiência desktop e mobile.
-
-O projeto deve evitar escolher uma stack apenas porque é popular. A decisão deve ser comparada com a necessidade real do jogo.
-
-## Autenticação
-
-O plano atual é utilizar **Google Login** como mecanismo principal.
-
-A solução concreta de identidade e armazenamento ainda precisa ser escolhida.
-
-## Multiplayer 1v1
-
-O multiplayer é uma funcionalidade principal do produto final.
-
-O fluxo pretendido é:
-
-```text
-login
-  ↓
-matchmaking / desafio
-  ↓
-criação da partida
-  ↓
-draft + posicionamento
-  ↓
-partida 1v1
-  ↓
-resultado
-  ↓
-rating / histórico / rematch
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                          RedWar Ecosystem                              │
+├───────────────────────────────────┬────────────────────────────────────┤
+│         Desktop Platform          │            Web Platform            │
+│         (Pygame Client)           │      (HTML5 Canvas / Vanilla JS)   │
+├───────────────────────────────────┴────────────────────────────────────┤
+│                       Launcher Unificado                               │
+│                 (launcher.py / run_redwar.bat)                         │
+├────────────────────────────────────────────────────────────────────────┤
+│                     Authoritative Server Layer                         │
+│  - WebSocket Multi-Room Manager (online/server/room.py)                │
+│  - Authoritative Rules Engine (online/server/authority.py)             │
+│  - Synchronized Match Clocks (GameClock with flag-fall timeouts)        │
+│  - REST Web API & Leaderboard Service (online/server/web_app.py)       │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-## Servidor autoritativo
+---
 
-A arquitetura recomendada é **servidor autoritativo**.
+## 2. Modos de Jogo e Protocolos PvP
 
-Isto significa:
+### 2.1 Gestão de Salas Autoritativas (`online/server/room.py`)
+- **Salas com Código Privado**: Os jogadores podem criar salas personalizadas ou juntar-se através de códigos alfanuméricos de 6 caracteres.
+- **Isolamento de Estado**: Cada sala instancia a sua própria `AuthoritativeSession`, garantindo que nenhuma mutação vaze entre partidas paralelas.
+- **Suporte a Modos**: Suporte nativo aos modos **Standard 8×8** e **Grand 10×10**, além de controlos de tempo pré-definidos (Bullet 1+0, Blitz 3+2, Rápido 10+5).
 
-- o cliente envia uma ação/intenção;
-- o servidor verifica se a ação é legal para o estado atual;
-- o servidor aplica a ação;
-- o servidor transmite o novo estado/resultado.
+### 2.2 Relógios de Partida Sincronizados (`GameClock`)
+- **Contagem Decrescente**: O relógio do jogador com a vez ativa decrementa segundo a segundo com base em timestamps monotónicos do servidor.
+- **Incremento por Lance**: Segundos de incremento (ex: +2s no Blitz 3+2) são adicionados imediatamente após a validação e execução de cada lance legal.
+- **Queda de Bandeira (`flag_fall`)**: Se o tempo de um jogador esgotar (tempo <= 0), o servidor declara derrota imediata por timeout, atribuindo a vitória ao adversário.
 
-O cliente não deve poder simplesmente dizer ao servidor que “capturou” uma peça sem passar pela validação das regras.
+### 2.3 Resiliência e Reconexão em Voo (`reconnect_token`)
+- Ao entrar numa sala, cada jogador recebe um token de sessão criptográfico único (`reconnect_token`).
+- Caso a ligação de rede caia brevemente (ex: alternância de rede ou perda temporária de pacotes), o jogador pode reconectar-se enviando `{"tipo": "reconnect", "token": "...", "room_id": "..."}`.
+- O relógio continua a correr durante a desconexão, mas a partida não é cancelada imediatamente, permitindo ao jogador retomar o controlo dentro do seu tempo restante.
 
-Esta decisão reduz cheating e mantém clientes diferentes sincronizados.
+### 2.4 Desforra (Rematch) e Modo Espectador
+- **Desforra**: Após o fim da partida (`game_over`), os jogadores podem propor desforra. Caso ambos aceitem, o tabuleiro é reiniciado com alternância de cores (quem jogou de Pretas joga agora de Brancas).
+- **Espectadores**: Conexões adicionais à sala são admitidas como espectadores, recebendo todos os broadcasts de tabuleiro e relógios sem capacidade de interferir nas jogadas. O número de espectadores ativos é transmitido para os jogadores.
+- **Emotes & Pings**: Suporte a reações rápidas (`gg`, `well_played`, `thinking`, `wow`) com proteção de rate limit para comunicação desportiva e sem abuso de texto livre.
 
-## Protocolo
+---
 
-A solução concreta ainda está aberta.
+## 3. Guia de Publicação Gratuita na Internet (Zero-Cost Hosting)
 
-O objetivo é ter mensagens pequenas e determinísticas, por exemplo:
+O RedWar foi desenhado para ser publicado e jogado gratuitamente na internet sem custos de infraestrutura:
 
-```text
-AUTH
-CREATE_MATCH
-JOIN_MATCH
-STATE
-ACTION
-ACTION_RESULT
-CLOCK
-RESIGN
-DRAW_REQUEST
-GAME_END
-RECONNECT
-```
+### 3.1 Frontend Web (GitHub Pages — 100% Gratuito)
+- A pasta `deploy/web/` contém uma aplicação estática completa em HTML5 Canvas, CSS e JavaScript sem necessidade de compilação ou bundlers pesados.
+- Através do workflow automatizado `.github/workflows/deploy_web.yml`, cada push na branch `main` pode atualizar automaticamente o site publicado em `https://<utilizador>.github.io/RedWar/`.
+- No cliente web, a URL do WebSocket do servidor pode ser configurada ou detetada automaticamente.
 
-Os nomes são ilustrativos e não constituem ainda um protocolo final.
+### 3.2 Backend WebSocket & REST API (Cloud Free Tiers)
+O servidor pode ser executado em plataformas de nuvem gratuitas através de Docker:
+- **Render.com**: Suporta Web Services gratuitos com WebSockets e portas expostas.
+- **Fly.io**: Suporta containers Docker com alocação gratuita permanente de 3 instâncias partilhadas.
+- **HuggingFace Spaces**: Suporta containers Docker gratuitos com HTTPS e WSS automáticos.
+- **Railway / Koyeb / Glitch**: Ambientes com camadas gratuitas para execução de daemons Node/Python.
 
-## Tempo
+---
 
-No matchmaking devem existir vários ritmos de jogo, inspirados no conceito de Chess.com.
+## 4. Segurança e Integridade
 
-O jogo deverá suportar:
-
-- limite por jogador;
-- timeout;
-- consumo correto do relógio;
-- reconexão sem pausar automaticamente o relógio;
-- perda quando o jogador não regressa a tempo.
-
-## Reconexão
-
-Quando uma conexão cai:
-
-1. o servidor mantém a partida viva durante uma janela definida;
-2. o relógio continua a contar;
-3. o cliente tenta reconectar;
-4. se voltar, continua do estado atual;
-5. se não voltar dentro da regra do modo, perde por abandono/timeout.
-
-Os valores exatos da janela de reconexão ainda serão definidos.
-
-## Matchmaking
-
-O objetivo é matchmaking baseado em rating.
-
-Devem existir:
-
-- procura automática;
-- desafios diretos a outro utilizador;
-- aceitar/rejeitar desafio;
-- rematch;
-- rating separado para partidas de matchmaking.
-
-## Ranking / ELO de jogadores
-
-O rating de jogadores deve ser obtido a partir de partidas reais entre jogadores, não inferido a partir da força da IA.
-
-O modelo concreto de rating ainda precisa de ser escolhido e documentado antes do lançamento.
-
-## Social
-
-Funcionalidades desejadas:
-
-- amigos;
-- desafios diretos;
-- chat;
-- espectadores;
-- ranking;
-- histórico;
-- rematch.
-
-Replays públicos ficam para uma fase posterior.
-
-## Anti-cheat
-
-Anti-cheat avançado não é prioridade inicial.
-
-A primeira defesa deverá ser estrutural:
-
-- servidor autoritativo;
-- validação de ações;
-- cliente incapaz de escolher diretamente o estado final;
-- logs suficientes para investigar partidas suspeitas.
-
-Soluções anti-cheat mais pesadas serão consideradas apenas quando forem necessárias.
-
-## Hosting
-
-Pretende-se usar infraestrutura gratuita ou de custo muito baixo.
-
-O fornecedor de hosting, banco de dados e backend ainda não está decidido.
-
-A seleção deve considerar:
-
-- free tier real;
-- WebSocket;
-- capacidade de manter partidas em tempo real;
-- persistência;
-- autenticação Google;
-- facilidade de deploy;
-- limites de utilização.
-
-## Banco de dados
-
-É esperado que o produto venha a precisar de persistência para:
-
-- utilizadores;
-- contas Google associadas;
-- ratings;
-- histórico de partidas;
-- amigos;
-- desafios;
-- replays, se forem ativados;
-- resultados de matchmaking.
-
-A tecnologia ainda está por decidir.
-
-## O que não é prioridade
-
-Não são prioridade inicial:
-
-- microtransações;
-- conteúdo pago;
-- temporadas competitivas;
-- anti-cheat de nível avançado;
-- replay público completo;
-- monetização.
-
-O jogo será gratuito.
+A segurança do servidor e a privacidade dos dados estão formalmente documentadas em [`../SECURITY.md`](../SECURITY.md):
+- Todas as ações do cliente são validadas pelo motor de regras antes de qualquer mutação.
+- Rate limiting por token-bucket para prevenir inundações de mensagens.
+- Limite máximo de payload de 64 KB por mensagem WebSocket.
+- Isolamento total de sessões sem recolha de PII ou dados sensíveis.
