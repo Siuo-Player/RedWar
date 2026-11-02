@@ -49,6 +49,7 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | Ares SPRT & Perfis | `ROADMAP_2_0.md` + `ai/sprt.py` + `ai/profiles.py` |
 | Academia de Heróis | `ROADMAP_2_0.md` + `engine/hero_academy.py` |
 | Wiki Oficial | `../wiki/` |
+| Fundações Teóricas & Papers | `THEORETICAL_FOUNDATIONS_AND_PAPERS.md` |
 | Game Review & Precisão | `ROADMAP_2_0.md` + `engine/review.py` |
 | Segurança | `../SECURITY.md` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
