@@ -72,6 +72,8 @@ class HeroMatrix:
         "Banshee": HeroArchetype.DISRUPTOR,
         "Inquisitor": HeroArchetype.DISRUPTOR,
         "Illusionist": HeroArchetype.DISRUPTOR,
+        "Hookmaster": HeroArchetype.DISRUPTOR,
+        "Timekeeper": HeroArchetype.DISRUPTOR,
         
         # Summoners / Minions
         "BoneLord": HeroArchetype.SUMMONER,
