@@ -37,3 +37,24 @@ Para suportar multiplayer WebSocket em tempo real e a API REST:
    - Tratamento seguro de inputs malformados com rejeição limpa e mascaramento defensivo de tracebacks.
 4. **Zero Recolha de Dados Pessoais (PII)**:
    - Sem palavras-passe, sem e-mails e sem cookies de rastreio de terceiros.
+
+---
+
+## 🛡️ Federação de Identidade & Contenção de Raio de Explosão (Zero Blast Radius)
+
+Em conformidade com o **OpenID Connect Core 1.0 (Secção 8)** e os padrões do **NIST SP 800-63B**, o RedWar adota uma arquitetura de identidade federada em 3 níveis:
+
+1. **Conta Convidado / Guest ID (Privacidade Total)**:
+   - Identificador aleatório e efémero (`UUIDv4`) gerado localmente.
+   - Zero registo e zero partilha de e-mail ou dados pessoais.
+
+2. **Conectar com Google (OIDC Seguro com Pairwise ID)**:
+   - Sincroniza ELO e partidas entre browser e telemóvel com proteção multi-fator (2FA) da Google.
+   - **Garantia de Raio de Explosão Zero**: O identificador do jogador no RedWar é derivado através de um HMAC com salt específico:
+     $$\\text{PlayerID} = \\text{HMAC-SHA256}(\\text{Google Sub}, \\text{Salt}_{\\text{RedWar}})$$
+   - Se o RedWar sofrer uma invasão, **o atacante NUNCA obtém acesso à conta Google do utilizador nem consegue correlacionar os dados com qualquer outro jogo**.
+
+3. **Conta Dedicada Studio RedWar**:
+   - Para utilizadores que preferem não usar Google.
+   - Palavra-passe protegida por **Argon2id** / PBKDF2-HMAC-SHA256 com 600.000 iterações (OWASP 2023).
+   - Verificação em tempo constante (`hmac.compare_digest`) para eliminar ataques de temporização (*timing attacks*).

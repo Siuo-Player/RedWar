@@ -53,6 +53,7 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | Fundações Teóricas & Papers | `THEORETICAL_FOUNDATIONS_AND_PAPERS.md` |
 | Game Review & Precisão | `ROADMAP_2_0.md` + `engine/review.py` |
 | Segurança | `../SECURITY.md` |
+| Arquitetura de Segurança & Federação | `SECURITY_ARCHITECTURE_AND_FEDERATION.md` + `engine/auth.py` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
 
 ## 1.0-Lite baseline selection
