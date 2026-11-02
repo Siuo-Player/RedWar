@@ -675,6 +675,61 @@ class Stormcaller(DataPiece):
     __slots__ = ()
     def __init__(self, team): super().__init__(team, "Stormcaller")
 
+class Hookmaster(DataPiece):
+    __slots__ = ()
+    def __init__(self, team):
+        super().__init__(team, "Hookmaster")
+
+    def execute_pull(self, state, target_pos) -> bool:
+        my_pos = None
+        for r in range(len(state.board)):
+            for c in range(len(state.board[0])):
+                if state.board[r][c] is self:
+                    my_pos = (r, c)
+                    break
+            if my_pos:
+                break
+        if not my_pos:
+            return False
+
+        tr, tc = target_pos
+        mr, mc = my_pos
+        dr, dc = tr - mr, tc - mc
+
+        if dr != 0 and dc != 0:
+            return False
+
+        step_r = 0 if dr == 0 else (1 if dr > 0 else -1)
+        step_c = 0 if dc == 0 else (1 if dc > 0 else -1)
+
+        dest_r, dest_c = mr + step_r, mc + step_c
+        target = state.board[tr][tc]
+        if not target:
+            return False
+
+        state.board[tr][tc] = None
+        state.board[dest_r][dest_c] = target
+        return True
+
+
+class Timekeeper(DataPiece):
+    __slots__ = ()
+    def __init__(self, team):
+        super().__init__(team, "Timekeeper")
+
+    def apply_temporal_shift(self, state, target_pos) -> bool:
+        tr, tc = target_pos
+        target = state.board[tr][tc]
+        if not target:
+            return False
+
+        if target.team == self.team:
+            target.stun_timer = max(0, target.stun_timer - 1)
+        else:
+            target.stun_timer += 1
+        return True
+
+
 
 TODAS_AS_PECAS = [
     Bone, Ghoul, Obelisk, BoneLord,
@@ -682,7 +737,7 @@ TODAS_AS_PECAS = [
     FrostMage, Lich,
     Ranger, Nightshade, Templar, StoneWall, Inquisitor, Berserker,
     Pyromancer, Dragoon, Cleric, Trickster, Geomancer,
-    Paladin, Shadowblade, Stormcaller,
+    Paladin, Shadowblade, Stormcaller, Hookmaster, Timekeeper,
 ]
 
 

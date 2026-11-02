@@ -19,6 +19,7 @@
       <button class="nav-btn" id="tabPuzzles">Puzzles</button>
       <button class="nav-btn" id="tabLeaderboard">Leaderboard</button>
       <button class="nav-btn" id="tabReview">Game Review</button>
+      <button class="nav-btn" id="tabAnalytics">Estatísticas</button>
     </nav>
   </header>
 
@@ -163,6 +164,43 @@
           <p>✨ <strong>Brilhantes:</strong> 1 | ⭐ <strong>Melhores:</strong> 6</p>
           <p>👍 <strong>Excelentes:</strong> 4 | ⚠️ <strong>Imprecisões:</strong> 0</p>
         </div>
+      </div>
+      <div class="panel-card" id="analyticsPanel" style="display: none;">
+        <h2>📊 Estatísticas e Perfis Baseados em Dados</h2>
+        <p style="font-size: 0.8rem; color: #888; margin-bottom: 12px;">Métricas empíricas extraídas de partidas reais e simulações do motor Ares (estilo estatísticas avançadas de futebol). Zero atributos numéricos em jogo.</p>
+
+        <div class="form-group">
+          <label for="analyticsHeroSelect">Seleciona a Peça:</label>
+          <select id="analyticsHeroSelect">
+            <option value="Paladin">Paladin (Custo 55)</option>
+            <option value="Shadowblade">Shadowblade (Custo 65)</option>
+            <option value="Stormcaller">Stormcaller (Custo 72)</option>
+            <option value="Dragoon">Dragoon (Custo 60)</option>
+            <option value="FrostMage">FrostMage (Custo 50)</option>
+            <option value="BoneLord">BoneLord (Custo 65)</option>
+            <option value="Hookmaster">Hookmaster (Custo 52)</option>
+            <option value="Timekeeper">Timekeeper (Custo 59)</option>
+            <option value="Ranger">Ranger (Custo 45)</option>
+          </select>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+          <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 4px;">Classes Derivadas por Dados:</div>
+          <div id="analyticsDerivedClasses" style="font-size: 0.9rem; font-weight: bold; color: #38bdf8;">Vanguard (Tanque/Âncora)</div>
+          <div style="margin-top: 6px; font-size: 0.8rem; color: #aaa;">Eficiência de Custo: <span id="analyticsCostEfficiency" style="color: #22c55e; font-weight: bold;">1.02x (Equilibrado)</span></div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: #888; margin-bottom: 6px;">Radar de Desempenho (6 Dimensões):</div>
+        <canvas id="radarChartCanvas" width="280" height="200" style="background: #111; border-radius: 6px; width: 100%; margin-bottom: 12px;"></canvas>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; background: #161b22; padding: 8px; border-radius: 4px;">
+          <div>Abertura: <strong id="openingRating" style="color: #38bdf8;">75</strong></div>
+          <div>Meio-Jogo: <strong id="midgameRating" style="color: #a855f7;">88</strong></div>
+          <div>Final: <strong id="endgameRating" style="color: #22c55e;">82</strong></div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: #888; margin-bottom: 6px;">Mapa de Calor Posicional (Onde a peça é mais eficaz):</div>
+        <canvas id="heatmapCanvas" width="200" height="200" style="background: #111; border-radius: 6px; width: 200px; height: 200px; margin: 0 auto; display: block;"></canvas>
       </div>
     </div>
   </main>

@@ -1,8 +1,6 @@
 # ⚔️ RedWar
 
-**RedWar** é um RPG de tabuleiro tático em grelha, inspirado no xadrez e em jogos de estratégia, mas construído à volta de heróis com movimentações, ataques, passivas e efeitos de terreno diferentes.
-
-Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O combate é definido por **stun** e **morte**: uma peça pode ser atordoada e perder a capacidade de agir durante alguns turnos; um segundo stun enquanto continua atordoada transforma-se em morte.
+**RedWar** é um jogo de tabuleiro tático puro em grelha, inspirado no xadrez e na estratégia abstrata, construído à volta de peças com movimentações, ataques, passivas e efeitos de terreno diferentes. **O RedWar não é um RPG**: não existem atributos numéricos, pontos de vida (HP), força ou defesa. O único número contado durante a partida é a **contagem de turnos** (duração de stun, recarga de habilidades e relógio). O combate combina golpes diretos letais com **stun** (concebido para equilibrar ataques de longo alcance e em área) e **morte**: qualquer segundo ataque sobre uma peça enquanto atordoada transforma-se em morte imediata.
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 

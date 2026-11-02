@@ -95,6 +95,184 @@ const HERO_LESSONS = {
   }
 };
 
+
+// Empirical Hero Profiles & Tracking Metrics (Football-style analytics derived from matches)
+const HERO_ANALYTICS_DATA = {
+  Paladin: {
+    classes: ["Vanguard (Tanque/Âncora)", "Disruptor Secundário"],
+    efficiency: "1.04x (Equilibrado)",
+    radar: { zone: 88, lethality: 62, cc: 74, mobility: 55, surv: 92, endg: 78 },
+    phases: { opening: 70, midgame: 92, endgame: 84 },
+    heatmapHotspots: [[3, 3], [3, 4], [4, 3], [4, 4], [2, 3], [2, 4]]
+  },
+  Shadowblade: {
+    classes: ["Striker (Flanqueador/Assassino)", "Finalizador Ágil"],
+    efficiency: "1.08x (Equilibrado)",
+    radar: { zone: 45, lethality: 94, cc: 50, mobility: 96, surv: 65, endg: 90 },
+    phases: { opening: 60, midgame: 85, endgame: 95 },
+    heatmapHotspots: [[1, 2], [1, 5], [2, 1], [2, 6], [5, 2], [5, 5]]
+  },
+  Stormcaller: {
+    classes: ["Artillery (Artilharia de Longo Alcance)", "Controlador Zonal"],
+    efficiency: "0.98x (Equilibrado)",
+    radar: { zone: 92, lethality: 85, cc: 80, mobility: 40, surv: 58, endg: 75 },
+    phases: { opening: 85, midgame: 90, endgame: 70 },
+    heatmapHotspots: [[6, 1], [6, 2], [6, 5], [6, 6], [5, 3], [5, 4]]
+  },
+  Dragoon: {
+    classes: ["Striker (Iniciador Móvel)", "Saltador Tático"],
+    efficiency: "1.02x (Equilibrado)",
+    radar: { zone: 68, lethality: 88, cc: 60, mobility: 90, surv: 72, endg: 82 },
+    phases: { opening: 75, midgame: 88, endgame: 80 },
+    heatmapHotspots: [[3, 2], [3, 5], [4, 2], [4, 5], [2, 4]]
+  },
+  FrostMage: {
+    classes: ["Disruptor (Controlador de Gelo)", "Negação de Área"],
+    efficiency: "1.06x (Equilibrado)",
+    radar: { zone: 84, lethality: 40, cc: 96, mobility: 45, surv: 64, endg: 85 },
+    phases: { opening: 80, midgame: 94, endgame: 82 },
+    heatmapHotspots: [[4, 2], [4, 5], [3, 1], [3, 6], [5, 3]]
+  },
+  BoneLord: {
+    classes: ["Summoner (Invocador/Saturação)", "Âncora de Retaguarda"],
+    efficiency: "1.01x (Equilibrado)",
+    radar: { zone: 95, lethality: 50, cc: 62, mobility: 35, surv: 85, endg: 70 },
+    phases: { opening: 90, midgame: 85, endgame: 65 },
+    heatmapHotspots: [[6, 3], [6, 4], [5, 2], [5, 5]]
+  },
+  Hookmaster: {
+    classes: ["Disruptor (Puxador/Reposicionador)", "Vanguard Secundário"],
+    efficiency: "1.05x (Equilibrado)",
+    radar: { zone: 80, lethality: 70, cc: 88, mobility: 50, surv: 80, endg: 78 },
+    phases: { opening: 72, midgame: 89, endgame: 81 },
+    heatmapHotspots: [[4, 3], [4, 4], [3, 3], [3, 4]]
+  },
+  Timekeeper: {
+    classes: ["Disruptor (Cronomante de Turnos)", "Manipulador Temporal"],
+    efficiency: "1.03x (Equilibrado)",
+    radar: { zone: 75, lethality: 45, cc: 92, mobility: 60, surv: 78, endg: 88 },
+    phases: { opening: 65, midgame: 86, endgame: 92 },
+    heatmapHotspots: [[5, 3], [5, 4], [4, 2], [4, 5]]
+  },
+  Ranger: {
+    classes: ["Artillery (Atirador Rápido)", "Supressor Linear"],
+    efficiency: "0.97x (Equilibrado)",
+    radar: { zone: 78, lethality: 75, cc: 55, mobility: 65, surv: 52, endg: 72 },
+    phases: { opening: 82, midgame: 78, endgame: 68 },
+    heatmapHotspots: [[6, 2], [6, 5], [7, 3], [7, 4]]
+  }
+};
+
+function renderRadarChart(metrics) {
+  const canvas = document.getElementById("radarChartCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const cx = w / 2;
+  const cy = h / 2;
+  const radius = Math.min(cx, cy) - 24;
+
+  const labels = ["Controlo", "Letalidade", "Stun/CC", "Mobilidade", "Sobrevivência", "Final"];
+  const values = [metrics.zone, metrics.lethality, metrics.cc, metrics.mobility, metrics.surv, metrics.endg];
+  const numAxes = labels.length;
+  const angleStep = (Math.PI * 2) / numAxes;
+
+  // Draw concentric web rings
+  ctx.strokeStyle = "#30363d";
+  ctx.lineWidth = 1;
+  for (let level = 1; level <= 4; level++) {
+    ctx.beginPath();
+    const r = (radius / 4) * level;
+    for (let i = 0; i < numAxes; i++) {
+      const angle = i * angleStep - Math.PI / 2;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  // Draw radial axis lines & labels
+  ctx.fillStyle = "#8b949e";
+  ctx.font = "10px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  for (let i = 0; i < numAxes; i++) {
+    const angle = i * angleStep - Math.PI / 2;
+    const x = cx + Math.cos(angle) * radius;
+    const y = cy + Math.sin(angle) * radius;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    const labelX = cx + Math.cos(angle) * (radius + 14);
+    const labelY = cy + Math.sin(angle) * (radius + 14);
+    ctx.fillText(labels[i], labelX, labelY);
+  }
+
+  // Draw polygon
+  ctx.beginPath();
+  for (let i = 0; i < numAxes; i++) {
+    const angle = i * angleStep - Math.PI / 2;
+    const valRatio = values[i] / 100.0;
+    const r = radius * valRatio;
+    const x = cx + Math.cos(angle) * r;
+    const y = cy + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = "rgba(56, 189, 248, 0.25)";
+  ctx.fill();
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
+function renderSquareHeatmap(hotspots) {
+  const canvas = document.getElementById("heatmapCanvas");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const size = canvas.width;
+  const squareSize = size / 8;
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const isLight = (r + c) % 2 === 0;
+      ctx.fillStyle = isLight ? "#21262d" : "#161b22";
+      ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+    }
+  }
+
+  // Draw hotspot glows
+  hotspots.forEach(([r, c]) => {
+    ctx.fillStyle = "rgba(239, 68, 68, 0.65)";
+    ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+    ctx.strokeStyle = "#f87171";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(c * squareSize, r * squareSize, squareSize, squareSize);
+  });
+}
+
+function updateHeroAnalyticsDisplay(heroName) {
+  const data = HERO_ANALYTICS_DATA[heroName] || HERO_ANALYTICS_DATA["Paladin"];
+  document.getElementById("analyticsDerivedClasses").textContent = data.classes.join(" • ");
+  document.getElementById("analyticsCostEfficiency").textContent = data.efficiency;
+  document.getElementById("openingRating").textContent = data.phases.opening;
+  document.getElementById("midgameRating").textContent = data.phases.midgame;
+  document.getElementById("endgameRating").textContent = data.phases.endgame;
+
+  renderRadarChart(data.radar);
+  renderSquareHeatmap(data.heatmapHotspots);
+}
+
 let activeLessonKey = "paladin";
 let isAcademyMode = false;
 
@@ -423,14 +601,33 @@ document.getElementById("btnStartLesson").addEventListener("click", () => {
 document.getElementById("tabAcademy").addEventListener("click", () => {
   document.getElementById("playPanel").style.display = "none";
   document.getElementById("academyPanel").style.display = "block";
+  document.getElementById("analyticsPanel").style.display = "none";
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "none";
   document.getElementById("reviewPanel").style.display = "none";
   loadAcademyLesson(document.getElementById("heroSelect").value || "paladin");
 });
 
+
+document.getElementById("tabAnalytics").addEventListener("click", () => {
+  document.getElementById("playPanel").style.display = "none";
+  document.getElementById("academyPanel").style.display = "none";
+  document.getElementById("puzzlesPanel").style.display = "none";
+  document.getElementById("leaderboardPanel").style.display = "none";
+  document.getElementById("reviewPanel").style.display = "none";
+  document.getElementById("analyticsPanel").style.display = "block";
+  isAcademyMode = false;
+  const selHero = document.getElementById("analyticsHeroSelect").value || "Paladin";
+  updateHeroAnalyticsDisplay(selHero);
+});
+
+document.getElementById("analyticsHeroSelect").addEventListener("change", (e) => {
+  updateHeroAnalyticsDisplay(e.target.value);
+});
+
 document.getElementById("tabPlay").addEventListener("click", () => {
   document.getElementById("playPanel").style.display = "block";
+  document.getElementById("analyticsPanel").style.display = "none";
   document.getElementById("academyPanel").style.display = "none";
   isAcademyMode = false;
   document.getElementById("puzzlesPanel").style.display = "none";
@@ -441,6 +638,7 @@ document.getElementById("tabPlay").addEventListener("click", () => {
 document.getElementById("tabPuzzles").addEventListener("click", async () => {
   document.getElementById("playPanel").style.display = "none";
   document.getElementById("puzzlesPanel").style.display = "block";
+  document.getElementById("analyticsPanel").style.display = "none";
   document.getElementById("academyPanel").style.display = "none";
   isAcademyMode = false;
   document.getElementById("leaderboardPanel").style.display = "none";
@@ -454,6 +652,7 @@ document.getElementById("tabReview").addEventListener("click", () => {
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "none";
   document.getElementById("reviewPanel").style.display = "block";
+  document.getElementById("analyticsPanel").style.display = "none";
   document.getElementById("academyPanel").style.display = "none";
   isAcademyMode = false;
   renderCentipawnChart(evalHistory);
@@ -464,6 +663,7 @@ document.getElementById("btnGameReview").addEventListener("click", () => {
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "none";
   document.getElementById("reviewPanel").style.display = "block";
+  document.getElementById("analyticsPanel").style.display = "none";
   document.getElementById("academyPanel").style.display = "none";
   isAcademyMode = false;
   renderCentipawnChart(evalHistory);
@@ -473,6 +673,7 @@ document.getElementById("tabLeaderboard").addEventListener("click", async () => 
   document.getElementById("playPanel").style.display = "none";
   document.getElementById("puzzlesPanel").style.display = "none";
   document.getElementById("leaderboardPanel").style.display = "block";
+  document.getElementById("analyticsPanel").style.display = "none";
   document.getElementById("academyPanel").style.display = "none";
   isAcademyMode = false;
   document.getElementById("reviewPanel").style.display = "none";

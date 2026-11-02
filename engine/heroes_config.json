@@ -558,5 +558,39 @@
         "spell_name": "chain_lightning"
       }
     }
+  },
+  "Hookmaster": {
+    "cost": 52,
+    "acronym": "Hk",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa adjacente. Habilidade: Gancho Tático (puxa inimigo em linha reta).",
+    "passiva": "Ancorado: Imune a empurrões adversários.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Timekeeper": {
+    "cost": 59,
+    "acronym": "Tk",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa ortogonal ou diagonal. Habilidade: Distorção Temporal (altera turnos de stun).",
+    "passiva": "Cronomancia: Acelera recuperação de aliados e prolonga atordoamento de inimigos.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
   }
 }
