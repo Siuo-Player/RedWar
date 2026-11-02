@@ -21,6 +21,10 @@
       <button class="nav-btn" id="tabReview">Game Review</button>
       <button class="nav-btn" id="tabAnalytics">Estatísticas</button>
     </nav>
+    <div class="user-auth-bar" style="display: flex; align-items: center; gap: 8px;">
+      <span id="userAuthBadge" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; padding: 4px 10px; border-radius: 20px; font-size: 0.82rem; color: #cbd5e1;">👤 Convidado (1200)</span>
+      <button id="btnOpenAuthModal" class="btn-primary" style="padding: 4px 12px; font-size: 0.82rem; border-radius: 6px; background: #3b82f6; border: none; color: #fff; cursor: pointer;">🔐 Conta</button>
+    </div>
   </header>
 
   <div id="reconnectBanner" style="display: none; background: #f59e0b; color: #000; padding: 6px 16px; text-align: center; font-weight: bold; font-size: 0.9rem;">
@@ -204,6 +208,46 @@
       </div>
     </div>
   </main>
+
+  <!-- Auth Modal -->
+  <div id="authModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; max-width: 480px; width: 90%; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); color: #f8fafc; position: relative;">
+      <button id="btnCloseAuthModal" style="position: absolute; top: 14px; right: 14px; background: none; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer;">&times;</button>
+      <h2 style="margin-top: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">🛡️ Identidade & Segurança RedWar</h2>
+      <p style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 20px;">
+        Arquitetura com <strong>Raio de Explosão Zero</strong>: cada jogo é criptograficamente isolado (PPID/OIDC). O RedWar nunca acede às suas senhas ou emails pessoais.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Option 1: Guest -->
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px;">
+          <div style="font-weight: bold; font-size: 0.9rem; color: #e2e8f0; margin-bottom: 4px;">👤 Jogar como Convidado (Anónimo)</div>
+          <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">Zero registo. ID criptográfico aleatório guardado apenas no seu navegador.</div>
+          <button id="btnAuthGuest" style="width: 100%; padding: 8px; background: #334155; border: none; border-radius: 6px; color: #fff; font-size: 0.82rem; cursor: pointer; font-weight: bold;">Manter Convidado</button>
+        </div>
+
+        <!-- Option 2: Google OIDC -->
+        <div style="background: #0f172a; border: 1px solid #1d4ed8; border-radius: 8px; padding: 12px;">
+          <div style="font-weight: bold; font-size: 0.9rem; color: #60a5fa; margin-bottom: 4px;">🟢 Conectar com Google (Recomendado)</div>
+          <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">Sincronize ELO e partidas na nuvem entre PC e Telemóvel com proteção 2FA da Google. Zero acesso a emails ou fotos.</div>
+          <button id="btnAuthGoogle" style="width: 100%; padding: 8px; background: #2563eb; border: none; border-radius: 6px; color: #fff; font-size: 0.82rem; cursor: pointer; font-weight: bold;">Conectar com Google</button>
+        </div>
+
+        <!-- Option 3: Dedicated Account -->
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px;">
+          <div style="font-weight: bold; font-size: 0.9rem; color: #e2e8f0; margin-bottom: 4px;">🔐 Conta Dedicada Studio RedWar</div>
+          <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">Para quem prefere não usar Google. Hash Argon2id / PBKDF2 com 600.000 iterações (OWASP).</div>
+          <input type="text" id="authDedicatedUser" placeholder="Nome de jogador ou email" style="width: 100%; padding: 6px 8px; margin-bottom: 6px; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #fff; font-size: 0.8rem; box-sizing: border-box;" />
+          <input type="password" id="authDedicatedPass" placeholder="Palavra-passe segura" style="width: 100%; padding: 6px 8px; margin-bottom: 8px; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #fff; font-size: 0.8rem; box-sizing: border-box;" />
+          <button id="btnAuthDedicated" style="width: 100%; padding: 8px; background: #059669; border: none; border-radius: 6px; color: #fff; font-size: 0.82rem; cursor: pointer; font-weight: bold;">Entrar com Conta Dedicada</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; padding: 10px; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); border-radius: 6px; font-size: 0.75rem; color: #86efac; text-align: center;">
+        🔒 <strong>Garantia de Privacidade:</strong> Mesmo que um jogo sofra uma invasão, a separação por Pairwise ID garante que nenhuma credencial de outro projeto é comprometida.
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
