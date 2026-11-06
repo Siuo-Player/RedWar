@@ -18,6 +18,9 @@ SPELL_DETAILS = {
     "barricade": "Cria uma StoneWall numa casa adjacente livre.",
     "jump": "Salto até 2 casas em qualquer direção, respeitando as condições de salto/casa de destino.",
     "spawn_ghoul": "Invoca 1 Ghoul numa das três casas à frente, se estiver livre. A invocação aplica cooldown ao Lich.",
+    "chain_lightning": "Ataque elétrico de raio direto até 3 casas em linha reta ortogonal.",
+    "hook": "Gancho tático: atrai uma unidade inimiga em linha reta até 2 casas em direção a si.",
+    "temporal_shift": "Distorção temporal: manipula a contagem de turnos, reduzindo o stun de um aliado (-1 turno) ou aumentando o stun de um inimigo (+1 turno).",
 }
 
 
