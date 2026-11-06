@@ -29,6 +29,15 @@ Não existem HP nem atributos numéricos tradicionais.
 
 Uma ação normal consiste em selecionar um herói e uma casa de destino/alvo para executar uma ação legal.
 
+### Invariante Fundamental: Proibição de Fogo Amigo e Auto-captura
+Peças da mesma equipa são aliadas intransponíveis:
+- **Movimento**: Um movimento só pode ter como destino uma casa **vazia** (`board[r][c] == None`). Não é permitido saltar sobre aliados a menos que a peça possua habilidade de transposição espectral (como `Shadowblade` ou `Phantom`).
+- **Ataque**: Um ataque só pode ter como alvo uma peça **inimiga**. Peças da mesma cor nunca podem ser atacadas ou capturadas por aliados. Clicar numa peça aliada na interface apenas altera a seleção ativa.
+
+### Invariante de Alternância Estrita de Turnos
+- No turno das Brancas, apenas as Brancas podem selecionar e mover peças.
+- Ao concluir o lance, o turno passa deterministicamente para as Pretas. No cliente web/singleplayer, o tabuleiro bloqueia e a IA Ares executa o seu lance de forma autónoma antes de devolver o controlo.
+
 Exemplos:
 
 - mover;

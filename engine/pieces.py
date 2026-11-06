@@ -761,4 +761,6 @@ def criar_peca_por_nome(nome, team):
     for cls in TODAS_AS_PECAS:
         if cls.__name__ == nome:
             return cls(team)
+    if nome in HERO_DEFS:
+        return DataPiece(team, nome)
     raise KeyError(f"Unknown piece class: {nome}")

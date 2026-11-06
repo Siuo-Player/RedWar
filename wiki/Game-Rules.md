@@ -38,6 +38,10 @@ Morto (removido definitivamente do tabuleiro)
   - Um **ataque corporal direto**;
   - Uma **habilidade ativa ou feitiço** (ex.: raio elétrico, gancho de puxar, salto tático).
 
+### Invariantes de Jogabilidade:
+1. **Proibição Absoluta de Fogo Amigo e Auto-captura**: Peças da mesma cor nunca podem capturar, mover-se sobre ou sobrepor peças aliadas. Clicar numa peça aliada apenas comuta a seleção ativa.
+2. **Alternância Estrita de Turnos**: O jogador só move as peças da sua própria cor (`"brancas"`). No turno das Pretas, a IA Ares avalia e executa o lance autonomamente.
+
 ---
 
 ## 4. Formato do Tabuleiro e Orçamento de Draft
