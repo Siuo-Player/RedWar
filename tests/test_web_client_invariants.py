@@ -36,6 +36,10 @@ global.document = {
     value: 'bot_intermediate', textContent: '', innerHTML: '',
     width: 560, height: 560
   }),
+  createElement: (tag) => ({
+    style: {}, dataset: {}, classList: { add: () => {} },
+    appendChild: () => {}, textContent: '', innerHTML: ''
+  }),
   querySelectorAll: () => []
 };
 global.Image = class { constructor() { this.complete = true; this.naturalWidth = 512; } };
@@ -144,7 +148,7 @@ def test_web_client_all_heroes_configured():
         valid = false;
       }
     }
-    console.log(JSON.stringify({ count, valid, passed: count >= 28 && valid }));
+    console.log(JSON.stringify({ count, valid, passed: count >= 30 && valid }));
     """
     res = run_node_snippet(snippet)
     assert res["passed"], f"Hero rules incomplete: count={res['count']}, valid={res['valid']}"
@@ -207,3 +211,49 @@ def test_web_client_board_themes_and_graveyard():
     """
     res = run_node_snippet(snippet)
     assert res["passed"], f"Themes & graveyard failed: {res}"
+
+
+def test_web_client_rwn_export_and_import():
+    """RedWar Notation (RWN) must export classified moves and import them accurately."""
+    snippet = """
+    classifiedMoves = [
+      { moveText: 'Wa e2-e3', team: 'brancas', classification: 'best', badgeClass: 'badge-best', label: 'Melhor' },
+      { moveText: 'Du d7-d6', team: 'pretas', classification: 'best', badgeClass: 'badge-best', label: 'Melhor' }
+    ];
+    const exported = exportRwn();
+    const hasHeader = exported.indexOf('RedWar 2.0 Match') !== -1;
+    const hasMove = exported.indexOf('1. Wa e2-e3 Du d7-d6') !== -1;
+
+    const sampleRwn = '[Event \\"Test\\"]\\n\\n1. Il c2-c4 Ma f7-f5\\n2. Va e2-e4 Du d7-d5';
+    const importedOk = importRwn(sampleRwn);
+    const importedCount = classifiedMoves.length;
+
+    console.log(JSON.stringify({
+      passed: hasHeader && hasMove && importedOk && importedCount === 4,
+      hasHeader,
+      hasMove,
+      importedOk,
+      importedCount
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"RWN export/import failed: {res}"
+
+
+def test_web_client_audio_toggle():
+    """Audio toggle must switch sound state between enabled and disabled cleanly."""
+    snippet = """
+    const initial = soundEnabled;
+    toggleAudio();
+    const after1 = soundEnabled;
+    toggleAudio();
+    const after2 = soundEnabled;
+    console.log(JSON.stringify({
+      passed: initial === true && after1 === false && after2 === true,
+      initial,
+      after1,
+      after2
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Audio toggle failed: {res}"

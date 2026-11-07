@@ -751,6 +751,16 @@ class Warden(DataPiece):
     def __init__(self, team): super().__init__(team, "Warden")
 
 
+class Illusionist(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Illusionist")
+
+
+class Marksman(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Marksman")
+
+
 TODAS_AS_PECAS = [
     Bone, Ghoul, Obelisk, BoneLord,
     Phantom, Sentry,
@@ -759,6 +769,7 @@ TODAS_AS_PECAS = [
     Pyromancer, Dragoon, Cleric, Trickster, Geomancer,
     Paladin, Shadowblade, Stormcaller, Hookmaster, Timekeeper,
     Valkyrie, Arcanist, Duelist, Warden,
+    Illusionist, Marksman,
 ]
 
 

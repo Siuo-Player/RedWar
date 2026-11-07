@@ -160,7 +160,7 @@ const HERO_ASSET_NAMES = [
   "geomancer", "ghoul", "hookmaster", "inquisitor", "lich", "nightshade",
   "obelisk", "paladin", "phantom", "pyromancer", "ranger", "sentry",
   "shadowblade", "stonewall", "stormcaller", "templar", "timekeeper", "trickster",
-  "valkyrie", "arcanist", "duelist", "warden"
+  "valkyrie", "arcanist", "duelist", "warden", "illusionist", "marksman"
 ];
 
 const PIECE_IMAGES = {};
@@ -340,6 +340,18 @@ const HERO_RULES = {
     attack: { type: "orthogonal", steps: 1 },
     cost: 25,
     acronym: "Wa"
+  },
+  Illusionist: {
+    move: { type: "orthogonal", steps: 2, ghost: false },
+    attack: { type: "adjacent", steps: 1 },
+    cost: 27,
+    acronym: "Il"
+  },
+  Marksman: {
+    move: { type: "adjacent", steps: 1, ghost: false },
+    attack: { type: "orthogonal", steps: 3, ray: true },
+    cost: 28,
+    acronym: "Ma"
   }
 };
 
@@ -473,6 +485,30 @@ const HERO_LESSONS = {
     ],
     solution: { fromR: 3, fromC: 3, toR: 2, toC: 3 },
     explanation: "Inabalável! O avanço defensivo do Warden conteve a infiltração inimiga com autoridade."
+  },
+  illusionist: {
+    title: "Illusionist: O Mestre dos Espelhos",
+    lore: "Manipulador de percepções e transposição tática, controla os eixos ortogonais e ataca em 360 graus a curta distância.",
+    ability: "Reflexo Prismático: Movimenta-se até 2 casas ortogonais e ataca 1 casa em qualquer direção adjacente.",
+    objective: "Avança 2 casas para o centro e desfere golpe na diagonal adjacente.",
+    pieces: [
+      { r: 6, c: 3, name: "Illusionist", team: "brancas", stun: 0 },
+      { r: 3, c: 4, name: "BoneLord", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 6, fromC: 3, toR: 4, toC: 3 },
+    explanation: "Excelente! O avanço de 2 casas ortogonais preparou o golpe letal definitivo."
+  },
+  marksman: {
+    title: "Marksman: A Visada Balística",
+    lore: "Atirador de precisão tática, atinge alvos a 3 casas de distância em linha ortogonal limpa.",
+    ability: "Disparo de Precisão: Ataque ortogonal linear até 3 casas capaz de eliminar alvos atordoados.",
+    objective: "Dispara ao longo da coluna aberta para eliminar o Templar debilitado.",
+    pieces: [
+      { r: 5, c: 2, name: "Marksman", team: "brancas", stun: 0 },
+      { r: 2, c: 2, name: "Templar", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
+    explanation: "Tiro certeiro! A precisão balística do Marksman eliminou a peça à distância."
   }
 };
 
@@ -568,6 +604,20 @@ const HERO_ANALYTICS_DATA = {
     radar: { zone: 92, lethality: 65, cc: 85, mobility: 40, surv: 95, endg: 82 },
     phases: { opening: 75, midgame: 94, endgame: 86 },
     heatmapHotspots: [[3, 3], [3, 4], [4, 3], [4, 4], [3, 2], [4, 5]]
+  },
+  Illusionist: {
+    classes: ["Disruptor (Controlo de Espaço)", "Transpositor Tático"],
+    efficiency: "1.02x (Equilibrado)",
+    radar: { zone: 88, lethality: 72, cc: 80, mobility: 85, surv: 70, endg: 84 },
+    phases: { opening: 78, midgame: 89, endgame: 88 },
+    heatmapHotspots: [[3, 3], [3, 4], [4, 3], [4, 4], [2, 3], [5, 4]]
+  },
+  Marksman: {
+    classes: ["Artillery (Atirador Furtivo)", "Finalizador de Linha"],
+    efficiency: "1.05x (Equilibrado)",
+    radar: { zone: 85, lethality: 95, cc: 60, mobility: 50, surv: 58, endg: 86 },
+    phases: { opening: 80, midgame: 92, endgame: 85 },
+    heatmapHotspots: [[6, 2], [6, 5], [5, 2], [5, 5], [4, 2], [4, 5]]
   }
 };
 
@@ -1808,3 +1858,129 @@ initDefaultBoard();
 drawBoard();
 updateClockDisplays();
 updateUserAuthUI();
+
+// --- RedWar Notation (RWN) Export & Import Engine ---
+function exportRwn() {
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, ".");
+  let rwn = `[Event "RedWar 2.0 Match"]\n[Site "RedWar Platform"]\n[Date "${dateStr}"]\n`;
+  rwn += `[White "Jogador"]\n[Black "Ares AI"]\n`;
+  rwn += `[Roster "Paladin,Shadowblade,Stormcaller,Valkyrie,Arcanist,Duelist,Warden,Illusionist,Marksman"]\n\n`;
+
+  if (!classifiedMoves || classifiedMoves.length === 0) {
+    rwn += "1. { Partida sem movimentos registrados }";
+  } else {
+    for (let i = 0; i < classifiedMoves.length; i += 2) {
+      const moveNum = Math.floor(i / 2) + 1;
+      const whiteMove = classifiedMoves[i] ? classifiedMoves[i].moveText : "";
+      const blackMove = classifiedMoves[i + 1] ? classifiedMoves[i + 1].moveText : "";
+      rwn += `${moveNum}. ${whiteMove} ${blackMove} `.trim() + "\n";
+    }
+  }
+
+  const ta = document.getElementById("rwnTextArea");
+  if (ta) {
+    ta.value = rwn;
+    ta.style.display = "block";
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(rwn).catch(() => {});
+    }
+  }
+  const notif = document.getElementById("rwnNotification");
+  if (notif) {
+    notif.textContent = "✅ Notação RWN exportada e copiada para a área de transferência!";
+    notif.style.display = "block";
+    setTimeout(() => { if (notif) notif.style.display = "none"; }, 4000);
+  }
+  return rwn;
+}
+
+function importRwn(rwnText) {
+  if (!rwnText || typeof rwnText !== "string") return false;
+  const lines = rwnText.split("\n");
+  const moveRegex = /^\d+\.\s+(.*)/;
+  const importedList = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    const match = trimmed.match(moveRegex);
+    if (match) {
+      const parts = match[1].split(/\s+/);
+      if (parts[0]) importedList.push({ moveText: parts[0], team: "brancas", classification: "best", badgeClass: "badge-best", label: "Melhor" });
+      if (parts[1]) importedList.push({ moveText: parts[1], team: "pretas", classification: "best", badgeClass: "badge-best", label: "Melhor" });
+    }
+  }
+
+
+function renderGameReviewPanel() {
+  if (typeof document === "undefined" || !document.getElementById || !document.createElement) return;
+  const list = document.getElementById("reviewMovesList");
+  if (list && list.appendChild) {
+    list.innerHTML = "";
+    classifiedMoves.forEach((m, idx) => {
+      const item = document.createElement("div");
+      item.style.display = "flex";
+      item.style.justifyContent = "space-between";
+      item.style.padding = "2px 4px";
+      item.innerHTML = `<span>${idx + 1}. ${m.moveText}</span> <span class="${m.badgeClass}">${m.label}</span>`;
+      list.appendChild(item);
+    });
+  }
+  const counts = { brilliant: 0, great: 0, best: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
+  classifiedMoves.forEach(m => {
+    if (counts[m.classification] !== undefined) counts[m.classification]++;
+  });
+  const elB = document.getElementById("countBrilliant"); if (elB) elB.textContent = counts.brilliant;
+  const elG = document.getElementById("countGreat"); if (elG) elG.textContent = counts.great;
+  const elBe = document.getElementById("countBest"); if (elBe) elBe.textContent = counts.best;
+  const elI = document.getElementById("countInacc"); if (elI) elI.textContent = counts.inaccuracy;
+  const elM = document.getElementById("countMistake"); if (elM) elM.textContent = counts.mistake;
+  const elBl = document.getElementById("countBlunder"); if (elBl) elBl.textContent = counts.blunder;
+}
+
+  if (importedList.length > 0) {
+    classifiedMoves = importedList;
+    renderGameReviewPanel();
+    const notif = document.getElementById("rwnNotification");
+    if (notif) {
+      notif.textContent = `✅ ${importedList.length} lances carregados com sucesso no Game Review!`;
+      notif.style.display = "block";
+      setTimeout(() => { if (notif) notif.style.display = "none"; }, 4000);
+    }
+    return true;
+  }
+  return false;
+}
+
+// Audio Toggle Logic
+let soundEnabled = true;
+function toggleAudio() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById("btnToggleAudio");
+  if (btn) {
+    btn.textContent = soundEnabled ? "🔊 Som: Ligado" : "🔇 Som: Desligado";
+    btn.style.color = soundEnabled ? "#cbd5e1" : "#94a3b8";
+  }
+}
+
+if (typeof document !== "undefined" && document.getElementById) {
+  const btnExp = document.getElementById("btnExportRwn");
+  if (btnExp) btnExp.addEventListener("click", exportRwn);
+
+  const btnImp = document.getElementById("btnImportRwn");
+  if (btnImp) {
+    btnImp.addEventListener("click", () => {
+      const ta = document.getElementById("rwnTextArea");
+      if (ta) {
+        if (ta.style.display === "none") {
+          ta.style.display = "block";
+          ta.focus();
+        } else {
+          importRwn(ta.value);
+        }
+      }
+    });
+  }
+
+  const btnSnd = document.getElementById("btnToggleAudio");
+  if (btnSnd) btnSnd.addEventListener("click", toggleAudio);
+}

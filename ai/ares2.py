@@ -20,6 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from engine.legal_actions import legal_actions, to_legacy_dicts
 from ai.domain_eval import RedWarDomainEvaluator
+from ai.opening_book import get_opening_move
 
 
 class TTFlag(IntEnum):
@@ -305,8 +306,22 @@ class AresEngine:
         self.nodes_visited = 0
         self.cutoffs = 0
 
-    def choose_best_move(self, state: Any, max_depth: int = 3, time_limit: float = 1.0) -> Optional[dict[str, Any]]:
-        result = self.search(state, max_depth=max_depth, time_limit=time_limit)
+    def choose_best_move(
+        self,
+        state: Any,
+        max_depth: int = 3,
+        time_limit: float = 1.0,
+        skill_level: int = 3,
+        use_opening_book: bool = True,
+    ) -> Optional[dict[str, Any]]:
+        if skill_level == 1:
+            max_depth = 1
+            time_limit = min(0.3, time_limit)
+            use_opening_book = False
+        elif skill_level == 2:
+            max_depth = 2
+            time_limit = min(0.6, time_limit)
+        result = self.search(state, max_depth=max_depth, time_limit=time_limit, use_opening_book=use_opening_book)
         return result.get("best_move")
 
     def search(
@@ -315,6 +330,7 @@ class AresEngine:
         max_depth: int = 3,
         time_limit: float = 1.0,
         max_nodes: int = 100_000,
+        use_opening_book: bool = True,
     ) -> dict[str, Any]:
         """Perform iterative deepening negamax search with alpha-beta pruning."""
         start_time = time.time()
@@ -324,6 +340,22 @@ class AresEngine:
         best_overall_score = -float("inf")
         team = "brancas" if getattr(state, "white_to_move", True) else "pretas"
         completed_depth = 0
+
+        # Opening book probe (active in multi-piece opening formations)
+        total_pieces = sum(1 for row in getattr(state, "board", []) for p in row if p is not None)
+        if total_pieces >= 6 and len(getattr(state, "move_log", [])) <= 8:
+            book_action = get_opening_move(state, team)
+            if book_action is not None:
+                return {
+                    "best_move": book_action,
+                    "score": 0.0,
+                    "depth_reached": 1,
+                    "nodes_visited": 1,
+                    "cutoffs": 0,
+                    "tt_hits": 0,
+                    "elapsed_seconds": 0.001,
+                    "is_book": True,
+                }
 
         # Iterative Deepening
         for depth in range(1, max_depth + 1):
@@ -422,16 +454,29 @@ class AresEngine:
         initial_alpha = alpha
         enemy_team = "pretas" if team == "brancas" else "brancas"
 
+        moves_searched = 0
         for move in ordered_actions:
             if time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes:
                 break
 
             clone = state.fast_clone()
             clone.execute_action(move)
+            m_type = str(move.get("type", "")).lower()
+            is_tactical = (
+                m_type in ("attack", "stun")
+                or str(move.get("spell_name", "")).lower() in (
+                    "bone_v", "spectral_strike", "aimed_shot", "sentinel_shot",
+                    "chain_lightning", "arcane_blast", "sniper_shot"
+                )
+            )
+
+            # Late Move Reductions (LMR)
+            do_lmr = (depth >= 3 and moves_searched >= 3 and not is_tactical)
+            reduction = 1 if do_lmr else 0
 
             score, _ = self._negamax(
                 state=clone,
-                depth=depth - 1,
+                depth=depth - 1 - reduction,
                 ply=ply + 1,
                 alpha=-beta,
                 beta=-alpha,
@@ -441,6 +486,23 @@ class AresEngine:
                 max_nodes=max_nodes,
             )
             score = -score
+
+            # Re-search at full depth if reduced search exceeded alpha
+            if do_lmr and score > alpha:
+                score, _ = self._negamax(
+                    state=clone,
+                    depth=depth - 1,
+                    ply=ply + 1,
+                    alpha=-beta,
+                    beta=-alpha,
+                    team=enemy_team,
+                    start_time=start_time,
+                    time_limit=time_limit,
+                    max_nodes=max_nodes,
+                )
+                score = -score
+
+            moves_searched += 1
 
             if score > best_score:
                 best_score = score

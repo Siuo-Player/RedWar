@@ -156,3 +156,43 @@ def test_ares_engine_iterative_deepening_and_tactical_kill():
     assert tuple(result["best_move"]["end"]) == (2, 4)
     assert result["depth_reached"] >= 2
     assert result["nodes_visited"] > 0
+
+
+def test_ares_opening_book_probe():
+    from ai.ares2 import AresEngine
+    from engine.game_state import GameState
+    from engine.pieces import Valkyrie, Arcanist, Duelist, Warden, Illusionist, Marksman
+
+    gs = GameState()
+    gs.board[7][1] = Valkyrie("brancas")
+    gs.board[7][2] = Arcanist("brancas")
+    gs.board[7][3] = Duelist("brancas")
+    gs.board[0][1] = Warden("pretas")
+    gs.board[0][2] = Illusionist("pretas")
+    gs.board[0][3] = Marksman("pretas")
+    gs.white_to_move = True
+
+    engine = AresEngine()
+    result = engine.search(gs, max_depth=3, time_limit=1.0, use_opening_book=True)
+
+    assert result["best_move"] is not None
+    assert result.get("is_book") is True
+    assert result["depth_reached"] == 1
+
+
+def test_ares_skill_level_scaling():
+    from ai.ares2 import AresEngine
+    from engine.game_state import GameState
+    from engine.pieces import Duelist, Warden
+
+    gs = GameState()
+    gs.board[4][4] = Duelist("brancas")
+    gs.board[2][4] = Warden("pretas")
+    gs.white_to_move = True
+
+    engine = AresEngine()
+    move_lvl1 = engine.choose_best_move(gs, skill_level=1)
+    move_lvl3 = engine.choose_best_move(gs, skill_level=3)
+
+    assert move_lvl1 is not None
+    assert move_lvl3 is not None
