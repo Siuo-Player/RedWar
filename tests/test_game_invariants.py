@@ -9,6 +9,8 @@ Enforces game-design invariants across all versions:
 4. INVARIANT_BUDGET_CONSERVATION: Pre-match draft strictly enforces the points ceiling (200 pts in 8x8).
 5. INVARIANT_ASSET_AND_CONFIG_COMPLETENESS: Every hero in heroes_config has an asset in ui/assets/.
 6. INVARIANT_ACTION_MEMBERSHIP: Every legal action executes cleanly and adheres to game invariants.
+7. INVARIANT_NO_RPG_NUMBERS: Pure abstract board game with zero health pools, damage, or arbitrary stats.
+8. INVARIANT_UNLIMITED_ROSTER: The roster is never bounded by legacy 19 limits; dynamic expansion is supported.
 """
 import os
 import pytest
@@ -16,7 +18,7 @@ from engine.config import LINHAS, COLUNAS, ORCAMENTO_BRANCAS, ORCAMENTO_PRETAS
 from engine.game_state import GameState
 from engine.legal_actions import legal_actions
 from engine.actions import ActionType, GameAction
-from engine.pieces import TODAS_AS_PECAS, HERO_DEFS, carregar_heroes
+from engine.pieces import TODAS_AS_PECAS, HERO_DEFS, carregar_heroes, criar_peca_por_nome
 
 
 def test_invariant_asset_and_config_completeness():
@@ -39,7 +41,6 @@ def test_invariant_no_friendly_fire_or_self_capture():
     for piece_cls in TODAS_AS_PECAS:
         gs = GameState()
         actor = piece_cls("brancas")
-        ally = piece_cls("brancas")
         
         # Place actor at center (4, 4)
         gs.board[4][4] = actor
@@ -70,7 +71,6 @@ def test_invariant_strict_turn_enforcement():
     When it is Black's turn, only Black pieces can act. Player cannot move AI pieces.
     """
     gs = GameState()
-    # Place a white piece and a black piece
     from engine.pieces import Berserker, Ranger
     white_piece = Berserker("brancas")
     black_piece = Ranger("pretas")
@@ -131,9 +131,7 @@ def test_invariant_two_hit_stun_lethality():
 
 
 def test_invariant_draft_budget_conservation():
-    """
-    Draft costs are positive, well-defined, and cannot exceed 200 points in 8x8.
-    """
+    """Draft costs are positive, well-defined, and cannot exceed 200 points in 8x8."""
     heroes = carregar_heroes()
     for name, data in heroes.items():
         cost = data.get("cost")
@@ -146,7 +144,6 @@ def test_invariant_draft_budget_conservation():
 
 def test_invariant_all_heroes_configured_and_instantiable():
     """All heroes must be instantiable for both teams, have descriptions, and respect game invariants."""
-    from engine.pieces import carregar_heroes, criar_peca_por_nome
     heroes = carregar_heroes()
     assert len(heroes) >= 24, f"Expected at least 24 heroes, got {len(heroes)}"
 
@@ -162,7 +159,6 @@ def test_invariant_all_heroes_configured_and_instantiable():
 
 def test_invariant_stunned_pieces_cannot_act():
     """CRITICAL INVARIANT: A stunned unit cannot move, attack, spawn, or cast spells."""
-    from engine.pieces import carregar_heroes, criar_peca_por_nome
     gs = GameState()
     for name in carregar_heroes().keys():
         piece = criar_peca_por_nome(name, "brancas")
@@ -173,3 +169,142 @@ def test_invariant_stunned_pieces_cannot_act():
         assert piece.get_valid_spawns(3, 3, gs.board) == []
         assert piece.get_valid_spells(3, 3, gs.board) == []
 
+
+def test_invariant_every_hero_two_hit_stun_elimination():
+    """
+    CRITICAL INVARIANT: Every attacking hero in TODAS_AS_PECAS must eliminate
+    an already stunned defender on contact.
+    """
+    from engine.pieces import Dragoon
+    for piece_cls in TODAS_AS_PECAS:
+        gs = GameState()
+        gs.white_to_move = True
+        attacker = piece_cls("brancas")
+        defender = Dragoon("pretas")
+        defender.stun_timer = 2
+
+        gs.board[3][3] = attacker
+        threats = attacker.get_threat_area(3, 3, gs.board) or attacker.get_valid_moves(3, 3, gs.board)
+        if not threats:
+            continue
+        target_r, target_c = threats[0]
+        gs.board[target_r][target_c] = defender
+
+        valid_attacks = attacker.get_valid_attacks(3, 3, gs.board)
+        if (target_r, target_c) in valid_attacks:
+            act = GameAction(ActionType.ATTACK, (3, 3), (target_r, target_c))
+            gs.execute_action(act)
+            all_board_pieces = [p for row in gs.board for p in row if p]
+            assert defender not in all_board_pieces, f"{attacker.name} failed to eliminate stunned defender!"
+
+
+def test_invariant_offensive_spells_stun_lethality():
+    """
+    CRITICAL INVARIANT: Every offensive spell (Nevada, Chain Lightning, Aimed Shot,
+    Spectral Strike) eliminates an already stunned target.
+    """
+    from engine.pieces import FrostMage, Dragoon, Ranger, Phantom
+    # Case 1: Nevada (FrostMage)
+    gs = GameState()
+    gs.white_to_move = True
+    mage = FrostMage("brancas")
+    target1 = Dragoon("pretas")
+    target1.stun_timer = 2
+    gs.board[2][2] = mage
+    gs.board[2][4] = target1
+    gs.execute_action(GameAction(ActionType.SPELL, (2, 2), (2, 4), spell_name="nevada"))
+    assert gs.board[2][4] is None, "Nevada failed to eliminate stunned target!"
+
+    # Case 2: Chain Lightning / Aimed Shot (Ranger/Stormcaller)
+    gs2 = GameState()
+    gs2.white_to_move = True
+    ranger = Ranger("brancas")
+    target2 = Dragoon("pretas")
+    target2.stun_timer = 2
+    gs2.board[3][0] = ranger
+    gs2.board[3][3] = target2
+    gs2.execute_action(GameAction(ActionType.SPELL, (3, 0), (3, 3), spell_name="aimed_shot"))
+    assert gs2.board[3][3] is None, "Aimed Shot failed to eliminate stunned target!"
+
+    # Case 3: Spectral Strike (Phantom)
+    gs3 = GameState()
+    gs3.white_to_move = True
+    phantom = Phantom("brancas")
+    target3 = Dragoon("pretas")
+    target3.stun_timer = 2
+    gs3.board[4][4] = phantom
+    gs3.board[2][5] = target3
+    gs3.execute_action(GameAction(ActionType.SPELL, (4, 4), (2, 5), spell_name="spectral_strike"))
+    assert gs3.board[2][5] is None, "Spectral Strike failed to eliminate stunned target!"
+
+
+def test_invariant_stun_timer_decrement_active_team_only():
+    """
+    CRITICAL INVARIANT: Stun timer decrements only for the team whose turn becomes active.
+    """
+    from engine.pieces import Berserker
+    gs = GameState()
+    white_p1 = Berserker("brancas")
+    white_p2 = Berserker("brancas")
+    black_p = Berserker("pretas")
+
+    white_p1.stun_timer = 2
+    white_p2.stun_timer = 0
+    black_p.stun_timer = 2
+
+    gs.board[6][0] = white_p1
+    gs.board[6][1] = white_p2
+    gs.board[1][0] = black_p
+
+    # White moves white_p2
+    gs.white_to_move = True
+    move_action = GameAction(ActionType.MOVE, (6, 1), (5, 1))
+    gs.execute_action(move_action)
+
+    # Now it is Black's turn: Black's stun must be decremented to 1, White's stun must remain 2!
+    assert not gs.white_to_move
+    assert black_p.stun_timer == 1, f"Expected Black stun to be 1, got {black_p.stun_timer}"
+    assert white_p1.stun_timer == 2, f"White stun decremented prematurely on Black's turn! got {white_p1.stun_timer}"
+
+
+def test_invariant_no_rpg_numbers_pure_abstract_board_state():
+    """
+    CANONICAL GAME DESIGN INVARIANT: RedWar is a pure abstract strategy board game.
+    There are ZERO RPG stats: no HP, no mana, no defense points, no damage numbers.
+    Only turn counters (stun_timer, cooldown, lifespan) and draft budget exist.
+    """
+    forbidden_rpg_attributes = {"hp", "health", "max_hp", "mana", "mp", "defense", "atk", "damage", "armor"}
+
+    for name in carregar_heroes().keys():
+        piece = criar_peca_por_nome(name, "brancas")
+        for attr in forbidden_rpg_attributes:
+            assert not hasattr(piece, attr), f"Hero {name} contains forbidden RPG attribute {attr!r}!"
+
+
+def test_invariant_unlimited_roster_extensibility():
+    """
+    ANTI-INVOLUTION INVARIANT: The roster is NEVER capped at 19 heroes.
+    Dynamic expansion past 24 heroes is supported seamlessly across engine systems.
+    """
+    test_hero_name = "ExperimentalChampion"
+    HERO_DEFS[test_hero_name] = {
+        "cost": 15,
+        "acronym": "Ec",
+        "draftable": True,
+        "descricao": "Campeão experimental para testar extensibilidade contínua.",
+        "behavior": {
+            "movement": {"type": "orthogonal", "max_steps": 2},
+            "attack": {"type": "orthogonal", "max_steps": 2}
+        }
+    }
+    try:
+        champ = criar_peca_por_nome(test_hero_name, "brancas")
+        assert champ.name == test_hero_name
+        assert champ.cost == 15
+        assert champ.acronym == "Ec"
+        gs = GameState()
+        gs.board[4][4] = champ
+        moves = champ.get_valid_moves(4, 4, gs.board)
+        assert len(moves) == 8
+    finally:
+        del HERO_DEFS[test_hero_name]

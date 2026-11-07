@@ -128,6 +128,33 @@ O formato está documentado em:
 
 `engine/HEROES_SCHEMA.md`
 
+### 🛡️ Catálogo de 24 Heróis & Paridade Visual
+O elenco foi expandido para **24 heróis** táticos com silhuetas visuais em 512×512 RGBA em `ui/assets/` e `deploy/web/assets/`, preenchendo papéis de linha de frente, flanqueamento, artilharia e controlo:
+- **Novos Heróis**: `Paladin` (vanguarda de avanço ortogonal), `Shadowblade` (lâmina fantasma com transposição espectral diagonal), `Stormcaller` (artilharia elétrica de longo alcance), `Hookmaster` (puxador zonal e vanguarda pesada), `Timekeeper` (manipulador de turnos e temporizadores).
+- **Heróis Consagrados**: `Dragoon`, `FrostMage`, `BoneLord`, `Berserker`, `Ranger`, `Pyromancer`, `Cleric`, `Templar`, `Lich`, etc.
+- **Auditoria de Licenciamento**: 100% dos assets registrados e auditados em `tools/licensing/game_icons_manifest.json`.
+
+---
+
+## 🛡️ Invariantes Formais & Política Anti-Involução
+
+Para garantir que a qualidade, as regras canónicas e as funcionalidades progridam sem regressões ("involução") de versão em versão:
+
+1. **Princípio da Não-Regressão Aditiva**:
+   - Funcionalidades estabelecidas (autenticação segura com Zero Blast Radius, abas web, tutoriais de academia, analytics estilo Opta/futebol e heróis) nunca são descartadas em refatorações posteriores.
+2. **Bug $\to$ Teste Obrigatório**:
+   - Todo e qualquer bug identificado (ex: auto-captura de peças aliadas, desvio de controle de peças da IA, contagem de heróis hardcoded) é imediatamente transformado num teste de regressão automatizado permanente.
+3. **Invariante de Impossibilidade de Auto-captura**:
+   - Peças da mesma cor nunca podem capturar, sobrescrever ou colidir com aliados. No cliente web (`deploy/web/app.js`), clicar num aliado alterna a seleção ativa.
+4. **Invariante dos Dois Golpes ("Um segundo enquanto atordoado mata")**:
+   - Qualquer ataque ou feitiço subsequente contra uma peça atordoada resulta em eliminação imediata.
+5. **Invariante de Alternância Estrita de Turnos & Autonomia da IA**:
+   - O utilizador apenas pode mover as peças da sua própria cor (`"brancas"`). No turno das Pretas, a IA Ares avalia e executa o lance autonomamente.
+6. **Verificação em Três Níveis**:
+   - **Lean 4 (`specs/RedWarInvariants.lean`)**: Provas matemáticas de involução de turnos, impossibilidade de alvo aliado e letalidade de stun.
+   - **Pytest Invariants (`tests/test_game_invariants.py`)**: 12 testes de propriedade cobrindo o motor Python.
+   - **Headless Node.js (`tests/test_web_client_invariants.py`)**: 5 testes automatizados em Node.js simulando o cliente web sem navegador.
+
 ## 🧠 Ares Engine
 
 **Ares** é a IA especializada de RedWar.
