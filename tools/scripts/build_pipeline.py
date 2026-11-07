@@ -62,6 +62,11 @@ def main() -> int:
         env,
     )
     run(
+        [sys.executable, "tools/scripts/build_cpp_engine.py", "--perft-test"],
+        "Build C++ perft differential bridge test",
+        env,
+    )
+    run(
         [sys.executable, "-m", "pytest", "tests/"],
         "Python test suite",
         env,

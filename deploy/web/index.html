@@ -22,6 +22,7 @@
       <button class="nav-btn" id="tabAnalytics">Estatísticas</button>
     </nav>
     <div class="user-auth-bar" style="display: flex; align-items: center; gap: 8px;">
+      <button id="btnToggleAudio" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; color: #cbd5e1; cursor: pointer;">🔊 Som: Ligado</button>
       <span id="userAuthBadge" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; padding: 4px 10px; border-radius: 20px; font-size: 0.82rem; color: #cbd5e1;">👤 Convidado (1200)</span>
       <button id="btnOpenAuthModal" class="btn-primary" style="padding: 4px 12px; font-size: 0.82rem; border-radius: 6px; background: #3b82f6; border: none; color: #fff; cursor: pointer;">🔐 Conta</button>
     </div>
@@ -174,6 +175,8 @@
             <option value="arcanist">Arcanist — A Rajada Arcana</option>
             <option value="duelist">Duelist — A Estocada Precisa</option>
             <option value="warden">Warden — O Bastião Inabalável</option>
+            <option value="illusionist">Illusionist — O Mestre dos Espelhos</option>
+            <option value="marksman">Marksman — O Atirador de Elite</option>
             <option value="hookmaster">Hookmaster — O Gancho Tático</option>
             <option value="timekeeper">Timekeeper — A Cronomancia</option>
             <option value="dragoon">Dragoon — O Salto do Dragão</option>
@@ -206,6 +209,15 @@
           <p>❓ <strong>Erros:</strong> <span id="countMistake">0</span> | 💥 <strong>Gaffes (Blunders):</strong> <span id="countBlunder">0</span></p>
         </div>
         <div id="reviewMovesList" style="margin-top: 12px; max-height: 160px; overflow-y: auto; background: #0f172a; border-radius: 6px; padding: 8px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 4px;"></div>
+        <div class="rwn-section" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: #38bdf8;">Notação RedWar (RWN):</div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-primary" id="btnExportRwn" style="flex: 1; padding: 6px 8px; font-size: 0.8rem; background: #0284c7; margin-top: 0;">📋 Exportar RWN</button>
+            <button class="btn-primary" id="btnImportRwn" style="flex: 1; padding: 6px 8px; font-size: 0.8rem; background: #475569; margin-top: 0;">📂 Importar RWN</button>
+          </div>
+          <textarea id="rwnTextArea" placeholder="Cole aqui o texto da notação RWN para carregar a partida..." style="display: none; width: 100%; margin-top: 8px; height: 70px; background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px; padding: 6px; font-size: 0.75rem; font-family: monospace; resize: vertical;"></textarea>
+          <div id="rwnNotification" style="font-size: 0.75rem; color: #22c55e; margin-top: 4px; display: none;"></div>
+        </div>
       </div>
       <div class="panel-card" id="analyticsPanel" style="display: none;">
         <h2>📊 Estatísticas e Perfis Baseados em Dados</h2>
@@ -221,6 +233,8 @@
             <option value="Arcanist">Arcanist (Custo 23)</option>
             <option value="Duelist">Duelist (Custo 24)</option>
             <option value="Warden">Warden (Custo 25)</option>
+            <option value="Illusionist">Illusionist (Custo 27)</option>
+            <option value="Marksman">Marksman (Custo 28)</option>
             <option value="Hookmaster">Hookmaster (Custo 15)</option>
             <option value="Timekeeper">Timekeeper (Custo 16)</option>
             <option value="Dragoon">Dragoon (Custo 18)</option>

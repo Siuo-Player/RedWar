@@ -19,11 +19,11 @@
     "frame": "reset/back-to-zero/reset-background"
   },
   "summary": {
-    "assets_audited": 28,
+    "assets_audited": 30,
     "confirmed": 0,
     "high_confidence": 0,
     "ambiguous": 0,
-    "unresolved": 28
+    "unresolved": 30
   },
   "assets": [
     {
@@ -93,6 +93,12 @@
       "local_git_blob_sha": "f12ba2cda23900aaf4d7ec621f00e8c7c7ec0f94"
     },
     {
+      "local_file": "ui/assets/illusionist.png",
+      "status": "UNRESOLVED",
+      "match": null,
+      "local_git_blob_sha": "1a48f5ce10216d91e9a29730ca00a4e1e43eb027"
+    },
+    {
       "local_file": "ui/assets/inquisitor.png",
       "status": "UNRESOLVED",
       "match": null,
@@ -103,6 +109,12 @@
       "status": "UNRESOLVED",
       "match": null,
       "local_git_blob_sha": "75b2fdb974e17ca208057ba46291f05759dda5f3"
+    },
+    {
+      "local_file": "ui/assets/marksman.png",
+      "status": "UNRESOLVED",
+      "match": null,
+      "local_git_blob_sha": "8800744cfdcae0e869edd3ba49af842e54adaec5"
     },
     {
       "local_file": "ui/assets/nightshade.png",
@@ -201,4 +213,4 @@
     "The initial manifest is deliberately unresolved because an exhaustive image comparison against the pinned corpus was not reproducible in the current agent environment.",
     "Run tools/licensing/match_game_icons.py with a pinned official corpus checkout to replace unresolved entries with evidence-backed matches."
   ]
-}
+}

@@ -188,3 +188,41 @@ A arquitetura deverá permitir variantes sem substituir o modo normal, incluindo
 - efeitos de terreno adicionais;
 - exceções ao número de ações;
 - regras especiais.
+
+
+## 13. Notação RedWar (RWN — RedWar Notation)
+
+A **Notação RedWar (RWN)** é o formato padrão canónico (análogo ao PGN do xadrez) para registo, exportação, partilha e análise reproduzível de partidas de RedWar.
+
+Exemplo de cabeçalho e lances RWN:
+```rwn
+[Event "RedWar 2.0 Match"]
+[Site "RedWar Platform"]
+[Date "2026.11.07"]
+[White "Jogador"]
+[Black "Ares AI"]
+[Roster "Paladin,Shadowblade,Valkyrie,Arcanist,Duelist,Warden,Illusionist,Marksman"]
+
+1. Wa e2-e3 Du d7-d6
+2. Il c2-c4 Ma f7-f5
+```
+
+O cliente Web permite tanto a **Exportação RWN** (com cópia direta para o clipboard) como a **Importação RWN** para análise retrospetiva lance a lance no **Game Review**.
+
+## 14. Roster Expandido de 30 Heróis Táticos
+
+O RedWar conta com um catálogo dinâmico de 30 heróis e unidades táticas, cada um com geometria posicional e custo de draft calibrados:
+- **Flanqueadores Aéreos e Rápidos**: `Valkyrie` (Custo 22), `Shadowblade` (Custo 18/65), `Duelist` (Custo 24), `Dragoon` (Custo 193).
+- **Controladores e Artilharia à Distância**: `Arcanist` (Custo 23), `Marksman` (Custo 28), `Ranger` (Custo 40), `Stormcaller` (Custo 72), `Pyromancer` (Custo 17), `FrostMage` (Custo 5).
+- **Âncoras, Guardiões e Vanguardas**: `Warden` (Custo 25), `Paladin` (Custo 16/55), `Templar` (Custo 15), `Inquisitor` (Custo 128), `Stonewall` (Custo 14).
+- **Disruptores e Mestres de Transposição**: `Illusionist` (Custo 27), `Hookmaster` (Custo 15/52), `Timekeeper` (Custo 16/59), `Trickster` (Custo 12/26), `Geomancer` (Custo 21).
+- **Necromancia e Invocações Estruturais**: `BoneLord` (Custo 86), `Lich` (Custo 11), `Ghoul` (Custo 5), `Bone` (Custo 8), `Obelisk` (Custo 16).
+
+## 15. Motor de IA Ares 2.0 Max
+
+O motor **Ares** opera com técnicas contemporâneas de motores de jogos abstratos de tabuleiro de alto nível:
+- **Tabela de Transposição Zobrist (64-bit)**: Chaves hash aleatórias que preservam o estado e evitam re-exploração de transposições.
+- **Ordenação MVV-LVA com Priorização do Horizonte de Stun**: Lances que eliminam peças atordoadas ("um segundo enquanto atordoado mata") têm prioridade absoluta ($300.000 + 100 \times \text{custo\_vitima} - \text{custo\_atacante}$).
+- **Quiescence Search**: Estabilização tática das folhas para evitar o efeito de horizonte em trocas críticas.
+- **Late Move Reductions (LMR)**: Redução seletiva de profundidade em lances silenciosos profundos para maximizar a profundidade efetiva.
+- **Opening Book Tático**: Desenvolvimento estruturado de centros e flancos nas primeiras 4 jogadas.
