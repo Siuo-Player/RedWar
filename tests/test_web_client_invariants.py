@@ -144,7 +144,66 @@ def test_web_client_all_heroes_configured():
         valid = false;
       }
     }
-    console.log(JSON.stringify({ count, valid, passed: count >= 24 && valid }));
+    console.log(JSON.stringify({ count, valid, passed: count >= 28 && valid }));
     """
     res = run_node_snippet(snippet)
     assert res["passed"], f"Hero rules incomplete: count={res['count']}, valid={res['valid']}"
+
+
+def test_web_client_tactical_puzzles_trainer_contract():
+    """Tactical puzzles must load, have valid solution coordinates, and track ELO."""
+    snippet = """
+    let errors = [];
+    if (!PUZZLES || PUZZLES.length < 6) {
+      errors.push(`Expected at least 6 puzzles, got ${PUZZLES ? PUZZLES.length : 0}`);
+    }
+    for (const pz of PUZZLES) {
+      if (!pz.puzzle_id || !pz.title || !pz.rating || !pz.solution || !pz.board) {
+        errors.push(`Puzzle ${pz.puzzle_id} has invalid schema`);
+      }
+      const { fromR, fromC, toR, toC } = pz.solution;
+      const source = pz.board.find(p => p.r === fromR && p.c === fromC);
+      if (!source) {
+        errors.push(`Puzzle ${pz.puzzle_id} solution from (${fromR},${fromC}) has no piece`);
+      }
+    }
+    setupPuzzle("pz1");
+    console.log(JSON.stringify({ passed: errors.length === 0, errors, isPuzzle: isPuzzleMode }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Puzzle trainer contract failed: {res['errors']}"
+    assert res["isPuzzle"], "setupPuzzle must activate isPuzzleMode"
+
+
+def test_web_client_live_evaluation_and_move_classification():
+    """Live Centipawn eval and move classification must compute valid deltas and ratings."""
+    snippet = """
+    initDefaultBoard();
+    const evalStart = computeBoardCentipawns(boardData);
+    classifyLastMove(0, 250, "Valkyrie captura Lich", "brancas");
+    classifyLastMove(250, -150, "Dragoon falha", "brancas");
+    const lastClassified = classifiedMoves[classifiedMoves.length - 1];
+    console.log(JSON.stringify({
+      passed: evalStart !== undefined && classifiedMoves.length === 2 && lastClassified.classification === "blunder",
+      evalStart,
+      classifiedCount: classifiedMoves.length
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Evaluation & classification failed: {res}"
+
+
+def test_web_client_board_themes_and_graveyard():
+    """Board theme selection and captured piece graveyard tracking must function correctly."""
+    snippet = """
+    initDefaultBoard();
+    recordCapture({ name: 'Paladin', team: 'brancas' });
+    recordCapture({ name: 'Shadowblade', team: 'pretas' });
+    console.log(JSON.stringify({
+      passed: capturedWhite.includes('Paladin') && capturedBlack.includes('Shadowblade') && BOARD_THEMES.cyberpunk !== undefined,
+      capturedWhite,
+      capturedBlack
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Themes & graveyard failed: {res}"

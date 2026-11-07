@@ -731,6 +731,26 @@ class Timekeeper(DataPiece):
 
 
 
+class Valkyrie(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Valkyrie")
+
+
+class Arcanist(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Arcanist")
+
+
+class Duelist(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Duelist")
+
+
+class Warden(DataPiece):
+    __slots__ = ()
+    def __init__(self, team): super().__init__(team, "Warden")
+
+
 TODAS_AS_PECAS = [
     Bone, Ghoul, Obelisk, BoneLord,
     Phantom, Sentry,
@@ -738,6 +758,7 @@ TODAS_AS_PECAS = [
     Ranger, Nightshade, Templar, StoneWall, Inquisitor, Berserker,
     Pyromancer, Dragoon, Cleric, Trickster, Geomancer,
     Paladin, Shadowblade, Stormcaller, Hookmaster, Timekeeper,
+    Valkyrie, Arcanist, Duelist, Warden,
 ]
 
 

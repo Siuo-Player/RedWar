@@ -21,6 +21,7 @@ SPELL_DETAILS = {
     "chain_lightning": "Ataque elétrico de raio direto até 3 casas em linha reta ortogonal.",
     "hook": "Gancho tático: atrai uma unidade inimiga em linha reta até 2 casas em direção a si.",
     "temporal_shift": "Distorção temporal: manipula a contagem de turnos, reduzindo o stun de um aliado (-1 turno) ou aumentando o stun de um inimigo (+1 turno).",
+    "arcane_blast": "Rajada rúnica: raio ortogonal perfurante até 3 casas que atinge e elimina unidades atordoadas à distância.",
 }
 
 

@@ -22,12 +22,145 @@ let moveHistory = [];
 let evalHistory = [0];
 let isAiThinking = false;
 
+// --- Board Themes ---
+var BOARD_THEMES = {
+  classic: { light: "#eeeed2", dark: "#769656", name: "Clássico" },
+  cyberpunk: { light: "#1e293b", dark: "#0f172a", name: "Cyberpunk" },
+  volcanic: { light: "#451a03", dark: "#291003", name: "Arena Vulcânica" },
+  glacial: { light: "#dbeafe", dark: "#38bdf8", name: "Templo Glacial" }
+};
+var currentTheme = "classic";
+
+// --- Graveyard / Captured Pieces Tracking ---
+var capturedWhite = [];
+var capturedBlack = [];
+
+function recordCapture(piece) {
+  if (!piece) return;
+  if (piece.team === "brancas") {
+    capturedWhite.push(piece.name);
+  } else {
+    capturedBlack.push(piece.name);
+  }
+  updateGraveyardsUI();
+}
+
+function updateGraveyardsUI() {
+  const whiteEl = document.getElementById("whiteGraveyard");
+  const blackEl = document.getElementById("blackGraveyard");
+  if (whiteEl) {
+    whiteEl.innerHTML = capturedWhite.map(name => {
+      const acronym = HERO_RULES[name] ? HERO_RULES[name].acronym : name.substring(0, 2);
+      return `<span class="graveyard-piece white" title="${name}">${acronym}</span>`;
+    }).join("");
+  }
+  if (blackEl) {
+    blackEl.innerHTML = capturedBlack.map(name => {
+      const acronym = HERO_RULES[name] ? HERO_RULES[name].acronym : name.substring(0, 2);
+      return `<span class="graveyard-piece black" title="${name}">${acronym}</span>`;
+    }).join("");
+  }
+}
+
+// --- Live Centipawn Position Evaluation ---
+function computeBoardCentipawns(board) {
+  let whiteScore = 0;
+  let blackScore = 0;
+  for (let r = 0; r < boardGrid; r++) {
+    for (let c = 0; c < boardGrid; c++) {
+      const p = board[r][c];
+      if (!p) continue;
+      const rule = HERO_RULES[p.name] || { cost: 10 };
+      let val = rule.cost * 100;
+      if (p.stun > 0) val = Math.round(val * 0.5);
+      const centerDist = Math.abs(r - (boardGrid - 1) / 2) + Math.abs(c - (boardGrid - 1) / 2);
+      val += Math.round((boardGrid - centerDist) * 8);
+      if (p.team === "brancas") whiteScore += val;
+      else blackScore += val;
+    }
+  }
+  return whiteScore - blackScore;
+}
+
+function updateLiveEvalBar(cp) {
+  const fill = document.getElementById("evalBarFill");
+  const topLabel = document.getElementById("evalBarLabelTop");
+  const bottomLabel = document.getElementById("evalBarLabelBottom");
+  if (!fill) return;
+
+  const maxVal = 1000;
+  const pct = Math.max(5, Math.min(95, 50 + (cp / maxVal) * 50));
+  fill.style.height = `${pct}%`;
+
+  const formatted = (Math.abs(cp) / 100).toFixed(1);
+  if (cp > 25) {
+    if (bottomLabel) bottomLabel.textContent = `+${formatted}`;
+    if (topLabel) topLabel.textContent = "";
+  } else if (cp < -25) {
+    if (topLabel) topLabel.textContent = `-${formatted}`;
+    if (bottomLabel) bottomLabel.textContent = "";
+  } else {
+    if (bottomLabel) bottomLabel.textContent = "0.0";
+    if (topLabel) topLabel.textContent = "";
+  }
+}
+
+// --- Game Review Move Classification ---
+var classifiedMoves = [];
+
+function classifyLastMove(evalBefore, evalAfter, moveText, pieceTeam) {
+  const delta = pieceTeam === "brancas" ? (evalAfter - evalBefore) : (evalBefore - evalAfter);
+  let classification = "best";
+  let badgeClass = "badge-best";
+  let label = "Melhor";
+
+  if (delta >= 180) {
+    classification = "brilliant";
+    badgeClass = "badge-brilliant";
+    label = "✨ Brilhante (!!)";
+  } else if (delta >= 60) {
+    classification = "great";
+    badgeClass = "badge-great";
+    label = "⭐ Excelente (!)";
+  } else if (delta >= -25) {
+    classification = "best";
+    badgeClass = "badge-best";
+    label = "🎯 Melhor";
+  } else if (delta >= -75) {
+    classification = "good";
+    badgeClass = "badge-good";
+    label = "👍 Bom";
+  } else if (delta >= -160) {
+    classification = "inaccuracy";
+    badgeClass = "badge-inaccuracy";
+    label = "⚠️ Imprecisão (?!)";
+  } else if (delta >= -320) {
+    classification = "mistake";
+    badgeClass = "badge-mistake";
+    label = "❓ Erro (?)";
+  } else {
+    classification = "blunder";
+    badgeClass = "badge-blunder";
+    label = "💥 Gaffe (??)";
+  }
+
+  classifiedMoves.push({
+    moveText,
+    team: pieceTeam,
+    delta,
+    classification,
+    badgeClass,
+    label
+  });
+}
+
 // --- Assets Pre-loading ---
 const HERO_ASSET_NAMES = [
   "berserker", "bone", "bonelord", "cleric", "dragoon", "frostmage",
   "geomancer", "ghoul", "hookmaster", "inquisitor", "lich", "nightshade",
   "obelisk", "paladin", "phantom", "pyromancer", "ranger", "sentry",
-  "shadowblade", "stonewall", "stormcaller", "templar", "timekeeper", "trickster"
+  "shadowblade", "stonewall", "stormcaller", "templar", "timekeeper", "trickster",
+  "valkyrie", "arcanist", "duelist", "warden"
 ];
 
 const PIECE_IMAGES = {};
@@ -183,6 +316,30 @@ const HERO_RULES = {
     attack: { type: "forward_cone", steps: 1 },
     cost: 5,
     acronym: "Gh"
+  },
+  Valkyrie: {
+    move: { type: "adjacent", steps: 3, ghost: true },
+    attack: { type: "orthogonal", steps: 2 },
+    cost: 22,
+    acronym: "Va"
+  },
+  Arcanist: {
+    move: { type: "diagonal", steps: 2, ghost: false },
+    attack: { type: "orthogonal", steps: 3 },
+    cost: 23,
+    acronym: "Ar"
+  },
+  Duelist: {
+    move: { type: "diagonal", steps: 2, ghost: false },
+    attack: { type: "diagonal", steps: 2 },
+    cost: 24,
+    acronym: "Du"
+  },
+  Warden: {
+    move: { type: "adjacent", steps: 1, ghost: false },
+    attack: { type: "orthogonal", steps: 1 },
+    cost: 25,
+    acronym: "Wa"
   }
 };
 
@@ -266,6 +423,56 @@ const HERO_LESSONS = {
     ],
     solution: { fromR: 4, fromC: 3, toR: 3, toC: 3 },
     explanation: "Muito bem! O avanço do BoneLord estabelece a presença central necessária para invocar tropas nos turnos seguintes."
+  },
+  valkyrie: {
+    title: "Valkyrie: As Asas Celestes",
+    lore: "Guerreira celestial com asas translúcidas que plana sobre o campo de batalha. Salta sobre obstáculos e tropas com voo espectral.",
+    ability: "Voo Espectral: Move-se até 3 casas (ortogonal ou diagonal) ignorando quaisquer obstáculos terrestres.",
+    objective: "Voa sobre a barreira inimiga e desfere o golpe letal no Lich atordoado.",
+    pieces: [
+      { r: 5, c: 2, name: "Valkyrie", team: "brancas", stun: 0 },
+      { r: 4, c: 2, name: "StoneWall", team: "pretas", stun: 0 },
+      { r: 3, c: 2, name: "Bone", team: "pretas", stun: 0 },
+      { r: 2, c: 2, name: "Lich", team: "pretas", stun: 2 }
+    ],
+    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
+    explanation: "Sensacional! As asas da Valkyrie ignoraram a barreira terrestre e liquidaram o alvo protegido."
+  },
+  arcanist: {
+    title: "Arcanist: A Rajada Rúnica",
+    lore: "Mago acadêmico dos círculos rúnicos arcanos. Canaliza rajadas perfurantes em linha reta que eliminam unidades debilitadas.",
+    ability: "Rajada Arcana: Ataque ortogonal em raio até 3 casas com impacto mágico direto.",
+    objective: "Dispara a rajada arcana ao longo da coluna para eliminar o atacante atordoado.",
+    pieces: [
+      { r: 5, c: 3, name: "Arcanist", team: "brancas", stun: 0 },
+      { r: 2, c: 3, name: "Stormcaller", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 5, fromC: 3, toR: 2, toC: 3 },
+    explanation: "Perfeito! O raio arcano percorreu 3 casas e vaporizou o adversário atordoado."
+  },
+  duelist: {
+    title: "Duelist: A Estocada Precisa",
+    lore: "Mestre esgrimista das academias reais, domina as diagonais com lâmina leve e contra-ataques fulminantes.",
+    ability: "Estocada Diagonal: Move-se e ataca em diagonais até 2 casas com precisão cirúrgica.",
+    objective: "Avança em diagonal para trespassar o Berserker debilitado.",
+    pieces: [
+      { r: 4, c: 2, name: "Duelist", team: "brancas", stun: 0 },
+      { r: 2, c: 4, name: "Berserker", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 4, fromC: 2, toR: 2, toC: 4 },
+    explanation: "Magnífico! O golpe diagonal cirúrgico finalizou a ameaça sem sofrer retaliação."
+  },
+  warden: {
+    title: "Warden: O Bastião Inabalável",
+    lore: "Com escudo de torre e armadura pesada, o Warden ancora a linha de frente e rechaça quaisquer invasores.",
+    ability: "Golpe de Escudo: Movimenta-se 1 casa em qualquer direção e desfere golpe ortogonal contundente.",
+    objective: "Avança com o escudo e elimina a Nightshade infiltrada.",
+    pieces: [
+      { r: 3, c: 3, name: "Warden", team: "brancas", stun: 0 },
+      { r: 2, c: 3, name: "Nightshade", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 3, fromC: 3, toR: 2, toC: 3 },
+    explanation: "Inabalável! O avanço defensivo do Warden conteve a infiltração inimiga com autoridade."
   }
 };
 
@@ -333,6 +540,34 @@ const HERO_ANALYTICS_DATA = {
     radar: { zone: 78, lethality: 75, cc: 55, mobility: 65, surv: 52, endg: 72 },
     phases: { opening: 82, midgame: 78, endgame: 68 },
     heatmapHotspots: [[6, 2], [6, 5], [7, 3], [7, 4]]
+  },
+  Valkyrie: {
+    classes: ["Striker (Iniciador Aéreo)", "Flanqueador Espectral"],
+    efficiency: "1.03x (Equilibrado)",
+    radar: { zone: 72, lethality: 86, cc: 60, mobility: 98, surv: 70, endg: 92 },
+    phases: { opening: 78, midgame: 92, endgame: 95 },
+    heatmapHotspots: [[2, 2], [2, 5], [3, 3], [3, 4], [4, 2], [4, 5]]
+  },
+  Arcanist: {
+    classes: ["Artillery (Artilharia Rúnica)", "Controlador Linear"],
+    efficiency: "0.99x (Equilibrado)",
+    radar: { zone: 88, lethality: 92, cc: 65, mobility: 50, surv: 54, endg: 80 },
+    phases: { opening: 84, midgame: 90, endgame: 76 },
+    heatmapHotspots: [[6, 3], [6, 4], [5, 2], [5, 5], [4, 3]]
+  },
+  Duelist: {
+    classes: ["Striker (Esgrimista Diagonal)", "Assassino Cirúrgico"],
+    efficiency: "1.01x (Equilibrado)",
+    radar: { zone: 65, lethality: 90, cc: 50, mobility: 82, surv: 68, endg: 88 },
+    phases: { opening: 68, midgame: 88, endgame: 90 },
+    heatmapHotspots: [[3, 3], [3, 4], [4, 3], [4, 4], [2, 4], [5, 3]]
+  },
+  Warden: {
+    classes: ["Vanguard (Âncora Pesada)", "Guardião de Ponto"],
+    efficiency: "1.04x (Equilibrado)",
+    radar: { zone: 92, lethality: 65, cc: 85, mobility: 40, surv: 95, endg: 82 },
+    phases: { opening: 75, midgame: 94, endgame: 86 },
+    heatmapHotspots: [[3, 3], [3, 4], [4, 3], [4, 4], [3, 2], [4, 5]]
   }
 };
 
@@ -1227,6 +1462,59 @@ document.getElementById("btnRematch").addEventListener("click", () => {
   alert("Desforra iniciada! Boa sorte no tabuleiro!");
 });
 
+// Board Theme Switcher
+const boardThemeSelect = document.getElementById("boardThemeSelect");
+if (boardThemeSelect) {
+  boardThemeSelect.addEventListener("change", (e) => {
+    currentTheme = e.target.value;
+    drawBoard();
+  });
+}
+
+// Tactical Puzzles UI Handlers
+const btnLoadPuzzle = document.getElementById("btnLoadPuzzle");
+if (btnLoadPuzzle) {
+  btnLoadPuzzle.addEventListener("click", () => {
+    const pzSelect = document.getElementById("puzzleSelect");
+    if (pzSelect) setupPuzzle(pzSelect.value);
+  });
+}
+
+const puzzleSelectEl = document.getElementById("puzzleSelect");
+if (puzzleSelectEl) {
+  puzzleSelectEl.addEventListener("change", (e) => {
+    setupPuzzle(e.target.value);
+  });
+}
+
+const btnPuzzleHint = document.getElementById("btnPuzzleHint");
+if (btnPuzzleHint) {
+  btnPuzzleHint.addEventListener("click", () => {
+    if (!currentPuzzle) return;
+    const banner = document.getElementById("puzzleStatusBanner");
+    if (banner) {
+      banner.style.display = "block";
+      banner.style.background = "rgba(245, 158, 11, 0.2)";
+      banner.style.border = "1px solid #f59e0b";
+      banner.style.color = "#fbbf24";
+      banner.innerHTML = `<strong>💡 Dica:</strong> ${currentPuzzle.hint}`;
+    }
+  });
+}
+
+const btnNextPuzzle = document.getElementById("btnNextPuzzle");
+if (btnNextPuzzle) {
+  btnNextPuzzle.addEventListener("click", () => {
+    if (!currentPuzzle) return;
+    const curIdx = PUZZLES.findIndex(p => p.puzzle_id === currentPuzzle.puzzle_id);
+    const nextIdx = (curIdx + 1) % PUZZLES.length;
+    const nextPz = PUZZLES[nextIdx];
+    const pzSelect = document.getElementById("puzzleSelect");
+    if (pzSelect) pzSelect.value = nextPz.puzzle_id;
+    setupPuzzle(nextPz.puzzle_id);
+  });
+}
+
 document.getElementById("btnStartGame").addEventListener("click", () => {
   const mode = document.getElementById("modeSelect").value;
   boardGrid = mode === "grand_10x10" ? 10 : 8;
@@ -1261,23 +1549,145 @@ async function loadLeaderboard() {
   });
 }
 
-async function loadPuzzles() {
+const PUZZLES = [
+  {
+    puzzle_id: "pz1",
+    title: "O Salto Duplo do Dragoon",
+    rating: 1350,
+    description: "O Dragoon branco na casa d4 pode saltar sobre o bloqueio e aplicar o golpe letal final no Paladino preto atordoado em f6.",
+    hint: "Usa o padrão em 'L' do Dragoon para saltar por cima das peças e atingir o alvo enfraquecido.",
+    board: [
+      { r: 4, c: 3, name: "Dragoon", team: "brancas", stun: 0 },
+      { r: 4, c: 4, name: "Bone", team: "brancas", stun: 0 },
+      { r: 2, c: 5, name: "Paladin", team: "pretas", stun: 1 },
+      { r: 1, c: 4, name: "FrostMage", team: "pretas", stun: 0 }
+    ],
+    solution: { fromR: 4, fromC: 3, toR: 2, toC: 5 },
+    explanation: "Excelente! O Dragoon saltou sobre a barreira e eliminou instantaneamente o Paladino atordoado."
+  },
+  {
+    puzzle_id: "pz2",
+    title: "A Lâmina Fantasma na Cripta",
+    rating: 1520,
+    description: "A Shadowblade pode atravessar tropas em diagonal com a sua mobilidade espectral para eliminar o FrostMage atordoado em b7.",
+    hint: "A Shadowblade ignora peças intermediárias em trajetórias diagonais.",
+    board: [
+      { r: 4, c: 4, name: "Shadowblade", team: "brancas", stun: 0 },
+      { r: 3, c: 3, name: "Bone", team: "brancas", stun: 0 },
+      { r: 2, c: 2, name: "Bone", team: "pretas", stun: 0 },
+      { r: 1, c: 1, name: "FrostMage", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 4, fromC: 4, toR: 1, toC: 1 },
+    explanation: "Perfeito! A Shadowblade atravessou duas unidades na diagonal para desferir o golpe letal."
+  },
+  {
+    puzzle_id: "pz3",
+    title: "As Asas Celestes da Valkyrie",
+    rating: 1650,
+    description: "A recém-chegada Valkyrie voa até 3 casas ignorando obstáculos terrestres. Encontra o ângulo para abater o Lich atordoado.",
+    hint: "A Valkyrie salta sobre unidades terrestres até 3 casas em qualquer direção.",
+    board: [
+      { r: 5, c: 2, name: "Valkyrie", team: "brancas", stun: 0 },
+      { r: 4, c: 2, name: "StoneWall", team: "pretas", stun: 0 },
+      { r: 3, c: 2, name: "Bone", team: "pretas", stun: 0 },
+      { r: 2, c: 2, name: "Lich", team: "pretas", stun: 2 }
+    ],
+    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
+    explanation: "Brilhante! O voo espectral da Valkyrie sobrevoou a parede e o lacaio, liquidando o Lich."
+  },
+  {
+    puzzle_id: "pz4",
+    title: "Rajada Rúnica do Arcanist",
+    rating: 1720,
+    description: "O Arcanist canaliza a sua Rajada Arcana ortogonal até 3 casas. Elimina a unidade inimiga vulnerável em linha reta.",
+    hint: "O Arcanist ataca em linha reta ortogonal até 3 casas com magia perfurante.",
+    board: [
+      { r: 5, c: 3, name: "Arcanist", team: "brancas", stun: 0 },
+      { r: 2, c: 3, name: "Stormcaller", team: "pretas", stun: 1 },
+      { r: 3, c: 5, name: "BoneLord", team: "pretas", stun: 0 }
+    ],
+    solution: { fromR: 5, fromC: 3, toR: 2, toC: 3 },
+    explanation: "Cirúrgico! A Rajada Arcana do Arcanist atingiu o Stormcaller à distância sem expor o mago."
+  },
+  {
+    puzzle_id: "pz5",
+    title: "A Estocada Precisa do Duelist",
+    rating: 1780,
+    description: "O Duelist especializa-se em trespassar diagonais até 2 casas. Elimina o berserker atordoado na retaguarda.",
+    hint: "Move e ataca em diagonal até 2 casas com precisão cirúrgica.",
+    board: [
+      { r: 4, c: 2, name: "Duelist", team: "brancas", stun: 0 },
+      { r: 2, c: 4, name: "Berserker", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 4, fromC: 2, toR: 2, toC: 4 },
+    explanation: "Sensacional! A estocada diagonal do Duelist finalizou o adversário com eficiência perfeita."
+  },
+  {
+    puzzle_id: "pz6",
+    title: "O Bastião Inabalável do Warden",
+    rating: 1850,
+    description: "O Warden controla a linha de frente. Avança para neutralizar e derrubar a ameaça que invadiu o campo aliado.",
+    hint: "O Warden move-se 1 casa em qualquer direção e ataca ortogonalmente com golpe de escudo.",
+    board: [
+      { r: 3, c: 3, name: "Warden", team: "brancas", stun: 0 },
+      { r: 2, c: 3, name: "Nightshade", team: "pretas", stun: 1 }
+    ],
+    solution: { fromR: 3, fromC: 3, toR: 2, toC: 3 },
+    explanation: "Inabalável! O golpe de escudo do Warden encerrou o avanço inimigo na linha de frente."
+  }
+];
+
+let isPuzzleMode = false;
+let currentPuzzle = null;
+let puzzleUserElo = 1200;
+let puzzleStreak = 0;
+
+function updatePuzzleStatsUI() {
+  const eloEl = document.getElementById("puzzleElo");
+  const streakEl = document.getElementById("puzzleStreak");
+  if (eloEl) eloEl.textContent = puzzleUserElo;
+  if (streakEl) streakEl.textContent = `🔥 ${puzzleStreak}`;
+}
+
+function loadPuzzles() {
   const select = document.getElementById("puzzleSelect");
+  if (!select) return;
   select.innerHTML = "";
-  const puzzles = [
-    { puzzle_id: "pz1", title: "O Salto Duplo do Dragoon", rating: 1350, description: "O Dragoon branco pode saltar sobre a barreira e aplicar golpe letal na peça atordoada." },
-    { puzzle_id: "pz2", title: "A Lâmina Fantasma na Cripta", rating: 1520, description: "A Shadowblade pode atravessar tropas aliadas em diagonal para eliminar a ameaça traseira." },
-    { puzzle_id: "pz3", title: "Nevada Perfeita do FrostMage", rating: 1680, description: "Utiliza o feitiço de gelo a 3 casas para neutralizar o avanço inimigo." }
-  ];
-  puzzles.forEach((pz, idx) => {
+  PUZZLES.forEach((pz, idx) => {
     const opt = document.createElement("option");
     opt.value = pz.puzzle_id;
     opt.textContent = `${pz.title} (${pz.rating} ELO)`;
     select.appendChild(opt);
-    if (idx === 0) {
-      document.getElementById("puzzleDesc").textContent = pz.description;
-    }
   });
+  updatePuzzleStatsUI();
+  setupPuzzle(PUZZLES[0].puzzle_id);
+}
+
+function setupPuzzle(puzzleId) {
+  const pz = PUZZLES.find(p => p.puzzle_id === puzzleId) || PUZZLES[0];
+  currentPuzzle = pz;
+  isPuzzleMode = true;
+  isAcademyMode = false;
+  boardGrid = 8;
+  boardData = Array(8).fill(null).map(() => Array(8).fill(null));
+  selectedSquare = null;
+  currentLegalActions = [];
+  currentTurn = "white";
+
+  pz.board.forEach(p => {
+    boardData[p.r][p.c] = { name: p.name, team: p.team, stun: p.stun || 0 };
+  });
+
+  const desc = document.getElementById("puzzleDesc");
+  if (desc) desc.textContent = pz.description;
+  const banner = document.getElementById("puzzleStatusBanner");
+  if (banner) banner.style.display = "none";
+  const nextBtn = document.getElementById("btnNextPuzzle");
+  if (nextBtn) nextBtn.style.display = "none";
+
+  drawBoard();
+  const cp = computeBoardCentipawns(boardData);
+  updateLiveEvalBar(cp);
 }
 
 // --- Security & Identity Authentication Management ---

@@ -82,3 +82,77 @@ def test_sort_moves_ares2_ordering():
     assert move_to_string_key(sorted_moves[1]) == move_to_string_key(quiet1)
     assert move_to_string_key(sorted_moves[2]) == move_to_string_key(quiet_hist)
     assert move_to_string_key(sorted_moves[3]) == move_to_string_key(quiet2)
+
+
+def test_transposition_table_probing_and_replacement():
+    from ai.ares2 import TranspositionTable, TTFlag
+
+    tt = TranspositionTable(size_power_of_two=10)
+    assert tt.hits == 0
+
+    h1 = 0x12345678
+    m1 = {"type": "move", "start": (1, 1), "end": (2, 2)}
+    tt.store(h1, depth=3, score=150.0, flag=TTFlag.EXACT, best_move=m1)
+
+    entry = tt.probe(h1)
+    assert entry is not None
+    assert entry.score == 150.0
+    assert entry.depth == 3
+    assert entry.best_move == m1
+    assert tt.hits == 1
+
+    # Shallower depth should NOT overwrite deeper search
+    tt.store(h1, depth=1, score=50.0, flag=TTFlag.LOWERBOUND, best_move=None)
+    entry2 = tt.probe(h1)
+    assert entry2.depth == 3
+    assert entry2.score == 150.0
+
+
+def test_mvv_lva_scoring_two_hit_stun_lethal():
+    from ai.ares2 import mvv_lva_score
+    from engine.game_state import GameState
+    from engine.pieces import Bone, Templar, Lich
+
+    gs = GameState()
+    gs.board[4][4] = Templar("brancas")
+
+    # Stunned victim (stun_timer = 1 -> next hit is permanent elimination)
+    victim_stunned = Lich("pretas")
+    victim_stunned.stun_timer = 1
+    gs.board[4][5] = victim_stunned
+
+    # Active victim (stun_timer = 0)
+    victim_active = Lich("pretas")
+    victim_active.stun_timer = 0
+    gs.board[4][3] = victim_active
+
+    lethal_move = {"type": "attack", "start": (4, 4), "end": (4, 5)}
+    stun_move = {"type": "attack", "start": (4, 4), "end": (4, 3)}
+
+    score_lethal = mvv_lva_score(gs, lethal_move)
+    score_stun = mvv_lva_score(gs, stun_move)
+
+    assert score_lethal > score_stun, "Lethal 2-hit stun kill must have higher priority than 1st stun"
+    assert score_lethal >= 300_000
+
+
+def test_ares_engine_iterative_deepening_and_tactical_kill():
+    from ai.ares2 import AresEngine
+    from engine.game_state import GameState
+    from engine.pieces import Valkyrie, Arcanist
+
+    gs = GameState()
+    gs.board[2][2] = Valkyrie("brancas")
+    stunned_target = Arcanist("pretas")
+    stunned_target.stun_timer = 1
+    gs.board[2][4] = stunned_target
+    gs.white_to_move = True
+
+    engine = AresEngine()
+    result = engine.search(gs, max_depth=2, time_limit=1.0)
+
+    assert result["best_move"] is not None
+    assert result["best_move"]["type"] == "attack"
+    assert tuple(result["best_move"]["end"]) == (2, 4)
+    assert result["depth_reached"] >= 2
+    assert result["nodes_visited"] > 0
