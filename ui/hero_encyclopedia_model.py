@@ -36,6 +36,9 @@ def _movement_text(data: dict[str, Any]) -> str:
     if kind == "diagonal":
         return f"Diagonal — até {movement.get('max_steps', 1)} casa(s)"
     if kind == "adjacent":
+        steps = movement.get("max_steps", 1)
+        if steps > 1:
+            return f"Ortogonal ou Diagonal — até {steps} casa(s)"
         return "Uma casa em qualquer direção"
     if kind == "knight":
         return "Em L (padrão de cavalo)"
@@ -58,6 +61,9 @@ def _attack_text(data: dict[str, Any]) -> str:
     if kind == "diagonal":
         return f"Diagonal — até {attack.get('max_steps', 1)} casa(s)"
     if kind == "adjacent":
+        steps = attack.get("max_steps", 1)
+        if steps > 1:
+            return f"Ortogonal ou Diagonal — até {steps} casa(s)"
         return "Uma casa em qualquer direção"
     if kind == "knight":
         return "Em L (padrão de cavalo)"
@@ -73,6 +79,8 @@ def _special_lines(name: str, data: dict[str, Any]) -> tuple[str, ...]:
     behavior = data.get("behavior", {}) or {}
     if data.get("aura_radius") is not None:
         lines.append(f"Aura: raio {data['aura_radius']} — impede spells inimigas ao alcance.")
+    if behavior.get("movement", {}).get("ghost_move"):
+        lines.append("Mobilidade Espectral / Voo: atravessa ou salta sobre peças intermediárias ao mover-se.")
     if data.get("jump_max") is not None:
         lines.append(f"Salto máximo configurado: {data['jump_max']} casas.")
     if data.get("lifespan") is not None:

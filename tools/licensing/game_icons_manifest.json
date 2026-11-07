@@ -19,13 +19,19 @@
     "frame": "reset/back-to-zero/reset-background"
   },
   "summary": {
-    "assets_audited": 24,
+    "assets_audited": 28,
     "confirmed": 0,
     "high_confidence": 0,
     "ambiguous": 0,
-    "unresolved": 24
+    "unresolved": 28
   },
   "assets": [
+    {
+      "local_file": "ui/assets/arcanist.png",
+      "status": "UNRESOLVED",
+      "match": null,
+      "local_git_blob_sha": "0dcae648f11db3c1f228d6819e2e442608faed56"
+    },
     {
       "local_file": "ui/assets/berserker.png",
       "status": "UNRESOLVED",
@@ -55,6 +61,12 @@
       "status": "UNRESOLVED",
       "match": null,
       "local_git_blob_sha": "ba26e55865d2fb821ae489374854e13098e4df6a"
+    },
+    {
+      "local_file": "ui/assets/duelist.png",
+      "status": "UNRESOLVED",
+      "match": null,
+      "local_git_blob_sha": "b9281e74e01f9559e2fcb08c6e7379d86e892f85"
     },
     {
       "local_file": "ui/assets/frostmage.png",
@@ -169,6 +181,18 @@
       "status": "UNRESOLVED",
       "match": null,
       "local_git_blob_sha": "2a6afd56907a9070148ae89a6473ef6133305a3b"
+    },
+    {
+      "local_file": "ui/assets/valkyrie.png",
+      "status": "UNRESOLVED",
+      "match": null,
+      "local_git_blob_sha": "1ddff4088cb78cbaad9adf16148d129c4ca689be"
+    },
+    {
+      "local_file": "ui/assets/warden.png",
+      "status": "UNRESOLVED",
+      "match": null,
+      "local_git_blob_sha": "08bc7f8ecd37aa754e956df6af57f13d40628601"
     }
   ],
   "notes": [

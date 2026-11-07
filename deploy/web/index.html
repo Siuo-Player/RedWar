@@ -40,9 +40,20 @@
         </div>
         <div class="clock-timer" id="blackClock">10:00</div>
       </div>
+      <div class="graveyard" id="blackGraveyard"></div>
 
-      <canvas id="gameBoard" width="560" height="560"></canvas>
+      <div class="board-area-wrapper">
+        <div class="eval-bar-wrapper">
+          <div class="eval-bar" id="evalBar" title="Avaliação Centipawn Ares">
+            <div class="eval-bar-fill" id="evalBarFill" style="height: 50%;"></div>
+            <div class="eval-bar-label top" id="evalBarLabelTop"></div>
+            <div class="eval-bar-label bottom" id="evalBarLabelBottom">0.0</div>
+          </div>
+        </div>
+        <canvas id="gameBoard" width="560" height="560"></canvas>
+      </div>
 
+      <div class="graveyard" id="whiteGraveyard"></div>
       <div class="player-bar" id="whitePlayerBar">
         <div class="player-info">
           <span id="whitePlayerName">Jogador</span>
@@ -70,6 +81,16 @@
             <option value="grand_10x10">Grand RedWar 10×10 (300 pts)</option>
             <option value="snake_draft">Tournament Snake Draft</option>
             <option value="hazard_arena">Hazard Arena (Lava & Barreiras)</option>
+          </select>
+        </div>
+
+        <div class="select-group">
+          <label for="boardThemeSelect">Tema do Tabuleiro:</label>
+          <select id="boardThemeSelect">
+            <option value="classic" selected>Clássico (Verde & Creme)</option>
+            <option value="cyberpunk">Obsidiana & Ciano</option>
+            <option value="volcanic">Arena Vulcânica</option>
+            <option value="glacial">Templo Glacial</option>
           </select>
         </div>
 
@@ -107,13 +128,22 @@
       </div>
 
       <div class="panel-card" id="puzzlesPanel" style="display: none;">
-        <h2>Treino de Táticas</h2>
+        <h2>🧩 Treino de Táticas (Puzzles)</h2>
+        <div class="puzzle-stats-bar" style="display: flex; justify-content: space-between; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem;">
+          <div>Classificação: <strong id="puzzleElo" style="color: #38bdf8;">1200</strong></div>
+          <div>Sequência: <strong id="puzzleStreak" style="color: #22c55e;">🔥 0</strong></div>
+        </div>
         <div class="select-group">
-          <label for="puzzleSelect">Problema:</label>
+          <label for="puzzleSelect">Problema Tático:</label>
           <select id="puzzleSelect"></select>
         </div>
-        <p id="puzzleDesc" style="font-size: 0.9rem; margin-bottom: 12px;"></p>
-        <button class="btn-primary" id="btnLoadPuzzle">Carregar Problema</button>
+        <p id="puzzleDesc" style="font-size: 0.88rem; margin-bottom: 12px; color: #cbd5e1;"></p>
+        <div id="puzzleStatusBanner" style="display: none; padding: 10px; border-radius: 6px; font-size: 0.88rem; margin-bottom: 12px; font-weight: bold; text-align: center;"></div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-primary" id="btnLoadPuzzle" style="flex: 1; margin-top: 0;">Carregar Problema</button>
+          <button class="btn-primary" id="btnPuzzleHint" style="background: #f59e0b; padding: 8px 12px; flex: 0.6; margin-top: 0;">💡 Dica</button>
+          <button class="btn-primary" id="btnNextPuzzle" style="background: #22c55e; display: none; padding: 8px 12px; flex: 0.8; margin-top: 0;">Próximo ➔</button>
+        </div>
       </div>
 
       <div class="panel-card" id="leaderboardPanel" style="display: none;">
@@ -140,6 +170,12 @@
             <option value="paladin">Paladin — O Bastião Sagrado</option>
             <option value="shadowblade">Shadowblade — A Lâmina Fantasma</option>
             <option value="stormcaller">Stormcaller — O Mestre dos Raios</option>
+            <option value="valkyrie">Valkyrie — As Asas Celestes</option>
+            <option value="arcanist">Arcanist — A Rajada Arcana</option>
+            <option value="duelist">Duelist — A Estocada Precisa</option>
+            <option value="warden">Warden — O Bastião Inabalável</option>
+            <option value="hookmaster">Hookmaster — O Gancho Tático</option>
+            <option value="timekeeper">Timekeeper — A Cronomancia</option>
             <option value="dragoon">Dragoon — O Salto do Dragão</option>
             <option value="frostmage">FrostMage — O Domínio do Gelo</option>
             <option value="bonelord">BoneLord — O Soberano das Criptas</option>
@@ -165,9 +201,11 @@
         <div style="margin-bottom: 8px; font-size: 0.85rem; color: #888;">Evolução de Vantagem (Centipawns):</div>
         <canvas id="evalChartCanvas" width="280" height="90" style="background: #111; border-radius: 4px; width: 100%; margin-bottom: 12px;"></canvas>
         <div id="reviewBreakdown" style="font-size: 0.85rem; color: #ccc; line-height: 1.4;">
-          <p>✨ <strong>Brilhantes:</strong> 1 | ⭐ <strong>Melhores:</strong> 6</p>
-          <p>👍 <strong>Excelentes:</strong> 4 | ⚠️ <strong>Imprecisões:</strong> 0</p>
+          <p>✨ <strong>Brilhantes:</strong> <span id="countBrilliant">0</span> | 🎯 <strong>Melhores:</strong> <span id="countBest">0</span></p>
+          <p>👍 <strong>Excelentes:</strong> <span id="countGreat">0</span> | ⚠️ <strong>Imprecisões:</strong> <span id="countInacc">0</span></p>
+          <p>❓ <strong>Erros:</strong> <span id="countMistake">0</span> | 💥 <strong>Gaffes (Blunders):</strong> <span id="countBlunder">0</span></p>
         </div>
+        <div id="reviewMovesList" style="margin-top: 12px; max-height: 160px; overflow-y: auto; background: #0f172a; border-radius: 6px; padding: 8px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 4px;"></div>
       </div>
       <div class="panel-card" id="analyticsPanel" style="display: none;">
         <h2>📊 Estatísticas e Perfis Baseados em Dados</h2>
@@ -176,15 +214,19 @@
         <div class="form-group">
           <label for="analyticsHeroSelect">Seleciona a Peça:</label>
           <select id="analyticsHeroSelect">
-            <option value="Paladin">Paladin (Custo 55)</option>
-            <option value="Shadowblade">Shadowblade (Custo 65)</option>
-            <option value="Stormcaller">Stormcaller (Custo 72)</option>
-            <option value="Dragoon">Dragoon (Custo 60)</option>
-            <option value="FrostMage">FrostMage (Custo 50)</option>
-            <option value="BoneLord">BoneLord (Custo 65)</option>
-            <option value="Hookmaster">Hookmaster (Custo 52)</option>
-            <option value="Timekeeper">Timekeeper (Custo 59)</option>
-            <option value="Ranger">Ranger (Custo 45)</option>
+            <option value="Paladin">Paladin (Custo 16)</option>
+            <option value="Shadowblade">Shadowblade (Custo 18)</option>
+            <option value="Stormcaller">Stormcaller (Custo 17)</option>
+            <option value="Valkyrie">Valkyrie (Custo 22)</option>
+            <option value="Arcanist">Arcanist (Custo 23)</option>
+            <option value="Duelist">Duelist (Custo 24)</option>
+            <option value="Warden">Warden (Custo 25)</option>
+            <option value="Hookmaster">Hookmaster (Custo 15)</option>
+            <option value="Timekeeper">Timekeeper (Custo 16)</option>
+            <option value="Dragoon">Dragoon (Custo 18)</option>
+            <option value="FrostMage">FrostMage (Custo 16)</option>
+            <option value="BoneLord">BoneLord (Custo 16)</option>
+            <option value="Ranger">Ranger (Custo 14)</option>
           </select>
         </div>
 

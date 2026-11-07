@@ -227,3 +227,114 @@ select, input {
   border-radius: 4px;
   font-size: 0.75rem;
 }
+
+/* --- Live Evaluation Bar & Tactical Enhancements --- */
+.board-area-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.eval-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.eval-bar {
+  width: 26px;
+  height: 560px;
+  background: #18181b;
+  border-radius: 6px;
+  border: 1px solid #3f3f46;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+}
+
+.eval-bar-fill {
+  width: 100%;
+  height: 50%;
+  background: #ffffff;
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.eval-bar-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.eval-bar-label.top {
+  top: 8px;
+  color: #a1a1aa;
+}
+
+.eval-bar-label.bottom {
+  bottom: 8px;
+  color: #18181b;
+}
+
+.graveyard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 28px;
+  width: 100%;
+  max-width: 560px;
+  padding: 4px 8px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  margin: 4px 0;
+}
+
+.graveyard-piece {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  border: 1px solid #555;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.graveyard-piece.white {
+  background: #fff;
+  color: #111;
+  border-color: #ccc;
+}
+
+.graveyard-piece.black {
+  background: #1e293b;
+  color: #fff;
+  border-color: #475569;
+}
+
+/* Move Classification Badges */
+.badge-classification {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+.badge-brilliant { background: #06b6d4; color: #000; }
+.badge-great { background: #3b82f6; color: #fff; }
+.badge-best { background: #22c55e; color: #fff; }
+.badge-good { background: #84cc16; color: #000; }
+.badge-inaccuracy { background: #eab308; color: #000; }
+.badge-mistake { background: #f97316; color: #fff; }
+.badge-blunder { background: #ef4444; color: #fff; }

@@ -52,14 +52,14 @@ class RedWarDomainEvaluator:
                     dist = max(abs(a_r - e_r), abs(a_c - e_c))
                     if dist <= 3:  # Reachable range
                         # Impending elimination bonus proportional to piece value
-                        score += float(getattr(enemy, "cost", 50)) * 1.6
+                        score += float(getattr(enemy, "cost", 50)) * 0.5
                         break
             else:
                 # Normal enemy: slight threat if ally is near
                 for a_r, a_c, ally in allies:
                     dist = max(abs(a_r - e_r), abs(a_c - e_c))
                     if dist <= 1:
-                        score += 10.0
+                        score += 2.0
                         break
 
         # 3. Defensive: Check if allies are stunned and exposed to enemy lethal follow-up
@@ -69,7 +69,7 @@ class RedWarDomainEvaluator:
                 for e_r, e_c, enemy in enemies:
                     dist = max(abs(a_r - e_r), abs(a_c - e_c))
                     if dist <= 3:
-                        score -= float(getattr(ally, "cost", 50)) * 1.6
+                        score -= float(getattr(ally, "cost", 50)) * 0.5
                         break
 
         # 4. Emergent Mechanics Synergies

@@ -38,6 +38,9 @@ IGNORED_TOP_LEVEL = {
     "artifacts",
     "assets",
     "RESEARCH_INBOX",
+    "packages",
+    "specs",
+    "wiki",
 }
 
 LEGACY_PATHS = {

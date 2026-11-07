@@ -592,5 +592,79 @@
         "max_steps": 1
       }
     }
+  },
+  "Valkyrie": {
+    "cost": 22,
+    "acronym": "Va",
+    "draftable": true,
+    "descricao": "Movimento: Até 3 casas (Ortogonal/Diagonal) com voo espectral. Ataque: Até 2 casas ortogonais.",
+    "passiva": "Asas Celestes: Salta sobre obstáculos terrestres e peças intermediárias em voo planado.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 3,
+        "ghost_move": true
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 2
+      }
+    }
+  },
+  "Arcanist": {
+    "cost": 23,
+    "acronym": "Ar",
+    "draftable": true,
+    "descricao": "Movimento: 2 casas em diagonal. Feitiço: Rajada Arcana (raio ortogonal até 3 casas).",
+    "passiva": "Foco Rúnico: Feitiço linear perfurante que elimina unidades atordoadas à distância.",
+    "spells": [
+      "arcane_blast"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 2
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 3,
+        "attack_action": "spell",
+        "spell_name": "arcane_blast"
+      }
+    }
+  },
+  "Duelist": {
+    "cost": 24,
+    "acronym": "Du",
+    "draftable": true,
+    "descricao": "Movimento: Até 2 casas diagonais. Ataque: 1 a 2 casas diagonais.",
+    "passiva": "Estocada Precisa: Especialista em trespassar linhas inimigas em diagonal com letalidade cirúrgica.",
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 2
+      },
+      "attack": {
+        "type": "diagonal",
+        "max_steps": 2
+      }
+    }
+  },
+  "Warden": {
+    "cost": 25,
+    "acronym": "Wa",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa adjacente. Ataque: 1 casa ortogonal com golpe de escudo.",
+    "passiva": "Bastião Inabalável: Âncora defensiva de curto alcance com poder de impacto e contenção de linha.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
   }
 }
