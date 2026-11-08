@@ -28,7 +28,8 @@ global.document = {
       clearRect: () => {}, fillRect: () => {}, beginPath: () => {},
       arc: () => {}, fill: () => {}, stroke: () => {}, drawImage: () => {},
       fillText: () => {}, measureText: () => ({ width: 10 }),
-      save: () => {}, restore: () => {}, setLineDash: () => {}
+      save: () => {}, restore: () => {}, setLineDash: () => {},
+      moveTo: () => {}, lineTo: () => {}, closePath: () => {}, strokeRect: () => {}
     }),
     addEventListener: () => {},
     classList: { add: () => {}, remove: () => {} },
@@ -257,3 +258,42 @@ def test_web_client_audio_toggle():
     """
     res = run_node_snippet(snippet)
     assert res["passed"], f"Audio toggle failed: {res}"
+
+
+def test_web_client_hero_analytics_riot_and_power_tiles():
+    """Verify that all 30 heroes have complete analytics with Riot badge and power tiles."""
+    snippet = """
+    const heroKeys = Object.keys(HERO_ANALYTICS_DATA);
+    let missingProps = [];
+    for (const h of heroKeys) {
+      const data = HERO_ANALYTICS_DATA[h];
+      if (!data.classes || data.classes.length === 0) missingProps.push(`${h}: missing classes`);
+      if (!data.riotStatus) missingProps.push(`${h}: missing riotStatus`);
+      if (!data.powerTiles || data.powerTiles.length === 0) missingProps.push(`${h}: missing powerTiles`);
+      if (!data.vulnerableTiles || data.vulnerableTiles.length === 0) missingProps.push(`${h}: missing vulnerableTiles`);
+      if (!data.topSynergies || data.topSynergies.length === 0) missingProps.push(`${h}: missing topSynergies`);
+      if (!data.topCounters || data.topCounters.length === 0) missingProps.push(`${h}: missing topCounters`);
+    }
+
+    // Test calling updateHeroAnalyticsDisplay and switching heatmap modes
+    let updateWorked = true;
+    try {
+      updateHeroAnalyticsDisplay("Paladin");
+      updateHeroAnalyticsDisplay("Valkyrie");
+      currentHeatmapMode = "delta_wr";
+      renderHeatmap("Valkyrie");
+      currentHeatmapMode = "density";
+      renderHeatmap("Valkyrie");
+    } catch (e) {
+      updateWorked = false;
+    }
+
+    console.log(JSON.stringify({
+      passed: heroKeys.length >= 30 && missingProps.length === 0 && updateWorked,
+      totalHeroes: heroKeys.length,
+      missingProps,
+      updateWorked
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Analytics invariants failed: {res}"

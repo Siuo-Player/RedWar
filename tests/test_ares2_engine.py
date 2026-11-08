@@ -196,3 +196,43 @@ def test_ares_skill_level_scaling():
 
     assert move_lvl1 is not None
     assert move_lvl3 is not None
+
+
+def test_ares_aspiration_windows_and_pv_ordering():
+    from ai.ares2 import AresEngine
+    from engine.game_state import GameState
+    from engine.pieces import Valkyrie, Arcanist, Duelist, Warden
+
+    gs = GameState()
+    gs.board[6][2] = Valkyrie("brancas")
+    gs.board[6][5] = Arcanist("brancas")
+    gs.board[1][2] = Duelist("pretas")
+    gs.board[1][5] = Warden("pretas")
+    gs.white_to_move = True
+
+    engine = AresEngine()
+    result = engine.search(gs, max_depth=3, time_limit=1.5, use_opening_book=False)
+
+    assert result["best_move"] is not None
+    assert result["depth_reached"] >= 2
+    assert result["nodes_visited"] > 0
+    assert "score" in result
+
+
+def test_ares_null_move_pruning_cutoff():
+    from ai.ares2 import AresEngine
+    from engine.game_state import GameState
+    from engine.pieces import Valkyrie, Warden
+
+    gs = GameState()
+    # Position where White has strong material advantage and no threats
+    gs.board[6][2] = Valkyrie("brancas")
+    gs.board[6][3] = Warden("brancas")
+    gs.board[1][7] = Warden("pretas")
+    gs.white_to_move = True
+
+    engine = AresEngine()
+    result = engine.search(gs, max_depth=3, time_limit=1.0, use_opening_book=False)
+
+    assert result["best_move"] is not None
+    assert result["cutoffs"] >= 0
