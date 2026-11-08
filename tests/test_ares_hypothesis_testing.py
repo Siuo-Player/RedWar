@@ -145,3 +145,21 @@ def test_mirror_pair_duel_execution_with_deterministic_mock_bots(tmp_path):
         data = json.load(f)
     assert data["hypothesis"]["id"] == hypo.id
     assert "delta_elo" in data
+
+
+def test_multitier_3sigma_promotion_gate():
+    """Verify that multi-tier estimation calculates both 1.96-sigma and 3.0-sigma."""
+    from ai.sprt import SPRTTracker, SPRTConfig
+    tracker = SPRTTracker(SPRTConfig(elo0=0.0, elo1=10.0))
+    tracker.add_result(win=35, loss=5, draw=0)
+
+    multitier = tracker.estimate_elo_multitier()
+    delta_elo = multitier["delta_elo"]
+    margin_95 = multitier["margin_95"]
+    margin_3sigma = multitier["margin_3sigma"]
+
+    assert delta_elo > 0.0
+    ratio = margin_3sigma / margin_95
+    assert 1.45 <= ratio <= 1.60
+    assert multitier["ci_3sigma"][0] < multitier["ci_95"][0]
+    assert multitier["ci_3sigma"][1] > multitier["ci_95"][1]

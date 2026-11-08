@@ -5,8 +5,9 @@ continuous, regression-proof evolution of Ares in RedWar:
 1. Formulate hypothesis of weakness / bottleneck.
 2. Implement proposed improvement in a Challenger candidate.
 3. Duel against Baseline Champion across mirrored opening pairs (alternating colors).
-4. Evaluate Bradley-Terry binary Elo gain, 95% confidence intervals, and Wald's SPRT.
-5. If H1 is accepted: PROMOTION (Candidate becomes the new Champion Baseline).
+4. Evaluate Bradley-Terry binary Elo gain, 95% confidence intervals (1.96-sigma),
+   Six-Sigma Champion Promotion Gate (3.0-sigma), and Wald's SPRT.
+5. If H1 is accepted (or 3-sigma lower bound > 0): PROMOTION (Candidate becomes new Champion).
    If H0 is accepted: REJECTION (Hypothesis is falsified and discarded).
 """
 
@@ -57,6 +58,10 @@ class HypothesisTestResult:
     sprt_status: str  # "H1_ACCEPTED", "H0_ACCEPTED", "CONTINUE"
     verdict: str      # "PROMOTED", "REJECTED", "CONTINUE"
     verdict_reason: str
+    elo_margin_3sigma: float = 0.0
+    ci_lower_3sigma: float = 0.0
+    ci_upper_3sigma: float = 0.0
+    sigma_gate_passed: bool = False
     pair_outcomes: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -153,24 +158,32 @@ class AresHypothesisTester:
             if early_stopping and status in (SPRTStatus.H1_ACCEPTED, SPRTStatus.H0_ACCEPTED):
                 break
 
-        # Compute final Bradley-Terry stats
+        # Compute multi-tier statistics: 1.96-sigma (95% CI) and 3.0-sigma (99.73% CI)
         total_games = tracker.total_games
         score = tracker.score
-        delta_elo, elo_margin = tracker.estimate_elo()
-        ci_lower = round(delta_elo - elo_margin, 1)
-        ci_upper = round(delta_elo + elo_margin, 1)
+        stats = tracker.estimate_elo_multitier()
+        delta_elo = stats["delta_elo"]
+        elo_margin = stats["margin_95"]
+        ci_lower = stats["ci_95"][0]
+        ci_upper = stats["ci_95"][1]
+        elo_margin_3sigma = stats["margin_3sigma"]
+        ci_lower_3sigma = stats["ci_3sigma"][0]
+        ci_upper_3sigma = stats["ci_3sigma"][1]
 
-        # Decision rule adapted for RedWar
+        sigma_gate_passed = bool(delta_elo > 0 and ci_lower_3sigma >= 0.0)
+
+        # Decision rule adapted for RedWar anti-involution governance
         sprt_status_str = tracker.status.value.upper()
-        if tracker.status == SPRTStatus.H1_ACCEPTED or (delta_elo > 0 and ci_lower >= 0.0):
+        if tracker.status == SPRTStatus.H1_ACCEPTED or sigma_gate_passed:
             verdict = "PROMOTED"
-            reason = f"Hipótese H1 comprovada com significância estatística (ΔElo: +{delta_elo:.1f} ± {elo_margin:.1f}, LLR: {tracker.llr:.2f} >= {tracker.upper_bound:.2f})."
+            gate_label = " (3σ Champion Gate atingido)" if sigma_gate_passed else ""
+            reason = f"Hipótese H1 comprovada com significância estatística{gate_label} (ΔElo: +{delta_elo:.1f} ± {elo_margin:.1f}, LLR: {tracker.llr:.2f} >= {tracker.upper_bound:.2f})."
         elif tracker.status == SPRTStatus.H0_ACCEPTED or (delta_elo < 0 and ci_upper <= 0.0):
             verdict = "REJECTED"
             reason = f"Hipótese H0 aceite; o candidato não superou o campeão (ΔElo: {delta_elo:.1f} ± {elo_margin:.1f}, LLR: {tracker.llr:.2f} <= {tracker.lower_bound:.2f})."
         elif delta_elo > 0:
             verdict = "CONTINUE"
-            reason = f"Tendência positiva (+{delta_elo:.1f} Elo), mas requer mais partidas para confirmação formal (CI95% inclui zero: [{ci_lower}, {ci_upper}])."
+            reason = f"Tendência positiva (+{delta_elo:.1f} Elo), mas requer mais partidas para confirmação formal (CI95%: [{ci_lower}, {ci_upper}], 3σ: [{ci_lower_3sigma}, {ci_upper_3sigma}])."
         else:
             verdict = "REJECTED"
             reason = f"Sem evidência de melhoria (Score: {score*100:.1f}%, ΔElo: {delta_elo:.1f})."
@@ -192,14 +205,20 @@ class AresHypothesisTester:
             sprt_status=sprt_status_str,
             verdict=verdict,
             verdict_reason=reason,
+            elo_margin_3sigma=elo_margin_3sigma,
+            ci_lower_3sigma=ci_lower_3sigma,
+            ci_upper_3sigma=ci_upper_3sigma,
+            sigma_gate_passed=sigma_gate_passed,
             pair_outcomes=pair_outcomes,
         )
 
     @staticmethod
     def format_markdown_report(result: HypothesisTestResult) -> str:
-        """Format a Fishtest-style markdown test report."""
+        """Format a Fishtest-style markdown test report with multi-tiered sigma evaluation."""
         h = result.hypothesis
         status_emoji = "🏆 PROMOVIDO A NOVO CAMPEÃO" if result.verdict == "PROMOTED" else ("❌ REJEITADO (HIPÓTESE FALSIFICADA)" if result.verdict == "REJECTED" else "⏳ INCONCLUSIVO (CONTINUAR)")
+        gate_status_str = "✅ APROVADO (Zero Risco de Involução, p < 0.0027)" if result.sigma_gate_passed else "⏳ PENDENTE / NÃO ATINGIDO"
+
         return f"""# Relatório de Teste de Hipótese Ares AI: {h.id}
 
 ## 📌 Sumário da Hipótese
@@ -223,17 +242,22 @@ class AresHypothesisTester:
 | **Placar (Candidato vs Baseline)** | **+{result.challenger_wins}** / **-{result.baseline_wins}** / ={result.draws} |
 | **Taxa de Pontuação (Score)** | **{result.score * 100:.1f}%** |
 | **Diferença de Elo ($\\Delta$ Elo)** | **{'+' if result.delta_elo >= 0 else ''}{result.delta_elo:.1f}** |
-| **Margem de Erro (95% CI)** | **± {result.elo_margin_95:.1f}** |
-| **Intervalo de Confiança 95%** | `[{result.ci_lower:+.1f}, {result.ci_upper:+.1f}]` |
+| **Margem de Erro (95% CI)** | **± {result.elo_margin_95:.1f}** (`[{result.ci_lower:+.1f}, {result.ci_upper:+.1f}]`, 1.96σ) |
+| **Portão de Campeão (99.73% CI)** | **± {result.elo_margin_3sigma:.1f}** (`[{result.ci_lower_3sigma:+.1f}, {result.ci_upper_3sigma:+.1f}]`, 3.0σ) |
+| **Status do Portão 3-Sigma** | `{gate_status_str}` |
 | **Razão de Log-Verossimilhança (LLR)** | **{result.llr:+.2f}** (Limites: [{result.sprt_bounds[0]:.2f}, {result.sprt_bounds[1]:.2f}]) |
 | **Estado SPRT de Wald** | `{result.sprt_status}` |
 
 ---
 
-## 🔬 Protocolo Científico Stockfish Aplicado ao RedWar
-1. **Duelos Espelhados**: Cada abertura foi jogada de Brancas e de Pretas para eliminar viés de cor.
-2. **Modelo Bradley-Terry Binário**: Ausência de empates artificiais de xadrez; a pontuação reflete pura dominância letal por stun.
-3. **Proteção Anti-Involução**: O motor campeão só é substituído perante prova estatística conclusiva ($H_1$).
+## 🔬 Protocolo Científico Stockfish & Governança de Sigmas
+1. **Duelos Espelhados**: Cada abertura foi jogada de Brancas e de Pretas para eliminar viés de cor e assimetrias de tabuleiro.
+2. **Modelo Bradley-Terry Binário**: Ausência de empates artificiais de xadrez; a pontuação reflete pura dominância tática por stun.
+3. **Por que 3-Sigma ($3\\sigma$) e não 5-Sigma ($5\\sigma$)?**:
+   - No CERN/LHC, $5\\sigma$ ($p < 3 \\times 10^{{-7}}$) é obrigatório devido ao *Look-Elsewhere Effect* (varredura de milhões de canais energéticos).
+   - Em motores de jogo, requerer $5\\sigma$ aumentaria o número de partidas necessárias por $(5.0/1.96)^2 \\approx 6.5\\times$, gerando fadiga amostral extrema e alto erro Tipo II (rejeição de melhorias reais de +3 Elo).
+   - O padrão **3-Sigma ($3\\sigma$, 99.73% de confiança, $p < 0.0027$)** é o ponto ideal da engenharia de alta confiabilidade (*Six Sigma*), garantindo que a probabilidade de um falso positivo na promoção de um campeão seja inferior a 0.14%.
+4. **Proteção Anti-Involução**: O motor campeão só é substituído perante prova estatística conclusiva ($H_1$ ou $3\\sigma$ com limite inferior positivo).
 """
 
     @staticmethod

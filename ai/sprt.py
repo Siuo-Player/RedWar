@@ -2,12 +2,15 @@
 """
 Stockfish-inspired SPRT (Sequential Probability Ratio Test) framework for RedWar.
 Implements Wald's SPRT, Log-Likelihood Ratio (LLR), Elo difference estimation,
-and 95% confidence intervals for rigorous engine evaluation.
+and multi-tiered confidence intervals (95% CI / 1.96-sigma and 99.73% CI / 3.0-sigma)
+for rigorous, regression-proof engine evaluation.
 """
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 import math
-from typing import Tuple
+from typing import Any, Dict, Tuple
 
 
 class SPRTStatus(str, Enum):
@@ -103,9 +106,10 @@ class SPRTTracker:
         self.draws += draw
         return self.status
 
-    def estimate_elo(self) -> Tuple[float, float]:
+    def estimate_elo(self, sigma: float = 1.96) -> Tuple[float, float]:
         """
-        Estimate Elo difference and 95% confidence interval margin.
+        Estimate Elo difference and confidence interval margin for the given sigma level.
+        By default uses sigma=1.96 (95% CI). For a 3-sigma gate, pass sigma=3.0 (99.73% CI).
         Returns: (elo_diff, error_margin)
         """
         if self.total_games == 0:
@@ -114,7 +118,7 @@ class SPRTTracker:
         s = self.score
         elo_diff = calculate_elo_difference(s)
 
-        # 95% Confidence Interval
+        # Confidence Interval based on standard error
         n = self.total_games
         w = self.wins / n
         l = self.losses / n
@@ -125,6 +129,22 @@ class SPRTTracker:
         # Gradient d(Elo)/d(s) = 400 / (ln(10) * s * (1 - s))
         clamped_s = max(0.01, min(0.99, s))
         gradient = 400.0 / (math.log(10.0) * clamped_s * (1.0 - clamped_s))
-        margin = 1.96 * std_err * gradient
+        margin = sigma * std_err * gradient
 
         return round(elo_diff, 1), round(margin, 1)
+
+    def estimate_elo_multitier(self) -> Dict[str, Any]:
+        """
+        Provide multi-tiered confidence intervals:
+        - 1.96-sigma (95% CI, p < 0.05): standard experimental screening
+        - 3.00-sigma (99.73% CI, p < 0.0027): Six-Sigma Champion Promotion Gate
+        """
+        elo_diff, margin_95 = self.estimate_elo(sigma=1.96)
+        _, margin_3sigma = self.estimate_elo(sigma=3.0)
+        return {
+            "delta_elo": elo_diff,
+            "margin_95": margin_95,
+            "ci_95": (round(elo_diff - margin_95, 1), round(elo_diff + margin_95, 1)),
+            "margin_3sigma": margin_3sigma,
+            "ci_3sigma": (round(elo_diff - margin_3sigma, 1), round(elo_diff + margin_3sigma, 1)),
+        }

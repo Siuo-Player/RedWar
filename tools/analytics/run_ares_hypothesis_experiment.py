@@ -24,7 +24,7 @@ from ai.sprt import SPRTConfig
 class AresBotWrapper:
     """Wrapper exposing standard .play(game_state) for Ares search engine."""
 
-    def __init__(self, name: str, depth: int = 2, time_limit: float = 0.3):
+    def __init__(self, name: str, depth: int = 2, time_limit: float = 0.6):
         self.nome = name
         self.depth = depth
         self.time_limit = time_limit
@@ -41,12 +41,12 @@ def main():
     args = parser.parse_args()
 
     hypothesis = Hypothesis(
-        id="H-20261108-ARES-ASPIRATION-PV",
-        title="Aspiration Windows & PV Ordering vs Shallow Baseline",
-        bottleneck="Shallow search horizons without aspiration windows risk tactical blindspots in stun windows.",
-        proposed_heuristic="Iterative deepening with aspiration window (score +- 60) and PV move ordering bonus.",
+        id="H-20261108-ARES-THEORETICAL-TUNING",
+        title="Theoretical Search & Domain Tuning with 3-Sigma Champion Gate",
+        bottleneck="Static aspiration windows, flat stun horizon evaluation, and unaged history heuristics risk tactical blunders.",
+        proposed_heuristic="Dynamic geometric aspiration widening (delta=75.0), distance-decay stun lethality, history gravity aging, adaptive NMP (R=3 at d>=6), and LMR killer protection.",
         baseline_version="ares-depth1-baseline",
-        candidate_version="ares-depth2-aspiration-challenger",
+        candidate_version="ares-theoretically-tuned-d2",
         target_elo_gain=25.0,
     )
 
@@ -54,8 +54,8 @@ def main():
     print(f"📌 Título: {hypothesis.title}")
     print(f"🎯 Pares Pareados: {args.pairs} ({args.pairs * 2} partidas no total)")
 
-    challenger = AresBotWrapper("Ares_Challenger_D2", depth=2, time_limit=0.25)
-    baseline = AresBotWrapper("Ares_Baseline_D1", depth=1, time_limit=0.10)
+    challenger = AresBotWrapper("Ares_Challenger_D2", depth=2, time_limit=0.60)
+    baseline = AresBotWrapper("Ares_Baseline_D1", depth=1, time_limit=0.15)
 
     tester = AresHypothesisTester(SPRTConfig(elo0=0.0, elo1=15.0))
 
@@ -75,6 +75,8 @@ def main():
     print(f"🏁 RESULTADO DO EXPERIMENTO: {result.verdict}")
     print(f"Placar: {result.challenger_wins}W - {result.baseline_wins}L - {result.draws}D (Score: {result.score * 100:.1f}%)")
     print(f"ΔElo: {result.delta_elo:+.1f} ± {result.elo_margin_95:.1f} (95% CI: [{result.ci_lower:+.1f}, {result.ci_upper:+.1f}])")
+    print(f"3-Sigma Margin: ± {result.elo_margin_3sigma:.1f} (99.73% CI: [{result.ci_lower_3sigma:+.1f}, {result.ci_upper_3sigma:+.1f}])")
+    print(f"3-Sigma Champion Gate: {'APROVADO' if result.sigma_gate_passed else 'PENDENTE / NÃO ATINGIDO'}")
     print(f"LLR: {result.llr:+.2f} (Limites: [{result.sprt_bounds[0]:.2f}, {result.sprt_bounds[1]:.2f}])")
     print(f"Decisão: {result.verdict_reason}")
     print("=" * 60 + "\n")
