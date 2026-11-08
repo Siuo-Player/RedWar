@@ -1,0 +1,104 @@
+{
+  "hypothesis": {
+    "id": "H-20261108-ARES-CHECK-RESPONSE-TACTICAL-ORDERING",
+    "title": "Tactical Check-Response Move Ordering vs Baseline Move Ordering",
+    "bottleneck": "Under imminent lethal threat, search wastes time exploring irrelevant quiet moves instead of directly eliminating the executioner or interposing sniper ray blockers.",
+    "proposed_heuristic": "Dynamic get_imminent_threat_targets_and_blocks prioritizing executioner eliminations (+280,000) and sniper line interpositions (+80,000).",
+    "baseline_version": "ares-d2-threat-ord-off",
+    "candidate_version": "ares-d2-threat-ord-on",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-08 22:49:19"
+  },
+  "total_games": 8,
+  "pairs_played": 4,
+  "challenger_wins": 5,
+  "baseline_wins": 3,
+  "draws": 0,
+  "score": 0.625,
+  "delta_elo": 88.7,
+  "elo_margin_95": 248.7,
+  "ci_lower": -160.0,
+  "ci_upper": 337.4,
+  "llr": 0.084,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "CONTINUE",
+  "verdict_reason": "Tendência positiva (+88.7 Elo), mas requer mais partidas para confirmação formal (CI95%: [-160.0, 337.4], 3σ: [-291.9, 469.3]).",
+  "elo_margin_3sigma": 380.6,
+  "ci_lower_3sigma": -291.9,
+  "ci_upper_3sigma": 469.3,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 21
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 27
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "white",
+        "plies": 64
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 38
+      },
+      "challenger_pair_score": 2.0,
+      "current_llr": 0.11,
+      "current_elo": 190.8
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 63
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "white",
+        "plies": 79
+      },
+      "challenger_pair_score": 0.0,
+      "current_llr": -0.006,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 3,
+      "seed": 401,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "white",
+        "plies": 48
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 60
+      },
+      "challenger_pair_score": 2.0,
+      "current_llr": 0.084,
+      "current_elo": 88.7
+    }
+  ]
+}

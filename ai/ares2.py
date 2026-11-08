@@ -4,6 +4,7 @@ Implements Stockfish-inspired search heuristics:
 - Transposition Table with Zobrist hashing & generational replacement strategies
 - MVV-LVA (Most Valuable Victim - Least Valuable Attacker) move ordering
   with dedicated 2-hit stun lethal kill prioritization
+- Tactical Check-Response Move Ordering: neutralizing executioners and blocking sniper rays
 - Capture History Table (Capthist) as fine-grained tactical tie-breaker
 - 2-Slot Killer Move Ordering per ply
 - Countermove Heuristic for quiet refutations
@@ -23,7 +24,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 import math
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Set
 
 from engine.legal_actions import legal_actions, to_legacy_dicts
 from ai.domain_eval import RedWarDomainEvaluator
@@ -315,6 +316,45 @@ def is_under_imminent_threat(state: Any, team: str) -> bool:
     return False
 
 
+def get_imminent_threat_targets_and_blocks(state: Any, team: str) -> tuple[Set[tuple[int, int]], Set[tuple[int, int]]]:
+    """Find enemy executioners threatening stunned allies, and block squares along sniper lines."""
+    board = getattr(state, "board", [])
+    if not board:
+        return set(), set()
+
+    stunned_allies = []
+    enemy_strikers = []
+    for r in range(len(board)):
+        for c in range(len(board[0])):
+            p = board[r][c]
+            if p:
+                if p.team == team and getattr(p, "stun_timer", 0) > 0:
+                    stunned_allies.append((r, c, p))
+                elif p.team != team:
+                    enemy_strikers.append((r, c, p))
+
+    threat_targets: Set[tuple[int, int]] = set()
+    block_squares: Set[tuple[int, int]] = set()
+
+    for ar, ac, _ in stunned_allies:
+        for er, ec, enemy in enemy_strikers:
+            dist = max(abs(ar - er), abs(ac - ec))
+            if dist <= 1:
+                threat_targets.add((er, ec))
+            enemy_name = getattr(enemy, "name", "")
+            if enemy_name in ("Marksman", "Ranger", "Sentinel") and (ar == er or ac == ec) and 1 <= dist <= 3:
+                threat_targets.add((er, ec))
+                step_r = 0 if ar == er else (1 if er > ar else -1)
+                step_c = 0 if ac == ec else (1 if ec > ac else -1)
+                curr_r, curr_c = ar + step_r, ac + step_c
+                while (curr_r, curr_c) != (er, ec):
+                    block_squares.add((curr_r, curr_c))
+                    curr_r += step_r
+                    curr_c += step_c
+
+    return threat_targets, block_squares
+
+
 def sort_moves_ares2(
     moves: list[dict[str, Any]],
     ply: int,
@@ -326,10 +366,17 @@ def sort_moves_ares2(
     tt_best_move: Optional[str] = None,
     pv_best_move: Optional[str] = None,
     state: Optional[Any] = None,
+    enable_threat_ordering: bool = True,
 ) -> list[dict[str, Any]]:
-    """Order candidate legal moves using PV, TT, MVV-LVA + Capthist, Killers, Countermove, History, and Tacticals."""
+    """Order candidate legal moves using PV, TT, MVV-LVA + Capthist, Threat Responses, Killers, Countermove, History."""
     killer1, killer2 = killer_table.get_killers(ply)
     counter_move = counter_table.get_countermove(prev_move_key) if counter_table and prev_move_key else None
+
+    team = "brancas" if getattr(state, "white_to_move", True) else "pretas"
+    threat_targets, block_squares = (
+        get_imminent_threat_targets_and_blocks(state, team)
+        if (state is not None and enable_threat_ordering) else (set(), set())
+    )
 
     def score_move(m: dict[str, Any]) -> int:
         key = move_to_string_key(m)
@@ -339,6 +386,8 @@ def sort_moves_ares2(
             return 1_000_000
 
         m_type = str(m.get("type", "")).lower()
+        end = m.get("end")
+        end_sq = tuple(end) if (end and len(end) == 2) else None
 
         # Tactical captures and attacks prioritized via MVV-LVA + bounded Capture History
         if state is not None and (m_type == "attack" or (m_type == "spell" and m.get("spell_name"))):
@@ -346,7 +395,6 @@ def sort_moves_ares2(
             if score > 0:
                 if capture_history is not None:
                     start = m.get("start")
-                    end = m.get("end")
                     if start and end and len(start) == 2 and len(end) == 2:
                         attacker_p = state.board[start[0]][start[1]]
                         target_p = state.board[end[0]][end[1]]
@@ -356,10 +404,16 @@ def sort_moves_ares2(
                                 getattr(target_p, "name", ""),
                                 tuple(end),
                             )
-                            # Strictly bounded so Capthist never flips MVV-LVA stun kill tiers
                             capthist_bonus = max(-500, min(500, raw_capthist))
                             score += capthist_bonus
                 return score
+
+        # Check-response ordering: neutralizing executioner or blocking sniper line
+        if enable_threat_ordering:
+            if end_sq and end_sq in threat_targets:
+                return 280_000
+            if end_sq and end_sq in block_squares:
+                return 80_000
 
         if m_type == "attack":
             return 100_000
@@ -377,7 +431,6 @@ def sort_moves_ares2(
             return 18_000
 
         start = m.get("start")
-        end = m.get("end")
         if start and end and len(start) == 2 and len(end) == 2:
             hist = history_table.get_score(tuple(start), tuple(end))
             if hist > 0:
@@ -472,7 +525,15 @@ def quiescence_search(
 class AresEngine:
     """State-of-the-art Ares AI Search Engine for RedWar."""
 
-    def __init__(self, tt_size_power: int = 16):
+    def __init__(
+        self,
+        tt_size_power: int = 16,
+        enable_threat_extension: bool = True,
+        enable_threat_ordering: bool = True,
+        enable_countermoves: bool = True,
+        enable_capthist: bool = True,
+        enable_delta_pruning: bool = True,
+    ):
         self.tt = TranspositionTable(size_power_of_two=tt_size_power)
         self.killer_table = KillerMoveTable()
         self.counter_table = CounterMoveTable()
@@ -481,6 +542,11 @@ class AresEngine:
         self.evaluator = RedWarDomainEvaluator()
         self.nodes_visited = 0
         self.cutoffs = 0
+        self.enable_threat_extension = enable_threat_extension
+        self.enable_threat_ordering = enable_threat_ordering
+        self.enable_countermoves = enable_countermoves
+        self.enable_capthist = enable_capthist
+        self.enable_delta_pruning = enable_delta_pruning
 
     def reset(self) -> None:
         self.tt.clear()
@@ -650,7 +716,11 @@ class AresEngine:
         # Tactical Threat Extension (+1 ply):
         # When an allied stunned unit is in the direct line-of-fire or adjacent to an executioner,
         # extend depth by 1 ply so the engine sees tactical rescues/blocks before leaf evaluation
-        effective_depth = depth + 1 if (imminent_threat and ply < 16 and depth < 6) else depth
+        effective_depth = (
+            depth + 1
+            if (self.enable_threat_extension and imminent_threat and ply < 16 and depth < 6)
+            else depth
+        )
 
         # Transposition table probe
         z_hash = getattr(state, "current_hash", 0)
@@ -671,7 +741,10 @@ class AresEngine:
 
         # Base case: run Quiescence Search on tactical leaf nodes
         if effective_depth <= 0:
-            q_score = quiescence_search(state, alpha, beta, team, evaluator=self.evaluator, capture_history=self.capture_history)
+            capthist_ref = self.capture_history if self.enable_capthist else None
+            q_score = quiescence_search(
+                state, alpha, beta, team, evaluator=self.evaluator, capture_history=capthist_ref
+            )
             return q_score, None
 
         # Reverse Futility Pruning (Static Null-Move Pruning) for shallow depths (depth 1..2)
@@ -729,18 +802,19 @@ class AresEngine:
                 return -50_000.0, None  # Loss
             return 0.0, None  # Stalemate / draw
 
-        # Move ordering with PV, TT, MVV-LVA + Capthist, Killers, Countermove, History
+        # Move ordering with PV, TT, MVV-LVA + Capthist, Threat Responses, Killers, Countermove, History
         ordered_actions = sort_moves_ares2(
             moves=raw_actions,
             ply=ply,
             killer_table=self.killer_table,
             history_table=self.history_table,
-            counter_table=self.counter_table,
-            capture_history=self.capture_history,
+            counter_table=self.counter_table if self.enable_countermoves else None,
+            capture_history=self.capture_history if self.enable_capthist else None,
             prev_move_key=prev_move_key,
             tt_best_move=tt_best_move_str,
             pv_best_move=pv_best_move,
             state=state,
+            enable_threat_ordering=self.enable_threat_ordering,
         )
 
         best_move = None
@@ -748,7 +822,10 @@ class AresEngine:
         initial_alpha = alpha
 
         killer1, killer2 = self.killer_table.get_killers(ply)
-        counter_cand = self.counter_table.get_countermove(prev_move_key) if prev_move_key else None
+        counter_cand = (
+            self.counter_table.get_countermove(prev_move_key)
+            if (self.enable_countermoves and prev_move_key) else None
+        )
         moves_searched = 0
 
         for move in ordered_actions:
@@ -827,12 +904,12 @@ class AresEngine:
                 if m_type not in ("attack", "stun") and not move.get("spell_name"):
                     key = move_to_string_key(move)
                     self.killer_table.record_killer(ply, key)
-                    if prev_move_key:
+                    if self.enable_countermoves and prev_move_key:
                         self.counter_table.record_countermove(prev_move_key, key)
                     if start and end and len(start) == 2 and len(end) == 2:
                         self.history_table.record_cutoff(tuple(start), tuple(end), effective_depth)
                 else:
-                    if start and end and len(start) == 2 and len(end) == 2:
+                    if self.enable_capthist and start and end and len(start) == 2 and len(end) == 2:
                         attacker_p = state.board[start[0]][start[1]]
                         target_p = state.board[end[0]][end[1]]
                         if attacker_p and target_p:

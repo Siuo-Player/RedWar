@@ -84,7 +84,7 @@ class RedWarDomainEvaluator:
                 min_enemy_dist = 99
                 has_enemy_sniper = False
                 for e_r, e_c, enemy in enemies:
-                    d = max(abs(a_r - e_r), abs(a_c - e_c))
+                    d = max(abs(e_r - a_r), abs(e_c - a_c))
                     if d < min_enemy_dist:
                         min_enemy_dist = d
                     enemy_name = getattr(enemy, "name", "")
