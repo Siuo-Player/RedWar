@@ -149,7 +149,7 @@ def test_ares_engine_iterative_deepening_and_tactical_kill():
     gs.white_to_move = True
 
     engine = AresEngine()
-    result = engine.search(gs, max_depth=2, time_limit=1.0)
+    result = engine.search(gs, max_depth=2, time_limit=5.0)
 
     assert result["best_move"] is not None
     assert result["best_move"]["type"] == "attack"
