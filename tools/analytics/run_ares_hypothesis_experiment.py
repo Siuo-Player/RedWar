@@ -105,7 +105,7 @@ def main():
     print(f"📊 Relatório gerado: {md_path}")
     print(f"📁 JSON salvo: {json_path}")
     print(f"🏆 Veredito 3-Sigma: {result.verdict}")
-    print(f"📈 Delta Elo: {result.delta_elo:+.1f} [95% CI: {result.ci_lower_95:+.1f}, {result.ci_upper_95:+.1f}]")
+    print(f"📈 Delta Elo: {result.delta_elo:+.1f} [95% CI: {result.ci_lower:+.1f}, {result.ci_upper:+.1f}]")
     print(f"🛡️ 3.0σ Lower Bound: {result.ci_lower_3sigma:+.1f}")
     print("=" * 60)
 

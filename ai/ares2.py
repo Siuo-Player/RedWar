@@ -4,15 +4,17 @@ Implements Stockfish-inspired search heuristics:
 - Transposition Table with Zobrist hashing & generational replacement strategies
 - MVV-LVA (Most Valuable Victim - Least Valuable Attacker) move ordering
   with dedicated 2-hit stun lethal kill prioritization
+- Capture History Table (Capthist) as fine-grained tactical tie-breaker
 - 2-Slot Killer Move Ordering per ply
 - Countermove Heuristic for quiet refutations
-- History Heuristic table with gravity aging formula
+- History Heuristic table with Stockfish gravity aging formula
 - Dynamic Clock Allocation (Time Management)
 - Quiescence Search on tactical captures and stun attacks with Delta Pruning
 - Dynamic Widening Aspiration Windows
+- Tactical Threat Detection & Singular/Threat Extension (+1 ply when stunned ally under fire)
 - Reverse Futility Pruning (Static Null-Move Pruning)
 - Adaptive Null-Move Pruning with RedWar stun-safety guards
-- Late Move Reductions (LMR) with killer, countermove & history protection
+- Late Move Reductions (LMR) with killer, countermove & threat protection
 - Full Iterative Deepening Negamax Search Engine with Alpha-Beta Pruning
 """
 from __future__ import annotations
@@ -154,6 +156,34 @@ class CounterMoveTable:
         self.table.clear()
 
 
+class CaptureHistoryTable:
+    """Tracks tactical captures and attacks that generated beta cutoffs (Stockfish Capthist)."""
+
+    def __init__(self):
+        self._table: dict[tuple[str, str, tuple[int, int]], int] = {}
+
+    def record_cutoff(self, attacker: str, target: str, to_sq: tuple[int, int], depth: int) -> None:
+        key = (attacker, target, to_sq)
+        bonus = depth * depth
+        curr = self._table.get(key, 0)
+        delta = bonus - (curr * abs(bonus) // 16384)
+        self._table[key] = max(-8_000, min(8_000, curr + delta))
+
+    def get_score(self, attacker: str, target: str, to_sq: tuple[int, int]) -> int:
+        return self._table.get((attacker, target, to_sq), 0)
+
+    def decay(self, factor: float = 0.90) -> None:
+        for k in list(self._table.keys()):
+            val = int(self._table[k] * factor)
+            if val == 0:
+                del self._table[k]
+            else:
+                self._table[k] = val
+
+    def clear(self) -> None:
+        self._table.clear()
+
+
 class HistoryTable:
     """Tracks quiet moves that generated beta cutoffs with Stockfish gravity aging."""
 
@@ -252,18 +282,52 @@ def mvv_lva_score(state: Any, move: dict[str, Any]) -> int:
         return 130_000 + (victim_cost * 25) - attacker_cost
 
 
+def is_under_imminent_threat(state: Any, team: str) -> bool:
+    """Check if any allied piece with stun_timer > 0 is exposed to immediate enemy execution."""
+    board = getattr(state, "board", [])
+    if not board:
+        return False
+
+    stunned_allies = []
+    enemy_strikers = []
+    for r in range(len(board)):
+        for c in range(len(board[0])):
+            p = board[r][c]
+            if p:
+                if p.team == team and getattr(p, "stun_timer", 0) > 0:
+                    stunned_allies.append((r, c, p))
+                elif p.team != team:
+                    enemy_strikers.append((r, c, p))
+
+    if not stunned_allies or not enemy_strikers:
+        return False
+
+    for ar, ac, _ in stunned_allies:
+        for er, ec, enemy in enemy_strikers:
+            # Adjacent melee strike (Chebyshev distance <= 1)
+            if max(abs(ar - er), abs(ac - ec)) <= 1:
+                return True
+            # Sniper in direct orthogonal line-of-fire within 3 squares
+            enemy_name = getattr(enemy, "name", "")
+            if enemy_name in ("Marksman", "Ranger", "Sentinel") and (ar == er or ac == ec) and 1 <= max(abs(ar - er), abs(ac - ec)) <= 3:
+                return True
+
+    return False
+
+
 def sort_moves_ares2(
     moves: list[dict[str, Any]],
     ply: int,
     killer_table: KillerMoveTable,
     history_table: HistoryTable,
     counter_table: Optional[CounterMoveTable] = None,
+    capture_history: Optional[CaptureHistoryTable] = None,
     prev_move_key: Optional[str] = None,
     tt_best_move: Optional[str] = None,
     pv_best_move: Optional[str] = None,
     state: Optional[Any] = None,
 ) -> list[dict[str, Any]]:
-    """Order candidate legal moves using PV, TT, MVV-LVA, Killers, Countermove, History, and Tacticals."""
+    """Order candidate legal moves using PV, TT, MVV-LVA + Capthist, Killers, Countermove, History, and Tacticals."""
     killer1, killer2 = killer_table.get_killers(ply)
     counter_move = counter_table.get_countermove(prev_move_key) if counter_table and prev_move_key else None
 
@@ -276,10 +340,25 @@ def sort_moves_ares2(
 
         m_type = str(m.get("type", "")).lower()
 
-        # Tactical captures and attacks prioritized via MVV-LVA
+        # Tactical captures and attacks prioritized via MVV-LVA + bounded Capture History
         if state is not None and (m_type == "attack" or (m_type == "spell" and m.get("spell_name"))):
             score = mvv_lva_score(state, m)
             if score > 0:
+                if capture_history is not None:
+                    start = m.get("start")
+                    end = m.get("end")
+                    if start and end and len(start) == 2 and len(end) == 2:
+                        attacker_p = state.board[start[0]][start[1]]
+                        target_p = state.board[end[0]][end[1]]
+                        if attacker_p and target_p:
+                            raw_capthist = capture_history.get_score(
+                                getattr(attacker_p, "name", ""),
+                                getattr(target_p, "name", ""),
+                                tuple(end),
+                            )
+                            # Strictly bounded so Capthist never flips MVV-LVA stun kill tiers
+                            capthist_bonus = max(-500, min(500, raw_capthist))
+                            score += capthist_bonus
                 return score
 
         if m_type == "attack":
@@ -323,6 +402,7 @@ def quiescence_search(
     q_depth: int = 0,
     max_qdepth: int = 3,
     evaluator: Optional[RedWarDomainEvaluator] = None,
+    capture_history: Optional[CaptureHistoryTable] = None,
 ) -> float:
     """Quiescence search resolving tactical exchanges (captures and stun strikes) at leaf nodes."""
     if evaluator is None:
@@ -356,14 +436,31 @@ def quiescence_search(
     if not tactical_moves:
         return alpha
 
-    # Order tactical moves by MVV-LVA
-    tactical_moves.sort(key=lambda m: mvv_lva_score(state, m), reverse=True)
+    # Order tactical moves by MVV-LVA + bounded Capture History
+    def score_tactical(m: dict[str, Any]) -> int:
+        score = mvv_lva_score(state, m)
+        if capture_history is not None:
+            start = m.get("start")
+            end = m.get("end")
+            if start and end and len(start) == 2 and len(end) == 2:
+                attacker_p = state.board[start[0]][start[1]]
+                target_p = state.board[end[0]][end[1]]
+                if attacker_p and target_p:
+                    raw_bonus = capture_history.get_score(
+                        getattr(attacker_p, "name", ""),
+                        getattr(target_p, "name", ""),
+                        tuple(end),
+                    )
+                    score += max(-500, min(500, raw_bonus))
+        return score
+
+    tactical_moves.sort(key=score_tactical, reverse=True)
 
     enemy_team = "pretas" if team == "brancas" else "brancas"
     for move in tactical_moves:
         clone = state.fast_clone()
         clone.execute_action(move)
-        score = -quiescence_search(clone, -beta, -alpha, enemy_team, q_depth + 1, max_qdepth, evaluator)
+        score = -quiescence_search(clone, -beta, -alpha, enemy_team, q_depth + 1, max_qdepth, evaluator, capture_history)
         if score >= beta:
             return beta
         if score > alpha:
@@ -379,6 +476,7 @@ class AresEngine:
         self.tt = TranspositionTable(size_power_of_two=tt_size_power)
         self.killer_table = KillerMoveTable()
         self.counter_table = CounterMoveTable()
+        self.capture_history = CaptureHistoryTable()
         self.history_table = HistoryTable()
         self.evaluator = RedWarDomainEvaluator()
         self.nodes_visited = 0
@@ -388,6 +486,7 @@ class AresEngine:
         self.tt.clear()
         self.killer_table.clear()
         self.counter_table.clear()
+        self.capture_history.clear()
         self.history_table.clear()
         self.nodes_visited = 0
         self.cutoffs = 0
@@ -545,11 +644,19 @@ class AresEngine:
         if self.nodes_visited % 512 == 0 and (time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes):
             return self.evaluator.evaluate(state, team), None
 
+        # Detect imminent mortal stun execution threat (RedWar check-analogue)
+        imminent_threat = is_under_imminent_threat(state, team)
+
+        # Tactical Threat Extension (+1 ply):
+        # When an allied stunned unit is in the direct line-of-fire or adjacent to an executioner,
+        # extend depth by 1 ply so the engine sees tactical rescues/blocks before leaf evaluation
+        effective_depth = depth + 1 if (imminent_threat and ply < 16 and depth < 6) else depth
+
         # Transposition table probe
         z_hash = getattr(state, "current_hash", 0)
         tt_best_move_str: Optional[str] = None
         tt_entry = self.tt.probe(z_hash) if z_hash else None
-        if tt_entry is not None and tt_entry.depth >= depth:
+        if tt_entry is not None and tt_entry.depth >= effective_depth:
             if tt_entry.best_move:
                 tt_best_move_str = move_to_string_key(tt_entry.best_move)
             if tt_entry.flag == TTFlag.EXACT:
@@ -563,18 +670,19 @@ class AresEngine:
                 return tt_entry.score, tt_entry.best_move
 
         # Base case: run Quiescence Search on tactical leaf nodes
-        if depth <= 0:
-            q_score = quiescence_search(state, alpha, beta, team, evaluator=self.evaluator)
+        if effective_depth <= 0:
+            q_score = quiescence_search(state, alpha, beta, team, evaluator=self.evaluator, capture_history=self.capture_history)
             return q_score, None
 
         # Reverse Futility Pruning (Static Null-Move Pruning) for shallow depths (depth 1..2)
-        if depth <= 2 and ply > 0 and beta < 30_000:
+        # Strictly disabled if under imminent threat or any ally is stunned
+        if effective_depth <= 2 and ply > 0 and beta < 30_000 and not imminent_threat:
             has_stunned_ally = any(
                 p and p.team == team and getattr(p, "stun_timer", 0) > 0
                 for row in getattr(state, "board", []) for p in row
             )
             if not has_stunned_ally:
-                margin = depth * 45.0
+                margin = effective_depth * 45.0
                 static_eval = self.evaluator.evaluate(state, team)
                 if static_eval - margin >= beta:
                     self.cutoffs += 1
@@ -583,7 +691,7 @@ class AresEngine:
         enemy_team = "pretas" if team == "brancas" else "brancas"
 
         # Adaptive Null-Move Pruning (NMP) with RedWar tactical danger safeguards
-        if do_null and depth >= 3 and ply > 0:
+        if do_null and effective_depth >= 3 and ply > 0 and not imminent_threat:
             has_stunned_ally = any(
                 p and p.team == team and getattr(p, "stun_timer", 0) > 0
                 for row in getattr(state, "board", []) for p in row
@@ -593,12 +701,12 @@ class AresEngine:
             )
             if not has_stunned_ally and total_active_allies >= 2:
                 # Stockfish-inspired adaptive R: R=3 for deep searches (depth >= 6), R=2 for depth 3..5
-                R = 3 if depth >= 6 else 2
+                R = 3 if effective_depth >= 6 else 2
                 clone = state.fast_clone()
                 clone.white_to_move = not clone.white_to_move
                 null_score, _ = self._negamax(
                     state=clone,
-                    depth=depth - 1 - R,
+                    depth=effective_depth - 1 - R,
                     ply=ply + 1,
                     alpha=-beta,
                     beta=-beta + 1,
@@ -621,13 +729,14 @@ class AresEngine:
                 return -50_000.0, None  # Loss
             return 0.0, None  # Stalemate / draw
 
-        # Move ordering with PV, TT, MVV-LVA, Killers, Countermove, History
+        # Move ordering with PV, TT, MVV-LVA + Capthist, Killers, Countermove, History
         ordered_actions = sort_moves_ares2(
             moves=raw_actions,
             ply=ply,
             killer_table=self.killer_table,
             history_table=self.history_table,
             counter_table=self.counter_table,
+            capture_history=self.capture_history,
             prev_move_key=prev_move_key,
             tt_best_move=tt_best_move_str,
             pv_best_move=pv_best_move,
@@ -666,13 +775,13 @@ class AresEngine:
             end = move.get("end")
             hist_score = self.history_table.get_score(tuple(start), tuple(end)) if (start and end and len(start) == 2 and len(end) == 2) else 0
 
-            # Late Move Reductions (LMR) with killer, countermove & history protection
-            do_lmr = (depth >= 3 and moves_searched >= 3 and not is_tactical and not is_killer and not is_counter and hist_score < 3000)
-            reduction = 2 if (do_lmr and depth >= 5 and moves_searched >= 8) else (1 if do_lmr else 0)
+            # Late Move Reductions (LMR): never reduce when in imminent threat
+            do_lmr = (effective_depth >= 3 and moves_searched >= 3 and not is_tactical and not is_killer and not is_counter and not imminent_threat and hist_score < 3000)
+            reduction = 2 if (do_lmr and effective_depth >= 5 and moves_searched >= 8) else (1 if do_lmr else 0)
 
             score, _ = self._negamax(
                 state=clone,
-                depth=depth - 1 - reduction,
+                depth=effective_depth - 1 - reduction,
                 ply=ply + 1,
                 alpha=-beta,
                 beta=-alpha,
@@ -688,7 +797,7 @@ class AresEngine:
             if do_lmr and score > alpha:
                 score, _ = self._negamax(
                     state=clone,
-                    depth=depth - 1,
+                    depth=effective_depth - 1,
                     ply=ply + 1,
                     alpha=-beta,
                     beta=-alpha,
@@ -711,17 +820,28 @@ class AresEngine:
 
             if alpha >= beta:
                 self.cutoffs += 1
-                # Record killer, countermove, and history for quiet cutoffs
+                # Record killer, countermove, and history for quiet cutoffs, or capture history for tactical cutoffs
                 m_type = str(move.get("type", "")).lower()
-                if m_type not in ("attack", "stun"):
+                start = move.get("start")
+                end = move.get("end")
+                if m_type not in ("attack", "stun") and not move.get("spell_name"):
                     key = move_to_string_key(move)
                     self.killer_table.record_killer(ply, key)
                     if prev_move_key:
                         self.counter_table.record_countermove(prev_move_key, key)
-                    start = move.get("start")
-                    end = move.get("end")
                     if start and end and len(start) == 2 and len(end) == 2:
-                        self.history_table.record_cutoff(tuple(start), tuple(end), depth)
+                        self.history_table.record_cutoff(tuple(start), tuple(end), effective_depth)
+                else:
+                    if start and end and len(start) == 2 and len(end) == 2:
+                        attacker_p = state.board[start[0]][start[1]]
+                        target_p = state.board[end[0]][end[1]]
+                        if attacker_p and target_p:
+                            self.capture_history.record_cutoff(
+                                getattr(attacker_p, "name", ""),
+                                getattr(target_p, "name", ""),
+                                tuple(end),
+                                effective_depth,
+                            )
                 break
 
         # Store in TT
@@ -732,7 +852,7 @@ class AresEngine:
                 flag = TTFlag.LOWERBOUND
             else:
                 flag = TTFlag.EXACT
-            self.tt.store(z_hash, depth, best_score, flag, best_move)
+            self.tt.store(z_hash, effective_depth, best_score, flag, best_move)
 
         return best_score, best_move
 

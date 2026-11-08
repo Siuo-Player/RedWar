@@ -361,3 +361,90 @@ def test_sniper_crosshairs_in_domain_evaluation():
 
     # Sniper crosshair lethality weight should boost evaluation
     assert score_sniper > 0.0
+
+
+
+def test_capture_history_table_records_and_scores():
+    from ai.ares2 import CaptureHistoryTable
+
+    capthist = CaptureHistoryTable()
+    assert capthist.get_score("Templar", "Lich", (4, 4)) == 0
+
+    # Record cutoff for Templar capturing Lich at (4, 4) at depth 4 (bonus 16)
+    capthist.record_cutoff("Templar", "Lich", (4, 4), depth=4)
+    score1 = capthist.get_score("Templar", "Lich", (4, 4))
+    assert score1 > 0
+
+    # Another cutoff at depth 6 increases score smoothly via Stockfish gravity formula
+    capthist.record_cutoff("Templar", "Lich", (4, 4), depth=6)
+    score2 = capthist.get_score("Templar", "Lich", (4, 4))
+    assert score2 > score1
+
+    # Decay reduces score
+    capthist.decay(0.5)
+    assert capthist.get_score("Templar", "Lich", (4, 4)) < score2
+
+    capthist.clear()
+    assert capthist.get_score("Templar", "Lich", (4, 4)) == 0
+
+
+def test_sort_moves_prioritizes_capture_history():
+    from ai.ares2 import CaptureHistoryTable, KillerMoveTable, HistoryTable, sort_moves_ares2
+    from engine.game_state import GameState
+    from engine.pieces import Templar, Bone
+
+    gs = GameState()
+    gs.board[4][4] = Templar("brancas")
+    # Two identical targets: Bone A at (4, 5) and Bone B at (4, 3)
+    gs.board[4][5] = Bone("pretas")
+    gs.board[4][3] = Bone("pretas")
+
+    capthist = CaptureHistoryTable()
+    # Give high capture history cutoff score to attacking (4, 5)
+    capthist.record_cutoff("Templar", "Bone", (4, 5), depth=8)
+
+    km = KillerMoveTable()
+    ht = HistoryTable()
+
+    m_attack_5 = {"type": "attack", "start": (4, 4), "end": (4, 5)}
+    m_attack_3 = {"type": "attack", "start": (4, 4), "end": (4, 3)}
+
+    ordered = sort_moves_ares2(
+        moves=[m_attack_3, m_attack_5],
+        ply=0,
+        killer_table=km,
+        history_table=ht,
+        capture_history=capthist,
+        state=gs,
+    )
+
+    # Attack on (4, 5) should be ranked first due to capthist bonus
+    assert ordered[0]["end"] == (4, 5)
+    assert ordered[1]["end"] == (4, 3)
+
+
+
+def test_imminent_threat_detection():
+    from ai.ares2 import is_under_imminent_threat
+    from engine.game_state import GameState
+    from engine.pieces import Templar, Bone, Marksman
+
+    gs = GameState()
+    # Case 1: No pieces stunned -> False
+    gs.board[4][4] = Templar("brancas")
+    gs.board[4][5] = Bone("pretas")
+    assert is_under_imminent_threat(gs, "brancas") is False
+
+    # Case 2: Allied piece stunned and enemy adjacent -> True (imminent execution danger)
+    gs.board[4][4].stun_timer = 1
+    assert is_under_imminent_threat(gs, "brancas") is True
+
+    # Case 3: Allied piece stunned, enemy sniper aligned 3 squares away -> True
+    gs.board[4][5] = None
+    gs.board[4][7] = Marksman("pretas")
+    assert is_under_imminent_threat(gs, "brancas") is True
+
+    # Case 4: Allied piece stunned, enemy distant and not aligned -> False
+    gs.board[4][7] = None
+    gs.board[1][1] = Bone("pretas")
+    assert is_under_imminent_threat(gs, "brancas") is False
