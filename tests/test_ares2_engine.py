@@ -236,3 +236,128 @@ def test_ares_null_move_pruning_cutoff():
 
     assert result["best_move"] is not None
     assert result["cutoffs"] >= 0
+
+
+def test_countermove_table_and_move_ordering():
+    from ai.ares2 import CounterMoveTable, KillerMoveTable, HistoryTable, sort_moves_ares2, move_to_string_key
+
+    km = KillerMoveTable()
+    ht = HistoryTable()
+    cm = CounterMoveTable()
+
+    quiet_killer1 = {"type": "move", "start": (1, 0), "end": (2, 0)}
+    quiet_counter = {"type": "move", "start": (1, 2), "end": (2, 2)}
+    quiet_killer2 = {"type": "move", "start": (1, 3), "end": (2, 3)}
+    quiet_random = {"type": "move", "start": (0, 0), "end": (0, 1)}
+
+    prev_enemy_move_key = "move:(6, 2)->(5, 2):"
+
+    # Set up killer moves
+    km.record_killer(1, move_to_string_key(quiet_killer1))
+    km.record_killer(1, move_to_string_key(quiet_killer2))
+
+    # Set up countermove for opponent's previous move
+    cm.record_countermove(prev_enemy_move_key, move_to_string_key(quiet_counter))
+    assert cm.get_countermove(prev_enemy_move_key) == move_to_string_key(quiet_counter)
+
+    moves = [quiet_random, quiet_killer2, quiet_counter, quiet_killer1]
+    ordered = sort_moves_ares2(
+        moves=moves,
+        ply=1,
+        killer_table=km,
+        history_table=ht,
+        counter_table=cm,
+        prev_move_key=prev_enemy_move_key,
+    )
+
+    # Expected order:
+    # 1. Killer 1 (quiet_killer2 in slot 0, score 20_000)
+    # 2. Countermove (score 19_000)
+    # 3. Killer 2 (quiet_killer1 in slot 1, score 18_000)
+    # 4. Quiet random
+    assert move_to_string_key(ordered[0]) == move_to_string_key(quiet_killer2)
+    assert move_to_string_key(ordered[1]) == move_to_string_key(quiet_counter)
+    assert move_to_string_key(ordered[2]) == move_to_string_key(quiet_killer1)
+    assert move_to_string_key(ordered[3]) == move_to_string_key(quiet_random)
+
+
+def test_transposition_table_generational_replacement():
+    from ai.ares2 import TranspositionTable, TTFlag
+
+    tt = TranspositionTable(size_power_of_two=8)
+    h = 0xAABBCCDD
+    m1 = {"type": "move", "start": (2, 2), "end": (3, 3)}
+    m2 = {"type": "move", "start": (4, 4), "end": (5, 5)}
+
+    # Store entry in generation 0 with depth 4
+    tt.store(h, depth=4, score=200.0, flag=TTFlag.EXACT, best_move=m1)
+    entry = tt.probe(h)
+    assert entry is not None
+    assert entry.depth == 4
+    assert entry.generation == 0
+
+    # Within the same generation, depth 1 CANNOT overwrite depth 4
+    tt.store(h, depth=1, score=10.0, flag=TTFlag.EXACT, best_move=m2)
+    entry2 = tt.probe(h)
+    assert entry2.depth == 4
+    assert entry2.best_move == m1
+
+    # Advance to next generation (new search turn)
+    tt.new_search()
+    assert tt.generation == 1
+
+    # In the new generation, fresh search can replace stale entry from previous turn
+    tt.store(h, depth=2, score=150.0, flag=TTFlag.EXACT, best_move=m2)
+    entry3 = tt.probe(h)
+    assert entry3.depth == 2
+    assert entry3.generation == 1
+    assert entry3.best_move == m2
+
+
+def test_quiescence_delta_pruning_and_sniper_shot():
+    from ai.ares2 import quiescence_search
+    from engine.game_state import GameState
+    from engine.pieces import Marksman, Bone
+
+    gs = GameState()
+    gs.board[3][3] = Marksman("brancas")
+    # Hopelessly behind position for black: stand_pat will be very low
+    gs.board[0][0] = Bone("pretas")
+    gs.white_to_move = False
+
+    # Stand-pat will be far below alpha: Delta pruning should trigger immediately
+    score = quiescence_search(
+        state=gs,
+        alpha=500.0,
+        beta=600.0,
+        team="pretas",
+        q_depth=0,
+        max_qdepth=3,
+    )
+    # Pruned without expanding tactical search
+    assert score == 500.0
+
+
+def test_sniper_crosshairs_in_domain_evaluation():
+    from ai.domain_eval import RedWarDomainEvaluator
+    from engine.game_state import GameState
+    from engine.pieces import Marksman, Templar, Bone
+
+    evaluator = RedWarDomainEvaluator()
+
+    # Position 1: stunned enemy target with normal melee proximity
+    gs1 = GameState()
+    gs1.board[4][2] = Templar("brancas")
+    gs1.board[4][4] = Bone("pretas")
+    gs1.board[4][4].stun_timer = 1  # Stunned
+    score_normal = evaluator.evaluate(gs1, "brancas")
+
+    # Position 2: stunned enemy in direct line-of-fire crosshairs of Marksman
+    gs2 = GameState()
+    gs2.board[4][1] = Marksman("brancas")  # Col 1 vs Col 4 in same row 4 (dist = 3, orthogonal line of sight)
+    gs2.board[4][4] = Bone("pretas")
+    gs2.board[4][4].stun_timer = 1  # Stunned
+    score_sniper = evaluator.evaluate(gs2, "brancas")
+
+    # Sniper crosshair lethality weight should boost evaluation
+    assert score_sniper > 0.0

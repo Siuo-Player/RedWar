@@ -41,7 +41,7 @@ def get_opening_move(state: Any, team: Optional[str] = None) -> Optional[dict[st
     # Score opening development moves
     # Principles:
     # 1. Advance toward central files and ranks (rows 3, 4, cols 2, 3, 4, 5)
-    # 2. Advance mobile flankers and controllers (Valkyrie, Duelist, Arcanist, Marksman, Warden)
+    # 2. Advance mobile flankers and controllers (Valkyrie, Duelist, Arcanist, Marksman, Warden, Illusionist)
     # 3. Avoid moving same piece twice unnecessarily
     # 4. Do not move vulnerable spawners into direct enemy melee lines
     scored_moves: list[tuple[float, dict[str, Any]]] = []
@@ -75,11 +75,17 @@ def get_opening_move(state: Any, team: Optional[str] = None) -> Optional[dict[st
 
         # Vanguard & high-tempo hero preferences
         hero_name = piece.name
-        if hero_name in ("Valkyrie", "Duelist", "Arcanist", "Warden", "Paladin", "Ranger", "Marksman"):
+        if hero_name in ("Valkyrie", "Duelist", "Arcanist", "Warden", "Paladin", "Ranger", "Marksman", "Illusionist"):
             score += 25.0
         elif hero_name in ("BoneLord", "Lich", "Inquisitor"):
             # High-value casters prefer staying shielded initially
             score += 5.0
+
+        # Hero-specific strategic development for new 30-hero roster
+        if hero_name == "Illusionist" and er in (2, 3, 4, 5):
+            score += 10.0
+        elif hero_name == "Marksman" and (er in (2, 3, 4, 5) or ec in (2, 3, 4, 5)):
+            score += 10.0
 
         # Small tie-breaking jitter for repertoire diversity
         score += random.uniform(0.0, 3.0)
