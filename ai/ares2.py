@@ -188,13 +188,16 @@ def sort_moves_ares2(
     killer_table: KillerMoveTable,
     history_table: HistoryTable,
     tt_best_move: Optional[str] = None,
+    pv_best_move: Optional[str] = None,
     state: Optional[Any] = None,
 ) -> list[dict[str, Any]]:
-    """Order candidate legal moves using TT, MVV-LVA, Killers, History, and Tacticals."""
+    """Order candidate legal moves using PV, TT, MVV-LVA, Killers, History, and Tacticals."""
     killer1, killer2 = killer_table.get_killers(ply)
 
     def score_move(m: dict[str, Any]) -> int:
         key = move_to_string_key(m)
+        if pv_best_move and key == pv_best_move:
+            return 2_000_000
         if tt_best_move and key == tt_best_move:
             return 1_000_000
 
@@ -357,30 +360,64 @@ class AresEngine:
                     "is_book": True,
                 }
 
-        # Iterative Deepening
+        # Iterative Deepening with Aspiration Windows & PV extraction
         for depth in range(1, max_depth + 1):
-            if time.time() - start_time >= time_limit:
+            if time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes:
                 break
 
-            score, move = self._negamax(
-                state=state,
-                depth=depth,
-                ply=0,
-                alpha=-float("inf"),
-                beta=float("inf"),
-                team=team,
-                start_time=start_time,
-                time_limit=time_limit,
-                max_nodes=max_nodes,
-            )
+            pv_key = move_to_string_key(best_overall_move) if best_overall_move else None
+
+            # Aspiration Window for depth >= 2
+            if depth >= 2 and best_overall_score > -40_000:
+                delta = 60.0
+                alpha = best_overall_score - delta
+                beta = best_overall_score + delta
+
+                score, move = self._negamax(
+                    state=state,
+                    depth=depth,
+                    ply=0,
+                    alpha=alpha,
+                    beta=beta,
+                    team=team,
+                    start_time=start_time,
+                    time_limit=time_limit,
+                    max_nodes=max_nodes,
+                    pv_best_move=pv_key,
+                )
+
+                # Re-search on fail-low or fail-high
+                if score <= alpha or score >= beta:
+                    score, move = self._negamax(
+                        state=state,
+                        depth=depth,
+                        ply=0,
+                        alpha=-float("inf"),
+                        beta=float("inf"),
+                        team=team,
+                        start_time=start_time,
+                        time_limit=time_limit,
+                        max_nodes=max_nodes,
+                        pv_best_move=pv_key,
+                    )
+            else:
+                score, move = self._negamax(
+                    state=state,
+                    depth=depth,
+                    ply=0,
+                    alpha=-float("inf"),
+                    beta=float("inf"),
+                    team=team,
+                    start_time=start_time,
+                    time_limit=time_limit,
+                    max_nodes=max_nodes,
+                    pv_best_move=pv_key,
+                )
 
             if move is not None:
                 best_overall_move = move
                 best_overall_score = score
                 completed_depth = depth
-
-            if self.nodes_visited >= max_nodes:
-                break
 
         elapsed = time.time() - start_time
         return {
@@ -404,6 +441,8 @@ class AresEngine:
         start_time: float,
         time_limit: float,
         max_nodes: int,
+        do_null: bool = True,
+        pv_best_move: Optional[str] = None,
     ) -> tuple[float, Optional[dict[str, Any]]]:
         self.nodes_visited += 1
 
@@ -432,6 +471,38 @@ class AresEngine:
             q_score = quiescence_search(state, alpha, beta, team, evaluator=self.evaluator)
             return q_score, None
 
+        enemy_team = "pretas" if team == "brancas" else "brancas"
+
+        # Null-Move Pruning (NMP) with RedWar tactical danger safeguards
+        if do_null and depth >= 3 and ply > 0:
+            has_stunned_ally = any(
+                p and p.team == team and getattr(p, "stun_timer", 0) > 0
+                for row in getattr(state, "board", []) for p in row
+            )
+            total_active_allies = sum(
+                1 for row in getattr(state, "board", []) for p in row if p and p.team == team
+            )
+            if not has_stunned_ally and total_active_allies >= 2:
+                R = 2
+                clone = state.fast_clone()
+                clone.white_to_move = not clone.white_to_move
+                null_score, _ = self._negamax(
+                    state=clone,
+                    depth=depth - 1 - R,
+                    ply=ply + 1,
+                    alpha=-beta,
+                    beta=-beta + 1,
+                    team=enemy_team,
+                    start_time=start_time,
+                    time_limit=time_limit,
+                    max_nodes=max_nodes,
+                    do_null=False,
+                )
+                null_score = -null_score
+                if null_score >= beta:
+                    self.cutoffs += 1
+                    return beta, None
+
         raw_actions = to_legacy_dicts(legal_actions(state))
         if not raw_actions:
             state.check_game_over()
@@ -446,6 +517,7 @@ class AresEngine:
             killer_table=self.killer_table,
             history_table=self.history_table,
             tt_best_move=tt_best_move_str,
+            pv_best_move=pv_best_move,
             state=state,
         )
 

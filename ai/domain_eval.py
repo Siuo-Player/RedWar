@@ -77,6 +77,14 @@ class RedWarDomainEvaluator:
         for syn in detected_synergies:
             score += syn.value
 
+        # 5. Positional Spatial Dominance & Center Control
+        for r, c, ally in allies:
+            dist = abs(r - 3.5) + abs(c - 3.5)
+            score += max(0.0, (7.0 - dist) * 1.5)
+        for r, c, enemy in enemies:
+            dist = abs(r - 3.5) + abs(c - 3.5)
+            score -= max(0.0, (7.0 - dist) * 1.5)
+
         return score
 
     def evaluate_hazard_opportunities(

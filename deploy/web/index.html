@@ -229,18 +229,33 @@
             <option value="Paladin">Paladin (Custo 16)</option>
             <option value="Shadowblade">Shadowblade (Custo 18)</option>
             <option value="Stormcaller">Stormcaller (Custo 17)</option>
+            <option value="Hookmaster">Hookmaster (Custo 15)</option>
+            <option value="Timekeeper">Timekeeper (Custo 16)</option>
+            <option value="Dragoon">Dragoon (Custo 18)</option>
+            <option value="FrostMage">FrostMage (Custo 16)</option>
+            <option value="BoneLord">BoneLord (Custo 16)</option>
+            <option value="Bone">Bone (Custo 8)</option>
+            <option value="Berserker">Berserker (Custo 18)</option>
+            <option value="Ranger">Ranger (Custo 14)</option>
+            <option value="Pyromancer">Pyromancer (Custo 16)</option>
+            <option value="Phantom">Phantom (Custo 5)</option>
+            <option value="Cleric">Cleric (Custo 14)</option>
+            <option value="Templar">Templar (Custo 15)</option>
+            <option value="Inquisitor">Inquisitor (Custo 15)</option>
+            <option value="Geomancer">Geomancer (Custo 14)</option>
+            <option value="Lich">Lich (Custo 15)</option>
+            <option value="Nightshade">Nightshade (Custo 14)</option>
+            <option value="Obelisk">Obelisk (Custo 12)</option>
+            <option value="Sentry">Sentry (Custo 10)</option>
+            <option value="Stonewall">Stonewall (Custo 12)</option>
+            <option value="Trickster">Trickster (Custo 14)</option>
+            <option value="Ghoul">Ghoul (Custo 10)</option>
             <option value="Valkyrie">Valkyrie (Custo 22)</option>
             <option value="Arcanist">Arcanist (Custo 23)</option>
             <option value="Duelist">Duelist (Custo 24)</option>
             <option value="Warden">Warden (Custo 25)</option>
             <option value="Illusionist">Illusionist (Custo 27)</option>
             <option value="Marksman">Marksman (Custo 28)</option>
-            <option value="Hookmaster">Hookmaster (Custo 15)</option>
-            <option value="Timekeeper">Timekeeper (Custo 16)</option>
-            <option value="Dragoon">Dragoon (Custo 18)</option>
-            <option value="FrostMage">FrostMage (Custo 16)</option>
-            <option value="BoneLord">BoneLord (Custo 16)</option>
-            <option value="Ranger">Ranger (Custo 14)</option>
           </select>
         </div>
 
@@ -248,6 +263,33 @@
           <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 4px;">Classes Derivadas por Dados:</div>
           <div id="analyticsDerivedClasses" style="font-size: 0.9rem; font-weight: bold; color: #38bdf8;">Vanguard (Tanque/Âncora)</div>
           <div style="margin-top: 6px; font-size: 0.8rem; color: #aaa;">Eficiência de Custo: <span id="analyticsCostEfficiency" style="color: #22c55e; font-weight: bold;">1.02x (Equilibrado)</span></div>
+          <div style="margin-top: 6px; font-size: 0.8rem; color: #aaa;">Status Riot Balance: <span id="analyticsRiotBadge" style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; background: #065f46; color: #34d399;">Equilibrado</span></div>
+          <div style="margin-top: 6px; display: flex; gap: 12px; font-size: 0.8rem; color: #aaa;">
+            <div>Taxa Vitória: <strong id="analyticsWinRate" style="color: #38bdf8;">51.2%</strong></div>
+            <div>Presença Draft: <strong id="analyticsPresenceRate" style="color: #facc15;">18.5%</strong></div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-size: 0.8rem;">
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #22c55e; font-weight: bold; margin-bottom: 4px;">⚡ Power Tiles (ΔWR):</div>
+            <div id="analyticsPowerTiles" style="color: #cbd5e1; font-family: monospace; font-size: 0.75rem; line-height: 1.4;">d4 (+6.2%)<br>e4 (+5.8%)<br>d5 (+5.1%)</div>
+          </div>
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #f87171; font-weight: bold; margin-bottom: 4px;">⚠️ Casas Vulneráveis:</div>
+            <div id="analyticsVulnerableTiles" style="color: #cbd5e1; font-family: monospace; font-size: 0.75rem; line-height: 1.4;">a1 (-7.4%)<br>h8 (-6.9%)<br>a8 (-6.1%)</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-size: 0.8rem;">
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #38bdf8; font-weight: bold; margin-bottom: 4px;">🤝 Top Sinergias (Duo):</div>
+            <div id="analyticsSynergies" style="color: #cbd5e1; font-size: 0.75rem; line-height: 1.4;">Valkyrie (+5.4%)<br>Warden (+4.2%)</div>
+          </div>
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #fb923c; font-weight: bold; margin-bottom: 4px;">🎯 Counters & Ameaças:</div>
+            <div id="analyticsCounters" style="color: #cbd5e1; font-size: 0.75rem; line-height: 1.4;">Inquisitor (-6.8%)<br>Duelist (-5.1%)</div>
+          </div>
         </div>
 
         <div style="font-size: 0.85rem; color: #888; margin-bottom: 6px;">Radar de Desempenho (6 Dimensões):</div>
@@ -259,7 +301,13 @@
           <div>Final: <strong id="endgameRating" style="color: #22c55e;">82</strong></div>
         </div>
 
-        <div style="font-size: 0.85rem; color: #888; margin-bottom: 6px;">Mapa de Calor Posicional (Onde a peça é mais eficaz):</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="font-size: 0.85rem; color: #888;">Mapa Posicional:</div>
+          <div style="display: flex; gap: 4px;">
+            <button id="btnHeatmapDensity" class="btn-secondary" style="font-size: 0.7rem; padding: 2px 6px; background: #0284c7; color: white; border: none; border-radius: 4px; cursor: pointer;">Densidade</button>
+            <button id="btnHeatmapDeltaWR" class="btn-secondary" style="font-size: 0.7rem; padding: 2px 6px; background: #334155; color: #cbd5e1; border: none; border-radius: 4px; cursor: pointer;">Δ Win Rate</button>
+          </div>
+        </div>
         <canvas id="heatmapCanvas" width="200" height="200" style="background: #111; border-radius: 6px; width: 200px; height: 200px; margin: 0 auto; display: block;"></canvas>
       </div>
     </div>
