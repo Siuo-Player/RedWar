@@ -1,16 +1,18 @@
 """Ares 2.0 AI Engine Search Enhancements for RedWar.
 
 Implements Stockfish-inspired search heuristics:
-- Transposition Table with Zobrist hashing & replacement strategies
+- Transposition Table with Zobrist hashing & generational replacement strategies
 - MVV-LVA (Most Valuable Victim - Least Valuable Attacker) move ordering
   with dedicated 2-hit stun lethal kill prioritization
 - 2-Slot Killer Move Ordering per ply
+- Countermove Heuristic for quiet refutations
 - History Heuristic table with gravity aging formula
 - Dynamic Clock Allocation (Time Management)
-- Quiescence Search on tactical captures and stun attacks
+- Quiescence Search on tactical captures and stun attacks with Delta Pruning
 - Dynamic Widening Aspiration Windows
+- Reverse Futility Pruning (Static Null-Move Pruning)
 - Adaptive Null-Move Pruning with RedWar stun-safety guards
-- Late Move Reductions (LMR) with killer & history protection
+- Late Move Reductions (LMR) with killer, countermove & history protection
 - Full Iterative Deepening Negamax Search Engine with Alpha-Beta Pruning
 """
 from __future__ import annotations
@@ -38,11 +40,12 @@ class TTEntry:
     depth: int
     score: float
     flag: TTFlag
+    generation: int = 0
     best_move: Optional[dict[str, Any]] = None
 
 
 class TranspositionTable:
-    """Fixed-capacity hash table indexed by Zobrist hash with depth-preferred replacement."""
+    """Fixed-capacity hash table indexed by Zobrist hash with generational replacement."""
 
     def __init__(self, size_power_of_two: int = 16):
         self.capacity = 1 << size_power_of_two
@@ -50,12 +53,45 @@ class TranspositionTable:
         self._table: list[Optional[TTEntry]] = [None] * self.capacity
         self.hits = 0
         self.stores = 0
+        self.generation = 0
 
-    def store(self, hash_key: int, depth: int, score: float, flag: TTFlag, best_move: Optional[dict[str, Any]] = None) -> None:
+    def new_search(self) -> None:
+        """Advance generation counter so fresh search results take precedence over stale plies."""
+        self.generation = (self.generation + 1) & 0xFF
+
+    def store(
+        self,
+        hash_key: int,
+        depth: int,
+        score: float,
+        flag: TTFlag,
+        best_move: Optional[dict[str, Any]] = None,
+    ) -> None:
         idx = hash_key & self.mask
         existing = self._table[idx]
-        if existing is None or depth >= existing.depth or existing.hash_key != hash_key:
-            self._table[idx] = TTEntry(hash_key=hash_key, depth=depth, score=score, flag=flag, best_move=best_move)
+        replace = False
+
+        if existing is None:
+            replace = True
+        elif existing.generation != self.generation:
+            # Stale generation entry: always replace with current search data
+            replace = True
+        elif depth >= existing.depth:
+            # Same generation: depth-preferred replacement
+            replace = True
+        elif existing.hash_key != hash_key and depth >= existing.depth - 1:
+            # Collision from another position: replace within tolerance
+            replace = True
+
+        if replace:
+            self._table[idx] = TTEntry(
+                hash_key=hash_key,
+                depth=depth,
+                score=score,
+                flag=flag,
+                generation=self.generation,
+                best_move=best_move,
+            )
             self.stores += 1
 
     def probe(self, hash_key: int) -> Optional[TTEntry]:
@@ -70,6 +106,7 @@ class TranspositionTable:
         self._table = [None] * self.capacity
         self.hits = 0
         self.stores = 0
+        self.generation = 0
 
 
 @dataclass
@@ -97,6 +134,24 @@ class KillerMoveTable:
         for ply in range(self.max_depth):
             self.slots[ply][0] = None
             self.slots[ply][1] = None
+
+
+@dataclass
+class CounterMoveTable:
+    """Records quiet refutation countermoves indexed by the opponent's previous move key."""
+    table: dict[str, str] = field(default_factory=dict)
+
+    def record_countermove(self, prev_move_key: str, refutation_key: str) -> None:
+        if prev_move_key and refutation_key:
+            self.table[prev_move_key] = refutation_key
+
+    def get_countermove(self, prev_move_key: Optional[str]) -> Optional[str]:
+        if not prev_move_key:
+            return None
+        return self.table.get(prev_move_key)
+
+    def clear(self) -> None:
+        self.table.clear()
 
 
 class HistoryTable:
@@ -202,12 +257,15 @@ def sort_moves_ares2(
     ply: int,
     killer_table: KillerMoveTable,
     history_table: HistoryTable,
+    counter_table: Optional[CounterMoveTable] = None,
+    prev_move_key: Optional[str] = None,
     tt_best_move: Optional[str] = None,
     pv_best_move: Optional[str] = None,
     state: Optional[Any] = None,
 ) -> list[dict[str, Any]]:
-    """Order candidate legal moves using PV, TT, MVV-LVA, Killers, History, and Tacticals."""
+    """Order candidate legal moves using PV, TT, MVV-LVA, Killers, Countermove, History, and Tacticals."""
     killer1, killer2 = killer_table.get_killers(ply)
+    counter_move = counter_table.get_countermove(prev_move_key) if counter_table and prev_move_key else None
 
     def score_move(m: dict[str, Any]) -> int:
         key = move_to_string_key(m)
@@ -231,9 +289,11 @@ def sort_moves_ares2(
         if m_type == "spell":
             return 45_000
 
-        # Quiet moves
+        # Quiet moves: Killer 1 > Countermove > Killer 2
         if key == killer1:
             return 20_000
+        if counter_move and key == counter_move:
+            return 19_000
         if key == killer2:
             return 18_000
 
@@ -277,13 +337,19 @@ def quiescence_search(
     if q_depth >= max_qdepth:
         return alpha
 
+    # Delta Pruning: if even capturing the highest-cost piece cannot raise alpha, prune
+    BIG_DELTA = 65.0
+    if stand_pat + BIG_DELTA < alpha:
+        return alpha
+
     # Generate only tactical moves (attacks, lethal spells)
     all_actions = to_legacy_dicts(legal_actions(state))
     tactical_moves = [
         m for m in all_actions
         if str(m.get("type", "")).lower() in ("attack", "stun") or
         (str(m.get("type", "")).lower() == "spell" and m.get("spell_name") in (
-            "chain_lightning", "arcane_blast", "aimed_shot", "sentinel_shot", "spectral_strike", "bone_v"
+            "chain_lightning", "arcane_blast", "aimed_shot", "sentinel_shot",
+            "spectral_strike", "bone_v", "sniper_shot"
         ))
     ]
 
@@ -312,6 +378,7 @@ class AresEngine:
     def __init__(self, tt_size_power: int = 16):
         self.tt = TranspositionTable(size_power_of_two=tt_size_power)
         self.killer_table = KillerMoveTable()
+        self.counter_table = CounterMoveTable()
         self.history_table = HistoryTable()
         self.evaluator = RedWarDomainEvaluator()
         self.nodes_visited = 0
@@ -320,6 +387,7 @@ class AresEngine:
     def reset(self) -> None:
         self.tt.clear()
         self.killer_table.clear()
+        self.counter_table.clear()
         self.history_table.clear()
         self.nodes_visited = 0
         self.cutoffs = 0
@@ -358,6 +426,9 @@ class AresEngine:
         best_overall_score = -float("inf")
         team = "brancas" if getattr(state, "white_to_move", True) else "pretas"
         completed_depth = 0
+
+        # Advance TT generation counter for fresh search prioritization
+        self.tt.new_search()
 
         # Opening book probe (active in multi-piece opening formations)
         total_pieces = sum(1 for row in getattr(state, "board", []) for p in row if p is not None)
@@ -401,6 +472,7 @@ class AresEngine:
                         time_limit=time_limit,
                         max_nodes=max_nodes,
                         pv_best_move=pv_key,
+                        prev_move_key=None,
                     )
 
                     if time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes:
@@ -434,6 +506,7 @@ class AresEngine:
                     time_limit=time_limit,
                     max_nodes=max_nodes,
                     pv_best_move=pv_key,
+                    prev_move_key=None,
                 )
 
             if move is not None:
@@ -465,6 +538,7 @@ class AresEngine:
         max_nodes: int,
         do_null: bool = True,
         pv_best_move: Optional[str] = None,
+        prev_move_key: Optional[str] = None,
     ) -> tuple[float, Optional[dict[str, Any]]]:
         self.nodes_visited += 1
 
@@ -493,6 +567,19 @@ class AresEngine:
             q_score = quiescence_search(state, alpha, beta, team, evaluator=self.evaluator)
             return q_score, None
 
+        # Reverse Futility Pruning (Static Null-Move Pruning) for shallow depths (depth 1..2)
+        if depth <= 2 and ply > 0 and beta < 30_000:
+            has_stunned_ally = any(
+                p and p.team == team and getattr(p, "stun_timer", 0) > 0
+                for row in getattr(state, "board", []) for p in row
+            )
+            if not has_stunned_ally:
+                margin = depth * 45.0
+                static_eval = self.evaluator.evaluate(state, team)
+                if static_eval - margin >= beta:
+                    self.cutoffs += 1
+                    return static_eval - margin, None
+
         enemy_team = "pretas" if team == "brancas" else "brancas"
 
         # Adaptive Null-Move Pruning (NMP) with RedWar tactical danger safeguards
@@ -520,6 +607,7 @@ class AresEngine:
                     time_limit=time_limit,
                     max_nodes=max_nodes,
                     do_null=False,
+                    prev_move_key=None,
                 )
                 null_score = -null_score
                 if null_score >= beta:
@@ -533,12 +621,14 @@ class AresEngine:
                 return -50_000.0, None  # Loss
             return 0.0, None  # Stalemate / draw
 
-        # Move ordering
+        # Move ordering with PV, TT, MVV-LVA, Killers, Countermove, History
         ordered_actions = sort_moves_ares2(
             moves=raw_actions,
             ply=ply,
             killer_table=self.killer_table,
             history_table=self.history_table,
+            counter_table=self.counter_table,
+            prev_move_key=prev_move_key,
             tt_best_move=tt_best_move_str,
             pv_best_move=pv_best_move,
             state=state,
@@ -547,16 +637,18 @@ class AresEngine:
         best_move = None
         best_score = -float("inf")
         initial_alpha = alpha
-        enemy_team = "pretas" if team == "brancas" else "brancas"
 
         killer1, killer2 = self.killer_table.get_killers(ply)
+        counter_cand = self.counter_table.get_countermove(prev_move_key) if prev_move_key else None
         moves_searched = 0
+
         for move in ordered_actions:
             if time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes:
                 break
 
             clone = state.fast_clone()
             clone.execute_action(move)
+            child_prev_key = move_to_string_key(move)
             m_type = str(move.get("type", "")).lower()
             is_tactical = (
                 m_type in ("attack", "stun")
@@ -566,15 +658,16 @@ class AresEngine:
                 )
             )
 
-            # Check killer move and history safety guards
-            key = move_to_string_key(move)
+            # Check killer move, countermove, and history safety guards
+            key = child_prev_key
             is_killer = (key == killer1 or key == killer2)
+            is_counter = (key == counter_cand) if counter_cand else False
             start = move.get("start")
             end = move.get("end")
             hist_score = self.history_table.get_score(tuple(start), tuple(end)) if (start and end and len(start) == 2 and len(end) == 2) else 0
 
-            # Late Move Reductions (LMR) with killer & history protection
-            do_lmr = (depth >= 3 and moves_searched >= 3 and not is_tactical and not is_killer and hist_score < 3000)
+            # Late Move Reductions (LMR) with killer, countermove & history protection
+            do_lmr = (depth >= 3 and moves_searched >= 3 and not is_tactical and not is_killer and not is_counter and hist_score < 3000)
             reduction = 2 if (do_lmr and depth >= 5 and moves_searched >= 8) else (1 if do_lmr else 0)
 
             score, _ = self._negamax(
@@ -587,6 +680,7 @@ class AresEngine:
                 start_time=start_time,
                 time_limit=time_limit,
                 max_nodes=max_nodes,
+                prev_move_key=child_prev_key,
             )
             score = -score
 
@@ -602,6 +696,7 @@ class AresEngine:
                     start_time=start_time,
                     time_limit=time_limit,
                     max_nodes=max_nodes,
+                    prev_move_key=child_prev_key,
                 )
                 score = -score
 
@@ -616,11 +711,13 @@ class AresEngine:
 
             if alpha >= beta:
                 self.cutoffs += 1
-                # Record killer and history for quiet cutoffs
+                # Record killer, countermove, and history for quiet cutoffs
                 m_type = str(move.get("type", "")).lower()
                 if m_type not in ("attack", "stun"):
                     key = move_to_string_key(move)
                     self.killer_table.record_killer(ply, key)
+                    if prev_move_key:
+                        self.counter_table.record_countermove(prev_move_key, key)
                     start = move.get("start")
                     end = move.get("end")
                     if start and end and len(start) == 2 and len(end) == 2:

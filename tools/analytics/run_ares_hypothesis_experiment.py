@@ -38,15 +38,34 @@ def main():
     parser = argparse.ArgumentParser(description="Run an automated hypothesis duel for Ares AI.")
     parser.add_argument("--pairs", type=int, default=4, help="Number of mirror pairs (default: 4 = 8 games)")
     parser.add_argument("--output-dir", type=str, default="docs/EXPERIMENTS", help="Output directory for reports")
+    parser.add_argument("--id", type=str, default="H-20261108-ARES-COUNTERMOVE-TT-DELTAPRUNING", help="Hypothesis ID")
+    parser.add_argument(
+        "--title",
+        type=str,
+        default="Countermove Heuristic, Generational TT Replacement & Quiescence Delta Pruning",
+        help="Hypothesis title",
+    )
+    parser.add_argument(
+        "--bottleneck",
+        type=str,
+        default="Subtree search bloat on quiet refutations, collision evictions of deep TT entries across plies, and futile tactical captures in quiescence.",
+        help="Hypothesis bottleneck",
+    )
+    parser.add_argument(
+        "--proposed-heuristic",
+        type=str,
+        default="Countermove Heuristic (+19k priority), Generational TT Aging, Quiescence Delta Pruning (65 cp), Reverse Futility Pruning (depth 1-2), and Sniper Line-of-Sight Crosshairs.",
+        help="Proposed heuristic",
+    )
     args = parser.parse_args()
 
     hypothesis = Hypothesis(
-        id="H-20261108-ARES-THEORETICAL-TUNING",
-        title="Theoretical Search & Domain Tuning with 3-Sigma Champion Gate",
-        bottleneck="Static aspiration windows, flat stun horizon evaluation, and unaged history heuristics risk tactical blunders.",
-        proposed_heuristic="Dynamic geometric aspiration widening (delta=75.0), distance-decay stun lethality, history gravity aging, adaptive NMP (R=3 at d>=6), and LMR killer protection.",
+        id=args.id,
+        title=args.title,
+        bottleneck=args.bottleneck,
+        proposed_heuristic=args.proposed_heuristic,
         baseline_version="ares-depth1-baseline",
-        candidate_version="ares-theoretically-tuned-d2",
+        candidate_version="ares-countermove-ttaging-d2",
         target_elo_gain=25.0,
     )
 
@@ -68,31 +87,27 @@ def main():
         baseline_bot=baseline,
         num_pairs=args.pairs,
         on_pair_completed=on_pair_done,
-        early_stopping=True,
+        early_stopping=False,
     )
-
-    print("\n" + "=" * 60)
-    print(f"🏁 RESULTADO DO EXPERIMENTO: {result.verdict}")
-    print(f"Placar: {result.challenger_wins}W - {result.baseline_wins}L - {result.draws}D (Score: {result.score * 100:.1f}%)")
-    print(f"ΔElo: {result.delta_elo:+.1f} ± {result.elo_margin_95:.1f} (95% CI: [{result.ci_lower:+.1f}, {result.ci_upper:+.1f}])")
-    print(f"3-Sigma Margin: ± {result.elo_margin_3sigma:.1f} (99.73% CI: [{result.ci_lower_3sigma:+.1f}, {result.ci_upper_3sigma:+.1f}])")
-    print(f"3-Sigma Champion Gate: {'APROVADO' if result.sigma_gate_passed else 'PENDENTE / NÃO ATINGIDO'}")
-    print(f"LLR: {result.llr:+.2f} (Limites: [{result.sprt_bounds[0]:.2f}, {result.sprt_bounds[1]:.2f}])")
-    print(f"Decisão: {result.verdict_reason}")
-    print("=" * 60 + "\n")
 
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    md_report = tester.format_markdown_report(result)
+    json_path = out_dir / f"{hypothesis.id}.json"
     md_path = out_dir / f"{hypothesis.id}.md"
+
+    tester.save_report_json(result, json_path)
+    md_report = tester.format_markdown_report(result)
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(md_report)
-    print(f"📄 Relatório Markdown salvo em: {md_path}")
 
-    json_path = out_dir / f"{hypothesis.id}.json"
-    tester.save_report_json(result, json_path)
-    print(f"💾 Relatório JSON salvo em: {json_path}")
+    print("\n" + "=" * 60)
+    print(f"📊 Relatório gerado: {md_path}")
+    print(f"📁 JSON salvo: {json_path}")
+    print(f"🏆 Veredito 3-Sigma: {result.verdict}")
+    print(f"📈 Delta Elo: {result.delta_elo:+.1f} [95% CI: {result.ci_lower_95:+.1f}, {result.ci_upper_95:+.1f}]")
+    print(f"🛡️ 3.0σ Lower Bound: {result.ci_lower_3sigma:+.1f}")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
