@@ -1,0 +1,66 @@
+{
+  "hypothesis": {
+    "id": "H-20261108-ARES-ASPIRATION-PV",
+    "title": "Aspiration Windows & PV Ordering vs Shallow Baseline",
+    "bottleneck": "Shallow search horizons without aspiration windows risk tactical blindspots in stun windows.",
+    "proposed_heuristic": "Iterative deepening with aspiration window (score +- 60) and PV move ordering bonus.",
+    "baseline_version": "ares-depth1-baseline",
+    "candidate_version": "ares-depth2-aspiration-challenger",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-08 17:34:02"
+  },
+  "total_games": 4,
+  "pairs_played": 2,
+  "challenger_wins": 1,
+  "baseline_wins": 3,
+  "draws": 0,
+  "score": 0.25,
+  "delta_elo": -190.8,
+  "elo_margin_95": 393.2,
+  "ci_lower": -584.0,
+  "ci_upper": 202.4,
+  "llr": -0.12,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "REJECTED",
+  "verdict_reason": "Sem evidência de melhoria (Score: 25.0%, ΔElo: -190.8).",
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 27
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 25
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 58
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "white",
+        "plies": 26
+      },
+      "challenger_pair_score": 0.0,
+      "current_llr": -0.12,
+      "current_elo": -190.8
+    }
+  ]
+}
