@@ -39,12 +39,19 @@ global.document = {
   }),
   createElement: (tag) => ({
     style: {}, dataset: {}, classList: { add: () => {} },
-    appendChild: () => {}, textContent: '', innerHTML: ''
+    appendChild: () => {}, textContent: '', innerHTML: '',
+    addEventListener: () => {}
   }),
   querySelectorAll: () => []
 };
 global.Image = class { constructor() { this.complete = true; this.naturalWidth = 512; } };
-global.localStorage = { getItem: () => null, setItem: () => {} };
+const memStorage = {};
+global.localStorage = {
+  getItem: (k) => memStorage[k] !== undefined ? memStorage[k] : null,
+  setItem: (k, v) => { memStorage[k] = String(v); },
+  removeItem: (k) => { delete memStorage[k]; },
+  clear: () => { for (const k in memStorage) delete memStorage[k]; }
+};
 global.alert = () => {};
 
 const appCode = fs.readFileSync(path.join(__dirname, 'deploy', 'web', 'app.js'), 'utf8');
@@ -297,3 +304,47 @@ def test_web_client_hero_analytics_riot_and_power_tiles():
     """
     res = run_node_snippet(snippet)
     assert res["passed"], f"Analytics invariants failed: {res}"
+
+
+def test_web_client_puzzle_persistence_and_game_review_audio():
+    """Verify puzzle ELO and streak are persisted in localStorage, and Game Review generates classifications."""
+    snippet = """
+    // 1. Test puzzle stats load and save
+    puzzleUserElo = 1450;
+    puzzleStreak = 7;
+    savePuzzleStats();
+
+    // Reset variables and reload from localStorage
+    puzzleUserElo = 1200;
+    puzzleStreak = 0;
+    loadPuzzleStats();
+
+    const statsRestored = (puzzleUserElo === 1450 && puzzleStreak === 7);
+
+    // 2. Test Game Review move classification
+    classifiedMoves = [];
+    classifyLastMove(100, 320, 'Va e2-e5', 'brancas'); // +220 cp => Brilliant
+    classifyLastMove(100, -250, 'Du d7-d5', 'brancas'); // -350 cp => Blunder
+
+    const brilliantMove = classifiedMoves.find(m => m.classification === 'brilliant');
+    const blunderMove = classifiedMoves.find(m => m.classification === 'blunder');
+
+    // 3. Test renderGameReviewPanel executes without error
+    let reviewRendered = false;
+    try {
+      renderGameReviewPanel();
+      reviewRendered = true;
+    } catch (e) {
+      reviewRendered = false;
+    }
+
+    console.log(JSON.stringify({
+      passed: statsRestored && brilliantMove !== undefined && blunderMove !== undefined && reviewRendered,
+      statsRestored,
+      hasBrilliant: brilliantMove !== undefined,
+      hasBlunder: blunderMove !== undefined,
+      reviewRendered
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Puzzle persistence and game review audio failed: {res}"
