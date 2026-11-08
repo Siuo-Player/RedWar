@@ -448,3 +448,50 @@ def test_imminent_threat_detection():
     gs.board[4][7] = None
     gs.board[1][1] = Bone("pretas")
     assert is_under_imminent_threat(gs, "brancas") is False
+
+
+
+def test_imminent_threat_targets_and_check_response_ordering():
+    from ai.ares2 import get_imminent_threat_targets_and_blocks, sort_moves_ares2, KillerMoveTable, HistoryTable
+    from engine.game_state import GameState
+    from engine.pieces import Templar, Bone, Marksman, Valkyrie
+
+    gs = GameState()
+    # Allied Templar at (4, 4) is stunned
+    gs.board[4][4] = Templar("brancas")
+    gs.board[4][4].stun_timer = 1
+
+    # Enemy Bone adjacent at (4, 5) - threatening immediate execution
+    gs.board[4][5] = Bone("pretas")
+
+    # Enemy Marksman at (4, 1) - aligned sniper ray along row 4
+    gs.board[4][1] = Marksman("pretas")
+
+    # Allied Valkyrie at (3, 5)
+    gs.board[3][5] = Valkyrie("brancas")
+    gs.white_to_move = True
+
+    threat_targets, block_squares = get_imminent_threat_targets_and_blocks(gs, "brancas")
+    assert (4, 5) in threat_targets
+    assert (4, 1) in threat_targets
+    assert (4, 2) in block_squares or (4, 3) in block_squares
+
+    km = KillerMoveTable()
+    ht = HistoryTable()
+
+    m_attack_executioner = {"type": "attack", "start": (3, 5), "end": (4, 5)}
+    m_interpose_block = {"type": "move", "start": (3, 5), "end": (4, 3)}
+    m_quiet_random = {"type": "move", "start": (3, 5), "end": (2, 5)}
+
+    ordered = sort_moves_ares2(
+        moves=[m_quiet_random, m_interpose_block, m_attack_executioner],
+        ply=0,
+        killer_table=km,
+        history_table=ht,
+        state=gs,
+    )
+
+    # Move eliminating executioner must be first
+    assert ordered[0]["end"] == (4, 5)
+    # Move interposing block on sniper ray must be second
+    assert ordered[1]["end"] == (4, 3)

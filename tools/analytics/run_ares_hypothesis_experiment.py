@@ -24,11 +24,11 @@ from ai.sprt import SPRTConfig
 class AresBotWrapper:
     """Wrapper exposing standard .play(game_state) for Ares search engine."""
 
-    def __init__(self, name: str, depth: int = 2, time_limit: float = 0.6):
+    def __init__(self, name: str, depth: int = 2, time_limit: float = 0.5, **engine_kwargs):
         self.nome = name
         self.depth = depth
         self.time_limit = time_limit
-        self.engine = AresEngine()
+        self.engine = AresEngine(**engine_kwargs)
 
     def play(self, game_state):
         return self.engine.choose_best_move(game_state, max_depth=self.depth, time_limit=self.time_limit)
@@ -38,25 +38,27 @@ def main():
     parser = argparse.ArgumentParser(description="Run an automated hypothesis duel for Ares AI.")
     parser.add_argument("--pairs", type=int, default=4, help="Number of mirror pairs (default: 4 = 8 games)")
     parser.add_argument("--output-dir", type=str, default="docs/EXPERIMENTS", help="Output directory for reports")
-    parser.add_argument("--id", type=str, default="H-20261108-ARES-COUNTERMOVE-TT-DELTAPRUNING", help="Hypothesis ID")
+    parser.add_argument("--id", type=str, default="H-20261108-ARES-CHECK-RESPONSE-TACTICAL-ORDERING", help="Hypothesis ID")
     parser.add_argument(
         "--title",
         type=str,
-        default="Countermove Heuristic, Generational TT Replacement & Quiescence Delta Pruning",
+        default="Tactical Check-Response Move Ordering vs Baseline Move Ordering",
         help="Hypothesis title",
     )
     parser.add_argument(
         "--bottleneck",
         type=str,
-        default="Subtree search bloat on quiet refutations, collision evictions of deep TT entries across plies, and futile tactical captures in quiescence.",
+        default="Under imminent lethal threat, search wastes time exploring irrelevant quiet moves instead of directly eliminating the executioner or interposing sniper ray blockers.",
         help="Hypothesis bottleneck",
     )
     parser.add_argument(
         "--proposed-heuristic",
         type=str,
-        default="Countermove Heuristic (+19k priority), Generational TT Aging, Quiescence Delta Pruning (65 cp), Reverse Futility Pruning (depth 1-2), and Sniper Line-of-Sight Crosshairs.",
+        default="Dynamic get_imminent_threat_targets_and_blocks prioritizing executioner eliminations (+280,000) and sniper line interpositions (+80,000).",
         help="Proposed heuristic",
     )
+    parser.add_argument("--depth", type=int, default=2, help="Search depth for both bots (default: 2)")
+    parser.add_argument("--time-limit", type=float, default=0.50, help="Time limit per move for both bots (default: 0.50s)")
     args = parser.parse_args()
 
     hypothesis = Hypothesis(
@@ -64,8 +66,8 @@ def main():
         title=args.title,
         bottleneck=args.bottleneck,
         proposed_heuristic=args.proposed_heuristic,
-        baseline_version="ares-depth1-baseline",
-        candidate_version="ares-countermove-ttaging-d2",
+        baseline_version=f"ares-d{args.depth}-threat-ord-off",
+        candidate_version=f"ares-d{args.depth}-threat-ord-on",
         target_elo_gain=25.0,
     )
 
@@ -73,8 +75,18 @@ def main():
     print(f"📌 Título: {hypothesis.title}")
     print(f"🎯 Pares Pareados: {args.pairs} ({args.pairs * 2} partidas no total)")
 
-    challenger = AresBotWrapper("Ares_Challenger_D2", depth=2, time_limit=0.60)
-    baseline = AresBotWrapper("Ares_Baseline_D1", depth=1, time_limit=0.15)
+    challenger = AresBotWrapper(
+        "Ares_Challenger_ThreatOrd",
+        depth=args.depth,
+        time_limit=args.time_limit,
+        enable_threat_ordering=True,
+    )
+    baseline = AresBotWrapper(
+        "Ares_Baseline_NoThreatOrd",
+        depth=args.depth,
+        time_limit=args.time_limit,
+        enable_threat_ordering=False,
+    )
 
     tester = AresHypothesisTester(SPRTConfig(elo0=0.0, elo1=15.0))
 
