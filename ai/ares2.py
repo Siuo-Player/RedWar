@@ -5,9 +5,12 @@ Implements Stockfish-inspired search heuristics:
 - MVV-LVA (Most Valuable Victim - Least Valuable Attacker) move ordering
   with dedicated 2-hit stun lethal kill prioritization
 - 2-Slot Killer Move Ordering per ply
-- History Heuristic table for quiet move ordering
+- History Heuristic table with gravity aging formula
 - Dynamic Clock Allocation (Time Management)
 - Quiescence Search on tactical captures and stun attacks
+- Dynamic Widening Aspiration Windows
+- Adaptive Null-Move Pruning with RedWar stun-safety guards
+- Late Move Reductions (LMR) with killer & history protection
 - Full Iterative Deepening Negamax Search Engine with Alpha-Beta Pruning
 """
 from __future__ import annotations
@@ -97,7 +100,7 @@ class KillerMoveTable:
 
 
 class HistoryTable:
-    """Tracks quiet moves that generated beta cutoffs across previous searches."""
+    """Tracks quiet moves that generated beta cutoffs with Stockfish gravity aging."""
 
     def __init__(self):
         self._history: dict[tuple[tuple[int, int], tuple[int, int]], int] = {}
@@ -105,10 +108,22 @@ class HistoryTable:
     def record_cutoff(self, from_sq: tuple[int, int], to_sq: tuple[int, int], depth: int) -> None:
         key = (from_sq, to_sq)
         bonus = depth * depth
-        self._history[key] = min(8_000, self._history.get(key, 0) + bonus)
+        curr = self._history.get(key, 0)
+        # Stockfish gravity formula: avoids saturation ceiling
+        delta = bonus - (curr * abs(bonus) // 16384)
+        self._history[key] = max(-8_000, min(8_000, curr + delta))
 
     def get_score(self, from_sq: tuple[int, int], to_sq: tuple[int, int]) -> int:
         return self._history.get((from_sq, to_sq), 0)
+
+    def decay(self, factor: float = 0.90) -> None:
+        """Decay historical scores between moves to adapt to positional shifts."""
+        for k in list(self._history.keys()):
+            val = int(self._history[k] * factor)
+            if val == 0:
+                del self._history[k]
+            else:
+                self._history[k] = val
 
     def clear(self) -> None:
         self._history.clear()
@@ -176,10 +191,10 @@ def mvv_lva_score(state: Any, move: dict[str, Any]) -> int:
     target_stun = getattr(target, "stun_timer", 0)
     # 2-hit stun lethality: if target is already stunned, an attack or lethal spell KILLS IT!
     if target_stun > 0:
-        return 300_000 + (victim_cost * 100) - attacker_cost
+        return 350_000 + (victim_cost * 100) - attacker_cost
     else:
         # Applying first stun to target
-        return 120_000 + (victim_cost * 20) - attacker_cost
+        return 130_000 + (victim_cost * 25) - attacker_cost
 
 
 def sort_moves_ares2(
@@ -214,7 +229,7 @@ def sort_moves_ares2(
         if m_type == "stun":
             return 50_000
         if m_type == "spell":
-            return 40_000
+            return 45_000
 
         # Quiet moves
         if key == killer1:
@@ -335,7 +350,7 @@ class AresEngine:
         max_nodes: int = 100_000,
         use_opening_book: bool = True,
     ) -> dict[str, Any]:
-        """Perform iterative deepening negamax search with alpha-beta pruning."""
+        """Perform iterative deepening negamax search with dynamic aspiration windows."""
         start_time = time.time()
         self.nodes_visited = 0
         self.cutoffs = 0
@@ -346,7 +361,7 @@ class AresEngine:
 
         # Opening book probe (active in multi-piece opening formations)
         total_pieces = sum(1 for row in getattr(state, "board", []) for p in row if p is not None)
-        if total_pieces >= 6 and len(getattr(state, "move_log", [])) <= 8:
+        if use_opening_book and total_pieces >= 6 and len(getattr(state, "move_log", [])) <= 8:
             book_action = get_opening_move(state, team)
             if book_action is not None:
                 return {
@@ -360,46 +375,53 @@ class AresEngine:
                     "is_book": True,
                 }
 
-        # Iterative Deepening with Aspiration Windows & PV extraction
+        # Iterative Deepening with Dynamic Geometric Aspiration Windows & PV extraction
         for depth in range(1, max_depth + 1):
             if time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes:
                 break
 
             pv_key = move_to_string_key(best_overall_move) if best_overall_move else None
 
-            # Aspiration Window for depth >= 2
+            # Dynamic Aspiration Window for depth >= 2
             if depth >= 2 and best_overall_score > -40_000:
-                delta = 60.0
+                delta = 75.0  # Scaled to RedWar piece evaluations (~0.4 piece value)
                 alpha = best_overall_score - delta
                 beta = best_overall_score + delta
+                failed_attempts = 0
 
-                score, move = self._negamax(
-                    state=state,
-                    depth=depth,
-                    ply=0,
-                    alpha=alpha,
-                    beta=beta,
-                    team=team,
-                    start_time=start_time,
-                    time_limit=time_limit,
-                    max_nodes=max_nodes,
-                    pv_best_move=pv_key,
-                )
-
-                # Re-search on fail-low or fail-high
-                if score <= alpha or score >= beta:
+                while True:
                     score, move = self._negamax(
                         state=state,
                         depth=depth,
                         ply=0,
-                        alpha=-float("inf"),
-                        beta=float("inf"),
+                        alpha=alpha,
+                        beta=beta,
                         team=team,
                         start_time=start_time,
                         time_limit=time_limit,
                         max_nodes=max_nodes,
                         pv_best_move=pv_key,
                     )
+
+                    if time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes:
+                        break
+
+                    if score <= alpha:
+                        failed_attempts += 1
+                        if failed_attempts >= 2:
+                            alpha = -float("inf")
+                        else:
+                            delta *= 1.75
+                            alpha = max(-float("inf"), score - delta)
+                    elif score >= beta:
+                        failed_attempts += 1
+                        if failed_attempts >= 2:
+                            beta = float("inf")
+                        else:
+                            delta *= 1.75
+                            beta = min(float("inf"), score + delta)
+                    else:
+                        break
             else:
                 score, move = self._negamax(
                     state=state,
@@ -473,7 +495,7 @@ class AresEngine:
 
         enemy_team = "pretas" if team == "brancas" else "brancas"
 
-        # Null-Move Pruning (NMP) with RedWar tactical danger safeguards
+        # Adaptive Null-Move Pruning (NMP) with RedWar tactical danger safeguards
         if do_null and depth >= 3 and ply > 0:
             has_stunned_ally = any(
                 p and p.team == team and getattr(p, "stun_timer", 0) > 0
@@ -483,7 +505,8 @@ class AresEngine:
                 1 for row in getattr(state, "board", []) for p in row if p and p.team == team
             )
             if not has_stunned_ally and total_active_allies >= 2:
-                R = 2
+                # Stockfish-inspired adaptive R: R=3 for deep searches (depth >= 6), R=2 for depth 3..5
+                R = 3 if depth >= 6 else 2
                 clone = state.fast_clone()
                 clone.white_to_move = not clone.white_to_move
                 null_score, _ = self._negamax(
@@ -526,6 +549,7 @@ class AresEngine:
         initial_alpha = alpha
         enemy_team = "pretas" if team == "brancas" else "brancas"
 
+        killer1, killer2 = self.killer_table.get_killers(ply)
         moves_searched = 0
         for move in ordered_actions:
             if time.time() - start_time >= time_limit or self.nodes_visited >= max_nodes:
@@ -542,9 +566,16 @@ class AresEngine:
                 )
             )
 
-            # Late Move Reductions (LMR)
-            do_lmr = (depth >= 3 and moves_searched >= 3 and not is_tactical)
-            reduction = 1 if do_lmr else 0
+            # Check killer move and history safety guards
+            key = move_to_string_key(move)
+            is_killer = (key == killer1 or key == killer2)
+            start = move.get("start")
+            end = move.get("end")
+            hist_score = self.history_table.get_score(tuple(start), tuple(end)) if (start and end and len(start) == 2 and len(end) == 2) else 0
+
+            # Late Move Reductions (LMR) with killer & history protection
+            do_lmr = (depth >= 3 and moves_searched >= 3 and not is_tactical and not is_killer and hist_score < 3000)
+            reduction = 2 if (do_lmr and depth >= 5 and moves_searched >= 8) else (1 if do_lmr else 0)
 
             score, _ = self._negamax(
                 state=clone,
