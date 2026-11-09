@@ -50,6 +50,14 @@ class TokenBucketRateLimiter:
         else:
             self._buckets.pop(client_id, None)
 
+    def prune_stale_buckets(self, max_idle_seconds: float = 300.0, current_time: Optional[float] = None) -> int:
+        """Remove inactive IP buckets to prevent memory leaks from closed connections."""
+        now = time.monotonic() if current_time is None else current_time
+        stale = [cid for cid, (_, last_time) in self._buckets.items() if (now - last_time) > max_idle_seconds]
+        for cid in stale:
+            self._buckets.pop(cid, None)
+        return len(stale)
+
 
 class SecurityGuard:
     """Validates message dimensions and sanitizes internal exception messages."""

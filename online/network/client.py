@@ -68,9 +68,19 @@ class NetworkClient:
 
                 elif tipo == "room_joined":
                     self.cor_atribuida = dados["cor"]
+                    self.reconnect_token = dados.get("reconnect_token")
                     self.latest_room = dados.get("room")
                     print(f"\n[Rede] Sala '{dados.get('room_id')}' aderida como {self.cor_atribuida.upper()}!")
                     await self.ws.send(json.dumps({"tipo": "pronto"}))
+
+                elif tipo == "reconnect_success":
+                    self.cor_atribuida = dados.get("cor")
+                    self.reconnect_token = dados.get("reconnect_token")
+                    if "room" in dados:
+                        self.latest_room = dados["room"]
+                    if "estado_jogo" in dados:
+                        self.latest_state = dados["estado_jogo"]
+                    print(f"\n[Rede] Reconectado com sucesso à sala '{dados.get('room_id')}' como {self.cor_atribuida.upper()}!")
 
                 elif tipo == "start_game":
                     if "room" in dados:
@@ -122,6 +132,15 @@ class NetworkClient:
             return
         asyncio.run_coroutine_threadsafe(
             self.ws.send(json.dumps({"tipo": "resign"})),
+            self.loop,
+        )
+
+    def enviar_reconexao(self, room_id: str, token: str):
+        """Send reconnection request with cryptographic token."""
+        if not self.ligado or not self.ws or self.loop is None:
+            return
+        asyncio.run_coroutine_threadsafe(
+            self.ws.send(json.dumps({"tipo": "reconnect", "room_id": room_id, "token": token})),
             self.loop,
         )
 

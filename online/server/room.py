@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional
@@ -66,16 +67,22 @@ class GameRoom:
         self.spectators.discard(spectator_id)
 
     def add_player(self, player_id: str, role_preference: str = "auto") -> str:
-        """Assign player to white, black, or spectator."""
+        """Assign player to white, black, or spectator with cryptographic tokens and self-play prevention."""
+        # Anti-Impersonation & Anti-Self-Play: a single identity cannot play both sides in competitive rooms
+        if self.white_player == player_id:
+            return "brancas"
+        if self.black_player == player_id:
+            return "pretas"
+
         if self.white_player is None and role_preference in ("auto", "brancas", "white"):
             self.white_player = player_id
-            token = f"tok_{uuid.uuid4().hex[:12]}"
+            token = f"tok_{secrets.token_urlsafe(32)}"
             self.reconnect_tokens[token] = "brancas"
             self.player_tokens[player_id] = token
             return "brancas"
         if self.black_player is None and role_preference in ("auto", "pretas", "black"):
             self.black_player = player_id
-            token = f"tok_{uuid.uuid4().hex[:12]}"
+            token = f"tok_{secrets.token_urlsafe(32)}"
             self.reconnect_tokens[token] = "pretas"
             self.player_tokens[player_id] = token
             return "pretas"
@@ -87,17 +94,40 @@ class GameRoom:
         role = self.add_player(player_id, role_preference)
         return self.player_tokens.get(player_id, role)
 
-    def reconnect_player(self, new_player_id: str, token: str) -> tuple[bool, Optional[str]]:
-        """Re-bind player to their assigned side via reconnect token."""
-        if token not in self.reconnect_tokens:
+    def reconnect_player(
+        self,
+        new_player_id_or_token: str,
+        token: Optional[str] = None,
+    ) -> tuple[bool, Optional[str]]:
+        """Re-bind player via cryptographic token with automatic token rotation and seat recovery."""
+        if token is None:
+            # Invocation: reconnect_player(token)
+            actual_token = new_player_id_or_token
+            new_player_id = None
+        else:
+            # Invocation: reconnect_player(new_player_id, token)
+            actual_token = token
+            new_player_id = new_player_id_or_token
+
+        if not actual_token or actual_token not in self.reconnect_tokens:
             return False, None
 
-        role = self.reconnect_tokens[token]
+        role = self.reconnect_tokens[actual_token]
+        orig_player_id = self.white_player if role == "brancas" else self.black_player
+        effective_player_id = new_player_id if new_player_id else orig_player_id
+
         if role == "brancas":
-            self.white_player = new_player_id
+            self.white_player = effective_player_id
         elif role == "pretas":
-            self.black_player = new_player_id
-        self.player_tokens[new_player_id] = token
+            self.black_player = effective_player_id
+
+        # Token Rotation: invalidate used token, issue fresh cryptographic token (256-bit)
+        del self.reconnect_tokens[actual_token]
+        new_token = f"tok_{secrets.token_urlsafe(32)}"
+        self.reconnect_tokens[new_token] = role
+        if effective_player_id:
+            self.player_tokens[effective_player_id] = new_token
+
         return True, role
 
     def propose_rematch(self, player_id: str) -> bool:

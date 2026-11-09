@@ -65,9 +65,18 @@ async def _enviar_erro(websocket: Any, mensagem: str) -> None:
         pass
 
 
+def _extract_client_ip(websocket: Any) -> str:
+    """Extract client IP address excluding ephemeral port to enforce per-IP rate limiting."""
+    addr = getattr(websocket, "remote_address", None)
+    if isinstance(addr, (list, tuple)) and len(addr) >= 1:
+        return str(addr[0])
+    return str(addr or "127.0.0.1")
+
+
 def _get_time_control(tc_name: str | None) -> TimeControl:
     if not tc_name:
         return TimeControl.rapid_10_0()
+
     name = tc_name.lower()
     if "bullet" in name:
         return TimeControl.bullet_1_0()
@@ -121,7 +130,7 @@ async def gerir_conexao(websocket: Any):
         else:
             await _enviar_erro(websocket, "Sala cheia. Apenas espetador.")
 
-        client_key = str(getattr(websocket, "remote_address", None) or id(websocket))
+        client_key = _extract_client_ip(websocket)
         async for mensagem in websocket:
             if not rate_limiter.allow_request(client_key):
                 await _enviar_erro(websocket, "taxa de mensagens excedida")
@@ -226,20 +235,25 @@ async def gerir_conexao(websocket: Any):
                 room_id = str(dados.get("room_id", ""))
                 room = manager.get_room(room_id)
                 if room:
-                    success, role = room.reconnect_player(meta["player_id"], token)
+                    success, role = room.reconnect_player(token)
                     if success and role:
+                        recovered_id = room.white_player if role == "brancas" else room.black_player
                         meta["room_id"] = room_id
+                        meta["player_id"] = recovered_id
                         meta["cor"] = role
                         meta["is_legacy"] = False
                         if room_id not in _room_sockets:
                             _room_sockets[room_id] = set()
                         _room_sockets[room_id].add(websocket)
+                        new_token = room.player_tokens.get(recovered_id, token)
                         await websocket.send(json.dumps({
                             "tipo": "reconnect_success",
                             "room_id": room_id,
                             "cor": role,
-                            "reconnect_token": token,
+                            "player_id": recovered_id,
+                            "reconnect_token": new_token,
                             "room": room.state_payload(),
+                            "estado_jogo": room.session.state_payload(),
                         }))
                         continue
                 await _enviar_erro(websocket, "reconexao falhou: token ou sala invalida")
@@ -329,6 +343,8 @@ async def gerir_conexao(websocket: Any):
         if not jogadores:
             prontos.clear()
             sessao = None
+
+        rate_limiter.prune_stale_buckets(max_idle_seconds=300.0)
 
 
 async def main():
