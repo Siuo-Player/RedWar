@@ -176,20 +176,32 @@ O padrão **3-Sigma ($3\\sigma$, 99.73% de confiança, $p < 0.0027$)** é o pont
 
 ---
 
-### 7.4 Arquitetura de Governação Multi-Tier do Ares AI
+### 7.4 Arquitetura Canónica de Três Níveis de Amostragem do Ares AI
 
-Implementámos no módulo `ai/ares_hypothesis_testing.py` um sistema em dois níveis (*Multi-Tiered Significance Gate*):
+Para evitar conclusões precipitadas e proteger a integridade dos dados competitivos, o desenvolvimento do Ares AI rege-se por uma hierarquia estrita de três níveis amostrais:
 
-1. **Tier 1 — Triagem Rápida e SPRT Experimental ($1.96\\sigma$, 95% CI)**:
+1. **Tier 0 — Screening Rápido Exploratório (8 a 16 partidas / 4 a 8 pares espelhados)**:
+   - **Objetivo**: Triagem rápida e de baixo custo de hipóteses para descartar falhas graves de implementação, comportamentos anómalos ou regressões óbvias antes de comprometer tempo de máquina extensivo.
+   - **Estatuto Epistémico**: Os números obtidos nesta fase são formalmente designados como **"Tendências de Screening Exploratório"** ($\Delta \text{Elo}_{\text{screened}}$).
+   - **Margem de Erro**: Devido ao reduzido tamanho amostral ($N=8$ a $16$), a margem de erro a 95% é tipicamente de $\pm 80$ a $\pm 250\text{ Elo}$.
+   - **Regra de Rigor**: **É expressamente vedado declarar "Elo comprovado em produção" a partir de duelos de Tier 0**. O valor indica apenas viabilidade para avanço na pesquisa.
+
+2. **Tier 1 — Validação Intermédia e SPRT Experimental (20 a 99 partidas pareadas)**:
    - Utiliza SPRT de Wald com $\alpha = 0.05, \beta = 0.05$.
-   - Permite rejeição precoce (*early stopping*) de candidatos inferiores em 20 a 50 partidas pareadas.
-2. **Tier 2 — Portão de Campeão para Produção ($3.0\\sigma$, 99.73% CI)**:
-   - Para que um candidato substitua formalmente o motor campeão em produção, o limite inferior de $3\\sigma$ deve ser estritamente positivo:
-     $$\text{CI}_{3\\sigma}^{\text{lower}} = \Delta \text{Elo} - 3.0 \cdot SE > 0$$
-   - Isso garante uma barreira Six Sigma intransponível contra a involução.
+   - Permite rejeição precoce (*early stopping*) de candidatos inferiores ou aceitação preliminar de melhorias substanciais.
+
+3. **Tier 2 — Bateria Amostral Ampla / Portão de Campeão de Produção (100+ partidas pareadas com critério $3\sigma$)**:
+   - Para que um candidato substitua formalmente o motor campeão em produção e receba a designação oficial de **"Elo Comprovado em Produção"**, o limite inferior de $3\sigma$ deve ser estritamente positivo:
+     $$\text{CI}_{3\sigma}^{\text{lower}} = \Delta \text{Elo} - 3.0 \cdot SE > 0$$
+   - Esta barreira Six Sigma garante que a probabilidade de aceitar uma regressão como evolução seja inferior a $0.14\%$ ($p < 0.0027$).
 
 ---
 
+### 7.5 Norma Ética de Comunicação de Resultados Competitivos
+Nenhuma alteração, Pull Request ou nota de lançamento pode anunciar ganhos numéricos de Elo como definitivos sem explicitar o Tier de Amostragem e o respectivo Intervalo de Confiança. Resultados de screening (8 partidas) devem ser explicitamente rotulados com a anotação:
+`[Tier 0 — Screening Rápido Exploratório (ΔElo_screened = +X.X ± Y.Y, N=8 partidas). Elo comprovado reservado para baterias de alto volume amostral.]`
+
+---
 ## 8. Mapeamento Teórico dos Componentes do Ares 2.0 vs Motores de Elite
 
 | Componente Ares 2.0 | Inspiração Teórica (Stockfish/Leela) | Implementação no RedWar | Impacto Prático Comprovado |
