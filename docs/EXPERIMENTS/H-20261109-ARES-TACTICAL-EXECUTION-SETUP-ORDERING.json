@@ -1,0 +1,104 @@
+{
+  "hypothesis": {
+    "id": "H-20261109-ARES-TACTICAL-EXECUTION-SETUP-ORDERING",
+    "title": "Tactical 2-Hit Stun Execution-Setup Move Ordering",
+    "bottleneck": "Stun strikes on un-stunned enemies are ordered at flat 130k MVV-LVA, without distinguishing whether allied strikers are already in position to deliver the fatal 2nd hit.",
+    "proposed_heuristic": "is_tactical_execution_setup detects when allied strikers or snipers already cover the target square, elevating the stun strike to +250,000 priority.",
+    "baseline_version": "ares-d2-setup-ord-off",
+    "candidate_version": "ares-d2-setup-ord-on",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-09 00:20:59"
+  },
+  "total_games": 8,
+  "pairs_played": 4,
+  "challenger_wins": 3,
+  "baseline_wins": 4,
+  "draws": 1,
+  "score": 0.4375,
+  "delta_elo": -43.7,
+  "elo_margin_95": 226.7,
+  "ci_lower": -270.4,
+  "ci_upper": 183.0,
+  "llr": -0.059,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "REJECTED",
+  "verdict_reason": "Sem evidência de melhoria (Score: 43.8%, ΔElo: -43.7).",
+  "elo_margin_3sigma": 347.0,
+  "ci_lower_3sigma": -390.7,
+  "ci_upper_3sigma": 303.3,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 21
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 35
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 40
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 58
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.004,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 97
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": null,
+        "plies": 55
+      },
+      "challenger_pair_score": 0.5,
+      "current_llr": -0.06,
+      "current_elo": -58.5
+    },
+    {
+      "pair_index": 3,
+      "seed": 401,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 57
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 75
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.059,
+      "current_elo": -43.7
+    }
+  ]
+}

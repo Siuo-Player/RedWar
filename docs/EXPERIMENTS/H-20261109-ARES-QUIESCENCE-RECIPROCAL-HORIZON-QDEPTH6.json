@@ -1,0 +1,104 @@
+{
+  "hypothesis": {
+    "id": "H-20261109-ARES-QUIESCENCE-RECIPROCAL-HORIZON-QDEPTH6",
+    "title": "Quiescence Search Reciprocal Horizon (Q-Depth 6 & Calibrated Delta 35 cp)",
+    "bottleneck": "With max_qdepth=3, Quiescence Search cuts off at an odd ply immediately after an execution, failing to see reciprocal recaptures (Horizon Effect) and overvaluing kamikaze trades.",
+    "proposed_heuristic": "Extend max_qdepth from 3 to 6 in quiescence_search and calibrate BIG_DELTA from 65.0 to 35.0 cp, ensuring all capture-recapture exchanges are fully resolved before leaf evaluation.",
+    "baseline_version": "ares-d2-qdepth3-delta65",
+    "candidate_version": "ares-d2-qdepth6-delta35",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-09 00:24:46"
+  },
+  "total_games": 8,
+  "pairs_played": 4,
+  "challenger_wins": 4,
+  "baseline_wins": 4,
+  "draws": 0,
+  "score": 0.5,
+  "delta_elo": -0.0,
+  "elo_margin_95": 240.8,
+  "ci_lower": -240.8,
+  "ci_upper": 240.8,
+  "llr": -0.007,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "REJECTED",
+  "verdict_reason": "Sem evidência de melhoria (Score: 50.0%, ΔElo: -0.0).",
+  "elo_margin_3sigma": 368.5,
+  "ci_lower_3sigma": -368.5,
+  "ci_upper_3sigma": 368.5,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 33
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 29
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 58
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 58
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.004,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 69
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 53
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.006,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 3,
+      "seed": 401,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 63
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 36
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.007,
+      "current_elo": -0.0
+    }
+  ]
+}
