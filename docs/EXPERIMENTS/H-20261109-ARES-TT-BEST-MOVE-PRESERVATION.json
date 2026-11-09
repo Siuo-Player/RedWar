@@ -1,0 +1,104 @@
+{
+  "hypothesis": {
+    "id": "H-20261109-ARES-TT-BEST-MOVE-PRESERVATION",
+    "title": "Stockfish Transposition Table Best Move Retention on Fail-Lows",
+    "bottleneck": "When a node fails low (UPPERBOUND), best_move is None, erasing the valid best_move from shallower iterations and blinding future move ordering.",
+    "proposed_heuristic": "Preserve existing best_move if new search has best_move=None on same-hash TT updates, keeping PV/TT move ordering informed across iterations.",
+    "baseline_version": "ares-d2-enable_tt_move_retention-off",
+    "candidate_version": "ares-d2-enable_tt_move_retention-on",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-09 11:57:14"
+  },
+  "total_games": 8,
+  "pairs_played": 4,
+  "challenger_wins": 4,
+  "baseline_wins": 3,
+  "draws": 1,
+  "score": 0.5625,
+  "delta_elo": 43.7,
+  "elo_margin_95": 226.7,
+  "ci_lower": -183.0,
+  "ci_upper": 270.4,
+  "llr": 0.042,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "CONTINUE",
+  "verdict_reason": "Tendência positiva (+43.7 Elo), mas requer mais partidas para confirmação formal (CI95%: [-183.0, 270.4], 3σ: [-303.3, 390.7]).",
+  "elo_margin_3sigma": 347.0,
+  "ci_lower_3sigma": -303.3,
+  "ci_upper_3sigma": 390.7,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 27
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 81
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 58
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 58
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.004,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "white",
+        "plies": 91
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 47
+      },
+      "challenger_pair_score": 2.0,
+      "current_llr": 0.091,
+      "current_elo": 120.4
+    },
+    {
+      "pair_index": 3,
+      "seed": 401,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 113
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": null,
+        "plies": 32
+      },
+      "challenger_pair_score": 0.5,
+      "current_llr": 0.042,
+      "current_elo": 43.7
+    }
+  ]
+}

@@ -566,3 +566,35 @@ def test_continuation_history_recording_and_ordering():
     assert engine.continuation_history.get_score(prev_move, key1) > 0
     engine.reset()
     assert engine.continuation_history.get_score(prev_move, key1) == 0
+
+
+def test_transposition_table_best_move_retention_on_fail_low():
+    from ai.ares2 import TranspositionTable, TTFlag, AresEngine
+
+    # Test 1: With retention enabled, fail-low with None retains previous best_move
+    tt = TranspositionTable(size_power_of_two=10)
+    move1 = {"type": "move", "start": (1, 1), "end": (1, 2)}
+    tt.store(hash_key=9999, depth=2, score=50.0, flag=TTFlag.EXACT, best_move=move1, enable_tt_move_retention=True)
+
+    # Deeper search fails low (best_move is None)
+    tt.store(hash_key=9999, depth=3, score=40.0, flag=TTFlag.UPPERBOUND, best_move=None, enable_tt_move_retention=True)
+
+    entry = tt.probe(9999)
+    assert entry is not None
+    assert entry.depth == 3
+    assert entry.flag == TTFlag.UPPERBOUND
+    assert entry.best_move == move1
+
+    # Test 2: With retention disabled, fail-low with None replaces best_move with None
+    tt2 = TranspositionTable(size_power_of_two=10)
+    tt2.store(hash_key=8888, depth=2, score=50.0, flag=TTFlag.EXACT, best_move=move1, enable_tt_move_retention=False)
+    tt2.store(hash_key=8888, depth=3, score=40.0, flag=TTFlag.UPPERBOUND, best_move=None, enable_tt_move_retention=False)
+
+    entry2 = tt2.probe(8888)
+    assert entry2 is not None
+    assert entry2.depth == 3
+    assert entry2.best_move is None
+
+    # Test 3: Engine flag
+    engine = AresEngine(enable_tt_move_retention=True)
+    assert engine.enable_tt_move_retention is True

@@ -70,6 +70,7 @@ class TranspositionTable:
         flag: TTFlag,
         best_move: Optional[dict[str, Any]] = None,
         enable_relative_aging: bool = True,
+        enable_tt_move_retention: bool = True,
     ) -> None:
         idx = hash_key & self.mask
         existing = self._table[idx]
@@ -101,13 +102,17 @@ class TranspositionTable:
                 replace = (depth >= effective_depth - 1)
 
         if replace:
+            stored_best_move = best_move
+            if enable_tt_move_retention and stored_best_move is None and existing is not None and existing.hash_key == hash_key:
+                stored_best_move = existing.best_move
+
             self._table[idx] = TTEntry(
                 hash_key=hash_key,
                 depth=depth,
                 score=score,
                 flag=flag,
                 generation=self.generation,
-                best_move=best_move,
+                best_move=stored_best_move,
             )
             self.stores += 1
 
@@ -588,6 +593,7 @@ class AresEngine:
         enable_delta_pruning: bool = True,
         enable_relative_aging: bool = True,
         enable_conthist: bool = True,
+        enable_tt_move_retention: bool = True,
     ):
         self.tt = TranspositionTable(size_power_of_two=tt_size_power)
         self.killer_table = KillerMoveTable()
@@ -605,6 +611,7 @@ class AresEngine:
         self.enable_delta_pruning = enable_delta_pruning
         self.enable_relative_aging = enable_relative_aging
         self.enable_conthist = enable_conthist
+        self.enable_tt_move_retention = enable_tt_move_retention
 
     def reset(self) -> None:
         self.tt.clear()
@@ -998,7 +1005,7 @@ class AresEngine:
                 flag = TTFlag.LOWERBOUND
             else:
                 flag = TTFlag.EXACT
-            self.tt.store(z_hash, effective_depth, best_score, flag, best_move, enable_relative_aging=self.enable_relative_aging)
+            self.tt.store(z_hash, effective_depth, best_score, flag, best_move, enable_relative_aging=self.enable_relative_aging, enable_tt_move_retention=self.enable_tt_move_retention)
 
         return best_score, best_move
 
