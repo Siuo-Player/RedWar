@@ -495,3 +495,23 @@ def test_imminent_threat_targets_and_check_response_ordering():
     assert ordered[0]["end"] == (4, 5)
     # Move interposing block on sniper ray must be second
     assert ordered[1]["end"] == (4, 3)
+
+
+
+def test_transposition_table_relative_generation_depth_aging():
+    from ai.ares2 import TranspositionTable, TTFlag
+
+    tt = TranspositionTable(size_power_of_two=10)
+    tt.new_search()  # gen 1
+    # Store deep evaluation at depth 6 in generation 1
+    tt.store(hash_key=12345, depth=6, score=100.0, flag=TTFlag.EXACT, enable_relative_aging=True)
+
+    tt.new_search()  # gen 2 (age 1)
+    # Shallow search at depth 2 attempts to overwrite the position
+    tt.store(hash_key=12345, depth=2, score=50.0, flag=TTFlag.EXACT, enable_relative_aging=True)
+
+    # Relative aging: effective depth is 6 - 2*1 = 4. Since depth 2 < 4, depth 6 entry is PRESERVED!
+    entry = tt.probe(12345, enable_relative_aging=False)
+    assert entry is not None
+    assert entry.depth == 6
+    assert entry.score == 100.0
