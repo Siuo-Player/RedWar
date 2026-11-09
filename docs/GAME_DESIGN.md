@@ -2,7 +2,7 @@
 
 ## Visão
 
-RedWar pretende ser um **RPG de tabuleiro tático sem atributos tradicionais**.
+RedWar pretende ser um jogo de **tabuleiro tático abstrato e competitivo sem atributos numéricos tradicionais**.
 
 A profundidade vem da combinação de peças assimétricas, informação escondida no draft, posicionamento, controlo de terreno, stun, morte e passivas.
 

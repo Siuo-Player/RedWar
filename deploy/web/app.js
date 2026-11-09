@@ -2978,8 +2978,8 @@ function coordsToNotation(r, c) {
 
 function addMoveToHistory(text) {
   moveHistory.push(text);
-  const delta = (Math.random() * 40 - 15) * (currentTurn === "black" ? 1 : -1);
-  evalHistory.push(Math.round(evalHistory[evalHistory.length - 1] + delta));
+  const currentEval = computeBoardCentipawns(boardData);
+  evalHistory.push(currentEval);
 }
 
 // Turn Cycle and AI Bot Invocation
@@ -3898,8 +3898,16 @@ document.getElementById("btnStartGame").addEventListener("click", () => {
   boardGrid = mode === "grand_10x10" ? 10 : 8;
   initDefaultBoard();
   drawBoard();
-  whiteSeconds = 600;
-  blackSeconds = 600;
+  const tcSelect = document.getElementById("timeControlSelect");
+  const tcVal = tcSelect ? tcSelect.value : "rapid_10_0";
+  let initialSeconds = 600;
+  if (tcVal === "bullet_1_0") initialSeconds = 60;
+  else if (tcVal === "blitz_3_2") initialSeconds = 180;
+  else if (tcVal === "blitz_5_0") initialSeconds = 300;
+  else if (tcVal === "rapid_10_0") initialSeconds = 600;
+  else if (tcVal === "rapid_15_10") initialSeconds = 900;
+  whiteSeconds = initialSeconds;
+  blackSeconds = initialSeconds;
   updateClockDisplays();
   startClock();
 });
@@ -3907,6 +3915,34 @@ document.getElementById("btnStartGame").addEventListener("click", () => {
 // Leaderboard and Puzzles Data
 async function loadLeaderboard() {
   const tbody = document.getElementById("leaderboardBody");
+  tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>A carregar classificações...</td></tr>";
+  try {
+    const res = await fetch("/api/leaderboard");
+    if (res.ok) {
+      const data = await res.json();
+      const entries = data.leaderboard || [];
+      tbody.innerHTML = "";
+      if (entries.length === 0) {
+        tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#94a3b8;'>Nenhum registo no ranking ainda.</td></tr>";
+        return;
+      }
+      entries.forEach((entry, idx) => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td><strong>${entry.player_name || entry.player_id}</strong></td>
+          <td>${entry.rating}</td>
+          <td>${entry.wins || 0}/${entry.losses || 0}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+      return;
+    }
+  } catch (err) {
+    console.warn("Could not fetch remote leaderboard, displaying local fallback:", err);
+  }
+
+  // Fallback if offline or running static standalone
   tbody.innerHTML = "";
   const defaultEntries = [
     { rank: 1, username: "Ares Stockfish Master", rating: 2650, wins: 412, losses: 18 },

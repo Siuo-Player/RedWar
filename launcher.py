@@ -53,7 +53,7 @@ def run_arena(nodes: int = 100, games: int = 4) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="RedWar: Tactical Grid RPG & Stockfish-style AI Platform",
+        description="RedWar: Modern Turn-Based Tactical Strategy & Stockfish-Style AI Platform",
         prog="launcher.py",
     )
     parser.add_argument(
