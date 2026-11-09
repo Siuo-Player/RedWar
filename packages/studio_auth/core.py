@@ -102,6 +102,16 @@ class StudioAuthCore:
     ):
         if not project_slug:
             raise ValueError("project_slug cannot be empty")
+        import os
+        is_prod = (
+            os.environ.get("ENV", "").lower() in ("production", "prod")
+            or os.environ.get("PRODUCTION", "").lower() == "true"
+        )
+        if is_prod and secret_key == "studio-dev-signing-key-change-in-prod":
+            raise SecurityError(
+                "Default development signing key is forbidden in production environment. "
+                "Configure STUDIO_AUTH_SECRET_KEY in production."
+            )
         self.project_slug = project_slug
         self.sector_salt = f"{sector_salt}:{project_slug}"
         self.secret_key = secret_key

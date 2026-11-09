@@ -4171,19 +4171,8 @@ if (btnAuthGuest) {
 const btnAuthGoogle = document.getElementById("btnAuthGoogle");
 if (btnAuthGoogle) {
   btnAuthGoogle.addEventListener("click", () => {
-    // Zero Blast Radius: Derives pairwise isolated ID
-    const sampleGoogleName = "Mestre " + currentAuthSession.username.replace("Convidado_", "");
-    currentAuthSession = {
-      mode: "google_oidc",
-      playerId: "rw_" + Math.random().toString(36).substring(2, 10),
-      username: sampleGoogleName,
-      elo: currentAuthSession.elo >= 1200 ? currentAuthSession.elo : 1350,
-      isAnonymous: false,
-      connectedAt: new Date().toISOString()
-    };
-    updateUserAuthUI();
+    alert("A autenticação federada Google OIDC requer conexão a um servidor RedWar ativo com o módulo StudioAuth configurado.\n\nNo cliente estático local, o jogo mantém o seu progresso no perfil Convidado Local.");
     authModal.style.display = "none";
-    alert(`Autenticado com sucesso via Google OIDC!\n\nIdentificador Par-a-Par (PPID) gerado: ${currentAuthSession.playerId}\nSeus dados estão protegidos por criptografia e isolados de outros projetos.`);
   });
 }
 
@@ -4191,26 +4180,19 @@ const btnAuthDedicated = document.getElementById("btnAuthDedicated");
 if (btnAuthDedicated) {
   btnAuthDedicated.addEventListener("click", () => {
     const userInput = document.getElementById("authDedicatedUser");
-    const passInput = document.getElementById("authDedicatedPass");
-    const username = userInput && userInput.value.trim() ? userInput.value.trim() : "JogadorDedicado";
-    const password = passInput ? passInput.value : "";
-
-    if (!password) {
-      alert("Por favor, insira uma palavra-passe segura para a conta dedicada.");
-      return;
-    }
+    const username = userInput && userInput.value.trim() ? userInput.value.trim() : "JogadorLocal";
 
     currentAuthSession = {
-      mode: "studio_dedicated",
-      playerId: "rw_" + Math.random().toString(36).substring(2, 10),
+      mode: "guest",
+      playerId: "local_" + Math.random().toString(36).substring(2, 10),
       username: username,
-      elo: currentAuthSession.elo >= 1200 ? currentAuthSession.elo : 1300,
-      isAnonymous: false,
+      elo: currentAuthSession.elo >= 1200 ? currentAuthSession.elo : 1200,
+      isAnonymous: true,
       connectedAt: new Date().toISOString()
     };
     updateUserAuthUI();
     authModal.style.display = "none";
-    alert(`Conta Dedicada RedWar criada/autenticada!\n\nPalavra-passe protegida com PBKDF2-HMAC-SHA256 (600.000 iterações).\nEsta conta é 100% estanque e não tem ligação a nenhum outro serviço.`);
+    alert(`Perfil local atualizado como "${username}".\n\nProgresso salvo localmente no seu navegador.`);
   });
 }
 
