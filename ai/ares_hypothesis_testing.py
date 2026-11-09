@@ -62,6 +62,8 @@ class HypothesisTestResult:
     ci_lower_3sigma: float = 0.0
     ci_upper_3sigma: float = 0.0
     sigma_gate_passed: bool = False
+    tier: str = "TIER_0_SCREENING"
+    tier_display: str = "Tier 0 — Screening Rápido Exploratório"
     pair_outcomes: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
@@ -172,6 +174,17 @@ class AresHypothesisTester:
 
         sigma_gate_passed = bool(delta_elo > 0 and ci_lower_3sigma >= 0.0)
 
+        # Tier classification based on sample size rigor
+        if total_games < 20:
+            tier = "TIER_0_SCREENING"
+            tier_display = "Tier 0 — Screening Rápido Exploratório"
+        elif total_games < 100:
+            tier = "TIER_1_SPRT"
+            tier_display = "Tier 1 — Validação Intermédia e SPRT de Wald"
+        else:
+            tier = "TIER_2_CHAMPION_GATE"
+            tier_display = "Tier 2 — Bateria Amostral Ampla / Portão de Campeão de Produção"
+
         # Decision rule adapted for RedWar anti-involution governance
         sprt_status_str = tracker.status.value.upper()
         if tracker.status == SPRTStatus.H1_ACCEPTED or sigma_gate_passed:
@@ -183,7 +196,14 @@ class AresHypothesisTester:
             reason = f"Hipótese H0 aceite; o candidato não superou o campeão (ΔElo: {delta_elo:.1f} ± {elo_margin:.1f}, LLR: {tracker.llr:.2f} <= {tracker.lower_bound:.2f})."
         elif delta_elo > 0:
             verdict = "CONTINUE"
-            reason = f"Tendência positiva (+{delta_elo:.1f} Elo), mas requer mais partidas para confirmação formal (CI95%: [{ci_lower}, {ci_upper}], 3σ: [{ci_lower_3sigma}, {ci_upper_3sigma}])."
+            if tier == "TIER_0_SCREENING":
+                reason = (
+                    f"Tendência direcional de Screening Rápido Exploratório (ΔElo_screened: +{delta_elo:.1f} ± {elo_margin:.1f}). "
+                    f"Aviso Metodológico: Amostra reduzida (N={total_games} partidas / {len(pair_outcomes)} pares); "
+                    f"a afirmação de Elo comprovado em produção fica estritamente reservada para baterias de alto volume amostral (Tier 2)."
+                )
+            else:
+                reason = f"Tendência positiva (+{delta_elo:.1f} Elo), mas requer mais partidas para confirmação formal (CI95%: [{ci_lower}, {ci_upper}], 3σ: [{ci_lower_3sigma}, {ci_upper_3sigma}])."
         else:
             verdict = "REJECTED"
             reason = f"Sem evidência de melhoria (Score: {score*100:.1f}%, ΔElo: {delta_elo:.1f})."
@@ -209,6 +229,8 @@ class AresHypothesisTester:
             ci_lower_3sigma=ci_lower_3sigma,
             ci_upper_3sigma=ci_upper_3sigma,
             sigma_gate_passed=sigma_gate_passed,
+            tier=tier,
+            tier_display=tier_display,
             pair_outcomes=pair_outcomes,
         )
 
@@ -238,6 +260,7 @@ class AresHypothesisTester:
 
 | Métrica | Valor Obtido |
 |---|---|
+| **Classificação Metodológica da Amostra** | **{result.tier_display}** |
 | **Total de Partidas (Pares Espelhados)** | {result.total_games} partidas ({result.pairs_played} pares) |
 | **Placar (Candidato vs Baseline)** | **+{result.challenger_wins}** / **-{result.baseline_wins}** / ={result.draws} |
 | **Taxa de Pontuação (Score)** | **{result.score * 100:.1f}%** |
