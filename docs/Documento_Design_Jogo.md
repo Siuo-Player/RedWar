@@ -5,7 +5,7 @@
 
 ## 1. Identidade
 
-RedWar é um **RPG de tabuleiro tático** em grelha, com forte inspiração no xadrez e em motores de estratégia como Stockfish, mas com identidade própria baseada em heróis.
+RedWar é um jogo de **estratégia e tabuleiro tático** em grelha, com forte inspiração no xadrez e em motores de estratégia como Stockfish, mas com identidade própria baseada em heróis.
 
 O jogo não usa HP nem atributos tradicionais. Cada herói é definido principalmente por:
 
