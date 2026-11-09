@@ -69,6 +69,7 @@ class TranspositionTable:
         score: float,
         flag: TTFlag,
         best_move: Optional[dict[str, Any]] = None,
+        enable_relative_aging: bool = True,
     ) -> None:
         idx = hash_key & self.mask
         existing = self._table[idx]
@@ -76,15 +77,28 @@ class TranspositionTable:
 
         if existing is None:
             replace = True
-        elif existing.generation != self.generation:
-            # Stale generation entry: always replace with current search data
-            replace = True
-        elif depth >= existing.depth:
-            # Same generation: depth-preferred replacement
-            replace = True
-        elif existing.hash_key != hash_key and depth >= existing.depth - 1:
-            # Collision from another position: replace within tolerance
-            replace = True
+        elif not enable_relative_aging:
+            # Baseline replacement policy
+            if existing.generation != self.generation:
+                replace = True
+            elif depth >= existing.depth:
+                replace = True
+            elif existing.hash_key != hash_key and depth >= existing.depth - 1:
+                replace = True
+        else:
+            # Stockfish Relative Generation-Depth Aging:
+            # Effective depth scales down by 2 plies per generation of age,
+            # preventing shallow searches from overwriting deep entries from previous turn.
+            age = max(0, self.generation - existing.generation)
+            effective_depth = existing.depth - (2 * age)
+            if existing.hash_key == hash_key:
+                replace = (depth >= effective_depth)
+                # If not replacing, preserve/update best_move if existing didn't have one
+                if not replace and existing.best_move is None and best_move is not None:
+                    existing.best_move = best_move
+            else:
+                # Collision: replace if new search is deeper than effective depth - 1
+                replace = (depth >= effective_depth - 1)
 
         if replace:
             self._table[idx] = TTEntry(
@@ -97,11 +111,13 @@ class TranspositionTable:
             )
             self.stores += 1
 
-    def probe(self, hash_key: int) -> Optional[TTEntry]:
+    def probe(self, hash_key: int, enable_relative_aging: bool = True) -> Optional[TTEntry]:
         idx = hash_key & self.mask
         entry = self._table[idx]
         if entry is not None and entry.hash_key == hash_key:
             self.hits += 1
+            if enable_relative_aging:
+                entry.generation = self.generation
             return entry
         return None
 
@@ -533,6 +549,7 @@ class AresEngine:
         enable_countermoves: bool = True,
         enable_capthist: bool = True,
         enable_delta_pruning: bool = True,
+        enable_relative_aging: bool = True,
     ):
         self.tt = TranspositionTable(size_power_of_two=tt_size_power)
         self.killer_table = KillerMoveTable()
@@ -547,6 +564,7 @@ class AresEngine:
         self.enable_countermoves = enable_countermoves
         self.enable_capthist = enable_capthist
         self.enable_delta_pruning = enable_delta_pruning
+        self.enable_relative_aging = enable_relative_aging
 
     def reset(self) -> None:
         self.tt.clear()
@@ -725,7 +743,7 @@ class AresEngine:
         # Transposition table probe
         z_hash = getattr(state, "current_hash", 0)
         tt_best_move_str: Optional[str] = None
-        tt_entry = self.tt.probe(z_hash) if z_hash else None
+        tt_entry = self.tt.probe(z_hash, enable_relative_aging=self.enable_relative_aging) if z_hash else None
         if tt_entry is not None and tt_entry.depth >= effective_depth:
             if tt_entry.best_move:
                 tt_best_move_str = move_to_string_key(tt_entry.best_move)
@@ -929,7 +947,7 @@ class AresEngine:
                 flag = TTFlag.LOWERBOUND
             else:
                 flag = TTFlag.EXACT
-            self.tt.store(z_hash, effective_depth, best_score, flag, best_move)
+            self.tt.store(z_hash, effective_depth, best_score, flag, best_move, enable_relative_aging=self.enable_relative_aging)
 
         return best_score, best_move
 

@@ -59,15 +59,19 @@ def main():
     )
     parser.add_argument("--depth", type=int, default=2, help="Search depth for both bots (default: 2)")
     parser.add_argument("--time-limit", type=float, default=0.50, help="Time limit per move for both bots (default: 0.50s)")
+    parser.add_argument("--toggle-flag", type=str, default="enable_relative_aging", help="Engine flag to toggle between candidate (True) and baseline (False)")
     args = parser.parse_args()
+
+    baseline_ver = f"ares-d{args.depth}-{args.toggle_flag}-off"
+    candidate_ver = f"ares-d{args.depth}-{args.toggle_flag}-on"
 
     hypothesis = Hypothesis(
         id=args.id,
         title=args.title,
         bottleneck=args.bottleneck,
         proposed_heuristic=args.proposed_heuristic,
-        baseline_version=f"ares-d{args.depth}-threat-ord-off",
-        candidate_version=f"ares-d{args.depth}-threat-ord-on",
+        baseline_version=baseline_ver,
+        candidate_version=candidate_ver,
         target_elo_gain=25.0,
     )
 
@@ -75,17 +79,20 @@ def main():
     print(f"📌 Título: {hypothesis.title}")
     print(f"🎯 Pares Pareados: {args.pairs} ({args.pairs * 2} partidas no total)")
 
+    challenger_kwargs = {args.toggle_flag: True}
+    baseline_kwargs = {args.toggle_flag: False}
+
     challenger = AresBotWrapper(
-        "Ares_Challenger_ThreatOrd",
+        f"Ares_Challenger_{args.toggle_flag}_ON",
         depth=args.depth,
         time_limit=args.time_limit,
-        enable_threat_ordering=True,
+        **challenger_kwargs,
     )
     baseline = AresBotWrapper(
-        "Ares_Baseline_NoThreatOrd",
+        f"Ares_Baseline_{args.toggle_flag}_OFF",
         depth=args.depth,
         time_limit=args.time_limit,
-        enable_threat_ordering=False,
+        **baseline_kwargs,
     )
 
     tester = AresHypothesisTester(SPRTConfig(elo0=0.0, elo1=15.0))
