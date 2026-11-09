@@ -152,6 +152,17 @@ function classifyLastMove(evalBefore, evalAfter, moveText, pieceTeam) {
     badgeClass,
     label
   });
+
+  // Sound feedback according to classification
+  if (classification === "brilliant") {
+    playChime("brilliant");
+  } else if (classification === "best" || classification === "great") {
+    playChime("best");
+  } else if (classification === "blunder") {
+    playChime("blunder");
+  } else if (classification === "mistake" || classification === "inaccuracy") {
+    playChime("mistake");
+  }
 }
 
 // --- Assets Pre-loading ---
@@ -2714,19 +2725,23 @@ const HERO_ANALYTICS_DATA = {
   }
 };
 
-// Web Audio API Synthesized Chimes
+// Web Audio API Synthesized Chimes with Game Review Classification Chords
 let audioCtx = null;
 function playChime(type) {
+  if (typeof soundEnabled !== "undefined" && !soundEnabled) return;
   try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (typeof window === "undefined") return;
+    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtor) return;
+    if (!audioCtx) audioCtx = new AudioCtor();
     if (audioCtx.state === "suspended") audioCtx.resume();
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
     const now = audioCtx.currentTime;
 
     if (type === "move") {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
       osc.frequency.setValueAtTime(320, now);
       osc.frequency.exponentialRampToValueAtTime(480, now + 0.08);
       gain.gain.setValueAtTime(0.12, now);
@@ -2734,6 +2749,10 @@ function playChime(type) {
       osc.start(now);
       osc.stop(now + 0.08);
     } else if (type === "stun") {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
       osc.type = "sawtooth";
       osc.frequency.setValueAtTime(550, now);
       osc.frequency.exponentialRampToValueAtTime(220, now + 0.18);
@@ -2741,15 +2760,62 @@ function playChime(type) {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
       osc.start(now);
       osc.stop(now + 0.18);
-    } else if (type === "victory") {
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(440, now);
-      osc.frequency.setValueAtTime(554.37, now + 0.12);
-      osc.frequency.setValueAtTime(659.25, now + 0.24);
-      gain.gain.setValueAtTime(0.15, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    } else if (type === "victory" || type === "brilliant") {
+      // Triumphant ascending harmonic chord (C5 -> E5 -> G5 -> C6)
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = "triangle";
+        const startTime = now + idx * 0.07;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.13, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+        osc.start(startTime);
+        osc.stop(startTime + 0.35);
+      });
+    } else if (type === "best" || type === "great") {
+      // Affirmative crisp two-tone chord (D5 -> A5)
+      [587.33, 880.00].forEach((freq, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = "sine";
+        const startTime = now + idx * 0.06;
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0.10, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.25);
+        osc.start(startTime);
+        osc.stop(startTime + 0.25);
+      });
+    } else if (type === "blunder") {
+      // Dissonant descending alert buzz for blunders / capivaradas (180 Hz -> 85 Hz sawtooth)
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.linearRampToValueAtTime(85, now + 0.28);
+      gain.gain.setValueAtTime(0.20, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
       osc.start(now);
-      osc.stop(now + 0.45);
+      osc.stop(now + 0.28);
+    } else if (type === "mistake" || type === "inaccuracy") {
+      // Subtle warning descending double-tone
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(293.66, now);
+      osc.frequency.exponentialRampToValueAtTime(220, now + 0.16);
+      gain.gain.setValueAtTime(0.09, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+      osc.start(now);
+      osc.stop(now + 0.16);
     }
   } catch (e) {}
 }
@@ -2864,11 +2930,15 @@ function applyAction(fromR, fromC, action) {
   const piece = boardData[fromR][fromC];
   if (!piece) return;
 
+  const evalBefore = computeBoardCentipawns(boardData);
+  let moveNotation = "";
+
   if (action.type === "move") {
     boardData[action.r][action.c] = piece;
     boardData[fromR][fromC] = null;
     playChime("move");
-    addMoveToHistory(`${piece.name} ${coordsToNotation(fromR, fromC)} - ${coordsToNotation(action.r, action.c)}`);
+    moveNotation = `${piece.name} ${coordsToNotation(fromR, fromC)} - ${coordsToNotation(action.r, action.c)}`;
+    addMoveToHistory(moveNotation);
   } else if (action.type === "attack") {
     const target = action.target;
     if (target.stun > 0) {
@@ -2876,20 +2946,28 @@ function applyAction(fromR, fromC, action) {
       boardData[action.r][action.c] = piece;
       boardData[fromR][fromC] = null;
       playChime("victory");
-      addMoveToHistory(`${piece.name} captura ${target.name} [Lethal Kill]`);
+      moveNotation = `${piece.name} captura ${target.name} [Lethal Kill]`;
+      addMoveToHistory(moveNotation);
     } else if (action.stunOnly) {
       // Stun-only ability (e.g. FrostMage)
       target.stun = 2;
       playChime("stun");
-      addMoveToHistory(`${piece.name} congela ${target.name} (Stun 2 turnos)`);
+      moveNotation = `${piece.name} congela ${target.name} (Stun 2 turnos)`;
+      addMoveToHistory(moveNotation);
     } else {
       // Standard attack capture
       boardData[action.r][action.c] = piece;
       boardData[fromR][fromC] = null;
       playChime("stun");
-      addMoveToHistory(`${piece.name} x ${target.name} [${coordsToNotation(action.r, action.c)}]`);
+      moveNotation = `${piece.name} x ${target.name} [${coordsToNotation(action.r, action.c)}]`;
+      addMoveToHistory(moveNotation);
     }
   }
+
+  const evalAfter = computeBoardCentipawns(boardData);
+  classifyLastMove(evalBefore, evalAfter, moveNotation, piece.team);
+  updateLiveEvalBar(evalAfter);
+  renderGameReviewPanel();
 }
 
 function coordsToNotation(r, c) {
@@ -3217,6 +3295,43 @@ canvas.addEventListener("click", (e) => {
         feedback.style.color = "#f87171";
         feedback.innerHTML = "<strong>Lance Incorreto.</strong> Tenta novamente observando as capacidades únicas do herói.";
         playChime("stun");
+      }
+    }
+
+    // If in Tactical Puzzle Mode, verify with puzzle solution
+    if (isPuzzleMode && currentPuzzle) {
+      const sol = currentPuzzle.solution;
+      const banner = document.getElementById("puzzleStatusBanner");
+      const nextBtn = document.getElementById("btnNextPuzzle");
+
+      const isCorrect = (fromR === sol.fromR && fromC === sol.fromC && r === sol.toR && c === sol.toC);
+      if (isCorrect) {
+        puzzleStreak++;
+        puzzleUserElo += 15;
+        savePuzzleStats();
+        updatePuzzleStatsUI();
+        if (banner) {
+          banner.style.display = "block";
+          banner.style.background = "rgba(34, 197, 94, 0.2)";
+          banner.style.border = "1px solid #22c55e";
+          banner.style.color = "#22c55e";
+          banner.innerHTML = `<strong>✨ Resolvido com Sucesso! (+15 ELO)</strong> ${currentPuzzle.explanation}`;
+        }
+        if (nextBtn) nextBtn.style.display = "inline-block";
+        playChime("brilliant");
+      } else {
+        puzzleStreak = 0;
+        puzzleUserElo = Math.max(800, puzzleUserElo - 10);
+        savePuzzleStats();
+        updatePuzzleStatsUI();
+        if (banner) {
+          banner.style.display = "block";
+          banner.style.background = "rgba(239, 68, 68, 0.2)";
+          banner.style.border = "1px solid #ef4444";
+          banner.style.color = "#f87171";
+          banner.innerHTML = "<strong>Lance Incorreto (-10 ELO).</strong> Tenta novamente ou consulta a Dica.";
+        }
+        playChime("blunder");
       }
     }
 
@@ -3904,6 +4019,36 @@ let isPuzzleMode = false;
 let currentPuzzle = null;
 let puzzleUserElo = 1200;
 let puzzleStreak = 0;
+const PUZZLE_STORAGE_KEY = "redwar_puzzle_stats_v1";
+
+function loadPuzzleStats() {
+  try {
+    if (typeof localStorage !== "undefined" && localStorage.getItem) {
+      const raw = localStorage.getItem(PUZZLE_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.elo === "number") puzzleUserElo = parsed.elo;
+        if (typeof parsed.streak === "number") puzzleStreak = parsed.streak;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load puzzle stats:", e);
+  }
+}
+
+function savePuzzleStats() {
+  try {
+    if (typeof localStorage !== "undefined" && localStorage.setItem) {
+      localStorage.setItem(PUZZLE_STORAGE_KEY, JSON.stringify({
+        elo: puzzleUserElo,
+        streak: puzzleStreak,
+        lastUpdated: new Date().toISOString()
+      }));
+    }
+  } catch (e) {
+    console.warn("Failed to save puzzle stats:", e);
+  }
+}
 
 function updatePuzzleStatsUI() {
   const eloEl = document.getElementById("puzzleElo");
@@ -3913,6 +4058,7 @@ function updatePuzzleStatsUI() {
 }
 
 function loadPuzzles() {
+  loadPuzzleStats();
   const select = document.getElementById("puzzleSelect");
   if (!select) return;
   select.innerHTML = "";
@@ -3927,6 +4073,7 @@ function loadPuzzles() {
 }
 
 function setupPuzzle(puzzleId) {
+  loadPuzzleStats();
   const pz = PUZZLES.find(p => p.puzzle_id === puzzleId) || PUZZLES[0];
   currentPuzzle = pz;
   isPuzzleMode = true;
@@ -3951,6 +4098,7 @@ function setupPuzzle(puzzleId) {
   drawBoard();
   const cp = computeBoardCentipawns(boardData);
   updateLiveEvalBar(cp);
+  updatePuzzleStatsUI();
 }
 
 // --- Security & Identity Authentication Management ---
@@ -4071,6 +4219,7 @@ initDefaultBoard();
 drawBoard();
 updateClockDisplays();
 updateUserAuthUI();
+loadPuzzleStats();
 
 // --- RedWar Notation (RWN) Export & Import Engine ---
 function exportRwn() {
@@ -4107,6 +4256,43 @@ function exportRwn() {
   return rwn;
 }
 
+function renderGameReviewPanel() {
+  if (typeof document === "undefined" || !document.getElementById || !document.createElement) return;
+  const list = document.getElementById("reviewMovesList");
+  if (list && list.appendChild) {
+    list.innerHTML = "";
+    classifiedMoves.forEach((m, idx) => {
+      const item = document.createElement("div");
+      item.style.display = "flex";
+      item.style.justifyContent = "space-between";
+      item.style.padding = "4px 8px";
+      item.style.cursor = "pointer";
+      item.style.borderRadius = "4px";
+      item.title = "Clique para ouvir o som da classificação tática";
+      item.innerHTML = `<span>${idx + 1}. ${m.moveText}</span> <span class="${m.badgeClass}">${m.label}</span>`;
+      if (item.addEventListener) {
+        item.addEventListener("click", () => {
+          if (m.classification === "brilliant") playChime("brilliant");
+          else if (m.classification === "best" || m.classification === "great") playChime("best");
+          else if (m.classification === "blunder") playChime("blunder");
+          else if (m.classification === "mistake" || m.classification === "inaccuracy") playChime("mistake");
+        });
+      }
+      list.appendChild(item);
+    });
+  }
+  const counts = { brilliant: 0, great: 0, best: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
+  classifiedMoves.forEach(m => {
+    if (counts[m.classification] !== undefined) counts[m.classification]++;
+  });
+  const elB = document.getElementById("countBrilliant"); if (elB) elB.textContent = counts.brilliant;
+  const elG = document.getElementById("countGreat"); if (elG) elG.textContent = counts.great;
+  const elBe = document.getElementById("countBest"); if (elBe) elBe.textContent = counts.best;
+  const elI = document.getElementById("countInacc"); if (elI) elI.textContent = counts.inaccuracy;
+  const elM = document.getElementById("countMistake"); if (elM) elM.textContent = counts.mistake;
+  const elBl = document.getElementById("countBlunder"); if (elBl) elBl.textContent = counts.blunder;
+}
+
 function importRwn(rwnText) {
   if (!rwnText || typeof rwnText !== "string") return false;
   const lines = rwnText.split("\n");
@@ -4122,33 +4308,6 @@ function importRwn(rwnText) {
       if (parts[1]) importedList.push({ moveText: parts[1], team: "pretas", classification: "best", badgeClass: "badge-best", label: "Melhor" });
     }
   }
-
-
-function renderGameReviewPanel() {
-  if (typeof document === "undefined" || !document.getElementById || !document.createElement) return;
-  const list = document.getElementById("reviewMovesList");
-  if (list && list.appendChild) {
-    list.innerHTML = "";
-    classifiedMoves.forEach((m, idx) => {
-      const item = document.createElement("div");
-      item.style.display = "flex";
-      item.style.justifyContent = "space-between";
-      item.style.padding = "2px 4px";
-      item.innerHTML = `<span>${idx + 1}. ${m.moveText}</span> <span class="${m.badgeClass}">${m.label}</span>`;
-      list.appendChild(item);
-    });
-  }
-  const counts = { brilliant: 0, great: 0, best: 0, inaccuracy: 0, mistake: 0, blunder: 0 };
-  classifiedMoves.forEach(m => {
-    if (counts[m.classification] !== undefined) counts[m.classification]++;
-  });
-  const elB = document.getElementById("countBrilliant"); if (elB) elB.textContent = counts.brilliant;
-  const elG = document.getElementById("countGreat"); if (elG) elG.textContent = counts.great;
-  const elBe = document.getElementById("countBest"); if (elBe) elBe.textContent = counts.best;
-  const elI = document.getElementById("countInacc"); if (elI) elI.textContent = counts.inaccuracy;
-  const elM = document.getElementById("countMistake"); if (elM) elM.textContent = counts.mistake;
-  const elBl = document.getElementById("countBlunder"); if (elBl) elBl.textContent = counts.blunder;
-}
 
   if (importedList.length > 0) {
     classifiedMoves = importedList;
