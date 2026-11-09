@@ -200,6 +200,37 @@ class CaptureHistoryTable:
     def clear(self) -> None:
         self._table.clear()
 
+class ContinuationHistoryTable:
+    """Tracks quiet refutation moves conditioned on the opponent's previous move (Stockfish CMH)."""
+
+    def __init__(self):
+        self._table: dict[tuple[str, str], int] = {}
+
+    def record_cutoff(self, prev_move_key: str, curr_move_key: str, depth: int) -> None:
+        if not prev_move_key or not curr_move_key:
+            return
+        key = (prev_move_key, curr_move_key)
+        bonus = depth * depth
+        curr = self._table.get(key, 0)
+        delta = bonus - (curr * abs(bonus) // 16384)
+        self._table[key] = max(-8_000, min(8_000, curr + delta))
+
+    def get_score(self, prev_move_key: Optional[str], curr_move_key: str) -> int:
+        if not prev_move_key or not curr_move_key:
+            return 0
+        return self._table.get((prev_move_key, curr_move_key), 0)
+
+    def decay(self, factor: float = 0.90) -> None:
+        for k in list(self._table.keys()):
+            val = int(self._table[k] * factor)
+            if val == 0:
+                del self._table[k]
+            else:
+                self._table[k] = val
+
+    def clear(self) -> None:
+        self._table.clear()
+
 
 class HistoryTable:
     """Tracks quiet moves that generated beta cutoffs with Stockfish gravity aging."""
@@ -378,6 +409,7 @@ def sort_moves_ares2(
     history_table: HistoryTable,
     counter_table: Optional[CounterMoveTable] = None,
     capture_history: Optional[CaptureHistoryTable] = None,
+    continuation_history: Optional[ContinuationHistoryTable] = None,
     prev_move_key: Optional[str] = None,
     tt_best_move: Optional[str] = None,
     pv_best_move: Optional[str] = None,
@@ -438,13 +470,18 @@ def sort_moves_ares2(
         if m_type == "spell":
             return 45_000
 
-        # Quiet moves: Killer 1 > Countermove > Killer 2
+        # Quiet moves: Killer 1 > Countermove > Killer 2 > Continuation History
         if key == killer1:
             return 20_000
         if counter_move and key == counter_move:
             return 19_000
         if key == killer2:
             return 18_000
+
+        if continuation_history and prev_move_key:
+            conthist_val = continuation_history.get_score(prev_move_key, key)
+            if conthist_val > 0:
+                return 15_000 + min(2_500, conthist_val)
 
         start = m.get("start")
         if start and end and len(start) == 2 and len(end) == 2:
@@ -550,10 +587,12 @@ class AresEngine:
         enable_capthist: bool = True,
         enable_delta_pruning: bool = True,
         enable_relative_aging: bool = True,
+        enable_conthist: bool = True,
     ):
         self.tt = TranspositionTable(size_power_of_two=tt_size_power)
         self.killer_table = KillerMoveTable()
         self.counter_table = CounterMoveTable()
+        self.continuation_history = ContinuationHistoryTable()
         self.capture_history = CaptureHistoryTable()
         self.history_table = HistoryTable()
         self.evaluator = RedWarDomainEvaluator()
@@ -565,11 +604,13 @@ class AresEngine:
         self.enable_capthist = enable_capthist
         self.enable_delta_pruning = enable_delta_pruning
         self.enable_relative_aging = enable_relative_aging
+        self.enable_conthist = enable_conthist
 
     def reset(self) -> None:
         self.tt.clear()
         self.killer_table.clear()
         self.counter_table.clear()
+        self.continuation_history.clear()
         self.capture_history.clear()
         self.history_table.clear()
         self.nodes_visited = 0
@@ -612,6 +653,8 @@ class AresEngine:
 
         # Advance TT generation counter for fresh search prioritization
         self.tt.new_search()
+        if self.enable_conthist:
+            self.continuation_history.decay(0.95)
 
         # Opening book probe (active in multi-piece opening formations)
         total_pieces = sum(1 for row in getattr(state, "board", []) for p in row if p is not None)
@@ -828,6 +871,7 @@ class AresEngine:
             history_table=self.history_table,
             counter_table=self.counter_table if self.enable_countermoves else None,
             capture_history=self.capture_history if self.enable_capthist else None,
+            continuation_history=self.continuation_history if self.enable_conthist else None,
             prev_move_key=prev_move_key,
             tt_best_move=tt_best_move_str,
             pv_best_move=pv_best_move,
@@ -866,12 +910,17 @@ class AresEngine:
             key = child_prev_key
             is_killer = (key == killer1 or key == killer2)
             is_counter = (key == counter_cand) if counter_cand else False
+            conthist_score = (
+                self.continuation_history.get_score(prev_move_key, key)
+                if (self.enable_conthist and prev_move_key) else 0
+            )
+            is_conthist_good = (conthist_score >= 2000)
             start = move.get("start")
             end = move.get("end")
             hist_score = self.history_table.get_score(tuple(start), tuple(end)) if (start and end and len(start) == 2 and len(end) == 2) else 0
 
-            # Late Move Reductions (LMR): never reduce when in imminent threat
-            do_lmr = (effective_depth >= 3 and moves_searched >= 3 and not is_tactical and not is_killer and not is_counter and not imminent_threat and hist_score < 3000)
+            # Late Move Reductions (LMR): never reduce when in imminent threat or for high-history / counter / killer / conthist moves
+            do_lmr = (effective_depth >= 3 and moves_searched >= 3 and not is_tactical and not is_killer and not is_counter and not is_conthist_good and not imminent_threat and hist_score < 3000)
             reduction = 2 if (do_lmr and effective_depth >= 5 and moves_searched >= 8) else (1 if do_lmr else 0)
 
             score, _ = self._negamax(
@@ -924,6 +973,8 @@ class AresEngine:
                     self.killer_table.record_killer(ply, key)
                     if self.enable_countermoves and prev_move_key:
                         self.counter_table.record_countermove(prev_move_key, key)
+                    if self.enable_conthist and prev_move_key:
+                        self.continuation_history.record_cutoff(prev_move_key, key, effective_depth)
                     if start and end and len(start) == 2 and len(end) == 2:
                         self.history_table.record_cutoff(tuple(start), tuple(end), effective_depth)
                 else:
