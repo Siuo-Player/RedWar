@@ -515,3 +515,54 @@ def test_transposition_table_relative_generation_depth_aging():
     assert entry is not None
     assert entry.depth == 6
     assert entry.score == 100.0
+
+
+def test_continuation_history_recording_and_ordering():
+    from ai.ares2 import (
+        ContinuationHistoryTable,
+        KillerMoveTable,
+        HistoryTable,
+        sort_moves_ares2,
+        move_to_string_key,
+        AresEngine,
+    )
+
+    conthist = ContinuationHistoryTable()
+    prev_move = "move:(3, 3)->(4, 3):"
+    quiet_cand1 = {"type": "move", "start": (1, 1), "end": (1, 2)}
+    quiet_cand2 = {"type": "move", "start": (2, 2), "end": (2, 3)}
+
+    key1 = move_to_string_key(quiet_cand1)
+    key2 = move_to_string_key(quiet_cand2)
+
+    # Record multiple cutoffs for cand1 in response to prev_move
+    conthist.record_cutoff(prev_move, key1, depth=3)
+    conthist.record_cutoff(prev_move, key1, depth=4)
+
+    assert conthist.get_score(prev_move, key1) > 0
+    assert conthist.get_score(prev_move, key2) == 0
+
+    km = KillerMoveTable()
+    ht = HistoryTable()
+
+    # Move ordering with continuation history: cand1 must outrank cand2
+    ordered = sort_moves_ares2(
+        moves=[quiet_cand2, quiet_cand1],
+        ply=1,
+        killer_table=km,
+        history_table=ht,
+        continuation_history=conthist,
+        prev_move_key=prev_move,
+    )
+
+    assert ordered[0] == quiet_cand1
+    assert ordered[1] == quiet_cand2
+
+    # Engine flag and reset verification
+    engine = AresEngine(enable_conthist=True)
+    assert engine.enable_conthist is True
+    assert hasattr(engine, "continuation_history")
+    engine.continuation_history.record_cutoff(prev_move, key1, depth=2)
+    assert engine.continuation_history.get_score(prev_move, key1) > 0
+    engine.reset()
+    assert engine.continuation_history.get_score(prev_move, key1) == 0
