@@ -127,7 +127,7 @@ async def _clock_tick_loop(room_manager: RoomManager) -> None:
 
             for room_id, room in list(room_manager.rooms.items()):
                 if room.is_started and not room.is_finished:
-                    winner = room.tick_clock(elapsed)
+                    winner = room.tick_clock()
                     if winner or room.is_finished:
                         room_manager.record_match_result(room)
                         await _broadcast_room(room_id, {

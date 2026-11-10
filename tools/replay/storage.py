@@ -355,10 +355,15 @@ class ReplayStore:
         return record
 
     def recent(self) -> list[dict[str, Any]]:
-        return [
-            self.load(gid)
-            for gid in reversed(self._load_index().get("hot_cache", []))
-        ]
+        records: list[dict[str, Any]] = []
+        for gid in reversed(self._load_index().get("hot_cache", [])):
+            try:
+                rec = self.load(gid)
+                if rec is not None:
+                    records.append(rec)
+            except ReplayCorruptionError:
+                continue
+        return records
 
     def mark_important(self, game_id: str, reason: str) -> None:
         if self.load(game_id) is None:

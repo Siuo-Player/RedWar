@@ -31,14 +31,41 @@ function showNotification(msg, type = "info") {
   }
 }
 
-function connectOnlineWebSocket(roomId) {
+function getWebSocketUrl() {
+  if (typeof window !== "undefined" && window.REDWAR_WS_URL) {
+    return window.REDWAR_WS_URL;
+  }
+  try {
+    const saved = localStorage.getItem("redwar_ws_url");
+    if (saved) return saved;
+  } catch (_) {}
+  const protocol = (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss:" : "ws:";
+  const host = (typeof window !== "undefined" && window.location && window.location.hostname) ? window.location.hostname : "localhost";
+  return `${protocol}//${host}:8765`;
+}
+
+function applyServerBoard(serverBoard) {
+  if (!Array.isArray(serverBoard)) return;
+  boardGrid = serverBoard.length;
+  boardData = serverBoard.map(row =>
+    row.map(cell => {
+      if (!cell) return null;
+      return {
+        name: cell.name,
+        team: cell.team,
+        stun: cell.stun_timer !== undefined ? cell.stun_timer : (cell.stun || 0),
+      };
+    })
+  );
+  drawBoard();
+}
+
+function connectOnlineWebSocket(roomId, reconnectToken = null) {
   if (socket) {
     try { socket.close(); } catch (_) {}
     socket = null;
   }
-  const protocol = (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss:" : "ws:";
-  const host = (typeof window !== "undefined" && window.location && window.location.hostname) ? window.location.hostname : "localhost";
-  const wsUrl = `${protocol}//${host}:8765`;
+  const wsUrl = getWebSocketUrl();
 
   showNotification(`A ligar ao servidor online (${roomId})...`, "info");
 
@@ -50,9 +77,19 @@ function connectOnlineWebSocket(roomId) {
   }
 
   socket.onopen = function() {
-    showNotification("Ligação estabelecida! A entrar na sala...", "success");
+    showNotification("Ligação estabelecida!", "success");
     const rBanner = document.getElementById("reconnectBanner");
     if (rBanner) rBanner.style.display = "none";
+
+    if (reconnectToken) {
+      socket.send(JSON.stringify({
+        tipo: "reconnect",
+        room_id: roomId,
+        token: reconnectToken,
+      }));
+      return;
+    }
+
     const playerId = "Player_" + Math.random().toString(36).substring(2, 8);
     const tcEl = document.getElementById("timeControlSelect");
     const mEl = document.getElementById("modeSelect");
@@ -76,12 +113,44 @@ function connectOnlineWebSocket(roomId) {
         myOnlineColor = data.cor;
         myReconnectToken = data.reconnect_token;
         currentRoomId = data.room_id;
+        try {
+          localStorage.setItem("redwar_online_room", currentRoomId);
+          if (myReconnectToken) localStorage.setItem("redwar_reconnect_token", myReconnectToken);
+        } catch (_) {}
         const bName = document.getElementById("blackPlayerName");
         if (bName) {
           bName.textContent = `Oponente Online (${data.room_id})`;
         }
-        showNotification(`Entrou na sala '${data.room_id}' como ${data.cor === "brancas" ? "Brancas" : "Pretas"}`, "success");
+        showNotification(`Entrou na sala '${data.room_id}' como ${data.cor === "brancas" ? "Brancas" : (data.cor === "pretas" ? "Pretas" : "Espetador")}`, "success");
+
+        // Send ready handshake to begin game
+        if (data.cor === "brancas" || data.cor === "pretas") {
+          socket.send(JSON.stringify({ tipo: "pronto" }));
+        }
+      } else if (data.tipo === "start_game") {
+        isGameOver = false;
+        showNotification("Partida iniciada! É a vez das Brancas.", "success");
+        if (data.room && data.room.clock) {
+          whiteSeconds = Math.round(data.room.clock.white_time);
+          blackSeconds = Math.round(data.room.clock.black_time);
+          updateClockDisplays();
+        }
+        startClock();
       } else if (data.tipo === "estado_jogo") {
+        if (data.dados) {
+          if (Array.isArray(data.dados.board)) {
+            applyServerBoard(data.dados.board);
+          }
+          if (data.dados.white_to_move !== undefined) {
+            currentTurn = data.dados.white_to_move ? "white" : "black";
+            if (typeof updateClockActiveTurn === "function") {
+              updateClockActiveTurn();
+            }
+          }
+          if (data.dados.game_over !== undefined) {
+            isGameOver = data.dados.game_over;
+          }
+        }
         if (data.room && data.room.clock) {
           whiteSeconds = Math.round(data.room.clock.white_time);
           blackSeconds = Math.round(data.room.clock.black_time);
@@ -90,7 +159,41 @@ function connectOnlineWebSocket(roomId) {
         if (data.room && data.room.is_finished) {
           isGameOver = true;
           if (clockInterval) clearInterval(clockInterval);
+          if (typeof showPostGameButtons === "function") {
+            showPostGameButtons();
+          }
           showNotification(`Partida terminada! Vencedor: ${data.room.winner || "Empate"}`, "info");
+        }
+      } else if (data.tipo === "reconnect_success") {
+        myOnlineColor = data.cor;
+        myReconnectToken = data.reconnect_token;
+        currentRoomId = data.room_id;
+        try {
+          localStorage.setItem("redwar_online_room", currentRoomId);
+          if (myReconnectToken) localStorage.setItem("redwar_reconnect_token", myReconnectToken);
+        } catch (_) {}
+        const rBanner = document.getElementById("reconnectBanner");
+        if (rBanner) rBanner.style.display = "none";
+        if (data.estado_jogo && Array.isArray(data.estado_jogo.board)) {
+          applyServerBoard(data.estado_jogo.board);
+          currentTurn = data.estado_jogo.white_to_move ? "white" : "black";
+          if (typeof updateClockActiveTurn === "function") {
+            updateClockActiveTurn();
+          }
+        }
+        if (data.room && data.room.clock) {
+          whiteSeconds = Math.round(data.room.clock.white_time);
+          blackSeconds = Math.round(data.room.clock.black_time);
+          updateClockDisplays();
+        }
+        showNotification(`Reconexão efetuada com sucesso como ${data.cor === "brancas" ? "Brancas" : "Pretas"}!`, "success");
+      } else if (data.tipo === "rematch_update") {
+        showNotification("Desforra acordada. A reiniciar partida...", "info");
+      } else if (data.tipo === "chat_emote") {
+        const eNotif = document.getElementById("emoteNotification");
+        if (eNotif) {
+          eNotif.textContent = `${data.sender}: ${data.emote}`;
+          setTimeout(() => { if (eNotif.textContent.startsWith(data.sender)) eNotif.textContent = ""; }, 3000);
         }
       }
     } catch (e) {
@@ -104,7 +207,35 @@ function connectOnlineWebSocket(roomId) {
 
   socket.onclose = function() {
     showNotification("Ligação multiplayer terminada.", "error");
+    const rBanner = document.getElementById("reconnectBanner");
+    if (rBanner && !isGameOver && (myOnlineColor === "brancas" || myOnlineColor === "pretas")) {
+      rBanner.style.display = "block";
+    }
   };
+}
+
+function reconnectOnlineGame() {
+  let token = myReconnectToken;
+  let roomId = currentRoomId;
+  try {
+    if (!token) token = localStorage.getItem("redwar_reconnect_token");
+    if (!roomId) roomId = localStorage.getItem("redwar_online_room");
+  } catch (_) {}
+
+  if (!token || !roomId) {
+    showNotification("Nenhum token de reconexão anterior encontrado.", "error");
+    return;
+  }
+
+  if (!socket || socket.readyState !== 1) {
+    connectOnlineWebSocket(roomId, token);
+  } else {
+    socket.send(JSON.stringify({
+      tipo: "reconnect",
+      room_id: roomId,
+      token: token,
+    }));
+  }
 }
 let isGameOver = false;
 let moveHistory = [];
@@ -3315,6 +3446,13 @@ function drawBoard() {
 canvas.addEventListener("click", (e) => {
   if (isGameOver || isAiThinking) return;
 
+  const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+  if (oppVal === "online_room") {
+    if (myOnlineColor === "espetador") return;
+    const isMyTurn = (currentTurn === "white" && myOnlineColor === "brancas") || (currentTurn === "black" && myOnlineColor === "pretas");
+    if (!isMyTurn) return;
+  }
+
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
@@ -3387,52 +3525,82 @@ canvas.addEventListener("click", (e) => {
       }
     }
 
+function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
+  if (typeof fetch !== "function") return Promise.reject(new Error("fetch unavailable"));
+  return fetch("/api/puzzles/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      puzzle_id: puzzleId,
+      fromR: fromR,
+      fromC: fromC,
+      toR: toR,
+      toC: toC,
+      step: 0
+    })
+  }).then(resp => resp.json());
+}
+
     // If in Tactical Puzzle Mode, verify with puzzle solution
     if (isPuzzleMode && currentPuzzle) {
-      const sol = currentPuzzle.solution;
       const banner = document.getElementById("puzzleStatusBanner");
       const nextBtn = document.getElementById("btnNextPuzzle");
+      const pzId = currentPuzzle.puzzle_id;
 
-      const isCorrect = (fromR === sol.fromR && fromC === sol.fromC && r === sol.toR && c === sol.toC);
-      if (isCorrect) {
-        puzzleStreak++;
-        puzzleUserElo += 15;
-        savePuzzleStats();
-        updatePuzzleStatsUI();
-        if (banner) {
-          banner.style.display = "block";
-          banner.style.background = "rgba(34, 197, 94, 0.2)";
-          banner.style.border = "1px solid #22c55e";
-          banner.style.color = "#22c55e";
-          banner.innerHTML = `<strong>✨ Resolvido com Sucesso! (+15 ELO)</strong> ${currentPuzzle.explanation}`;
-        }
-        if (nextBtn) nextBtn.style.display = "inline-block";
-        playChime("brilliant");
-      } else {
-        puzzleStreak = 0;
-        puzzleUserElo = Math.max(800, puzzleUserElo - 10);
-        savePuzzleStats();
-        updatePuzzleStatsUI();
-        if (banner) {
-          banner.style.display = "block";
-          banner.style.background = "rgba(239, 68, 68, 0.2)";
-          banner.style.border = "1px solid #ef4444";
-          banner.style.color = "#f87171";
-          banner.innerHTML = "<strong>Lance Incorreto (-10 ELO).</strong> Tenta novamente ou consulta a Dica.";
-        }
-        playChime("blunder");
-      }
+      verifyPuzzleMove(pzId, fromR, fromC, r, c)
+        .then(data => {
+          if (data && data.correct) {
+            puzzleStreak++;
+            puzzleUserElo += 15;
+            savePuzzleStats();
+            updatePuzzleStatsUI();
+            if (banner) {
+              banner.style.display = "block";
+              banner.style.background = "rgba(34, 197, 94, 0.2)";
+              banner.style.border = "1px solid #22c55e";
+              banner.style.color = "#22c55e";
+              banner.innerHTML = `<strong>✨ Resolvido com Sucesso! (+15 ELO)</strong> ${data.explanation || currentPuzzle.explanation || ""}`;
+            }
+            if (nextBtn) nextBtn.style.display = "inline-block";
+            playChime("brilliant");
+          } else {
+            puzzleStreak = 0;
+            puzzleUserElo = Math.max(800, puzzleUserElo - 10);
+            savePuzzleStats();
+            updatePuzzleStatsUI();
+            if (banner) {
+              banner.style.display = "block";
+              banner.style.background = "rgba(239, 68, 68, 0.2)";
+              banner.style.border = "1px solid #ef4444";
+              banner.style.color = "#f87171";
+              banner.innerHTML = "<strong>Lance Incorreto (-10 ELO).</strong> Tenta novamente ou consulta a Dica.";
+            }
+            playChime("blunder");
+          }
+        })
+        .catch(err => {
+          console.warn("Puzzle verification network error:", err);
+          if (banner) {
+            banner.style.display = "block";
+            banner.style.background = "rgba(234, 179, 8, 0.2)";
+            banner.style.border = "1px solid #eab308";
+            banner.style.color = "#eab308";
+            banner.innerHTML = "<strong>Aviso:</strong> Não foi possível contactar o servidor para verificar o lance.";
+          }
+        });
     }
 
     applyAction(fromR, fromC, chosenAction);
     const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
     if (oppVal === "online_room" && socket && socket.readyState === 1) {
       try {
+        const targetR = chosenAction.r !== undefined ? chosenAction.r : chosenAction.toR;
+        const targetC = chosenAction.c !== undefined ? chosenAction.c : chosenAction.toC;
         socket.send(JSON.stringify({
           tipo: "acao",
           type: chosenAction.type || "move",
           start: [fromR, fromC],
-          end: [chosenAction.toR, chosenAction.toC]
+          end: [targetR, targetC]
         }));
       } catch (_) {}
     }
@@ -3952,20 +4120,30 @@ function showEmoteNotification(text) {
 
 // Game Actions
 document.getElementById("btnResign").addEventListener("click", () => {
+  const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+  if (oppVal === "online_room" && socket && socket.readyState === 1) {
+    socket.send(JSON.stringify({ tipo: "resign" }));
+  }
   isGameOver = true;
   showPostGameButtons();
   playChime("stun");
-  alert("Partida terminada por desistência.");
+  showNotification("Partida terminada por desistência.", "info");
 });
 
 document.getElementById("btnRematch").addEventListener("click", () => {
+  const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+  if (oppVal === "online_room" && socket && socket.readyState === 1) {
+    socket.send(JSON.stringify({ tipo: "rematch" }));
+    showNotification("Proposta de desforra enviada ao servidor...", "info");
+    return;
+  }
   initDefaultBoard();
   drawBoard();
   whiteSeconds = 600;
   blackSeconds = 600;
   updateClockDisplays();
   startClock();
-  alert("Desforra iniciada! Boa sorte no tabuleiro!");
+  showNotification("Desforra iniciada! Boa sorte no tabuleiro!", "success");
 });
 
 // Board Theme Switcher
@@ -4035,13 +4213,7 @@ if (oppSelectEl) {
 const btnReconnectEl = document.getElementById("btnReconnect");
 if (btnReconnectEl) {
   btnReconnectEl.addEventListener("click", function() {
-    if (socket && socket.readyState === 1 && myReconnectToken && currentRoomId) {
-      socket.send(JSON.stringify({
-        tipo: "reconnect",
-        room_id: currentRoomId,
-        token: myReconnectToken
-      }));
-    }
+    reconnectOnlineGame();
   });
 }
 
@@ -4137,7 +4309,6 @@ const PUZZLES = [
       { r: 2, c: 5, name: "Paladin", team: "pretas", stun: 1 },
       { r: 1, c: 4, name: "FrostMage", team: "pretas", stun: 0 }
     ],
-    solution: { fromR: 4, fromC: 3, toR: 2, toC: 5 },
     explanation: "Excelente! O Dragoon saltou sobre a barreira e eliminou instantaneamente o Paladino atordoado."
   },
   {
@@ -4152,7 +4323,6 @@ const PUZZLES = [
       { r: 2, c: 2, name: "Bone", team: "pretas", stun: 0 },
       { r: 1, c: 1, name: "FrostMage", team: "pretas", stun: 1 }
     ],
-    solution: { fromR: 4, fromC: 4, toR: 1, toC: 1 },
     explanation: "Perfeito! A Shadowblade atravessou duas unidades na diagonal para desferir o golpe letal."
   },
   {
@@ -4167,7 +4337,6 @@ const PUZZLES = [
       { r: 3, c: 2, name: "Bone", team: "pretas", stun: 0 },
       { r: 2, c: 2, name: "Lich", team: "pretas", stun: 2 }
     ],
-    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
     explanation: "Brilhante! O voo espectral da Valkyrie sobrevoou a parede e o lacaio, liquidando o Lich."
   },
   {
@@ -4181,7 +4350,6 @@ const PUZZLES = [
       { r: 2, c: 3, name: "Stormcaller", team: "pretas", stun: 1 },
       { r: 3, c: 5, name: "BoneLord", team: "pretas", stun: 0 }
     ],
-    solution: { fromR: 5, fromC: 3, toR: 2, toC: 3 },
     explanation: "Cirúrgico! A Rajada Arcana do Arcanist atingiu o Stormcaller à distância sem expor o mago."
   },
   {
@@ -4194,7 +4362,6 @@ const PUZZLES = [
       { r: 4, c: 2, name: "Duelist", team: "brancas", stun: 0 },
       { r: 2, c: 4, name: "Berserker", team: "pretas", stun: 1 }
     ],
-    solution: { fromR: 4, fromC: 2, toR: 2, toC: 4 },
     explanation: "Sensacional! A estocada diagonal do Duelist finalizou o adversário com eficiência perfeita."
   },
   {
@@ -4207,7 +4374,6 @@ const PUZZLES = [
       { r: 3, c: 3, name: "Warden", team: "brancas", stun: 0 },
       { r: 2, c: 3, name: "Nightshade", team: "pretas", stun: 1 }
     ],
-    solution: { fromR: 3, fromC: 3, toR: 2, toC: 3 },
     explanation: "Inabalável! O golpe de escudo do Warden encerrou o avanço inimigo na linha de frente."
   }
 ];

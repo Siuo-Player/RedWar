@@ -52,3 +52,5 @@ data/estatisticas_treino.json
 data/replays/
 
 artifacts/
+.agents/
+.gemini/

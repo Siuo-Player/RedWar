@@ -50,6 +50,10 @@ class CppEngineBot:
         return self.bridge.read_response()
 
     def start_pondering(self, game_state):
+        rows = getattr(game_state, "rows", len(game_state.board))
+        cols = getattr(game_state, "cols", len(game_state.board[0]))
+        if rows != 8 or cols != 8:
+            return
         rwen = game_state.to_rwen()
         self.last_position_rwen = rwen
         self._send_command(f"position rwen {rwen}")
@@ -62,7 +66,42 @@ class CppEngineBot:
             if response and response.startswith("bestmove"):
                 break
 
+    def _escolher_jogada_fallback_python(self, game_state):
+        """Graceful fallback for non-8x8 boards (e.g. Grand RedWar 10x10)."""
+        from engine.legal_actions import legal_actions
+        actions = legal_actions(game_state)
+        if not actions:
+            return None
+        # Heuristic scoring: prioritize lethal stun attacks, regular attacks, advances
+        best_action = None
+        best_score = -float("inf")
+        my_team = "brancas" if game_state.white_to_move else "pretas"
+
+        for act in actions:
+            score = 0
+            if act.type.value == "attack":
+                score += 50
+                target_piece = game_state.board[act.end[0]][act.end[1]]
+                if target_piece and getattr(target_piece, "stun_timer", 0) > 0:
+                    score += 100  # Lethal stun execution
+            elif act.type.value == "spell":
+                score += 30
+            elif act.type.value == "move":
+                progress = (game_state.rows - 1 - act.end[0]) if my_team == "brancas" else act.end[0]
+                score += progress
+            if score > best_score:
+                best_score = score
+                best_action = act
+
+        return best_action.to_dict() if best_action else actions[0].to_dict()
+
     def escolher_jogada(self, game_state):
+        rows = getattr(game_state, "rows", len(game_state.board))
+        cols = getattr(game_state, "cols", len(game_state.board[0]))
+        if rows != 8 or cols != 8:
+            # Safe Fallback: C++ bitboard engine is specialized for standard 8x8 boards
+            return self._escolher_jogada_fallback_python(game_state)
+
         rwen = game_state.to_rwen()
         self.last_position_rwen = rwen
         self.last_engine_info = None
@@ -164,8 +203,10 @@ class BotAleatorio:
     def escolher_jogada(self, gs):
         acoes = []
         current_team = 'brancas' if gs.white_to_move else 'pretas'
-        for r in range(8):
-            for c in range(8):
+        rows = getattr(gs, "rows", len(gs.board))
+        cols = getattr(gs, "cols", len(gs.board[0]))
+        for r in range(rows):
+            for c in range(cols):
                 p = gs.board[r][c]
                 if p and p.team == current_team and getattr(p, 'stun_timer', 0) == 0:
                     for mv in p.get_valid_moves(r, c, gs.board, gs.tile_effects):
