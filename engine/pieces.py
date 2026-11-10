@@ -162,7 +162,7 @@ class BehaviorCompiler:
 
     @staticmethod
     def compile(name, beh: dict):
-        max_range = max(LINHAS, COLUNAS)
+        max_range = max(LINHAS, COLUNAS, 16)
         move_base_white = []
         move_base_black = []
         attack_base_white = []
@@ -317,11 +317,12 @@ class DataPiece(Piece):
         if not self.can_act():
             return []
         moves = []
+        rows, cols = len(board), len(board[0])
         for dr, dc, max_steps, _min_steps, ghost in self._move_vectors:
             for step in range(1, max_steps + 1):
                 nr = r + dr * step
                 nc = c + dc * step
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     break
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
                     break
@@ -338,11 +339,12 @@ class DataPiece(Piece):
         if attack_behavior.get("attack_action") == "spell":
             return []
         attacks = []
+        rows, cols = len(board), len(board[0])
         for dr, dc, max_steps, min_steps, _ghost in self._attack_vectors:
             for step in range(1, max_steps + 1):
                 nr = r + dr * step
                 nc = c + dc * step
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     break
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
                     break
@@ -364,10 +366,11 @@ class DataPiece(Piece):
         if not spell_name:
             return []
         spells = []
+        rows, cols = len(board), len(board[0])
         for dr, dc, max_steps, min_steps, _ghost in self._attack_vectors:
             for step in range(1, max_steps + 1):
                 nr, nc = r + dr * step, c + dc * step
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     break
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
                     break
@@ -383,11 +386,12 @@ class DataPiece(Piece):
         if not self.can_act():
             return []
         threats = []
+        rows, cols = len(board), len(board[0])
         for dr, dc, max_steps, min_steps, _ghost in self._attack_vectors:
             for step in range(1, max_steps + 1):
                 nr = r + dr * step
                 nc = c + dc * step
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     break
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
                     break
@@ -453,7 +457,7 @@ class Inquisitor(DataPiece):
                 if dr == 0 and dc == 0:
                     continue
                 nr, nc = r + dr, c + dc
-                if 0 <= nr < LINHAS and 0 <= nc < COLUNAS:
+                if 0 <= nr < len(board) and 0 <= nc < len(board[0]):
                     if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
                         continue
                     p = board[nr][nc]
@@ -483,12 +487,13 @@ class Pyromancer(DataPiece):
             return []
         spell_name = _declared_spell_name(self.name)
         targets = []
+        rows, cols = len(board), len(board[0])
         for dr in range(-3, 4):
             for dc in range(-3, 4):
                 if dr == 0 and dc == 0:
                     continue
                 nr, nc = r + dr, c + dc
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     continue
                 target = board[nr][nc]
                 if target is None or target.team != self.team:
@@ -506,18 +511,19 @@ class Dragoon(DataPiece):
             return []
         max_jump = int(HERO_DEFS["Dragoon"].get("jump_max", 2))
         lands = []
+        rows, cols = len(board), len(board[0])
         dirs = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
         for dr, dc in dirs:
             midr, midc = r + dr, c + dc
             landr, landc = r + dr * 2, c + dc * 2
-            if 0 <= midr < LINHAS and 0 <= midc < COLUNAS and 0 <= landr < LINHAS and 0 <= landc < COLUNAS:
+            if 0 <= midr < rows and 0 <= midc < cols and 0 <= landr < rows and 0 <= landc < cols:
                 if board[midr][midc] is not None:
                     dest = board[landr][landc]
                     if dest is None or dest.team != self.team:
                         lands.append((landr, landc))
             for step in range(2, max_jump + 1):
                 nr, nc = r + dr * step, c + dc * step
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     break
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
                     break
@@ -540,12 +546,13 @@ class Cleric(DataPiece):
             return []
         spell_name = _declared_spell_name(self.name)
         targets = []
+        rows, cols = len(board), len(board[0])
         for dr in range(-2, 3):
             for dc in range(-2, 3):
                 if dr == 0 and dc == 0:
                     continue
                 nr, nc = r + dr, c + dc
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     continue
                 target = board[nr][nc]
                 if target and target.team == self.team and target.stun_timer > 0:
@@ -562,12 +569,13 @@ class Trickster(DataPiece):
             return []
         spell_name = _declared_spell_name(self.name)
         swaps = []
+        rows, cols = len(board), len(board[0])
         for dr in range(-3, 4):
             for dc in range(-3, 4):
                 if dr == 0 and dc == 0:
                     continue
                 nr, nc = r + dr, c + dc
-                if not (0 <= nr < LINHAS and 0 <= nc < COLUNAS):
+                if not (0 <= nr < rows and 0 <= nc < cols):
                     continue
                 target = board[nr][nc]
                 if target and target.team == self.team:
@@ -584,9 +592,10 @@ class Geomancer(DataPiece):
             return []
         spell_name = _declared_spell_name(self.name)
         walls = []
+        rows, cols = len(board), len(board[0])
         for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]:
             nr, nc = r + dr, c + dc
-            if 0 <= nr < LINHAS and 0 <= nc < COLUNAS and board[nr][nc] is None:
+            if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] is None:
                 walls.append({"target": (nr, nc), "spell_type": spell_name})
         return walls
 
@@ -605,19 +614,20 @@ class FrostMage(DataPiece):
             return []
         spell_name = _declared_spell_name(self.name)
         spells = []
+        rows, cols = len(board), len(board[0])
         for dr in range(-3, 4):
             for dc in range(-3, 4):
                 if abs(dr) + abs(dc) > 3:
                     continue
                 focus_r, focus_c = r + dr, c + dc
-                if not (0 <= focus_r < LINHAS and 0 <= focus_c < COLUNAS):
+                if not (0 <= focus_r < rows and 0 <= focus_c < cols):
                     continue
                 if tile_effects and tile_effects[focus_r][focus_c] and tile_effects[focus_r][focus_c].get("type") == "ice":
                     continue
                 has_enemy = False
                 for adr, adc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
                     ar, ac = focus_r + adr, focus_c + adc
-                    if not (0 <= ar < LINHAS and 0 <= ac < COLUNAS):
+                    if not (0 <= ar < rows and 0 <= ac < cols):
                         continue
                     if tile_effects and tile_effects[ar][ac] and tile_effects[ar][ac].get("type") == "ice":
                         continue
@@ -640,10 +650,11 @@ class Lich(DataPiece):
         if not self.can_act() or self.spawn_cooldown > 0:
             return []
         spawns = []
+        rows, cols = len(board), len(board[0])
         direction = -1 if self.team == "brancas" else 1
         for dc in (-1, 0, 1):
             nr, nc = r + direction, c + dc
-            if 0 <= nr < LINHAS and 0 <= nc < COLUNAS:
+            if 0 <= nr < rows and 0 <= nc < cols:
                 if tile_effects and tile_effects[nr][nc] and tile_effects[nr][nc].get("type") == "ice":
                     continue
                 if board[nr][nc] is None:

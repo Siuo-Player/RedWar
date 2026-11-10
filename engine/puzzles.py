@@ -18,8 +18,10 @@ def load_rwen_into_game_state(rwen: str, state: GameState) -> None:
 
     state.white_to_move = (turn.upper() == "W")
     state.turns_without_capture = int(twc_text)
-    state.board = [[None for _ in range(len(rows[0].split(",")))] for _ in range(len(rows))]
-    state.tile_effects = [[None for _ in range(len(rows[0].split(",")))] for _ in range(len(rows))]
+    state.rows = len(rows)
+    state.cols = len(rows[0].split(","))
+    state.board = [[None for _ in range(state.cols)] for _ in range(state.rows)]
+    state.tile_effects = [[None for _ in range(state.cols)] for _ in range(state.rows)]
 
     for r, row in enumerate(rows):
         cells = row.split(",")

@@ -225,7 +225,17 @@ class GameRoom:
         if player_id != expected_player:
             raise ValueError(f"action submitted by {player_id}, but {expected_team} is active")
 
-        # Check if flag already fell on active player
+        # Deduct server elapsed wall clock time on active player
+        if self.last_move_timestamp is not None:
+            now = time.monotonic()
+            elapsed = now - self.last_move_timestamp
+            if elapsed > 0.05:
+                if white_to_move:
+                    self.clock.white_time = max(0.0, self.clock.white_time - elapsed)
+                else:
+                    self.clock.black_time = max(0.0, self.clock.black_time - elapsed)
+
+        # Check if flag fell on active player
         if self.clock.is_flag_fallen(white_to_move):
             self.is_finished = True
             self.termination_reason = "flag_fall"
@@ -244,16 +254,17 @@ class GameRoom:
 
         if self.session.state.game_over:
             self.is_finished = True
-            raw_winner = self.session.state.winner
-            if raw_winner:
-                raw_lower = str(raw_winner).lower()
-                if "brancas" in raw_lower:
-                    self.winner = "brancas"
-                elif "pretas" in raw_lower:
+            self.winner = getattr(self.session.state, "winner_team", None)
+            if not self.winner:
+                raw_winner = str(self.session.state.winner).lower()
+                if "pretas vencem" in raw_winner:
                     self.winner = "pretas"
+                elif "brancas vencem" in raw_winner:
+                    self.winner = "brancas"
                 else:
-                    self.winner = raw_winner
-            self.termination_reason = "elimination" if self.winner else "turn_limit"
+                    self.winner = None
+            is_surrender = self.session.state.last_move and self.session.state.last_move.get("type") == "surrender"
+            self.termination_reason = "surrender" if is_surrender else ("elimination" if self.winner else "turn_limit")
 
         return self.state_payload()
 

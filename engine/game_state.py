@@ -57,13 +57,14 @@ def get_counter_zobrist_key(turns_without_capture: int) -> int:
     return _stable_u64("twc", int(turns_without_capture))
 
 
-def coords_para_notacao(r, c):
+def coords_para_notacao(r, c, rows: int | None = None):
     letras = "abcdefghijklmnopqrstuvwxyz"
     if not (0 <= c < len(letras)):
         raise ValueError(f"Invalid column: {c}")
-    if not (0 <= r < LINHAS):
+    total_rows = rows if rows is not None else LINHAS
+    if not (0 <= r < total_rows):
         raise ValueError(f"Invalid row: {r}")
-    return f"{letras[c]}{LINHAS - r}"
+    return f"{letras[c]}{total_rows - r}"
 
 
 def _declared_spell_names(piece_name: str) -> set[str]:
@@ -82,14 +83,18 @@ class GameState:
         "turns_without_capture", "move_log", "last_move", "white_time",
         "black_time", "state_history", "current_hash", "_hash_valid", "current_score",
         "_last_history_hash", "replay_metadata", "clock", "game_mode", "max_twc",
+        "winner_team", "rows", "cols",
     )
 
     def __init__(self, time_limit_seconds: float = 600.0, rows: int = LINHAS, cols: int = COLUNAS):
-        self.board: list[list[Any]] = [[None for _ in range(cols)] for _ in range(rows)]
-        self.tile_effects: list[list[Any]] = [[None for _ in range(cols)] for _ in range(rows)]
+        self.rows = int(rows)
+        self.cols = int(cols)
+        self.board: list[list[Any]] = [[None for _ in range(self.cols)] for _ in range(self.rows)]
+        self.tile_effects: list[list[Any]] = [[None for _ in range(self.cols)] for _ in range(self.rows)]
         self.white_to_move = True
         self.game_over = False
         self.winner: str | None = None
+        self.winner_team: str | None = None
         self.turns_without_capture = 0
         self.move_log: list = []
         self.last_move: dict | None = None
@@ -177,6 +182,12 @@ class GameState:
         novo_gs._hash_valid = self._hash_valid
         novo_gs._last_history_hash = self._last_history_hash
         novo_gs.replay_metadata = dict(self.replay_metadata)
+        novo_gs.rows = self.rows
+        novo_gs.cols = self.cols
+        novo_gs.winner_team = self.winner_team
+        novo_gs.game_mode = self.game_mode
+        novo_gs.clock = self.clock
+        novo_gs.max_twc = self.max_twc
         novo_gs.board = [row[:] for row in self.board]
         novo_gs.tile_effects = [row[:] for row in self.tile_effects]
 
@@ -264,6 +275,7 @@ class GameState:
         self.last_move = {"type": "surrender", "team": actor}
         self.game_over = True
         self.winner = f"Desistência ({actor_label}) - {opponent_label} Vencem"
+        self.winner_team = opponent
         self.current_score = None
 
     def _validate_action_coordinates(self, start_pos, end_pos):
@@ -271,14 +283,14 @@ class GameState:
             if len(position) != 2:
                 raise ValueError("Board coordinates must have two components")
             r, c = position
-            if not (0 <= r < LINHAS and 0 <= c < COLUNAS):
+            if not (0 <= r < self.rows and 0 <= c < self.cols):
                 raise ValueError(f"Coordinate outside board: {position}")
 
     def _is_silenced_piece(self, piece, row, col) -> bool:
         if piece is None:
             return False
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
+        for r in range(self.rows):
+            for c in range(self.cols):
                 source = self.board[r][c]
                 if not source or source.team == piece.team or source.name != "Inquisitor":
                     continue
@@ -407,7 +419,7 @@ class GameState:
 
         if action_type == "stun":
             for ar, ac in affected_area:
-                if not (0 <= ar < LINHAS and 0 <= ac < COLUNAS):
+                if not (0 <= ar < self.rows and 0 <= ac < self.cols):
                     continue
                 target = self.board[ar][ac]
                 if not target or target.team == piece.team:
@@ -449,7 +461,7 @@ class GameState:
                 self.set_tile_effect(end_row, end_col, {"type": "ice", "timer": 3, "team": piece.team})
                 for dr, dc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
                     fr, fc = end_row + dr, end_col + dc
-                    if not (0 <= fr < LINHAS and 0 <= fc < COLUNAS):
+                    if not (0 <= fr < self.rows and 0 <= fc < self.cols):
                         continue
                     tile = self.tile_effects[fr][fc]
                     if tile and tile.get("type") == "ice" and (fr, fc) != (end_row, end_col):
@@ -468,7 +480,7 @@ class GameState:
             elif spell_name == "ignite":
                 for dr, dc in [(0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)]:
                     fr, fc = end_row + dr, end_col + dc
-                    if not (0 <= fr < LINHAS and 0 <= fc < COLUNAS):
+                    if not (0 <= fr < self.rows and 0 <= fc < self.cols):
                         continue
                     self.set_tile_effect(fr, fc, {"type": "fire", "timer": 3, "team": piece.team})
                     target = self.board[fr][fc]
@@ -544,7 +556,7 @@ class GameState:
                         (1, -1), (1, 0), (1, 1),
                     ]:
                         ar, ac = end_row + dr, end_col + dc
-                        if not (0 <= ar < LINHAS and 0 <= ac < COLUNAS):
+                        if not (0 <= ar < self.rows and 0 <= ac < self.cols):
                             continue
                         target = self.board[ar][ac]
                         if target and target.team != piece.team:
@@ -582,8 +594,8 @@ class GameState:
     def update_timers(self):
         """Advance timers belonging to the side whose turn just became active."""
         active_team = "brancas" if self.white_to_move else "pretas"
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
+        for r in range(self.rows):
+            for c in range(self.cols):
                 piece = self.board[r][c]
                 if piece and piece.team == active_team:
                     if piece.stun_timer > 0:
@@ -618,8 +630,8 @@ class GameState:
             return
         sr, sc = start_pos
         er, ec = end_pos
-        s_alg = coords_para_notacao(sr, sc)
-        e_alg = coords_para_notacao(er, ec)
+        s_alg = coords_para_notacao(sr, sc, rows=self.rows)
+        e_alg = coords_para_notacao(er, ec, rows=self.rows)
         num_turno = (len(self.move_log) // 2) + 1
         prefixo = f"{num_turno}. " if piece.team == "brancas" else f"{num_turno}... "
 
@@ -651,14 +663,17 @@ class GameState:
         if not white_alive and not black_alive:
             self.game_over = True
             self.winner = "Aniquilação Mútua (Pretas Vencem no Desempate)"
+            self.winner_team = "pretas"
             return
         if not white_alive:
             self.game_over = True
             self.winner = "Aniquilação (Pretas Vencem)"
+            self.winner_team = "pretas"
             return
         if not black_alive:
             self.game_over = True
             self.winner = "Aniquilação (Brancas Vencem)"
+            self.winner_team = "brancas"
             return
 
         adversario_vencedor = "Brancas" if self.white_to_move else "Pretas"
@@ -677,12 +692,12 @@ class GameState:
                 if p and p.team == "pretas" and getattr(p, "lifespan", None) is None
             )
             if white_mat > black_mat:
-                return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem"
-            return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate"
+                return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem", "brancas"
+            return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate", "pretas"
 
-        if self.turns_without_capture >= 50:
+        if self.turns_without_capture >= self.max_twc:
             self.game_over = True
-            self.winner = resolver_por_material()
+            self.winner, self.winner_team = resolver_por_material()
             return
 
         current_hash = self.get_state_hash()
@@ -691,13 +706,13 @@ class GameState:
             self._last_history_hash = current_hash
         if self.state_history.get(current_hash, 0) >= 3:
             self.game_over = True
-            self.winner = resolver_por_material()
+            self.winner, self.winner_team = resolver_por_material()
             return
 
         has_move = False
         active_team = "brancas" if self.white_to_move else "pretas"
-        for r in range(LINHAS):
-            for c in range(COLUNAS):
+        for r in range(self.rows):
+            for c in range(self.cols):
                 piece = self.board[r][c]
                 if not piece or piece.team != active_team or not piece.can_act():
                     continue
@@ -721,12 +736,13 @@ class GameState:
         if not has_move:
             self.game_over = True
             self.winner = f"{adversario_vencedor} Vencem (Oponente Bloqueado)"
+            self.winner_team = "brancas" if adversario_vencedor == "Brancas" else "pretas"
 
     def to_rwen(self) -> str:
         lines = []
-        for r in range(LINHAS):
+        for r in range(self.rows):
             cells = []
-            for c in range(COLUNAS):
+            for c in range(self.cols):
                 piece = self.board[r][c]
                 effect = self.tile_effects[r][c]
 
