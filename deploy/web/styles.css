@@ -338,3 +338,53 @@ select, input {
 .badge-inaccuracy { background: #eab308; color: #000; }
 .badge-mistake { background: #f97316; color: #fff; }
 .badge-blunder { background: #ef4444; color: #fff; }
+
+
+/* Responsive Layout for Mobile & Tablet */
+@media (max-width: 960px) {
+  .app-container {
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    gap: 16px;
+  }
+  .board-area {
+    width: 100%;
+    max-width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #gameCanvas {
+    max-width: 92vw;
+    max-height: 92vw;
+    width: 100%;
+    height: auto;
+  }
+  .sidebar {
+    width: 100%;
+    max-width: 92vw;
+  }
+  .graveyard {
+    max-width: 92vw;
+  }
+}
+
+@media (max-width: 600px) {
+  header {
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+  .brand h1 {
+    font-size: 1.2rem;
+  }
+  .nav-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+}

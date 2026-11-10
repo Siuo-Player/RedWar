@@ -131,3 +131,29 @@ def test_removal_of_rpg_terminology():
 
     launcher_txt = Path("launcher.py").read_text(encoding="utf-8")
     assert "Tactical Grid RPG" not in launcher_txt
+
+
+def test_leaderboard_limit_parameter_clamping():
+    """Verify query parameter limit is clamped between 1 and 100."""
+    app = RedWarWebApp()
+    resp_large = app.handle_request("GET", "/api/leaderboard?limit=9999")
+    assert resp_large["status"] == 200
+
+    resp_neg = app.handle_request("GET", "/api/leaderboard?limit=-10")
+    assert resp_neg["status"] == 200
+
+    resp_nan = app.handle_request("GET", "/api/leaderboard?limit=not_a_number")
+    assert resp_nan["status"] == 200
+
+
+def test_init_default_board_resets_captured_and_review_state():
+    """Verify initDefaultBoard resets graveyard and review state across matches."""
+    app_js = Path("deploy/web/app.js").read_text(encoding="utf-8")
+    start = app_js.find("function initDefaultBoard() {")
+    assert start != -1
+    end = app_js.find("}", start)
+    body = app_js[start:end]
+
+    assert "classifiedMoves = []" in body
+    assert "capturedWhite = []" in body
+    assert "capturedBlack = []" in body

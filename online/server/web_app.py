@@ -33,7 +33,19 @@ class _RedWarHTTPRequestHandler(BaseHTTPRequestHandler):
         self._dispatch("POST")
 
     def _dispatch(self, method: str) -> None:
-        content_length = int(self.headers.get("Content-Length", 0))
+        MAX_BODY_BYTES = 1024 * 1024  # 1 MB max request body to prevent memory exhaustion DoS
+        try:
+            content_length = int(self.headers.get("Content-Length", 0))
+        except (ValueError, TypeError):
+            content_length = 0
+
+        if content_length > MAX_BODY_BYTES:
+            self.send_response(413)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error": "Payload Too Large: maximum allowed body size is 1 MB"}')
+            return
+
         body = (
             self.rfile.read(content_length).decode("utf-8", errors="replace")
             if content_length > 0
@@ -108,7 +120,11 @@ class RedWarWebApp:
 
         if route == "/api/leaderboard":
             mode = query_params.get("mode", ["standard_8x8"])[0]
-            limit = int(query_params.get("limit", [50])[0])
+            try:
+                raw_limit = int(query_params.get("limit", [50])[0])
+            except (ValueError, TypeError):
+                raw_limit = 50
+            limit = min(max(1, raw_limit), 100)
             entries = self.leaderboard_manager.get_top_players(mode, limit=limit)
             return self._response(
                 status=200,
