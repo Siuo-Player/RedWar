@@ -13,6 +13,37 @@ from online.server.authority import AuthoritativeSession
 ALLOWED_EMOTES = {"gg", "well_played", "thinking", "wow", "good_luck", "check"}
 
 
+def setup_standard_board(state: Any) -> None:
+    """Setup standard RedWar army pieces if the board is empty."""
+    from engine.pieces import criar_peca_por_nome
+
+    rows = getattr(state, "rows", len(state.board))
+    cols = getattr(state, "cols", len(state.board[0]))
+
+    # White pieces (bottom rows)
+    white_back_row = rows - 1
+    white_front_row = rows - 2
+    white_heroes = ["Dragoon", "FrostMage", "BoneLord", "Paladin", "Stormcaller"]
+    for c, name in enumerate(white_heroes):
+        if c < cols:
+            state.board[white_back_row][c] = criar_peca_por_nome(name, "brancas")
+    for c in range(min(cols, 5)):
+        state.board[white_front_row][c] = criar_peca_por_nome("Bone", "brancas")
+
+    # Black pieces (top rows)
+    black_back_row = 0
+    black_front_row = 1
+    black_heroes = ["Dragoon", "FrostMage", "BoneLord", "Shadowblade", "Hookmaster"]
+    for c, name in enumerate(black_heroes):
+        if c < cols:
+            state.board[black_back_row][c] = criar_peca_por_nome(name, "pretas")
+    for c in range(min(cols, 5)):
+        state.board[black_front_row][c] = criar_peca_por_nome("Bone", "pretas")
+
+    if hasattr(state, "compute_initial_hash"):
+        state.compute_initial_hash()
+
+
 @dataclass
 class GameRoom:
     """Authoritative room managing a single multiplayer match."""
@@ -33,6 +64,7 @@ class GameRoom:
     player_tokens: dict[str, str] = field(default_factory=dict)
     rematch_proposals: set[str] = field(default_factory=set)
     last_move_timestamp: Optional[float] = None
+    last_activity_timestamp: float = field(default_factory=time.time)
 
     def __post_init__(self) -> None:
         if isinstance(self.mode, str):
@@ -52,6 +84,7 @@ class GameRoom:
 
         self.session = AuthoritativeSession(self.mode.create_game_state())
         self.clock = GameClock(self.time_control)
+        self.last_activity_timestamp = time.time()
 
     @property
     def spectator_count(self) -> int:
@@ -63,9 +96,11 @@ class GameRoom:
 
     def add_spectator(self, spectator_id: str) -> None:
         self.spectators.add(spectator_id)
+        self.last_activity_timestamp = time.time()
 
     def remove_spectator(self, spectator_id: str) -> None:
         self.spectators.discard(spectator_id)
+        self.last_activity_timestamp = time.time()
 
     def add_player(self, player_id: str, role_preference: str = "auto") -> Optional[str]:
         """Assign player to white, black, or spectator with cryptographic tokens and identity protection.
@@ -73,6 +108,7 @@ class GameRoom:
         Returns assigned role ('brancas', 'pretas', 'espetador'), or None if player_id is
         already occupied by an existing competitor in this room or if the competitive room is full.
         """
+        self.last_activity_timestamp = time.time()
         # Anti-Impersonation & Anti-Self-Play: An existing player seat cannot be claimed via join/add_player.
         # Existing players MUST authenticate using reconnect_player with their secret cryptographic token.
         if self.white_player == player_id or self.black_player == player_id:
@@ -118,6 +154,7 @@ class GameRoom:
         token: Optional[str] = None,
     ) -> tuple[bool, Optional[str]]:
         """Re-bind player via cryptographic token with automatic token rotation and seat recovery."""
+        self.last_activity_timestamp = time.time()
         if token is None:
             # Invocation: reconnect_player(token)
             actual_token = new_player_id_or_token
@@ -150,6 +187,7 @@ class GameRoom:
 
     def propose_rematch(self, player_id: str) -> bool:
         """Propose or accept rematch. Rejects proposals while match is in progress."""
+        self.last_activity_timestamp = time.time()
         if not self.is_finished:
             return False
         if player_id not in (self.white_player, self.black_player):
@@ -163,8 +201,13 @@ class GameRoom:
             self.black_player = prev_white
             self.rematch_proposals.clear()
 
+            # Swap reconnect token color associations so clients re-bind to their new colors
+            for tok, role in list(self.reconnect_tokens.items()):
+                self.reconnect_tokens[tok] = "pretas" if role == "brancas" else "brancas"
+
             self.session = AuthoritativeSession(self.mode.create_game_state())
             self.clock = GameClock(self.time_control)
+            setup_standard_board(self.session.state)
             self.is_started = True
             self.is_finished = False
             self.winner = None
@@ -176,6 +219,7 @@ class GameRoom:
 
     def process_emote(self, player_id: str, emote: str) -> dict[str, Any]:
         """Validate and construct emote broadcast message."""
+        self.last_activity_timestamp = time.time()
         clean_emote = emote.strip().lower()
         if clean_emote not in ALLOWED_EMOTES:
             clean_emote = "gg"
@@ -186,7 +230,11 @@ class GameRoom:
         }
 
     def start_game(self) -> None:
-        """Start match clock and set room to started."""
+        """Start match clock and set room to started, placing default pieces if board is unpopulated."""
+        self.last_activity_timestamp = time.time()
+        is_empty = all(p is None for row in self.session.state.board for p in row)
+        if is_empty:
+            setup_standard_board(self.session.state)
         self.is_started = True
         self.is_finished = False
         self.winner = None
@@ -198,6 +246,7 @@ class GameRoom:
         if not self.is_started or self.is_finished:
             return None
 
+        self.last_activity_timestamp = time.time()
         white_to_move = self.session.state.white_to_move
         if white_to_move:
             self.clock.white_time = max(0.0, self.clock.white_time - elapsed_seconds)
@@ -213,6 +262,7 @@ class GameRoom:
 
     def apply_action(self, player_id: str, action: Mapping[str, Any]) -> dict[str, Any]:
         """Validate player, deduct server elapsed time, and execute action through authoritative session."""
+        self.last_activity_timestamp = time.time()
         if not self.is_started:
             raise ValueError("match has not started yet")
         if self.is_finished:
@@ -235,12 +285,12 @@ class GameRoom:
                 else:
                     self.clock.black_time = max(0.0, self.clock.black_time - elapsed)
 
-        # Check if flag fell on active player
+        # Check if flag fell on active player: finish cleanly without unhandled exception
         if self.clock.is_flag_fallen(white_to_move):
             self.is_finished = True
             self.termination_reason = "flag_fall"
             self.winner = "pretas" if white_to_move else "brancas"
-            raise ValueError("tempo esgotado (flag fall)")
+            return self.state_payload()
 
         self.session.apply_action(expected_team, action)
 
@@ -270,6 +320,7 @@ class GameRoom:
 
     def resign(self, player_id: str) -> dict[str, Any]:
         """Handle resignation."""
+        self.last_activity_timestamp = time.time()
         if not self.is_started or self.is_finished:
             raise ValueError("match is not active")
         if player_id not in (self.white_player, self.black_player):
@@ -369,12 +420,16 @@ class RoomManager:
         return False
 
     def cleanup_stale_rooms(self, max_idle_seconds: float = 1800.0) -> int:
-        """Purge finished or abandoned empty rooms to prevent memory exhaustion."""
+        """Purge finished, empty, or idle rooms to prevent memory exhaustion."""
+        now = time.time()
         to_remove = []
         for rid, room in self.rooms.items():
+            idle = now - getattr(room, "last_activity_timestamp", now)
             if room.is_finished:
                 to_remove.append(rid)
             elif not room.white_player and not room.black_player and not room.spectators:
+                to_remove.append(rid)
+            elif idle > max_idle_seconds:
                 to_remove.append(rid)
         for rid in to_remove:
             self.rooms.pop(rid, None)

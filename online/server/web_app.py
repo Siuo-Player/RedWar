@@ -40,10 +40,10 @@ class _RedWarHTTPRequestHandler(BaseHTTPRequestHandler):
         self._dispatch("POST")
 
     def _dispatch(self, method: str) -> None:
-        if method not in ("GET", "HEAD"):
+        if method not in ("GET", "HEAD", "POST"):
             self.send_response(405)
             self.send_header("Content-Type", "application/json")
-            self.send_header("Allow", "GET, HEAD")
+            self.send_header("Allow", "GET, HEAD, POST")
             self.end_headers()
             self.wfile.write(b'{"error": "Method Not Allowed"}\n')
             return
@@ -127,6 +127,64 @@ class RedWarWebApp:
         route = parsed_url.path
         query_params = parse_qs(query or parsed_url.query)
 
+        # Endpoint for verifying tactical puzzle candidate moves without leaking solutions
+        if route == "/api/puzzles/verify":
+            if method not in ("GET", "POST"):
+                return self._response(
+                    status=405,
+                    body=json.dumps({"error": "Method Not Allowed"}),
+                )
+            puzzle_id = ""
+            candidate_move = ""
+            step = 0
+            if method == "POST" and body:
+                try:
+                    payload = json.loads(body)
+                    puzzle_id = str(payload.get("puzzle_id", "")).strip()
+                    candidate_move = str(payload.get("move", "")).strip()
+                    step = int(payload.get("step", 0))
+                except (json.JSONDecodeError, ValueError, TypeError):
+                    return self._response(
+                        status=400,
+                        body=json.dumps({"error": "Invalid JSON payload"}),
+                    )
+            else:
+                puzzle_id = query_params.get("puzzle_id", [""])[0].strip()
+                candidate_move = query_params.get("move", [""])[0].strip()
+                try:
+                    step = int(query_params.get("step", [0])[0])
+                except (ValueError, TypeError):
+                    step = 0
+
+            puzzle = next((p for p in PUZZLE_BANK if p.puzzle_id == puzzle_id), None)
+            if not puzzle:
+                return self._response(
+                    status=404,
+                    body=json.dumps({"error": "puzzle_not_found"}),
+                )
+
+            if step < 0 or step >= len(puzzle.solution_moves):
+                return self._response(
+                    status=400,
+                    body=json.dumps({"error": "invalid_step_index"}),
+                )
+
+            expected = puzzle.solution_moves[step].strip().upper()
+            is_correct = (candidate_move.upper() == expected)
+            is_completed = is_correct and (step + 1 >= len(puzzle.solution_moves))
+
+            return self._response(
+                status=200,
+                body=json.dumps({
+                    "puzzle_id": puzzle.puzzle_id,
+                    "correct": is_correct,
+                    "completed": is_completed,
+                    "step": step,
+                    "explanation": puzzle.description if is_completed else "",
+                }),
+            )
+
+        # All remaining endpoints are read-only (GET/HEAD)
         if method != "GET":
             return self._response(
                 status=405,
@@ -164,6 +222,7 @@ class RedWarWebApp:
             )
 
         if route == "/api/puzzles":
+            # Security: Omit solution_moves to avoid exposing solutions to clients
             puzzles = [
                 {
                     "puzzle_id": pz.puzzle_id,
@@ -171,7 +230,6 @@ class RedWarWebApp:
                     "description": pz.description,
                     "rating": pz.rating,
                     "initial_rwen": pz.initial_rwen,
-                    "solution_moves": pz.solution_moves,
                     "theme": pz.theme,
                 }
                 for pz in PUZZLE_BANK
@@ -191,7 +249,9 @@ class RedWarWebApp:
         if route == "/api/game_modes":
             modes = [
                 {"type": "standard_8x8", "name": "Padrão 8×8", "rows": 8, "cols": 8, "budget": 200},
-                {"type": "grand_10x10", "name": "Grand RedWar 10×10", "rows": 10, "cols": 10, "budget": 300},
+                {"type": "grand_10x10", "name": "Grand RedWar 10×10 (Experimental)", "rows": 10, "cols": 10, "budget": 300},
+                {"type": "snake_draft", "name": "Tournament Snake Draft", "rows": 8, "cols": 8, "budget": 200},
+                {"type": "hazard_arena", "name": "Hazard Arena", "rows": 8, "cols": 8, "budget": 200},
                 {"type": "puzzle", "name": "Puzzles Táticos", "rows": 8, "cols": 8, "budget": 0},
             ]
             time_controls = [

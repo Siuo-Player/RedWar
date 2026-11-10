@@ -56,7 +56,17 @@ def test_puzzles_endpoint(web_client):
     for pz in data["puzzles"]:
         assert "puzzle_id" in pz
         assert "initial_rwen" in pz
-        assert "solution_moves" in pz
+        assert "solution_moves" not in pz
+
+    # Authoritative verification endpoint
+    resp_verify = web_client.handle_request(
+        "POST",
+        "/api/puzzles/verify",
+        body=json.dumps({"puzzle_id": "puz_001", "move": "MOVE D2 D8", "step": 0}),
+    )
+    assert resp_verify["status"] == 200
+    vdata = json.loads(resp_verify["body"])
+    assert vdata["correct"] is True
 
 
 def test_rooms_endpoint(web_client):
@@ -77,6 +87,8 @@ def test_game_modes_endpoint(web_client):
     modes = [m["name"] for m in data["modes"]]
     assert any("8×8" in m or "standard" in m.lower() for m in modes)
     assert any("10×10" in m or "grand" in m.lower() for m in modes)
+    assert any("snake" in m.lower() or "draft" in m.lower() for m in modes)
+    assert any("hazard" in m.lower() for m in modes)
 
 
 def test_static_files_served(web_client):

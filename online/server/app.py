@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import asyncio
 import json
+import time
 from typing import Any
 
 import websockets
 
-from engine.game_modes import GameMode, TimeControl
+from engine.game_modes import GameMode, GameModeType, TimeControl, get_preset_mode
 from engine.ratings import LeaderboardManager
 from online.server.authority import AuthoritativeSession
 from online.server.room import GameRoom, RoomManager
@@ -56,6 +57,9 @@ async def _broadcast_room(room_id: str, payload: dict[str, Any]) -> None:
             await ws.send(mensagem)
         except websockets.exceptions.ConnectionClosed:
             sockets.discard(ws)
+            _connections.pop(ws, None)
+    if not sockets:
+        _room_sockets.pop(room_id, None)
 
 
 async def _enviar_erro(websocket: Any, mensagem: str) -> None:
@@ -101,9 +105,46 @@ def _get_time_control(tc_name: str | None) -> TimeControl:
 def _get_game_mode(mode_name: str | None) -> GameMode:
     if not mode_name:
         return GameMode.standard_8x8()
-    if "10" in mode_name or "grand" in mode_name.lower():
+    name = mode_name.lower()
+    if "snake" in name or "draft" in name:
+        return get_preset_mode(GameModeType.SNAKE_DRAFT)
+    if "hazard" in name:
+        return get_preset_mode(GameModeType.HAZARD_ARENA)
+    if "10" in name or "grand" in name:
         return GameMode.grand_10x10()
     return GameMode.standard_8x8()
+
+
+async def _clock_tick_loop(room_manager: RoomManager) -> None:
+    """Periodic background task advancing active room clocks and enforcing flag fall terminations."""
+    last_tick = time.monotonic()
+    while True:
+        try:
+            await asyncio.sleep(1.0)
+            now = time.monotonic()
+            elapsed = now - last_tick
+            last_tick = now
+
+            for room_id, room in list(room_manager.rooms.items()):
+                if room.is_started and not room.is_finished:
+                    winner = room.tick_clock(elapsed)
+                    if winner or room.is_finished:
+                        room_manager.record_match_result(room)
+                        await _broadcast_room(room_id, {
+                            "tipo": "estado_jogo",
+                            "dados": room.session.state_payload(),
+                            "room": room.state_payload(),
+                        })
+                        await _broadcast_room(room_id, {
+                            "tipo": "game_over",
+                            "reason": room.termination_reason or "flag_fall",
+                            "winner": room.winner,
+                            "room": room.state_payload(),
+                        })
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            print(f"[Clock] Exception in background clock tick loop: {exc}")
 
 
 async def gerir_conexao(websocket: Any):
@@ -138,15 +179,13 @@ async def gerir_conexao(websocket: Any):
     else:
         legacy_cor = "espetador"
 
+    jogadores[websocket] = legacy_cor
     meta["cor"] = legacy_cor
 
-    # Legacy setup notification is sent on connect
-    # If the client immediately sends join_room, we transition to room mode
     try:
-        if legacy_cor in ("brancas", "pretas"):
-            jogadores[websocket] = legacy_cor
-            await websocket.send(json.dumps({"tipo": "setup", "cor": legacy_cor}))
-        else:
+        # Legacy greeting
+        await websocket.send(json.dumps({"tipo": "setup", "cor": legacy_cor}))
+        if legacy_cor == "espetador":
             await _enviar_erro(websocket, "Sala cheia. Apenas espetador.")
 
         client_key = _extract_client_ip(websocket)
@@ -406,8 +445,16 @@ async def gerir_conexao(websocket: Any):
 async def main():
     porto = 8765
     print(f"🚀 Servidor RedWar autoritativo a iniciar na porta {porto}...")
-    async with websockets.serve(gerir_conexao, "0.0.0.0", porto):
-        await asyncio.Future()
+    ticker_task = asyncio.create_task(_clock_tick_loop(manager))
+    try:
+        async with websockets.serve(gerir_conexao, "0.0.0.0", porto):
+            await asyncio.Future()
+    finally:
+        ticker_task.cancel()
+        try:
+            await ticker_task
+        except asyncio.CancelledError:
+            pass
 
 
 if __name__ == "__main__":

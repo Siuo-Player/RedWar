@@ -24,7 +24,6 @@ DEFAULT_ALLOWED_ORIGIN_PREFIXES = (
     "http://127.0.0.1",
     "https://127.0.0.1",
     "https://siuo-player.github.io",
-    "null",
 )
 
 
@@ -162,8 +161,37 @@ class SecurityGuard:
             return True, None
 
         if tipo == "acao":
-            if len(dados) > 20:
-                return False, "action_payload_too_large"
+            allowed = {"tipo", "type", "action", "start", "end", "area", "spawn_name", "spell_name", "actor_team"}
+            if not set(dados.keys()).issubset(allowed):
+                return False, "unexpected_fields_in_acao"
+            act_type = dados.get("type") or dados.get("action")
+            if not isinstance(act_type, str) or len(act_type) > 32:
+                return False, "invalid_action_type"
+            for coord_field in ("start", "end"):
+                if coord_field in dados and dados[coord_field] is not None:
+                    val = dados[coord_field]
+                    if not isinstance(val, (list, tuple)) or len(val) != 2:
+                        return False, f"invalid_coordinates_{coord_field}"
+                    r, c = val
+                    if not isinstance(r, int) or not isinstance(c, int):
+                        return False, f"non_integer_coordinates_{coord_field}"
+                    if not (0 <= r <= 15 and 0 <= c <= 15):
+                        return False, f"out_of_bounds_coordinates_{coord_field}"
+            if "area" in dados and dados["area"] is not None:
+                if not isinstance(dados["area"], (list, tuple)):
+                    return False, "invalid_area_format"
+                for item in dados["area"]:
+                    if not isinstance(item, (list, tuple)) or len(item) != 2:
+                        return False, "invalid_area_coordinate"
+                    if not isinstance(item[0], int) or not isinstance(item[1], int):
+                        return False, "non_integer_area_coordinate"
+            for str_field in ("spawn_name", "spell_name"):
+                if str_field in dados and dados[str_field] is not None:
+                    if not isinstance(dados[str_field], str) or len(dados[str_field]) > 32:
+                        return False, f"invalid_{str_field}"
+            if "actor_team" in dados and dados["actor_team"] is not None:
+                if dados["actor_team"] not in ("brancas", "pretas"):
+                    return False, "invalid_actor_team"
             return True, None
 
         return False, "unknown_message_type"
