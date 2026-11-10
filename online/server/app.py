@@ -73,6 +73,15 @@ def _extract_client_ip(websocket: Any) -> str:
     return str(addr or "127.0.0.1")
 
 
+def _extract_origin(websocket: Any) -> str | None:
+    """Safely extract Origin header across websockets library versions."""
+    request = getattr(websocket, "request", None)
+    headers = getattr(request, "headers", None) or getattr(websocket, "request_headers", None)
+    if headers:
+        return headers.get("Origin") or headers.get("origin")
+    return None
+
+
 def _get_time_control(tc_name: str | None) -> TimeControl:
     if not tc_name:
         return TimeControl.rapid_10_0()
@@ -99,6 +108,16 @@ def _get_game_mode(mode_name: str | None) -> GameMode:
 
 async def gerir_conexao(websocket: Any):
     global sessao
+
+    # 1. Validate Origin header for CSRF / cross-site WebSocket hijacking defense
+    origin = _extract_origin(websocket)
+    if not SecurityGuard.validate_origin(origin):
+        await _enviar_erro(websocket, "origem nao autorizada")
+        try:
+            await websocket.close(1008, "Policy Violation: Origin not allowed")
+        except Exception:
+            pass
+        return
 
     meta: dict[str, Any] = {
         "room_id": None,
@@ -148,17 +167,30 @@ async def gerir_conexao(websocket: Any):
                     await _enviar_erro(websocket, "mensagem JSON inválida")
                 continue
 
+            # Strict schema validation per message type
+            schema_valid, schema_err = SecurityGuard.validate_message_schema(dados)
+            if not schema_valid:
+                await _enviar_erro(websocket, f"formato de mensagem invalido: {schema_err}")
+                continue
+
             tipo = dados.get("tipo")
 
             # Room joining request
             if tipo == "join_room":
+                # Atomic room transition: detach from previous room if any
+                prev_room_id = meta.get("room_id")
+                if prev_room_id and prev_room_id in _room_sockets:
+                    _room_sockets[prev_room_id].discard(websocket)
+                    if not _room_sockets[prev_room_id]:
+                        _room_sockets.pop(prev_room_id, None)
+
                 # Remove from legacy tracking
                 jogadores.pop(websocket, None)
                 prontos.discard(websocket)
 
-                room_id = str(dados.get("room_id", "default_room"))
-                player_id = str(dados.get("player_id", f"Player_{id(websocket)}"))
-                role_pref = str(dados.get("role_preference", "auto"))
+                room_id = str(dados.get("room_id", "default_room")).strip()[:64]
+                player_id = str(dados.get("player_id", f"Player_{id(websocket)}")).strip()[:64]
+                role_pref = str(dados.get("role_preference", "auto")).strip()[:16]
                 tc = _get_time_control(dados.get("time_control"))
                 mode = _get_game_mode(dados.get("mode"))
 
@@ -167,6 +199,14 @@ async def gerir_conexao(websocket: Any):
                     room = manager.create_room(room_id=room_id, mode=mode, time_control=tc)
 
                 assigned_role = room.add_player(player_id, role_pref)
+                if assigned_role is None:
+                    # Anti-impersonation: player_id is already registered in this room!
+                    # Reject unauthenticated hijack and NEVER leak reconnect token!
+                    await _enviar_erro(
+                        websocket,
+                        "Identificador de jogador já em jogo nesta sala. Para retomar o controlo, use 'reconnect' com o seu token secreto."
+                    )
+                    continue
 
                 meta["room_id"] = room_id
                 meta["player_id"] = player_id
@@ -177,11 +217,13 @@ async def gerir_conexao(websocket: Any):
                     _room_sockets[room_id] = set()
                 _room_sockets[room_id].add(websocket)
 
+                token = room.player_tokens.get(player_id) if assigned_role in ("brancas", "pretas") else None
+
                 await websocket.send(json.dumps({
                     "tipo": "room_joined",
                     "room_id": room_id,
                     "cor": assigned_role,
-                    "reconnect_token": room.player_tokens.get(player_id),
+                    "reconnect_token": token,
                     "room": room.state_payload(),
                 }))
                 continue
@@ -231,12 +273,19 @@ async def gerir_conexao(websocket: Any):
 
             # Reconnection with token
             if tipo == "reconnect":
-                token = str(dados.get("token", ""))
-                room_id = str(dados.get("room_id", ""))
+                token = str(dados.get("token", "")).strip()
+                room_id = str(dados.get("room_id", "")).strip()
                 room = manager.get_room(room_id)
                 if room:
                     success, role = room.reconnect_player(token)
                     if success and role:
+                        # Atomic room transition: detach from previous room
+                        prev_room_id = meta.get("room_id")
+                        if prev_room_id and prev_room_id in _room_sockets:
+                            _room_sockets[prev_room_id].discard(websocket)
+                            if not _room_sockets[prev_room_id]:
+                                _room_sockets.pop(prev_room_id, None)
+
                         recovered_id = room.white_player if role == "brancas" else room.black_player
                         meta["room_id"] = room_id
                         meta["player_id"] = recovered_id
@@ -264,21 +313,25 @@ async def gerir_conexao(websocket: Any):
                 if not meta["is_legacy"] and meta.get("room_id"):
                     room = manager.get_room(meta["room_id"])
                     if room:
-                        room.propose_rematch(meta["player_id"])
-                        await _broadcast_room(meta["room_id"], {
-                            "tipo": "rematch_update",
-                            "room": room.state_payload(),
-                        })
-                        if room.is_started and not room.is_finished:
+                        if not room.is_finished:
+                            await _enviar_erro(websocket, "desforra indisponivel durante partida ativa")
+                            continue
+                        success = room.propose_rematch(meta["player_id"])
+                        if success:
                             await _broadcast_room(meta["room_id"], {
-                                "tipo": "start_game",
+                                "tipo": "rematch_update",
                                 "room": room.state_payload(),
                             })
-                            await _broadcast_room(meta["room_id"], {
-                                "tipo": "estado_jogo",
-                                "dados": room.session.state_payload(),
-                                "room": room.state_payload(),
-                            })
+                            if room.is_started and not room.is_finished:
+                                await _broadcast_room(meta["room_id"], {
+                                    "tipo": "start_game",
+                                    "room": room.state_payload(),
+                                })
+                                await _broadcast_room(meta["room_id"], {
+                                    "tipo": "estado_jogo",
+                                    "dados": room.session.state_payload(),
+                                    "room": room.state_payload(),
+                                })
                 continue
 
             # Tactical chat emote
@@ -303,6 +356,9 @@ async def gerir_conexao(websocket: Any):
                     except (TypeError, ValueError) as exc:
                         await _enviar_erro(websocket, str(exc))
                         continue
+                    except Exception as exc:
+                        await _enviar_erro(websocket, SecurityGuard.mask_error_message(exc))
+                        continue
                     await _broadcast(_mensagem_estado())
                 else:
                     room_id = meta["room_id"]
@@ -312,8 +368,8 @@ async def gerir_conexao(websocket: Any):
                         continue
                     try:
                         room.apply_action(meta["player_id"], acao)
-                    except (TypeError, ValueError) as exc:
-                        await _enviar_erro(websocket, str(exc))
+                    except Exception as exc:
+                        await _enviar_erro(websocket, SecurityGuard.mask_error_message(exc))
                         continue
 
                     if room.is_finished:

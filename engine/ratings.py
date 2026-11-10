@@ -10,6 +10,20 @@ from typing import Any
 from engine.game_modes import GameModeType
 
 
+def canonical_mode_key(mode: Any) -> str:
+    """Return canonical mode key (e.g. 'standard_8x8') across GameMode, GameModeType or labels."""
+    if isinstance(mode, GameModeType):
+        return mode.value
+    if hasattr(mode, "mode_type"):
+        return getattr(mode.mode_type, "value", str(mode.mode_type))
+    sm = str(mode).strip().lower()
+    if "padr" in sm or "8x8" in sm or "standard" in sm:
+        return "standard_8x8"
+    if "grand" in sm or "10x10" in sm:
+        return "grand_10x10"
+    return str(mode)
+
+
 def calculate_expected_score(rating_a: float, rating_b: float) -> float:
     """Calculate the expected match score for player A against player B."""
     return 1.0 / (1.0 + math.pow(10.0, (rating_b - rating_a) / 400.0))
@@ -62,9 +76,7 @@ class PlayerRatingProfile:
         self.stats: dict[str, dict[str, int]] = {}
 
     def _mode_key(self, mode: GameModeType | str) -> str:
-        if isinstance(mode, GameModeType):
-            return mode.value
-        return str(mode)
+        return canonical_mode_key(mode)
 
     def get_rating(self, mode: GameModeType | str) -> int:
         key = self._mode_key(mode)
@@ -152,7 +164,7 @@ class LeaderboardManager:
         return self.profiles[player_id]
 
     def get_top_players(self, mode: GameModeType | str, limit: int = 50) -> list[LeaderboardEntry]:
-        key = mode.value if isinstance(mode, GameModeType) else str(mode)
+        key = canonical_mode_key(mode)
         ranked = sorted(
             self.profiles.values(),
             key=lambda p: p.get_rating(key),

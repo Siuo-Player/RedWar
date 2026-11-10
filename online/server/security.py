@@ -4,10 +4,12 @@ Enforces:
 - Token-bucket message rate limiting (DoS prevention)
 - Maximum frame / payload size caps (64 KB limit to prevent memory exhaustion)
 - JSON schema validation and error masking
+- Origin header verification for CSRF / cross-site WebSocket hijacking prevention
 """
 from __future__ import annotations
 
 import json
+import os
 import time
 from typing import Any, Optional
 
@@ -15,6 +17,15 @@ from typing import Any, Optional
 MAX_PAYLOAD_BYTES = 64 * 1024  # 64 KB max frame size
 DEFAULT_RATE_CAPACITY = 30.0  # Max burst tokens
 DEFAULT_REFILL_RATE = 30.0    # Tokens per second
+
+DEFAULT_ALLOWED_ORIGIN_PREFIXES = (
+    "http://localhost",
+    "https://localhost",
+    "http://127.0.0.1",
+    "https://127.0.0.1",
+    "https://siuo-player.github.io",
+    "null",
+)
 
 
 class TokenBucketRateLimiter:
@@ -60,13 +71,37 @@ class TokenBucketRateLimiter:
 
 
 class SecurityGuard:
-    """Validates message dimensions and sanitizes internal exception messages."""
+    """Validates message dimensions, origin headers, schema structure, and masks exceptions."""
 
     @staticmethod
     def validate_payload_size(raw_data: str | bytes) -> bool:
         """Verify that incoming message does not exceed memory boundaries."""
         size = len(raw_data.encode("utf-8") if isinstance(raw_data, str) else raw_data)
         return size <= MAX_PAYLOAD_BYTES
+
+    @staticmethod
+    def validate_origin(origin: Optional[str], custom_allowed: Optional[list[str]] = None) -> bool:
+        """Validate WebSocket Origin header against whitelist.
+        
+        If origin is None, permits non-browser native clients/bots.
+        If present, ensures origin matches approved domains or local addresses.
+        """
+        if origin is None:
+            return True
+
+        origin_norm = origin.strip().lower()
+        allowed = list(DEFAULT_ALLOWED_ORIGIN_PREFIXES)
+        if custom_allowed:
+            allowed.extend(custom_allowed)
+
+        env_origins = os.environ.get("REDWAR_ALLOWED_ORIGINS", "")
+        if env_origins:
+            allowed.extend([o.strip().lower() for o in env_origins.split(",") if o.strip()])
+
+        for prefix in allowed:
+            if origin_norm == prefix or origin_norm.startswith(prefix + ":") or origin_norm.startswith(prefix + "/"):
+                return True
+        return False
 
     @staticmethod
     def parse_and_validate_json(raw_text: str) -> tuple[bool, Optional[dict[str, Any]], Optional[str]]:
@@ -88,12 +123,58 @@ class SecurityGuard:
         return True, parsed, None
 
     @staticmethod
+    def validate_message_schema(dados: dict[str, Any]) -> tuple[bool, Optional[str]]:
+        """Strictly validate message schema and payload constraints per message type."""
+        tipo = dados.get("tipo")
+        if not isinstance(tipo, str):
+            return False, "missing_or_invalid_tipo"
+
+        if tipo == "join_room":
+            allowed = {"tipo", "room_id", "player_id", "role_preference", "time_control", "mode"}
+            if not set(dados.keys()).issubset(allowed):
+                return False, "unexpected_fields_in_join_room"
+            for k in ("room_id", "player_id", "role_preference", "time_control", "mode"):
+                if k in dados and (not isinstance(dados[k], str) or len(dados[k]) > 64):
+                    return False, f"invalid_field_{k}"
+            return True, None
+
+        if tipo == "reconnect":
+            allowed = {"tipo", "token", "room_id"}
+            if not set(dados.keys()).issubset(allowed):
+                return False, "unexpected_fields_in_reconnect"
+            if not isinstance(dados.get("token"), str) or not (10 <= len(dados["token"]) <= 128):
+                return False, "invalid_token_format"
+            if not isinstance(dados.get("room_id"), str) or not (1 <= len(dados["room_id"]) <= 64):
+                return False, "invalid_room_id_format"
+            return True, None
+
+        if tipo in ("pronto", "resign", "rematch"):
+            if set(dados.keys()) != {"tipo"}:
+                return False, f"unexpected_fields_in_{tipo}"
+            return True, None
+
+        if tipo == "emote":
+            allowed = {"tipo", "emote"}
+            if not set(dados.keys()).issubset(allowed):
+                return False, "unexpected_fields_in_emote"
+            if "emote" in dados and (not isinstance(dados["emote"], str) or len(dados["emote"]) > 32):
+                return False, "invalid_emote_format"
+            return True, None
+
+        if tipo == "acao":
+            if len(dados) > 20:
+                return False, "action_payload_too_large"
+            return True, None
+
+        return False, "unknown_message_type"
+
+    @staticmethod
     def mask_error_message(exc: Exception) -> str:
         """Prevent internal stack trace leakage over the public network."""
         msg = str(exc).lower()
         if "timeout" in msg:
             return "tempo esgotado"
-        if "outside" in msg or "invalid" in msg or "not allowed" in msg:
+        if "outside" in msg or "invalid" in msg or "not allowed" in msg or "ilegal" in msg:
             return "acao invalida"
         if "already exists" in msg or "cheia" in msg:
             return "sala indisponivel"
