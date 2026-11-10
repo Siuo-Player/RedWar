@@ -163,20 +163,19 @@ def test_web_client_all_heroes_configured():
 
 
 def test_web_client_tactical_puzzles_trainer_contract():
-    """Tactical puzzles must load, have valid solution coordinates, and track ELO."""
+    """Tactical puzzles must load, protect solutions (privacy invariant), and track ELO."""
     snippet = """
     let errors = [];
     if (!PUZZLES || PUZZLES.length < 6) {
       errors.push(`Expected at least 6 puzzles, got ${PUZZLES ? PUZZLES.length : 0}`);
     }
     for (const pz of PUZZLES) {
-      if (!pz.puzzle_id || !pz.title || !pz.rating || !pz.solution || !pz.board) {
+      if (!pz.puzzle_id || !pz.title || !pz.rating || !pz.board) {
         errors.push(`Puzzle ${pz.puzzle_id} has invalid schema`);
       }
-      const { fromR, fromC, toR, toC } = pz.solution;
-      const source = pz.board.find(p => p.r === fromR && p.c === fromC);
-      if (!source) {
-        errors.push(`Puzzle ${pz.puzzle_id} solution from (${fromR},${fromC}) has no piece`);
+      // Privacy invariant: solution coordinates must NEVER be exposed on the client
+      if (pz.solution !== undefined) {
+        errors.push(`Security violation: Puzzle ${pz.puzzle_id} leaks solution coordinates on client`);
       }
     }
     setupPuzzle("pz1");
@@ -348,3 +347,88 @@ def test_web_client_puzzle_persistence_and_game_review_audio():
     """
     res = run_node_snippet(snippet)
     assert res["passed"], f"Puzzle persistence and game review audio failed: {res}"
+
+
+def test_web_api_puzzle_verify_and_privacy_contract():
+    """Verify /api/puzzles/verify endpoint contract with coordinate payloads and solution privacy."""
+    from online.server.web_app import create_web_handler_app
+    app = create_web_handler_app()
+
+    # 1. Correct move with coordinate object
+    res_ok = app.handle_request(
+        "POST",
+        "/api/puzzles/verify",
+        body=json.dumps({"puzzle_id": "pz1", "fromR": 4, "fromC": 3, "toR": 2, "toC": 5, "step": 0}),
+    )
+    assert res_ok["status"] == 200
+    data_ok = json.loads(res_ok["body"])
+    assert data_ok["correct"] is True
+    assert data_ok["completed"] is True
+    assert len(data_ok["explanation"]) > 0
+
+    # 2. Correct move with string coordinate format
+    res_str = app.handle_request(
+        "POST",
+        "/api/puzzles/verify",
+        body=json.dumps({"puzzle_id": "pz1", "move": "4,3->2,5", "step": 0}),
+    )
+    assert res_str["status"] == 200
+    assert json.loads(res_str["body"])["correct"] is True
+
+    # 3. Incorrect move
+    res_wrong = app.handle_request(
+        "POST",
+        "/api/puzzles/verify",
+        body=json.dumps({"puzzle_id": "pz1", "fromR": 4, "fromC": 3, "toR": 1, "toC": 1, "step": 0}),
+    )
+    assert res_wrong["status"] == 200
+    assert json.loads(res_wrong["body"])["correct"] is False
+
+    # 4. GET /api/puzzles privacy invariant: solution_moves and solution must be stripped
+    res_list = app.handle_request("GET", "/api/puzzles")
+    assert res_list["status"] == 200
+    puzzles_list = json.loads(res_list["body"])["puzzles"]
+    assert len(puzzles_list) >= 6
+    for pz in puzzles_list:
+        assert "solution" not in pz
+        assert "solution_moves" not in pz
+
+
+def test_web_client_apply_server_board_and_reconnect():
+    """Verify applyServerBoard and reconnectOnlineGame in the Node VM environment."""
+    snippet = """
+    // 1. Test applyServerBoard with stun mapping
+    const mockBoard = [
+      [ { name: "Dragoon", team: "brancas", stun_timer: 2 }, null ],
+      [ null, { name: "Bone", team: "pretas", stun: 1 } ]
+    ];
+    applyServerBoard(mockBoard);
+    const boardLoaded = (boardGrid === 2 && boardData[0][0].name === "Dragoon" && boardData[0][0].stun === 2);
+
+    // 2. Test reconnectOnlineGame saves & retrieves token from localStorage
+    localStorage.setItem("redwar_online_room", "ROOM_RECONNECT_TEST");
+    localStorage.setItem("redwar_reconnect_token", "TOKEN_SECRET_XYZ");
+
+    let reconnectCalled = false;
+    let sentMsg = null;
+    socket = {
+      readyState: 1,
+      send: (msg) => {
+        reconnectCalled = true;
+        sentMsg = JSON.parse(msg);
+      }
+    };
+
+    reconnectOnlineGame();
+
+    const reconnectSent = reconnectCalled && sentMsg && sentMsg.tipo === "reconnect" && sentMsg.token === "TOKEN_SECRET_XYZ";
+
+    console.log(JSON.stringify({
+      passed: boardLoaded && reconnectSent,
+      boardLoaded,
+      reconnectSent
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"applyServerBoard and reconnectOnlineGame invariant failed: {res}"
+

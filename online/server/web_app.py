@@ -3,6 +3,7 @@ from __future__ import annotations
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
+import re
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
@@ -11,6 +12,39 @@ from engine.game_modes import GameMode, GameModeType, TimeControl
 from engine.puzzles import PUZZLE_BANK
 from engine.ratings import LeaderboardManager
 from online.server.room import RoomManager
+
+
+def _normalize_puzzle_move(move_val: Any) -> Optional[tuple[int, int, int, int]]:
+    """Attempt to parse move representation into canonical coordinates (from_r, from_c, to_r, to_c)."""
+    if isinstance(move_val, dict):
+        if "fromR" in move_val and "toR" in move_val:
+            try:
+                return (int(move_val["fromR"]), int(move_val["fromC"]), int(move_val["toR"]), int(move_val["toC"]))
+            except (ValueError, TypeError):
+                return None
+        if "start" in move_val and "end" in move_val:
+            try:
+                s, e = move_val["start"], move_val["end"]
+                return (int(s[0]), int(s[1]), int(e[0]), int(e[1]))
+            except (ValueError, TypeError, IndexError):
+                return None
+    if isinstance(move_val, str):
+        # Match '4,3->2,5' or '4,3 to 2,5' or '4,3 2,5'
+        m = re.search(r"(\d+)\s*,\s*(\d+)\s*(?:->|to|\s)\s*(\d+)\s*,\s*(\d+)", move_val)
+        if m:
+            return (int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)))
+        # Match algebraic notation like 'MOVE D4 F6' or 'D4 F6' or 'D4-F6'
+        m_alg = re.search(r"\b([A-Ja-j]\d+)\b[^\w]*\b([A-Ja-j]\d+)\b", move_val)
+        if m_alg:
+            try:
+                from engine.action_parser import ActionParser
+                r1, c1 = ActionParser.alg_to_coords(m_alg.group(1), total_linhas=8)
+                r2, c2 = ActionParser.alg_to_coords(m_alg.group(2), total_linhas=8)
+                return (r1, c1, r2, c2)
+            except Exception:
+                pass
+    return None
+
 
 
 DEFAULT_SECURITY_HEADERS = {
@@ -135,14 +169,19 @@ class RedWarWebApp:
                     body=json.dumps({"error": "Method Not Allowed"}),
                 )
             puzzle_id = ""
-            candidate_move = ""
+            candidate_move: Any = ""
             step = 0
             if method == "POST" and body:
                 try:
                     payload = json.loads(body)
                     puzzle_id = str(payload.get("puzzle_id", "")).strip()
-                    candidate_move = str(payload.get("move", "")).strip()
                     step = int(payload.get("step", 0))
+                    if "fromR" in payload and "toR" in payload:
+                        candidate_move = payload
+                    elif "move" in payload:
+                        candidate_move = payload.get("move")
+                    else:
+                        candidate_move = payload
                 except (json.JSONDecodeError, ValueError, TypeError):
                     return self._response(
                         status=400,
@@ -150,7 +189,18 @@ class RedWarWebApp:
                     )
             else:
                 puzzle_id = query_params.get("puzzle_id", [""])[0].strip()
-                candidate_move = query_params.get("move", [""])[0].strip()
+                if "fromR" in query_params and "toR" in query_params:
+                    try:
+                        candidate_move = {
+                            "fromR": int(query_params.get("fromR", [0])[0]),
+                            "fromC": int(query_params.get("fromC", [0])[0]),
+                            "toR": int(query_params.get("toR", [0])[0]),
+                            "toC": int(query_params.get("toC", [0])[0]),
+                        }
+                    except (ValueError, TypeError):
+                        candidate_move = ""
+                else:
+                    candidate_move = query_params.get("move", [""])[0].strip()
                 try:
                     step = int(query_params.get("step", [0])[0])
                 except (ValueError, TypeError):
@@ -169,8 +219,16 @@ class RedWarWebApp:
                     body=json.dumps({"error": "invalid_step_index"}),
                 )
 
-            expected = puzzle.solution_moves[step].strip().upper()
-            is_correct = (candidate_move.upper() == expected)
+            expected = puzzle.solution_moves[step].strip()
+            cand_coords = _normalize_puzzle_move(candidate_move)
+            exp_coords = _normalize_puzzle_move(expected)
+
+            if cand_coords is not None and exp_coords is not None:
+                is_correct = (cand_coords == exp_coords)
+            else:
+                cand_str = str(candidate_move).strip().upper()
+                is_correct = (cand_str == expected.upper())
+
             is_completed = is_correct and (step + 1 >= len(puzzle.solution_moves))
 
             return self._response(

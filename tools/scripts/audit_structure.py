@@ -26,6 +26,8 @@ EXPECTED_TOP_LEVEL = {
 
 # These are legitimate local/generated directories, not project modules.
 IGNORED_TOP_LEVEL = {
+    ".agents",
+    ".gemini",
     ".git",
     ".github",
     ".vscode",

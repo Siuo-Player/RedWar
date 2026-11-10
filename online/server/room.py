@@ -241,17 +241,28 @@ class GameRoom:
         self.termination_reason = None
         self.last_move_timestamp = time.monotonic()
 
-    def tick_clock(self, elapsed_seconds: float) -> Optional[str]:
+    def tick_clock(self, elapsed_seconds: Optional[float] = None) -> Optional[str]:
         """Advance the match clock by elapsed seconds. Detect flag fall."""
         if not self.is_started or self.is_finished:
             return None
 
+        now = time.monotonic()
         self.last_activity_timestamp = time.time()
+
+        if elapsed_seconds is None:
+            if self.last_move_timestamp is None:
+                self.last_move_timestamp = now
+            deduction = max(0.0, now - self.last_move_timestamp)
+        else:
+            deduction = max(0.0, elapsed_seconds)
+
         white_to_move = self.session.state.white_to_move
         if white_to_move:
-            self.clock.white_time = max(0.0, self.clock.white_time - elapsed_seconds)
+            self.clock.white_time = max(0.0, self.clock.white_time - deduction)
         else:
-            self.clock.black_time = max(0.0, self.clock.black_time - elapsed_seconds)
+            self.clock.black_time = max(0.0, self.clock.black_time - deduction)
+
+        self.last_move_timestamp = now
 
         if self.clock.is_flag_fallen(white_to_move):
             self.is_finished = True
@@ -275,15 +286,16 @@ class GameRoom:
         if player_id != expected_player:
             raise ValueError(f"action submitted by {player_id}, but {expected_team} is active")
 
-        # Deduct server elapsed wall clock time on active player
+        # Deduct server elapsed wall clock time on active player (residual since last tick or move)
         if self.last_move_timestamp is not None:
             now = time.monotonic()
-            elapsed = now - self.last_move_timestamp
+            elapsed = max(0.0, now - self.last_move_timestamp)
             if elapsed > 0.05:
                 if white_to_move:
                     self.clock.white_time = max(0.0, self.clock.white_time - elapsed)
                 else:
                     self.clock.black_time = max(0.0, self.clock.black_time - elapsed)
+            self.last_move_timestamp = now
 
         # Check if flag fell on active player: finish cleanly without unhandled exception
         if self.clock.is_flag_fallen(white_to_move):

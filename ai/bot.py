@@ -203,8 +203,10 @@ class BotAleatorio:
     def escolher_jogada(self, gs):
         acoes = []
         current_team = 'brancas' if gs.white_to_move else 'pretas'
-        for r in range(8):
-            for c in range(8):
+        rows = getattr(gs, "rows", len(gs.board))
+        cols = getattr(gs, "cols", len(gs.board[0]))
+        for r in range(rows):
+            for c in range(cols):
                 p = gs.board[r][c]
                 if p and p.team == current_team and getattr(p, 'stun_timer', 0) == 0:
                     for mv in p.get_valid_moves(r, c, gs.board, gs.tile_effects):

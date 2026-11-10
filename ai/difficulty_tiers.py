@@ -34,13 +34,21 @@ def get_bot_tier_by_elo(elo: int) -> AresBotTier:
 class AresTieredBot(CppEngineBot):
     """Calibrated Ares engine bot with configurable ELO tier and error margin."""
 
-    def __init__(self, tier: AresBotTier = AresBotTier.INTERMEDIATE, executable_path=None, bridge=None):
+    def __init__(
+        self,
+        tier: AresBotTier = AresBotTier.INTERMEDIATE,
+        executable_path=None,
+        bridge=None,
+        blunder_rate: float | None = None,
+    ):
         super().__init__(nodes=tier.node_limit, executable_path=executable_path, bridge=bridge)
         self.tier = tier
+        self.blunder_rate = blunder_rate if blunder_rate is not None else tier.blunder_rate
         self.nome = f"{tier.display_name} (ELO {tier.elo})"
 
     def escolher_jogada(self, game_state):
-        if self.tier.blunder_rate > 0.0 and random.random() < self.tier.blunder_rate:
+        rate = getattr(self, "blunder_rate", self.tier.blunder_rate)
+        if rate > 0.0 and random.random() < rate:
             from ai.bot import BOT_ALEATORIO
             fallback_action = BOT_ALEATORIO.escolher_jogada(game_state)
             if fallback_action is not None:

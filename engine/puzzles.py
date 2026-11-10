@@ -124,4 +124,112 @@ PUZZLE_BANK: list[TacticalPuzzle] = [
         solution_moves=["SPELL D2 D7 jump"],
         theme="dragoon_jump_fork",
     ),
+    TacticalPuzzle(
+        puzzle_id="pz1",
+        title="O Salto Duplo do Dragoon",
+        description="Excelente! O Dragoon saltou sobre a barreira e eliminou instantaneamente o Paladino atordoado.",
+        rating=1350,
+        initial_rwen=(
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,B_FrostMage_0_N_0:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,B_Paladin_1_N_0:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,W_Dragoon_0_N_0:.,W_Bone_0_N_0:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+        ),
+        solution_moves=["4,3->2,5"],
+        theme="dragoon_jump",
+    ),
+    TacticalPuzzle(
+        puzzle_id="pz2",
+        title="A Lâmina Fantasma na Cripta",
+        description="Perfeito! A Shadowblade atravessou duas unidades na diagonal para desferir o golpe letal.",
+        rating=1520,
+        initial_rwen=(
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,B_FrostMage_1_N_0:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,B_Bone_0_N_0:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,W_Bone_0_N_0:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,W_Shadowblade_0_N_0:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+        ),
+        solution_moves=["4,4->1,1"],
+        theme="spectral_mobility",
+    ),
+    TacticalPuzzle(
+        puzzle_id="pz3",
+        title="As Asas Celestes da Valkyrie",
+        description="Brilhante! O voo espectral da Valkyrie sobrevoou a parede e o lacaio, liquidando o Lich.",
+        rating=1650,
+        initial_rwen=(
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,B_Lich_2_N_0:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,B_Bone_0_N_0:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,B_StoneWall_0_N_0:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,W_Valkyrie_0_N_0:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+        ),
+        solution_moves=["5,2->2,2"],
+        theme="valkyrie_flight",
+    ),
+    TacticalPuzzle(
+        puzzle_id="pz4",
+        title="Rajada Rúnica do Arcanist",
+        description="Cirúrgico! A Rajada Arcana do Arcanist atingiu o Stormcaller à distância sem expor o mago.",
+        rating=1720,
+        initial_rwen=(
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,B_Stormcaller_1_N_0:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,B_BoneLord_0_N_0:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,W_Arcanist_0_N_0:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+        ),
+        solution_moves=["5,3->2,3"],
+        theme="arcane_blast",
+    ),
+    TacticalPuzzle(
+        puzzle_id="pz5",
+        title="A Estocada Precisa do Duelist",
+        description="Sensacional! A estocada diagonal do Duelist finalizou o adversário com eficiência perfeita.",
+        rating=1780,
+        initial_rwen=(
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,B_Berserker_1_N_0:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,W_Duelist_0_N_0:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+        ),
+        solution_moves=["4,2->2,4"],
+        theme="duelist_thrust",
+    ),
+    TacticalPuzzle(
+        puzzle_id="pz6",
+        title="O Bastião Inabalável do Warden",
+        description="Inabalável! O golpe de escudo do Warden encerrou o avanço inimigo na linha de frente.",
+        rating=1850,
+        initial_rwen=(
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,B_Nightshade_1_N_0:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,W_Warden_0_N_0:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:./"
+            ".:.,.:.,.:.,.:.,.:.,.:.,.:.,.:. W 0"
+        ),
+        solution_moves=["3,3->2,3"],
+        theme="warden_bastion",
+    ),
 ]

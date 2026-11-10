@@ -3525,41 +3525,69 @@ canvas.addEventListener("click", (e) => {
       }
     }
 
+function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
+  if (typeof fetch !== "function") return Promise.reject(new Error("fetch unavailable"));
+  return fetch("/api/puzzles/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      puzzle_id: puzzleId,
+      fromR: fromR,
+      fromC: fromC,
+      toR: toR,
+      toC: toC,
+      step: 0
+    })
+  }).then(resp => resp.json());
+}
+
     // If in Tactical Puzzle Mode, verify with puzzle solution
     if (isPuzzleMode && currentPuzzle) {
-      const sol = currentPuzzle.solution;
       const banner = document.getElementById("puzzleStatusBanner");
       const nextBtn = document.getElementById("btnNextPuzzle");
+      const pzId = currentPuzzle.puzzle_id;
 
-      const isCorrect = (fromR === sol.fromR && fromC === sol.fromC && r === sol.toR && c === sol.toC);
-      if (isCorrect) {
-        puzzleStreak++;
-        puzzleUserElo += 15;
-        savePuzzleStats();
-        updatePuzzleStatsUI();
-        if (banner) {
-          banner.style.display = "block";
-          banner.style.background = "rgba(34, 197, 94, 0.2)";
-          banner.style.border = "1px solid #22c55e";
-          banner.style.color = "#22c55e";
-          banner.innerHTML = `<strong>✨ Resolvido com Sucesso! (+15 ELO)</strong> ${currentPuzzle.explanation}`;
-        }
-        if (nextBtn) nextBtn.style.display = "inline-block";
-        playChime("brilliant");
-      } else {
-        puzzleStreak = 0;
-        puzzleUserElo = Math.max(800, puzzleUserElo - 10);
-        savePuzzleStats();
-        updatePuzzleStatsUI();
-        if (banner) {
-          banner.style.display = "block";
-          banner.style.background = "rgba(239, 68, 68, 0.2)";
-          banner.style.border = "1px solid #ef4444";
-          banner.style.color = "#f87171";
-          banner.innerHTML = "<strong>Lance Incorreto (-10 ELO).</strong> Tenta novamente ou consulta a Dica.";
-        }
-        playChime("blunder");
-      }
+      verifyPuzzleMove(pzId, fromR, fromC, r, c)
+        .then(data => {
+          if (data && data.correct) {
+            puzzleStreak++;
+            puzzleUserElo += 15;
+            savePuzzleStats();
+            updatePuzzleStatsUI();
+            if (banner) {
+              banner.style.display = "block";
+              banner.style.background = "rgba(34, 197, 94, 0.2)";
+              banner.style.border = "1px solid #22c55e";
+              banner.style.color = "#22c55e";
+              banner.innerHTML = `<strong>✨ Resolvido com Sucesso! (+15 ELO)</strong> ${data.explanation || currentPuzzle.explanation || ""}`;
+            }
+            if (nextBtn) nextBtn.style.display = "inline-block";
+            playChime("brilliant");
+          } else {
+            puzzleStreak = 0;
+            puzzleUserElo = Math.max(800, puzzleUserElo - 10);
+            savePuzzleStats();
+            updatePuzzleStatsUI();
+            if (banner) {
+              banner.style.display = "block";
+              banner.style.background = "rgba(239, 68, 68, 0.2)";
+              banner.style.border = "1px solid #ef4444";
+              banner.style.color = "#f87171";
+              banner.innerHTML = "<strong>Lance Incorreto (-10 ELO).</strong> Tenta novamente ou consulta a Dica.";
+            }
+            playChime("blunder");
+          }
+        })
+        .catch(err => {
+          console.warn("Puzzle verification network error:", err);
+          if (banner) {
+            banner.style.display = "block";
+            banner.style.background = "rgba(234, 179, 8, 0.2)";
+            banner.style.border = "1px solid #eab308";
+            banner.style.color = "#eab308";
+            banner.innerHTML = "<strong>Aviso:</strong> Não foi possível contactar o servidor para verificar o lance.";
+          }
+        });
     }
 
     applyAction(fromR, fromC, chosenAction);
@@ -4281,7 +4309,6 @@ const PUZZLES = [
       { r: 2, c: 5, name: "Paladin", team: "pretas", stun: 1 },
       { r: 1, c: 4, name: "FrostMage", team: "pretas", stun: 0 }
     ],
-    solution: { fromR: 4, fromC: 3, toR: 2, toC: 5 },
     explanation: "Excelente! O Dragoon saltou sobre a barreira e eliminou instantaneamente o Paladino atordoado."
   },
   {
@@ -4296,7 +4323,6 @@ const PUZZLES = [
       { r: 2, c: 2, name: "Bone", team: "pretas", stun: 0 },
       { r: 1, c: 1, name: "FrostMage", team: "pretas", stun: 1 }
     ],
-    solution: { fromR: 4, fromC: 4, toR: 1, toC: 1 },
     explanation: "Perfeito! A Shadowblade atravessou duas unidades na diagonal para desferir o golpe letal."
   },
   {
@@ -4311,7 +4337,6 @@ const PUZZLES = [
       { r: 3, c: 2, name: "Bone", team: "pretas", stun: 0 },
       { r: 2, c: 2, name: "Lich", team: "pretas", stun: 2 }
     ],
-    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
     explanation: "Brilhante! O voo espectral da Valkyrie sobrevoou a parede e o lacaio, liquidando o Lich."
   },
   {
@@ -4325,7 +4350,6 @@ const PUZZLES = [
       { r: 2, c: 3, name: "Stormcaller", team: "pretas", stun: 1 },
       { r: 3, c: 5, name: "BoneLord", team: "pretas", stun: 0 }
     ],
-    solution: { fromR: 5, fromC: 3, toR: 2, toC: 3 },
     explanation: "Cirúrgico! A Rajada Arcana do Arcanist atingiu o Stormcaller à distância sem expor o mago."
   },
   {
@@ -4338,7 +4362,6 @@ const PUZZLES = [
       { r: 4, c: 2, name: "Duelist", team: "brancas", stun: 0 },
       { r: 2, c: 4, name: "Berserker", team: "pretas", stun: 1 }
     ],
-    solution: { fromR: 4, fromC: 2, toR: 2, toC: 4 },
     explanation: "Sensacional! A estocada diagonal do Duelist finalizou o adversário com eficiência perfeita."
   },
   {
@@ -4351,7 +4374,6 @@ const PUZZLES = [
       { r: 3, c: 3, name: "Warden", team: "brancas", stun: 0 },
       { r: 2, c: 3, name: "Nightshade", team: "pretas", stun: 1 }
     ],
-    solution: { fromR: 3, fromC: 3, toR: 2, toC: 3 },
     explanation: "Inabalável! O golpe de escudo do Warden encerrou o avanço inimigo na linha de frente."
   }
 ];
