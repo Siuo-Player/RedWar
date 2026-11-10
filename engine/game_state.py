@@ -693,9 +693,7 @@ class GameState:
             )
             if white_mat > black_mat:
                 return f"Desempate por Material ({white_mat} vs {black_mat}) - Brancas Vencem", "brancas"
-            elif black_mat > white_mat:
-                return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate", "pretas"
-            return f"Empate por Material ({white_mat} vs {black_mat})", None
+            return f"Desempate por Material ({black_mat} vs {white_mat}) - Pretas Vencem no Desempate", "pretas"
 
         if self.turns_without_capture >= self.max_twc:
             self.game_over = True

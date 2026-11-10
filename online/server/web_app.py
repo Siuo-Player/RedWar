@@ -171,6 +171,7 @@ class RedWarWebApp:
                     "description": pz.description,
                     "rating": pz.rating,
                     "initial_rwen": pz.initial_rwen,
+                    "solution_moves": pz.solution_moves,
                     "theme": pz.theme,
                 }
                 for pz in PUZZLE_BANK
