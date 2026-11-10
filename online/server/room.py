@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import secrets
-import uuid
 from dataclasses import dataclass, field
+import secrets
+import time
 from typing import Any, Mapping, Optional
 
 from engine.game_modes import GameClock, GameMode, TimeControl
@@ -32,6 +32,7 @@ class GameRoom:
     reconnect_tokens: dict[str, str] = field(default_factory=dict)
     player_tokens: dict[str, str] = field(default_factory=dict)
     rematch_proposals: set[str] = field(default_factory=set)
+    last_move_timestamp: Optional[float] = None
 
     def __post_init__(self) -> None:
         if isinstance(self.mode, str):
@@ -66,32 +67,49 @@ class GameRoom:
     def remove_spectator(self, spectator_id: str) -> None:
         self.spectators.discard(spectator_id)
 
-    def add_player(self, player_id: str, role_preference: str = "auto") -> str:
-        """Assign player to white, black, or spectator with cryptographic tokens and self-play prevention."""
-        # Anti-Impersonation & Anti-Self-Play: a single identity cannot play both sides in competitive rooms
-        if self.white_player == player_id:
-            return "brancas"
-        if self.black_player == player_id:
-            return "pretas"
+    def add_player(self, player_id: str, role_preference: str = "auto") -> Optional[str]:
+        """Assign player to white, black, or spectator with cryptographic tokens and identity protection.
 
-        if self.white_player is None and role_preference in ("auto", "brancas", "white"):
+        Returns assigned role ('brancas', 'pretas', 'espetador'), or None if player_id is
+        already occupied by an existing competitor in this room or if the competitive room is full.
+        """
+        # Anti-Impersonation & Anti-Self-Play: An existing player seat cannot be claimed via join/add_player.
+        # Existing players MUST authenticate using reconnect_player with their secret cryptographic token.
+        if self.white_player == player_id or self.black_player == player_id:
+            return None
+
+        pref = (role_preference or "auto").lower()
+        if pref in ("espetador", "spectator"):
+            self.spectators.add(player_id)
+            return "espetador"
+
+        if self.white_player is None and pref in ("auto", "brancas", "white"):
             self.white_player = player_id
             token = f"tok_{secrets.token_urlsafe(32)}"
             self.reconnect_tokens[token] = "brancas"
             self.player_tokens[player_id] = token
             return "brancas"
-        if self.black_player is None and role_preference in ("auto", "pretas", "black"):
+
+        if self.black_player is None and pref in ("auto", "pretas", "black"):
             self.black_player = player_id
             token = f"tok_{secrets.token_urlsafe(32)}"
             self.reconnect_tokens[token] = "pretas"
             self.player_tokens[player_id] = token
             return "pretas"
-        self.spectators.add(player_id)
-        return "espetador"
 
-    def join_player(self, player_id: str, role_preference: str = "auto") -> str:
+        # If both player seats are occupied and auto was preferred, assign as spectator
+        if pref == "auto":
+            self.spectators.add(player_id)
+            return "espetador"
+
+        # Requested a competitive player seat that is already occupied
+        return None
+
+    def join_player(self, player_id: str, role_preference: str = "auto") -> Optional[str]:
         """Assign player to white or black and return an ephemeral reconnect token."""
         role = self.add_player(player_id, role_preference)
+        if role is None:
+            return None
         return self.player_tokens.get(player_id, role)
 
     def reconnect_player(
@@ -131,7 +149,9 @@ class GameRoom:
         return True, role
 
     def propose_rematch(self, player_id: str) -> bool:
-        """Propose or accept rematch. Swaps sides upon bilateral agreement."""
+        """Propose or accept rematch. Rejects proposals while match is in progress."""
+        if not self.is_finished:
+            return False
         if player_id not in (self.white_player, self.black_player):
             return False
 
@@ -149,6 +169,7 @@ class GameRoom:
             self.is_finished = False
             self.winner = None
             self.termination_reason = None
+            self.last_move_timestamp = time.monotonic()
             return True
 
         return True
@@ -164,13 +185,13 @@ class GameRoom:
             "sender": player_id,
         }
 
-
     def start_game(self) -> None:
         """Start match clock and set room to started."""
         self.is_started = True
         self.is_finished = False
         self.winner = None
         self.termination_reason = None
+        self.last_move_timestamp = time.monotonic()
 
     def tick_clock(self, elapsed_seconds: float) -> Optional[str]:
         """Advance the match clock by elapsed seconds. Detect flag fall."""
@@ -191,7 +212,7 @@ class GameRoom:
         return None
 
     def apply_action(self, player_id: str, action: Mapping[str, Any]) -> dict[str, Any]:
-        """Validate player and execute action through the authoritative session."""
+        """Validate player, deduct server elapsed time, and execute action through authoritative session."""
         if not self.is_started:
             raise ValueError("match has not started yet")
         if self.is_finished:
@@ -204,6 +225,13 @@ class GameRoom:
         if player_id != expected_player:
             raise ValueError(f"action submitted by {player_id}, but {expected_team} is active")
 
+        # Check if flag already fell on active player
+        if self.clock.is_flag_fallen(white_to_move):
+            self.is_finished = True
+            self.termination_reason = "flag_fall"
+            self.winner = "pretas" if white_to_move else "brancas"
+            raise ValueError("tempo esgotado (flag fall)")
+
         self.session.apply_action(expected_team, action)
 
         # Apply increment to the player who just moved
@@ -212,9 +240,19 @@ class GameRoom:
         else:
             self.clock.black_time += self.time_control.increment_seconds
 
+        self.last_move_timestamp = time.monotonic()
+
         if self.session.state.game_over:
             self.is_finished = True
-            self.winner = self.session.state.winner
+            raw_winner = self.session.state.winner
+            if raw_winner:
+                raw_lower = str(raw_winner).lower()
+                if "brancas" in raw_lower:
+                    self.winner = "brancas"
+                elif "pretas" in raw_lower:
+                    self.winner = "pretas"
+                else:
+                    self.winner = raw_winner
             self.termination_reason = "elimination" if self.winner else "turn_limit"
 
         return self.state_payload()
@@ -241,30 +279,36 @@ class GameRoom:
                 "increment_seconds": self.time_control.increment_seconds,
                 "category": self.time_control.category,
             },
+            "players": {
+                "brancas": self.white_player,
+                "pretas": self.black_player,
+            },
+            "clock": {
+                "white_time": round(self.clock.white_time, 2),
+                "black_time": round(self.clock.black_time, 2),
+            },
+            "spectators": list(self.spectators),
+            "spectator_count": len(self.spectators),
             "is_started": self.is_started,
             "is_finished": self.is_finished,
             "winner": self.winner,
             "termination_reason": self.termination_reason,
-            "white_player": self.white_player,
-            "black_player": self.black_player,
-            "spectators": list(self.spectators),
-            "spectator_count": len(self.spectators),
             "rematch_proposals": list(self.rematch_proposals),
-            "clock": {
-                "white_time": self.clock.white_time,
-                "black_time": self.clock.black_time,
-                "white_to_move": self.session.state.white_to_move,
-            },
-            "game_state": self.session.state_payload(),
+            "rematch_pending": self.rematch_pending,
         }
 
 
 class RoomManager:
-    """Manages active game rooms and orchestrates match results with ratings."""
+    """Manages collection of active rooms and handles ELO leaderboard recording."""
 
-    def __init__(self, leaderboard_manager: Optional[LeaderboardManager] = None) -> None:
+    def __init__(
+        self,
+        leaderboard_manager: Optional[LeaderboardManager] = None,
+        max_rooms: int = 500,
+    ):
         self.rooms: dict[str, GameRoom] = {}
         self.leaderboard_manager = leaderboard_manager
+        self.max_rooms = max_rooms
 
     def create_room(
         self,
@@ -273,9 +317,12 @@ class RoomManager:
         time_control: Optional[TimeControl] = None,
         rated: bool = True,
     ) -> GameRoom:
-        """Create and register a new room."""
+        """Create and register a new room with resource exhaustion limits."""
         if room_id in self.rooms:
             raise ValueError(f"room {room_id} already exists")
+        self.cleanup_stale_rooms()
+        if len(self.rooms) >= self.max_rooms:
+            raise ValueError("Capacidade máxima de salas atingida no servidor.")
         room = GameRoom(
             room_id=room_id,
             mode=mode or GameMode.standard_8x8(),
@@ -303,11 +350,27 @@ class RoomManager:
             if not r.is_finished
         ]
 
-    def close_room(self, room_id: str) -> None:
-        self.rooms.pop(room_id, None)
+    def close_room(self, room_id: str) -> bool:
+        """Explicitly close and remove room from server memory."""
+        if room_id in self.rooms:
+            del self.rooms[room_id]
+            return True
+        return False
+
+    def cleanup_stale_rooms(self, max_idle_seconds: float = 1800.0) -> int:
+        """Purge finished or abandoned empty rooms to prevent memory exhaustion."""
+        to_remove = []
+        for rid, room in self.rooms.items():
+            if room.is_finished:
+                to_remove.append(rid)
+            elif not room.white_player and not room.black_player and not room.spectators:
+                to_remove.append(rid)
+        for rid in to_remove:
+            self.rooms.pop(rid, None)
+        return len(to_remove)
 
     def record_match_result(self, room: GameRoom) -> None:
-        """Update leaderboard ELO when a rated room finishes."""
+        """Update leaderboard ELO using canonical mode ID and persist to disk."""
         if not room.rated or self.leaderboard_manager is None:
             return
         if not room.is_finished or not room.white_player or not room.black_player:
@@ -316,8 +379,11 @@ class RoomManager:
         white_prof = self.leaderboard_manager.get_or_create_profile(room.white_player)
         black_prof = self.leaderboard_manager.get_or_create_profile(room.black_player)
 
-        white_rating = white_prof.get_rating(room.mode.name)
-        black_rating = black_prof.get_rating(room.mode.name)
+        # Canonical mode identifier (e.g. "standard_8x8") matching /api/leaderboard query
+        mode_key = getattr(getattr(room.mode, "mode_type", None), "value", None) or room.mode.name
+
+        white_rating = white_prof.get_rating(mode_key)
+        black_rating = black_prof.get_rating(mode_key)
 
         if room.winner == "brancas":
             white_score = 1.0
@@ -329,5 +395,10 @@ class RoomManager:
             white_score = 0.5
             black_score = 0.5
 
-        white_prof.record_match(room.mode.name, black_rating, white_score)
-        black_prof.record_match(room.mode.name, white_rating, black_score)
+        white_prof.record_match(mode_key, black_rating, white_score)
+        black_prof.record_match(mode_key, white_rating, black_score)
+
+        try:
+            self.leaderboard_manager.save()
+        except Exception as exc:
+            print(f"[Leaderboard] Erro ao persistir classificações: {exc}")

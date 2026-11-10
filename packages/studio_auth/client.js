@@ -2,22 +2,30 @@
  * StudioAuthClient — Universal Front-End Identity SDK.
  *
  * Provides Zero Blast Radius authentication across any web or hybrid game:
- * 1. Anonymous Guest Sessions (localStorage + UUID)
- * 2. Google OpenID Connect (OIDC) with Pairwise Subject Identifiers (PPID)
- * 3. Studio Dedicated Account login
+ * 1. Anonymous Local Guest Sessions (localStorage + crypto-random ID)
+ * 2. Google OpenID Connect (OIDC) with Pairwise Subject Identifiers (PPID) via Backend
+ * 3. Studio Dedicated Account login via Backend
  *
- * Usage:
- *   const auth = new StudioAuthClient({ projectSlug: "my_game" });
- *   const user = auth.getSession();
- *   console.log(user.playerId, user.username, user.authMode);
+ * When operating standalone without an active backend endpoint (apiBaseUrl),
+ * the SDK enforces honest Local/Guest mode and prohibits fake local simulations.
  */
 
 class StudioAuthClient {
   constructor(config = {}) {
     this.projectSlug = config.projectSlug || "default_app";
+    this.apiBaseUrl = (config.apiBaseUrl || "").replace(/\/+$/, "");
     this.storageKey = `studio_auth_session_${this.projectSlug}`;
     this.onAuthChange = config.onAuthChange || null;
     this.currentSession = this.loadSession();
+  }
+
+  _generateSecureHex(bytes = 8) {
+    if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+      const arr = new Uint8Array(bytes);
+      crypto.getRandomValues(arr);
+      return Array.from(arr, b => b.toString(16).padStart(2, "0")).join("");
+    }
+    return Date.now().toString(16);
   }
 
   loadSession() {
@@ -36,7 +44,7 @@ class StudioAuthClient {
   }
 
   createGuestSession() {
-    const rawId = Math.random().toString(36).substring(2, 10);
+    const rawId = this._generateSecureHex(6);
     const guest = {
       playerId: `guest_${rawId}`,
       username: `Convidado_${rawId.substring(0, 4).toUpperCase()}`,
@@ -65,41 +73,44 @@ class StudioAuthClient {
     return this.currentSession;
   }
 
-  loginWithGoogle(googleUser = {}) {
-    const prefix = this.projectSlug.substring(0, 2);
-    const randomHash = Math.random().toString(36).substring(2, 12);
-    const pairwiseId = `${prefix}_${randomHash}`;
-    const displayName = googleUser.name || `Jogador_${randomHash.substring(0, 5)}`;
-
-    const session = {
-      playerId: pairwiseId,
-      username: displayName,
-      authMode: "google_oidc",
-      isAnonymous: false,
-      projectSlug: this.projectSlug,
-      emailVerified: true,
-      createdAt: Date.now()
-    };
+  async loginWithGoogle(credential) {
+    if (!this.apiBaseUrl) {
+      throw new Error("Autenticação Google OIDC requer apiBaseUrl ativo para verificação criptográfica no servidor.");
+    }
+    if (!credential) {
+      throw new Error("Token ou credencial Google OIDC em falta.");
+    }
+    const response = await fetch(`${this.apiBaseUrl}/api/auth/google`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: credential, projectSlug: this.projectSlug }),
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.mensagem || "Falha na validação da sessão Google junto do servidor.");
+    }
+    const session = await response.json();
     this.saveSession(session);
     return session;
   }
 
-  loginWithDedicated(username, password) {
-    if (!username || !password) {
-      throw new Error("Username and password are required.");
+  async loginWithDedicated(username, password) {
+    if (!this.apiBaseUrl) {
+      throw new Error("Autenticação Conta Dedicada requer apiBaseUrl ativo para validação PBKDF2 no servidor.");
     }
-    const prefix = this.projectSlug.substring(0, 2);
-    const randomHash = Math.random().toString(36).substring(2, 12);
-    const pairwiseId = `${prefix}_${randomHash}`;
-
-    const session = {
-      playerId: pairwiseId,
-      username: username.trim(),
-      authMode: "studio_dedicated",
-      isAnonymous: false,
-      projectSlug: this.projectSlug,
-      createdAt: Date.now()
-    };
+    if (!username || !password) {
+      throw new Error("Nome de utilizador e palavra-passe são obrigatórios.");
+    }
+    const response = await fetch(`${this.apiBaseUrl}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: username.trim(), password, projectSlug: this.projectSlug }),
+    });
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.mensagem || "Credenciais inválidas ou erro no servidor de autenticação.");
+    }
+    const session = await response.json();
     this.saveSession(session);
     return session;
   }

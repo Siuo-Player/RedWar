@@ -19,7 +19,7 @@ def test_anti_self_play_prevention():
 
     # Same player attempts to take black side
     role2 = room.add_player("player_alice", "pretas")
-    assert role2 == "brancas"  # Kept in existing seat
+    assert role2 is None  # Anti-impersonation: cannot re-join without reconnect token
     assert room.black_player is None
 
     # Distinct player can take black side
