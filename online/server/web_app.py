@@ -17,7 +17,14 @@ DEFAULT_SECURITY_HEADERS = {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Content-Security-Policy": "default-src 'self' 'unsafe-inline' https: data:; connect-src 'self' ws: wss: http: https:;",
+    "Content-Security-Policy": (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' ws: wss: http: https:;"
+    ),
 }
 
 
@@ -33,6 +40,14 @@ class _RedWarHTTPRequestHandler(BaseHTTPRequestHandler):
         self._dispatch("POST")
 
     def _dispatch(self, method: str) -> None:
+        if method not in ("GET", "HEAD"):
+            self.send_response(405)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Allow", "GET, HEAD")
+            self.end_headers()
+            self.wfile.write(b'{"error": "Method Not Allowed"}\n')
+            return
+
         MAX_BODY_BYTES = 1024 * 1024  # 1 MB max request body to prevent memory exhaustion DoS
         try:
             content_length = int(self.headers.get("Content-Length", 0))
@@ -76,7 +91,7 @@ class RedWarWebApp:
         port: int = 8000,
     ):
         self.room_manager = room_manager or RoomManager()
-        self.leaderboard_manager = leaderboard_manager or LeaderboardManager()
+        self.leaderboard_manager = leaderboard_manager or LeaderboardManager(storage_path="data/leaderboards/ratings.json")
         self.static_dir = static_dir or (Path(__file__).resolve().parents[2] / "deploy" / "web")
         self.host = host
         self.port = port
@@ -156,7 +171,6 @@ class RedWarWebApp:
                     "description": pz.description,
                     "rating": pz.rating,
                     "initial_rwen": pz.initial_rwen,
-                    "solution_moves": pz.solution_moves,
                     "theme": pz.theme,
                 }
                 for pz in PUZZLE_BANK

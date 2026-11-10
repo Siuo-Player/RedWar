@@ -28,8 +28,10 @@ def legal_actions(gs: Any) -> tuple[GameAction, ...]:
     """
     current_team = "brancas" if gs.white_to_move else "pretas"
     actions: set[GameAction] = set()
-    for r in range(LINHAS):
-        for c in range(COLUNAS):
+    rows = getattr(gs, "rows", len(gs.board))
+    cols = getattr(gs, "cols", len(gs.board[0]))
+    for r in range(rows):
+        for c in range(cols):
             piece = gs.board[r][c]
             if piece is None or piece.team != current_team or not piece.can_act():
                 continue

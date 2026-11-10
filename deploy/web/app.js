@@ -18,6 +18,94 @@ let blackSeconds = 600;
 let currentClockIncrement = 0;
 let clockInterval = null;
 let socket = null;
+let myOnlineColor = null;
+let myReconnectToken = null;
+let currentRoomId = null;
+
+function showNotification(msg, type = "info") {
+  console.log(`[RedWar ${type}] ${msg}`);
+  const rBanner = document.getElementById("reconnectBanner");
+  if (type === "error" && rBanner) {
+    rBanner.style.display = "block";
+    rBanner.firstChild.textContent = msg + " ";
+  }
+}
+
+function connectOnlineWebSocket(roomId) {
+  if (socket) {
+    try { socket.close(); } catch (_) {}
+    socket = null;
+  }
+  const protocol = (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss:" : "ws:";
+  const host = (typeof window !== "undefined" && window.location && window.location.hostname) ? window.location.hostname : "localhost";
+  const wsUrl = `${protocol}//${host}:8765`;
+
+  showNotification(`A ligar ao servidor online (${roomId})...`, "info");
+
+  try {
+    socket = new WebSocket(wsUrl);
+  } catch (err) {
+    showNotification("Servidor WebSocket indisponível.", "error");
+    return;
+  }
+
+  socket.onopen = function() {
+    showNotification("Ligação estabelecida! A entrar na sala...", "success");
+    const rBanner = document.getElementById("reconnectBanner");
+    if (rBanner) rBanner.style.display = "none";
+    const playerId = "Player_" + Math.random().toString(36).substring(2, 8);
+    const tcEl = document.getElementById("timeControlSelect");
+    const mEl = document.getElementById("modeSelect");
+    const joinMsg = {
+      tipo: "join_room",
+      room_id: roomId || "default_room",
+      player_id: playerId,
+      role_preference: "auto",
+      time_control: tcEl ? tcEl.value : "rapid_10_0",
+      mode: mEl ? mEl.value : "standard_8x8"
+    };
+    socket.send(JSON.stringify(joinMsg));
+  };
+
+  socket.onmessage = function(event) {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.tipo === "erro") {
+        showNotification(data.mensagem || "Erro do servidor", "error");
+      } else if (data.tipo === "room_joined") {
+        myOnlineColor = data.cor;
+        myReconnectToken = data.reconnect_token;
+        currentRoomId = data.room_id;
+        const bName = document.getElementById("blackPlayerName");
+        if (bName) {
+          bName.textContent = `Oponente Online (${data.room_id})`;
+        }
+        showNotification(`Entrou na sala '${data.room_id}' como ${data.cor === "brancas" ? "Brancas" : "Pretas"}`, "success");
+      } else if (data.tipo === "estado_jogo") {
+        if (data.room && data.room.clock) {
+          whiteSeconds = Math.round(data.room.clock.white_time);
+          blackSeconds = Math.round(data.room.clock.black_time);
+          updateClockDisplays();
+        }
+        if (data.room && data.room.is_finished) {
+          isGameOver = true;
+          if (clockInterval) clearInterval(clockInterval);
+          showNotification(`Partida terminada! Vencedor: ${data.room.winner || "Empate"}`, "info");
+        }
+      }
+    } catch (e) {
+      console.error("Socket error", e);
+    }
+  };
+
+  socket.onerror = function() {
+    showNotification("Erro na ligação WebSocket.", "error");
+  };
+
+  socket.onclose = function() {
+    showNotification("Ligação multiplayer terminada.", "error");
+  };
+}
 let isGameOver = false;
 let moveHistory = [];
 let evalHistory = [0];
@@ -3337,6 +3425,17 @@ canvas.addEventListener("click", (e) => {
     }
 
     applyAction(fromR, fromC, chosenAction);
+    const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+    if (oppVal === "online_room" && socket && socket.readyState === 1) {
+      try {
+        socket.send(JSON.stringify({
+          tipo: "acao",
+          type: chosenAction.type || "move",
+          start: [fromR, fromC],
+          end: [chosenAction.toR, chosenAction.toC]
+        }));
+      } catch (_) {}
+    }
     finishTurn();
   } else {
     // Clicked an illegal destination: simply deselect
@@ -3922,11 +4021,42 @@ if (btnNextPuzzle) {
   });
 }
 
+// Toggle roomCodeGroup visibility on opponent select
+const oppSelectEl = document.getElementById("opponentSelect");
+if (oppSelectEl) {
+  oppSelectEl.addEventListener("change", function() {
+    const roomGrp = document.getElementById("roomCodeGroup");
+    if (roomGrp) {
+      roomGrp.style.display = (oppSelectEl.value === "online_room") ? "block" : "none";
+    }
+  });
+}
+
+const btnReconnectEl = document.getElementById("btnReconnect");
+if (btnReconnectEl) {
+  btnReconnectEl.addEventListener("click", function() {
+    if (socket && socket.readyState === 1 && myReconnectToken && currentRoomId) {
+      socket.send(JSON.stringify({
+        tipo: "reconnect",
+        room_id: currentRoomId,
+        token: myReconnectToken
+      }));
+    }
+  });
+}
+
 document.getElementById("btnStartGame").addEventListener("click", () => {
   const mode = document.getElementById("modeSelect").value;
   boardGrid = mode === "grand_10x10" ? 10 : 8;
   initDefaultBoard();
   drawBoard();
+
+  const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+  if (oppVal === "online_room") {
+    const rInput = document.getElementById("roomCodeInput");
+    const rId = (rInput && rInput.value.trim()) ? rInput.value.trim() : "default_room";
+    connectOnlineWebSocket(rId);
+  }
   const tcSelect = document.getElementById("timeControlSelect");
   const tcVal = tcSelect ? tcSelect.value : "rapid_10_0";
   let initialSeconds = 600;
