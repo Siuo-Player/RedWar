@@ -48,7 +48,7 @@ def test_bradley_terry_elo_calculation_and_symmetry():
 
 
 def test_sprt_tracker_promotes_upon_significant_superiority():
-    tester = AresHypothesisTester(SPRTConfig(elo0=0.0, elo1=20.0))
+    tester = AresHypothesisTester(SPRTConfig(elo0=0.0, elo1=30.0))
     hypo = Hypothesis(
         id="H-TEST-PROMO",
         title="Superior Candidate Test",
@@ -59,7 +59,7 @@ def test_sprt_tracker_promotes_upon_significant_superiority():
     )
 
     from ai.sprt import SPRTTracker, SPRTStatus
-    tracker = SPRTTracker(SPRTConfig(elo0=0.0, elo1=20.0))
+    tracker = SPRTTracker(SPRTConfig(elo0=0.0, elo1=30.0))
     status = tracker.add_result(win=45, loss=5, draw=0)
 
     delta_elo, margin = tracker.estimate_elo()
@@ -68,7 +68,7 @@ def test_sprt_tracker_promotes_upon_significant_superiority():
 
 
 def test_sprt_tracker_rejects_upon_inferiority_or_null_gain():
-    tester = AresHypothesisTester(SPRTConfig(elo0=0.0, elo1=20.0))
+    tester = AresHypothesisTester(SPRTConfig(elo0=0.0, elo1=30.0))
     hypo = Hypothesis(
         id="H-TEST-REJECT",
         title="Inferior Candidate Test",
@@ -79,7 +79,7 @@ def test_sprt_tracker_rejects_upon_inferiority_or_null_gain():
     )
 
     from ai.sprt import SPRTTracker, SPRTStatus
-    tracker = SPRTTracker(SPRTConfig(elo0=0.0, elo1=20.0))
+    tracker = SPRTTracker(SPRTConfig(elo0=0.0, elo1=30.0))
     status = tracker.add_result(win=5, loss=45, draw=0)
 
     delta_elo, margin = tracker.estimate_elo()

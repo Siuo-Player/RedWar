@@ -1,9 +1,19 @@
 # ai/sprt.py
 """
 Stockfish-inspired SPRT (Sequential Probability Ratio Test) framework for RedWar.
-Implements Wald's SPRT, Log-Likelihood Ratio (LLR), Elo difference estimation,
+Implements Wald's exact Bernoulli SPRT, Log-Likelihood Ratio (LLR), Elo difference estimation,
 and multi-tiered confidence intervals (95% CI / 1.96-sigma and 99.73% CI / 3.0-sigma)
 for rigorous, regression-proof engine evaluation.
+
+Mathematical Formulation:
+Under Wald's Sequential Probability Ratio Test for Bernoulli outcomes:
+- H0: score = p0 = elo_to_expected_score(elo0)
+- H1: score = p1 = elo_to_expected_score(elo1)
+- LLR = w_eff * ln(p1 / p0) + l_eff * ln((1 - p1) / (1 - p0))
+  where w_eff = wins + 0.5 * draws, and l_eff = losses + 0.5 * draws.
+This exact likelihood ratio prevents asymptotic variance floor shortcuts that could
+spuriously accept H1 with tiny sample sizes (e.g. 12 consecutive wins).
+In addition, a minimum sample size gate (min_games) enforces empirical discipline.
 """
 from __future__ import annotations
 
@@ -21,10 +31,11 @@ class SPRTStatus(str, Enum):
 
 @dataclass
 class SPRTConfig:
-    elo0: float = 0.0    # Null hypothesis (no improvement or regression threshold)
-    elo1: float = 5.0    # Alternative hypothesis (e.g. +5 Elo target)
-    alpha: float = 0.05  # Type I error rate (false positive)
-    beta: float = 0.05   # Type II error rate (false negative)
+    elo0: float = 0.0     # Null hypothesis (no improvement or regression threshold)
+    elo1: float = 5.0     # Alternative hypothesis (e.g. +5 Elo target)
+    alpha: float = 0.05   # Type I error rate (false positive)
+    beta: float = 0.05    # Type II error rate (false negative)
+    min_games: int = 20   # Minimum games before any hypothesis termination is allowed
 
 
 def elo_to_expected_score(elo_diff: float) -> float:
@@ -40,7 +51,7 @@ def calculate_elo_difference(score: float) -> float:
 
 class SPRTTracker:
     """
-    Tracks matches between engine candidate and baseline, computing LLR
+    Tracks matches between engine candidate and baseline, computing exact Wald LLR
     and determining whether H0 or H1 is accepted.
     """
     def __init__(self, config: SPRTConfig = SPRTConfig()):
@@ -49,7 +60,7 @@ class SPRTTracker:
         self.losses = 0
         self.draws = 0
 
-        # Wald bounds
+        # Wald decision bounds
         self.upper_bound = math.log((1.0 - config.beta) / config.alpha)
         self.lower_bound = math.log(config.beta / (1.0 - config.alpha))
 
@@ -69,27 +80,26 @@ class SPRTTracker:
     @property
     def llr(self) -> float:
         """
-        Compute current Log-Likelihood Ratio using the score variance model.
+        Compute exact Wald Log-Likelihood Ratio (LLR) under Bernoulli trial outcomes.
+        LLR = w_eff * ln(p1 / p0) + l_eff * ln((1 - p1) / (1 - p0))
         """
-        n = self.total_games
-        if n == 0:
+        if self.total_games == 0:
             return 0.0
 
-        s = self.score
-        # Compute empirical variance
-        w = self.wins / n
-        l = self.losses / n
-        d = self.draws / n
-        var = w * math.pow(1.0 - s, 2) + l * math.pow(0.0 - s, 2) + d * math.pow(0.5 - s, 2)
-        var = max(0.04, var)  # Minimum floor variance
+        p0 = max(0.001, min(0.999, self.mu0))
+        p1 = max(0.001, min(0.999, self.mu1))
 
-        delta_mu = self.mu1 - self.mu0
-        mid_mu = (self.mu0 + self.mu1) / 2.0
-        return (s - mid_mu) * (delta_mu / var) * n
+        w_eff = self.wins + 0.5 * self.draws
+        l_eff = self.losses + 0.5 * self.draws
+
+        log_w = math.log(p1 / p0)
+        log_l = math.log((1.0 - p1) / (1.0 - p0))
+
+        return w_eff * log_w + l_eff * log_l
 
     @property
     def status(self) -> SPRTStatus:
-        if self.total_games == 0:
+        if self.total_games < self.config.min_games:
             return SPRTStatus.CONTINUE
 
         current_llr = self.llr

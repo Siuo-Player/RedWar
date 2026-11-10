@@ -101,13 +101,14 @@ Para não desperdiçar computação em melhorias óbvias ou regressões evidente
 $$A = \ln \left( \frac{1 - \beta}{\alpha} \right) = \ln \left( \frac{0.95}{0.05} \right) = \ln(19) \approx +2.944$$
 $$B = \ln \left( \frac{\beta}{1 - \alpha} \right) = \ln \left( \frac{0.05}{0.95} \right) = \ln(1/19) \approx -2.944$$
 
-### 5.3 Razão de Log-Verossimilhança (*Log-Likelihood Ratio - LLR*)
-A cada partida pareada com desfecho $x_i \in \{1, 0\}$, atualiza-se o $LLR$:
-$$LLR = \sum_{i=1}^N \ln \left( \frac{P(x_i \mid H_1)}{P(x_i \mid H_0)} \right)$$
+### 5.3 Razão de Log-Verossimilhança Exata de Wald (*Exact Bernoulli LLR*)
+Para eliminar atalhos aproximados de variância que causavam aceitação espúria de $H_1$ com amostras reduzidas (ex: 12 vitórias consecutivas), o Ares AI adota a formulação exata de Wald para ensaios de Bernoulli / pares:
+$$LLR = (W + 0.5 \cdot D) \ln \left( \frac{p_1}{p_0} \right) + (L + 0.5 \cdot D) \ln \left( \frac{1 - p_1}{1 - p_0} \right)$$
+Onde $p_0 = \text{elo\_to\_expected\_score}(\text{elo}_0)$ e $p_1 = \text{elo\_to\_expected\_score}(\text{elo}_1)$.
 
-- Se $LLR \ge A$: **$H_1$ Aceite** $\rightarrow$ Melhoria comprovada com 95% de confiança estatística. **Candidato promovido a Campeão**.
-- Se $LLR \le B$: **$H_0$ Aceite** $\rightarrow$ Falha em provar superioridade. **Candidato rejeitado**.
-- Se $B < LLR < A$: **Continuar Duelo** $\rightarrow$ Dados insuficientes para decisão.
+- Se $LLR \ge A$: **$H_1$ Aceite** $\rightarrow$ Sinal estatístico positivo comprovado. A **promoção a Campeão de Produção requer cumulativamente Tier 2 ($\ge 100$ partidas) e Portão $3\sigma > 0$**. Em Tier 0 e Tier 1, a promoção é terminantemente vedada.
+- Se $LLR \le B$: **$H_0$ Aceite** $\rightarrow$ Falha em demonstrar superioridade. **Candidato rejeitado**.
+- Se $B < LLR < A$: **Continuar Duelo (CONTINUE)** $\rightarrow$ Dados insuficientes para decisão.
 
 ---
 
@@ -187,8 +188,9 @@ Para evitar conclusões precipitadas e proteger a integridade dos dados competit
    - **Regra de Rigor**: **É expressamente vedado declarar "Elo comprovado em produção" a partir de duelos de Tier 0**. O valor indica apenas viabilidade para avanço na pesquisa.
 
 2. **Tier 1 — Validação Intermédia e SPRT Experimental (20 a 99 partidas pareadas)**:
-   - Utiliza SPRT de Wald com $\alpha = 0.05, \beta = 0.05$.
-   - Permite rejeição precoce (*early stopping*) de candidatos inferiores ou aceitação preliminar de melhorias substanciais.
+   - Utiliza SPRT exato de Wald com $\alpha = 0.05, \beta = 0.05$ e amostra mínima de 20 partidas.
+   - Permite rejeição precoce (*early stopping*) de candidatos inferiores.
+   - **Regra de Rigor**: O veredito nesta fase permanece estritamente em **CONTINUE** (em verificação), sendo expressamente proibida a promoção a Campeão antes de atingir o limiar de Tier 2.
 
 3. **Tier 2 — Bateria Amostral Ampla / Portão de Campeão de Produção (100+ partidas pareadas com critério $3\sigma$)**:
    - Para que um candidato substitua formalmente o motor campeão em produção e receba a designação oficial de **"Elo Comprovado em Produção"**, o limite inferior de $3\sigma$ deve ser estritamente positivo:
