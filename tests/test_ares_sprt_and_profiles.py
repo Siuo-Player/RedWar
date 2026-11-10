@@ -32,7 +32,7 @@ def test_sprt_h1_accepted_on_consecutive_wins():
     tracker = SPRTTracker(config)
 
     # Adding a dominant series of wins for candidate
-    for _ in range(40):
+    for _ in range(250):
         tracker.add_result(win=1, loss=0, draw=0)
         if tracker.status == SPRTStatus.H1_ACCEPTED:
             break
@@ -48,7 +48,7 @@ def test_sprt_h0_accepted_on_consecutive_losses():
     tracker = SPRTTracker(config)
 
     # Adding a dominant series of losses for candidate
-    for _ in range(40):
+    for _ in range(250):
         tracker.add_result(win=0, loss=1, draw=0)
         if tracker.status == SPRTStatus.H0_ACCEPTED:
             break

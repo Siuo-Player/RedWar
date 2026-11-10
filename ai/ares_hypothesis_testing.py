@@ -186,11 +186,12 @@ class AresHypothesisTester:
             tier_display = "Tier 2 — Bateria Amostral Ampla / Portão de Campeão de Produção"
 
         # Decision rule adapted for RedWar anti-involution governance
+        # Strict Promotion Policy: PROMOTED requires Tier 2 (>= 100 games) AND 3-sigma gate passed
         sprt_status_str = tracker.status.value.upper()
-        if tracker.status == SPRTStatus.H1_ACCEPTED or sigma_gate_passed:
+        if tier == "TIER_2_CHAMPION_GATE" and (tracker.status == SPRTStatus.H1_ACCEPTED and sigma_gate_passed):
             verdict = "PROMOTED"
-            gate_label = " (3σ Champion Gate atingido)" if sigma_gate_passed else ""
-            reason = f"Hipótese H1 comprovada com significância estatística{gate_label} (ΔElo: +{delta_elo:.1f} ± {elo_margin:.1f}, LLR: {tracker.llr:.2f} >= {tracker.upper_bound:.2f})."
+            gate_label = " (Tier 2 & 3σ Champion Gate atingido)"
+            reason = f"Hipótese H1 comprovada com significância estatística de produção{gate_label} (ΔElo: +{delta_elo:.1f} ± {elo_margin:.1f}, N={total_games})."
         elif tracker.status == SPRTStatus.H0_ACCEPTED or (delta_elo < 0 and ci_upper <= 0.0):
             verdict = "REJECTED"
             reason = f"Hipótese H0 aceite; o candidato não superou o campeão (ΔElo: {delta_elo:.1f} ± {elo_margin:.1f}, LLR: {tracker.llr:.2f} <= {tracker.lower_bound:.2f})."
@@ -199,11 +200,16 @@ class AresHypothesisTester:
             if tier == "TIER_0_SCREENING":
                 reason = (
                     f"Tendência direcional de Screening Rápido Exploratório (ΔElo_screened: +{delta_elo:.1f} ± {elo_margin:.1f}). "
-                    f"Aviso Metodológico: Amostra reduzida (N={total_games} partidas / {len(pair_outcomes)} pares); "
-                    f"a afirmação de Elo comprovado em produção fica estritamente reservada para baterias de alto volume amostral (Tier 2)."
+                    f"Aviso Metodológico: Amostra preliminar (N={total_games} partidas); "
+                    f"a promoção a Campeão de Produção requer obrigatoriamente bateria Tier 2 (>= 100 partidas) com portão 3σ > 0."
+                )
+            elif tier == "TIER_1_SPRT":
+                reason = (
+                    f"Sinal positivo intermédio (ΔElo: +{delta_elo:.1f} ± {elo_margin:.1f}, N={total_games}), mas Tier 1 permanece em verificação; "
+                    f"promoção a Campeão exige bateria Tier 2 (>= 100 partidas) com portão 3σ > 0."
                 )
             else:
-                reason = f"Tendência positiva (+{delta_elo:.1f} Elo), mas requer mais partidas para confirmação formal (CI95%: [{ci_lower}, {ci_upper}], 3σ: [{ci_lower_3sigma}, {ci_upper_3sigma}])."
+                reason = f"Tendência positiva (+{delta_elo:.1f} Elo), aguardando consolidação dos critérios de significância Tier 2."
         else:
             verdict = "REJECTED"
             reason = f"Sem evidência de melhoria (Score: {score*100:.1f}%, ΔElo: {delta_elo:.1f})."
