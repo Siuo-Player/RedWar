@@ -31,14 +31,41 @@ function showNotification(msg, type = "info") {
   }
 }
 
-function connectOnlineWebSocket(roomId) {
+function getWebSocketUrl() {
+  if (typeof window !== "undefined" && window.REDWAR_WS_URL) {
+    return window.REDWAR_WS_URL;
+  }
+  try {
+    const saved = localStorage.getItem("redwar_ws_url");
+    if (saved) return saved;
+  } catch (_) {}
+  const protocol = (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss:" : "ws:";
+  const host = (typeof window !== "undefined" && window.location && window.location.hostname) ? window.location.hostname : "localhost";
+  return `${protocol}//${host}:8765`;
+}
+
+function applyServerBoard(serverBoard) {
+  if (!Array.isArray(serverBoard)) return;
+  boardGrid = serverBoard.length;
+  boardData = serverBoard.map(row =>
+    row.map(cell => {
+      if (!cell) return null;
+      return {
+        name: cell.name,
+        team: cell.team,
+        stun: cell.stun_timer !== undefined ? cell.stun_timer : (cell.stun || 0),
+      };
+    })
+  );
+  drawBoard();
+}
+
+function connectOnlineWebSocket(roomId, reconnectToken = null) {
   if (socket) {
     try { socket.close(); } catch (_) {}
     socket = null;
   }
-  const protocol = (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss:" : "ws:";
-  const host = (typeof window !== "undefined" && window.location && window.location.hostname) ? window.location.hostname : "localhost";
-  const wsUrl = `${protocol}//${host}:8765`;
+  const wsUrl = getWebSocketUrl();
 
   showNotification(`A ligar ao servidor online (${roomId})...`, "info");
 
@@ -50,9 +77,19 @@ function connectOnlineWebSocket(roomId) {
   }
 
   socket.onopen = function() {
-    showNotification("Ligação estabelecida! A entrar na sala...", "success");
+    showNotification("Ligação estabelecida!", "success");
     const rBanner = document.getElementById("reconnectBanner");
     if (rBanner) rBanner.style.display = "none";
+
+    if (reconnectToken) {
+      socket.send(JSON.stringify({
+        tipo: "reconnect",
+        room_id: roomId,
+        token: reconnectToken,
+      }));
+      return;
+    }
+
     const playerId = "Player_" + Math.random().toString(36).substring(2, 8);
     const tcEl = document.getElementById("timeControlSelect");
     const mEl = document.getElementById("modeSelect");
@@ -76,12 +113,44 @@ function connectOnlineWebSocket(roomId) {
         myOnlineColor = data.cor;
         myReconnectToken = data.reconnect_token;
         currentRoomId = data.room_id;
+        try {
+          localStorage.setItem("redwar_online_room", currentRoomId);
+          if (myReconnectToken) localStorage.setItem("redwar_reconnect_token", myReconnectToken);
+        } catch (_) {}
         const bName = document.getElementById("blackPlayerName");
         if (bName) {
           bName.textContent = `Oponente Online (${data.room_id})`;
         }
-        showNotification(`Entrou na sala '${data.room_id}' como ${data.cor === "brancas" ? "Brancas" : "Pretas"}`, "success");
+        showNotification(`Entrou na sala '${data.room_id}' como ${data.cor === "brancas" ? "Brancas" : (data.cor === "pretas" ? "Pretas" : "Espetador")}`, "success");
+
+        // Send ready handshake to begin game
+        if (data.cor === "brancas" || data.cor === "pretas") {
+          socket.send(JSON.stringify({ tipo: "pronto" }));
+        }
+      } else if (data.tipo === "start_game") {
+        isGameOver = false;
+        showNotification("Partida iniciada! É a vez das Brancas.", "success");
+        if (data.room && data.room.clock) {
+          whiteSeconds = Math.round(data.room.clock.white_time);
+          blackSeconds = Math.round(data.room.clock.black_time);
+          updateClockDisplays();
+        }
+        startClock();
       } else if (data.tipo === "estado_jogo") {
+        if (data.dados) {
+          if (Array.isArray(data.dados.board)) {
+            applyServerBoard(data.dados.board);
+          }
+          if (data.dados.white_to_move !== undefined) {
+            currentTurn = data.dados.white_to_move ? "white" : "black";
+            if (typeof updateClockActiveTurn === "function") {
+              updateClockActiveTurn();
+            }
+          }
+          if (data.dados.game_over !== undefined) {
+            isGameOver = data.dados.game_over;
+          }
+        }
         if (data.room && data.room.clock) {
           whiteSeconds = Math.round(data.room.clock.white_time);
           blackSeconds = Math.round(data.room.clock.black_time);
@@ -90,7 +159,41 @@ function connectOnlineWebSocket(roomId) {
         if (data.room && data.room.is_finished) {
           isGameOver = true;
           if (clockInterval) clearInterval(clockInterval);
+          if (typeof showPostGameButtons === "function") {
+            showPostGameButtons();
+          }
           showNotification(`Partida terminada! Vencedor: ${data.room.winner || "Empate"}`, "info");
+        }
+      } else if (data.tipo === "reconnect_success") {
+        myOnlineColor = data.cor;
+        myReconnectToken = data.reconnect_token;
+        currentRoomId = data.room_id;
+        try {
+          localStorage.setItem("redwar_online_room", currentRoomId);
+          if (myReconnectToken) localStorage.setItem("redwar_reconnect_token", myReconnectToken);
+        } catch (_) {}
+        const rBanner = document.getElementById("reconnectBanner");
+        if (rBanner) rBanner.style.display = "none";
+        if (data.estado_jogo && Array.isArray(data.estado_jogo.board)) {
+          applyServerBoard(data.estado_jogo.board);
+          currentTurn = data.estado_jogo.white_to_move ? "white" : "black";
+          if (typeof updateClockActiveTurn === "function") {
+            updateClockActiveTurn();
+          }
+        }
+        if (data.room && data.room.clock) {
+          whiteSeconds = Math.round(data.room.clock.white_time);
+          blackSeconds = Math.round(data.room.clock.black_time);
+          updateClockDisplays();
+        }
+        showNotification(`Reconexão efetuada com sucesso como ${data.cor === "brancas" ? "Brancas" : "Pretas"}!`, "success");
+      } else if (data.tipo === "rematch_update") {
+        showNotification("Desforra acordada. A reiniciar partida...", "info");
+      } else if (data.tipo === "chat_emote") {
+        const eNotif = document.getElementById("emoteNotification");
+        if (eNotif) {
+          eNotif.textContent = `${data.sender}: ${data.emote}`;
+          setTimeout(() => { if (eNotif.textContent.startsWith(data.sender)) eNotif.textContent = ""; }, 3000);
         }
       }
     } catch (e) {
@@ -104,7 +207,35 @@ function connectOnlineWebSocket(roomId) {
 
   socket.onclose = function() {
     showNotification("Ligação multiplayer terminada.", "error");
+    const rBanner = document.getElementById("reconnectBanner");
+    if (rBanner && !isGameOver && (myOnlineColor === "brancas" || myOnlineColor === "pretas")) {
+      rBanner.style.display = "block";
+    }
   };
+}
+
+function reconnectOnlineGame() {
+  let token = myReconnectToken;
+  let roomId = currentRoomId;
+  try {
+    if (!token) token = localStorage.getItem("redwar_reconnect_token");
+    if (!roomId) roomId = localStorage.getItem("redwar_online_room");
+  } catch (_) {}
+
+  if (!token || !roomId) {
+    showNotification("Nenhum token de reconexão anterior encontrado.", "error");
+    return;
+  }
+
+  if (!socket || socket.readyState !== 1) {
+    connectOnlineWebSocket(roomId, token);
+  } else {
+    socket.send(JSON.stringify({
+      tipo: "reconnect",
+      room_id: roomId,
+      token: token,
+    }));
+  }
 }
 let isGameOver = false;
 let moveHistory = [];
@@ -3315,6 +3446,13 @@ function drawBoard() {
 canvas.addEventListener("click", (e) => {
   if (isGameOver || isAiThinking) return;
 
+  const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+  if (oppVal === "online_room") {
+    if (myOnlineColor === "espetador") return;
+    const isMyTurn = (currentTurn === "white" && myOnlineColor === "brancas") || (currentTurn === "black" && myOnlineColor === "pretas");
+    if (!isMyTurn) return;
+  }
+
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
@@ -3428,11 +3566,13 @@ canvas.addEventListener("click", (e) => {
     const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
     if (oppVal === "online_room" && socket && socket.readyState === 1) {
       try {
+        const targetR = chosenAction.r !== undefined ? chosenAction.r : chosenAction.toR;
+        const targetC = chosenAction.c !== undefined ? chosenAction.c : chosenAction.toC;
         socket.send(JSON.stringify({
           tipo: "acao",
           type: chosenAction.type || "move",
           start: [fromR, fromC],
-          end: [chosenAction.toR, chosenAction.toC]
+          end: [targetR, targetC]
         }));
       } catch (_) {}
     }
@@ -3952,20 +4092,30 @@ function showEmoteNotification(text) {
 
 // Game Actions
 document.getElementById("btnResign").addEventListener("click", () => {
+  const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+  if (oppVal === "online_room" && socket && socket.readyState === 1) {
+    socket.send(JSON.stringify({ tipo: "resign" }));
+  }
   isGameOver = true;
   showPostGameButtons();
   playChime("stun");
-  alert("Partida terminada por desistência.");
+  showNotification("Partida terminada por desistência.", "info");
 });
 
 document.getElementById("btnRematch").addEventListener("click", () => {
+  const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
+  if (oppVal === "online_room" && socket && socket.readyState === 1) {
+    socket.send(JSON.stringify({ tipo: "rematch" }));
+    showNotification("Proposta de desforra enviada ao servidor...", "info");
+    return;
+  }
   initDefaultBoard();
   drawBoard();
   whiteSeconds = 600;
   blackSeconds = 600;
   updateClockDisplays();
   startClock();
-  alert("Desforra iniciada! Boa sorte no tabuleiro!");
+  showNotification("Desforra iniciada! Boa sorte no tabuleiro!", "success");
 });
 
 // Board Theme Switcher
@@ -4035,13 +4185,7 @@ if (oppSelectEl) {
 const btnReconnectEl = document.getElementById("btnReconnect");
 if (btnReconnectEl) {
   btnReconnectEl.addEventListener("click", function() {
-    if (socket && socket.readyState === 1 && myReconnectToken && currentRoomId) {
-      socket.send(JSON.stringify({
-        tipo: "reconnect",
-        room_id: currentRoomId,
-        token: myReconnectToken
-      }));
-    }
+    reconnectOnlineGame();
   });
 }
 

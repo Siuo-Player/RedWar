@@ -167,7 +167,7 @@ _PRESETS: dict[GameModeType, GameMode] = {
     ),
     GameModeType.GRAND_10X10: GameMode(
         mode_type=GameModeType.GRAND_10X10,
-        name="Grand RedWar 10×10",
+        name="Grand RedWar 10×10 (Experimental / Tabuleiro Expandido)",
         board_rows=10,
         board_cols=10,
         draft_budget=300,
