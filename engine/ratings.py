@@ -5,6 +5,7 @@ import math
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+import secrets
 from typing import Any
 
 from engine.game_modes import GameModeType
@@ -189,6 +190,7 @@ class LeaderboardManager:
         return entries
 
     def save(self, storage_path: str | None = None) -> None:
+        """Atomic leaderboard persistence via temporary file replacement."""
         target = storage_path or self.storage_path
         if not target:
             return
@@ -197,7 +199,9 @@ class LeaderboardManager:
         data = {
             "profiles": [p.to_dict() for p in self.profiles.values()],
         }
-        path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        tmp_path = path.with_name(f"{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+        tmp_path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        tmp_path.replace(path)
 
     def load(self, storage_path: str | None = None) -> None:
         target = storage_path or self.storage_path

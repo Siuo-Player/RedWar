@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import time
 import pytest
 
@@ -132,13 +133,12 @@ def test_web_app_granular_csp_and_early_method_rejection():
     assert "default-src 'self'" in csp
 
 
-def test_puzzle_endpoint_structure():
-    """Verify puzzle bank schema integrity."""
+def test_puzzle_endpoint_privacy_and_verification():
+    """Verify Section 4: Puzzle solution privacy and authoritative verification endpoint."""
     app = RedWarWebApp()
     resp = app.handle_request("GET", "/api/puzzles")
 
     assert resp["status"] == 200
-    import json
     data = json.loads(resp["body"])
     assert "puzzles" in data
     assert len(data["puzzles"]) > 0
@@ -146,4 +146,26 @@ def test_puzzle_endpoint_structure():
     for pz in data["puzzles"]:
         assert "puzzle_id" in pz
         assert "title" in pz
-        assert "solution_moves" in pz
+        # Security Privacy Invariant: solution_moves MUST NOT be exposed in GET /api/puzzles
+        assert "solution_moves" not in pz
+
+    # Test /api/puzzles/verify with correct move
+    verify_resp = app.handle_request(
+        "POST",
+        "/api/puzzles/verify",
+        body=json.dumps({"puzzle_id": "puz_001", "move": "MOVE D2 D8", "step": 0}),
+    )
+    assert verify_resp["status"] == 200
+    vdata = json.loads(verify_resp["body"])
+    assert vdata["correct"] is True
+    assert vdata["completed"] is False
+
+    # Test /api/puzzles/verify with incorrect move
+    wrong_resp = app.handle_request(
+        "POST",
+        "/api/puzzles/verify",
+        body=json.dumps({"puzzle_id": "puz_001", "move": "MOVE A1 A2", "step": 0}),
+    )
+    assert wrong_resp["status"] == 200
+    wdata = json.loads(wrong_resp["body"])
+    assert wdata["correct"] is False
