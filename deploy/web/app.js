@@ -15,6 +15,7 @@ let currentLegalActions = [];
 let currentTurn = "white";
 let whiteSeconds = 600;
 let blackSeconds = 600;
+let currentClockIncrement = 0;
 let clockInterval = null;
 let socket = null;
 let isGameOver = false;
@@ -187,49 +188,49 @@ const HERO_RULES = {
   Paladin: {
     move: { type: "orthogonal", steps: 2, ghost: false },
     attack: { type: "orthogonal", steps: 2 },
-    cost: 16,
+    cost: 55,
     acronym: "Pa"
   },
   Shadowblade: {
     move: { type: "diagonal", steps: 3, ghost: true },
     attack: { type: "diagonal", steps: 3, ghost: true },
-    cost: 18,
-    acronym: "Sh"
+    cost: 65,
+    acronym: "Sb"
   },
   Stormcaller: {
     move: { type: "orthogonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 4 },
-    cost: 17,
-    acronym: "St"
+    cost: 72,
+    acronym: "Sc"
   },
   Hookmaster: {
     move: { type: "orthogonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 3 },
-    cost: 15,
+    cost: 52,
     acronym: "Hk"
   },
   Timekeeper: {
     move: { type: "diagonal", steps: 1, ghost: false },
     attack: { type: "diagonal", steps: 2 },
-    cost: 16,
+    cost: 59,
     acronym: "Tk"
   },
   Dragoon: {
     move: { type: "knight" },
     attack: { type: "knight" },
-    cost: 18,
+    cost: 193,
     acronym: "Dr"
   },
   FrostMage: {
     move: { type: "diagonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 3, stunOnly: true },
-    cost: 16,
-    acronym: "Fm"
+    cost: 5,
+    acronym: "FM"
   },
   BoneLord: {
     move: { type: "orthogonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 1 },
-    cost: 16,
+    cost: 86,
     acronym: "BL"
   },
   Bone: {
@@ -241,19 +242,19 @@ const HERO_RULES = {
   Berserker: {
     move: { type: "adjacent", steps: 1, ghost: false },
     attack: { type: "adjacent", steps: 1 },
-    cost: 18,
+    cost: 31,
     acronym: "Be"
   },
   Ranger: {
     move: { type: "orthogonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 4 },
-    cost: 14,
+    cost: 40,
     acronym: "Ra"
   },
   Pyromancer: {
     move: { type: "diagonal", steps: 2, ghost: false },
     attack: { type: "orthogonal", steps: 2 },
-    cost: 16,
+    cost: 17,
     acronym: "Py"
   },
   Phantom: {
@@ -265,7 +266,7 @@ const HERO_RULES = {
   Cleric: {
     move: { type: "diagonal", steps: 2, ghost: false },
     attack: { type: "adjacent", steps: 1 },
-    cost: 14,
+    cost: 58,
     acronym: "Cl"
   },
   Templar: {
@@ -277,25 +278,25 @@ const HERO_RULES = {
   Inquisitor: {
     move: { type: "adjacent", steps: 1, ghost: false },
     attack: { type: "adjacent", steps: 1 },
-    cost: 15,
+    cost: 128,
     acronym: "In"
   },
   Geomancer: {
     move: { type: "orthogonal", steps: 1, ghost: false },
     attack: { type: "diagonal", steps: 1 },
-    cost: 14,
+    cost: 21,
     acronym: "Ge"
   },
   Lich: {
     move: { type: "diagonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 2 },
-    cost: 15,
+    cost: 11,
     acronym: "Li"
   },
   Nightshade: {
     move: { type: "diagonal", steps: 2, ghost: false },
     attack: { type: "adjacent", steps: 1 },
-    cost: 14,
+    cost: 193,
     acronym: "Ni"
   },
   Obelisk: {
@@ -307,19 +308,19 @@ const HERO_RULES = {
   Sentry: {
     move: { type: "orthogonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 3 },
-    cost: 12,
+    cost: 96,
     acronym: "Se"
   },
-  Stonewall: {
+  StoneWall: {
     move: { type: "orthogonal", steps: 1, ghost: false },
     attack: { type: "orthogonal", steps: 1 },
-    cost: 14,
-    acronym: "Sw"
+    cost: 8,
+    acronym: "SW"
   },
   Trickster: {
     move: { type: "knight" },
     attack: { type: "adjacent", steps: 1 },
-    cost: 12,
+    cost: 26,
     acronym: "Tr"
   },
   Ghoul: {
@@ -2516,7 +2517,7 @@ const HERO_ANALYTICS_DATA = {
       }
     ]
   },
-  "Stonewall": {
+  "StoneWall": {
     "classes": [
       "Bastion (Muralha Viva)",
       "Barricada Tática"
@@ -3351,9 +3352,31 @@ function startClock() {
   clockInterval = setInterval(() => {
     if (isGameOver) return;
     if (currentTurn === "white") {
-      if (whiteSeconds > 0) whiteSeconds--;
+      if (whiteSeconds > 0) {
+        whiteSeconds--;
+        if (whiteSeconds <= 0) {
+          isGameOver = true;
+          clearInterval(clockInterval);
+          updateClockDisplays();
+          showNotification("Tempo esgotado! Derrota por queda de bandeira (Pretas vencem).", "error");
+          document.getElementById("btnRematch").style.display = "inline-block";
+          document.getElementById("btnGameReview").style.display = "inline-block";
+          return;
+        }
+      }
     } else {
-      if (blackSeconds > 0) blackSeconds--;
+      if (blackSeconds > 0) {
+        blackSeconds--;
+        if (blackSeconds <= 0) {
+          isGameOver = true;
+          clearInterval(clockInterval);
+          updateClockDisplays();
+          showNotification("Tempo esgotado! Derrota por queda de bandeira (Brancas vencem).", "error");
+          document.getElementById("btnRematch").style.display = "inline-block";
+          document.getElementById("btnGameReview").style.display = "inline-block";
+          return;
+        }
+      }
     }
     updateClockDisplays();
   }, 1000);
@@ -3384,9 +3407,15 @@ function initDefaultBoard() {
   isGameOver = false;
   moveHistory = [];
   evalHistory = [0];
+  classifiedMoves = [];
+  capturedWhite = [];
+  capturedBlack = [];
   selectedSquare = null;
   currentLegalActions = [];
   currentTurn = "white";
+  if (typeof updateGraveyardsUI === "function") {
+    updateGraveyardsUI();
+  }
 
   document.getElementById("btnRematch").style.display = "none";
   document.getElementById("btnGameReview").style.display = "none";
@@ -3901,13 +3930,15 @@ document.getElementById("btnStartGame").addEventListener("click", () => {
   const tcSelect = document.getElementById("timeControlSelect");
   const tcVal = tcSelect ? tcSelect.value : "rapid_10_0";
   let initialSeconds = 600;
-  if (tcVal === "bullet_1_0") initialSeconds = 60;
-  else if (tcVal === "blitz_3_2") initialSeconds = 180;
-  else if (tcVal === "blitz_5_0") initialSeconds = 300;
-  else if (tcVal === "rapid_10_0") initialSeconds = 600;
-  else if (tcVal === "rapid_15_10") initialSeconds = 900;
+  let incrementSec = 0;
+  if (tcVal === "bullet_1_0") { initialSeconds = 60; incrementSec = 0; }
+  else if (tcVal === "blitz_3_2") { initialSeconds = 180; incrementSec = 2; }
+  else if (tcVal === "blitz_5_0") { initialSeconds = 300; incrementSec = 0; }
+  else if (tcVal === "rapid_10_0") { initialSeconds = 600; incrementSec = 0; }
+  else if (tcVal === "rapid_15_10") { initialSeconds = 900; incrementSec = 10; }
   whiteSeconds = initialSeconds;
   blackSeconds = initialSeconds;
+  currentClockIncrement = incrementSec;
   updateClockDisplays();
   startClock();
 });
