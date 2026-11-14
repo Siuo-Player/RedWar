@@ -17,6 +17,8 @@ import threading
 import time
 from typing import Generator
 import pytest
+
+playwright = pytest.importorskip("playwright", reason="playwright is required for browser E2E tests")
 from playwright.sync_api import Browser, BrowserContext, Page, sync_playwright
 
 from engine.ratings import LeaderboardManager
