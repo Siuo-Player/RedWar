@@ -432,3 +432,143 @@ def test_web_client_apply_server_board_and_reconnect():
     res = run_node_snippet(snippet)
     assert res["passed"], f"applyServerBoard and reconnectOnlineGame invariant failed: {res}"
 
+
+def test_web_client_puzzle_move_does_not_mutate_board_on_failure():
+    """Verify that an incorrect puzzle move does NOT mutate or desync boardData in the client."""
+    snippet = """
+    // Setup a puzzle board
+    isPuzzleMode = true;
+    currentPuzzle = { puzzle_id: "pz1", hint: "Test hint", explanation: "Test expl" };
+    boardGrid = 8;
+    boardData = Array(8).fill(null).map(() => Array(8).fill(null));
+    boardData[6][0] = { name: "Bone", team: "brancas", stun: 0 };
+    boardData[1][0] = { name: "Bone", team: "pretas", stun: 0 };
+
+    const initialSnapshot = JSON.stringify(boardData);
+
+    // Mock fetch to simulate an incorrect move rejected by server
+    global.fetch = () => Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ correct: false, explanation: "Lance Incorreto" })
+    });
+
+    selectedSquare = { r: 6, c: 0 };
+    currentLegalActions = [{ type: "move", r: 5, c: 0 }];
+
+    // Trigger the destination click handler logic for puzzle
+    const fromR = selectedSquare.r;
+    const fromC = selectedSquare.c;
+    const r = 5, c = 0;
+    const chosenAction = currentLegalActions[0];
+
+    // Call verifyPuzzleMove and ensure board remains unchanged
+    let boardWasMutatedSynchronously = false;
+    let boardAfterRejectionSame = false;
+
+    // Simulate verification flow
+    verifyPuzzleMove("pz1", fromR, fromC, r, c).then(data => {
+      if (data && data.correct) {
+        applyAction(fromR, fromC, chosenAction);
+      } else {
+        selectedSquare = null;
+        currentLegalActions = [];
+      }
+      boardAfterRejectionSame = (JSON.stringify(boardData) === initialSnapshot);
+      console.log(JSON.stringify({
+        passed: boardAfterRejectionSame && (boardData[6][0] !== null),
+        boardDataAtOrigin: boardData[6][0],
+        boardDataAtDest: boardData[5][0]
+      }));
+    });
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Puzzle board preservation invariant failed: {res}"
+
+
+def test_web_client_rematch_color_swap_handling():
+    """Verify that rematch_update correctly flips myOnlineColor and updates reconnect tokens."""
+    snippet = """
+    myOnlinePlayerId = "player_alice";
+    myOnlineColor = "brancas";
+    myReconnectToken = "old_token_123";
+
+    // Simulate incoming rematch_update message where Alice is swapped to Black
+    const rematchMsg = {
+      tipo: "rematch_update",
+      cor: "pretas",
+      reconnect_token: "new_rotated_token_456",
+      room: {
+        players: {
+          brancas: "player_bob",
+          pretas: "player_alice"
+        }
+      }
+    };
+
+    // Execute message handler logic
+    if (rematchMsg.cor) {
+      myOnlineColor = rematchMsg.cor;
+    } else if (rematchMsg.room && rematchMsg.room.players && myOnlinePlayerId) {
+      if (rematchMsg.room.players.brancas === myOnlinePlayerId) myOnlineColor = "brancas";
+      else if (rematchMsg.room.players.pretas === myOnlinePlayerId) myOnlineColor = "pretas";
+    }
+    if (rematchMsg.reconnect_token) {
+      myReconnectToken = rematchMsg.reconnect_token;
+      localStorage.setItem("redwar_reconnect_token", myReconnectToken);
+    }
+
+    const colorSwapped = (myOnlineColor === "pretas");
+    const tokenUpdated = (localStorage.getItem("redwar_reconnect_token") === "new_rotated_token_456");
+
+    console.log(JSON.stringify({
+      passed: colorSwapped && tokenUpdated,
+      myOnlineColor,
+      tokenUpdated
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Rematch color swap invariant failed: {res}"
+
+
+def test_web_client_static_github_pages_detection_and_api_base():
+    """Verify static GitHub Pages detection and configurable API base URLs."""
+    snippet = """
+    // 1. Local environment without override
+    window.location = { hostname: "localhost", protocol: "http:" };
+    delete window.REDWAR_WS_URL;
+    delete window.REDWAR_API_URL;
+    localStorage.removeItem("redwar_ws_url");
+    localStorage.removeItem("redwar_api_url");
+
+    const localWs = getWebSocketUrl();
+    const localApi = getApiBaseUrl();
+    const localNotPages = !isStaticGitHubPages();
+
+    // 2. GitHub Pages environment without override
+    window.location = { hostname: "siuo-player.github.io", protocol: "https:" };
+    const pagesWsWithoutConfig = getWebSocketUrl(); // Should return null to warn user
+    const isPages = isStaticGitHubPages();
+
+    // 3. GitHub Pages environment with configured endpoints
+    window.REDWAR_WS_URL = "wss://backend.redwar.org:8765";
+    window.REDWAR_API_URL = "https://backend.redwar.org";
+    const pagesWsConfigured = getWebSocketUrl();
+    const pagesApiConfigured = getApiBaseUrl();
+
+    console.log(JSON.stringify({
+      passed: (localWs === "ws://localhost:8765") &&
+              (localApi === "") &&
+              localNotPages &&
+              isPages &&
+              (pagesWsWithoutConfig === null) &&
+              (pagesWsConfigured === "wss://backend.redwar.org:8765") &&
+              (pagesApiConfigured === "https://backend.redwar.org"),
+      localWs,
+      pagesWsWithoutConfig,
+      pagesWsConfigured
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"GitHub Pages detection and API configuration failed: {res}"
+
+

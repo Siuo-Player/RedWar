@@ -357,11 +357,29 @@ async def gerir_conexao(websocket: Any):
                             continue
                         success = room.propose_rematch(meta["player_id"])
                         if success:
-                            await _broadcast_room(meta["room_id"], {
-                                "tipo": "rematch_update",
-                                "room": room.state_payload(),
-                            })
                             if room.is_started and not room.is_finished:
+                                # Both players accepted: seats and tokens are swapped
+                                room_sockets = _room_sockets.get(meta["room_id"], set())
+                                for ws in list(room_sockets):
+                                    ws_meta = _connections.get(ws)
+                                    if ws_meta:
+                                        pid = ws_meta.get("player_id")
+                                        if pid == room.white_player:
+                                            ws_meta["cor"] = "brancas"
+                                        elif pid == room.black_player:
+                                            ws_meta["cor"] = "pretas"
+                                        rec_token = room.player_tokens.get(pid)
+                                        try:
+                                            await ws.send(json.dumps({
+                                                "tipo": "rematch_update",
+                                                "cor": ws_meta["cor"],
+                                                "reconnect_token": rec_token,
+                                                "player_id": pid,
+                                                "room": room.state_payload(),
+                                            }))
+                                        except websockets.exceptions.ConnectionClosed:
+                                            room_sockets.discard(ws)
+                                            _connections.pop(ws, None)
                                 await _broadcast_room(meta["room_id"], {
                                     "tipo": "start_game",
                                     "room": room.state_payload(),
@@ -369,6 +387,13 @@ async def gerir_conexao(websocket: Any):
                                 await _broadcast_room(meta["room_id"], {
                                     "tipo": "estado_jogo",
                                     "dados": room.session.state_payload(),
+                                    "room": room.state_payload(),
+                                })
+                            else:
+                                # First player proposed: notify room of proposal
+                                await _broadcast_room(meta["room_id"], {
+                                    "tipo": "rematch_proposal",
+                                    "proposer": meta["player_id"],
                                     "room": room.state_payload(),
                                 })
                 continue

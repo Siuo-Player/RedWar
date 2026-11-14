@@ -19,6 +19,7 @@ let currentClockIncrement = 0;
 let clockInterval = null;
 let socket = null;
 let myOnlineColor = null;
+let myOnlinePlayerId = null;
 let myReconnectToken = null;
 let currentRoomId = null;
 
@@ -31,6 +32,23 @@ function showNotification(msg, type = "info") {
   }
 }
 
+function isStaticGitHubPages() {
+  if (typeof window === "undefined" || !window.location) return false;
+  const host = window.location.hostname || "";
+  return host.endsWith("github.io");
+}
+
+function getApiBaseUrl() {
+  if (typeof window !== "undefined" && window.REDWAR_API_URL) {
+    return window.REDWAR_API_URL.replace(/\/+$/, "");
+  }
+  try {
+    const saved = localStorage.getItem("redwar_api_url");
+    if (saved) return saved.replace(/\/+$/, "");
+  } catch (_) {}
+  return "";
+}
+
 function getWebSocketUrl() {
   if (typeof window !== "undefined" && window.REDWAR_WS_URL) {
     return window.REDWAR_WS_URL;
@@ -39,9 +57,30 @@ function getWebSocketUrl() {
     const saved = localStorage.getItem("redwar_ws_url");
     if (saved) return saved;
   } catch (_) {}
+  if (isStaticGitHubPages()) {
+    return null;
+  }
   const protocol = (typeof window !== "undefined" && window.location && window.location.protocol === "https:") ? "wss:" : "ws:";
   const host = (typeof window !== "undefined" && window.location && window.location.hostname) ? window.location.hostname : "localhost";
   return `${protocol}//${host}:8765`;
+}
+
+function promptConfigureServer() {
+  if (typeof window === "undefined" || typeof prompt !== "function") return;
+  const currentWs = (typeof localStorage !== "undefined" ? localStorage.getItem("redwar_ws_url") : "") || "";
+  const currentApi = (typeof localStorage !== "undefined" ? localStorage.getItem("redwar_api_url") : "") || "";
+  const newWs = prompt("Endereço WebSocket do Servidor RedWar (ex: wss://servidor.exemplo.com:8765):", currentWs);
+  if (newWs !== null) {
+    if (typeof localStorage !== "undefined") localStorage.setItem("redwar_ws_url", newWs.trim());
+    const newApi = prompt("Endereço API REST do Servidor RedWar (ex: https://servidor.exemplo.com):", currentApi);
+    if (newApi !== null && typeof localStorage !== "undefined") {
+      localStorage.setItem("redwar_api_url", newApi.trim());
+    }
+    showNotification("Configuração do servidor guardada.", "success");
+    if (window.location && typeof window.location.reload === "function") {
+      window.location.reload();
+    }
+  }
 }
 
 function applyServerBoard(serverBoard) {
@@ -66,6 +105,15 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
     socket = null;
   }
   const wsUrl = getWebSocketUrl();
+  if (!wsUrl) {
+    showNotification("Ambiente estático (GitHub Pages) sem servidor remoto configurado. Configure a URL em Opções ou use 'python launcher.py'.", "warning");
+    const rBanner = document.getElementById("reconnectBanner");
+    if (rBanner) {
+      rBanner.style.display = "block";
+      rBanner.innerHTML = "<span>Servidor não configurado para alojamento estático. <a href='javascript:void(0)' onclick='promptConfigureServer()' style='color:#60a5fa; text-decoration:underline;'>Configurar Servidor</a></span>";
+    }
+    return;
+  }
 
   showNotification(`A ligar ao servidor online (${roomId})...`, "info");
 
@@ -90,7 +138,18 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
       return;
     }
 
-    const playerId = "Player_" + Math.random().toString(36).substring(2, 8);
+    try {
+      const savedPid = localStorage.getItem("redwar_online_player_id");
+      if (savedPid) myOnlinePlayerId = savedPid;
+    } catch (_) {}
+    if (!myOnlinePlayerId) {
+      myOnlinePlayerId = "Player_" + Math.random().toString(36).substring(2, 8);
+      try {
+        localStorage.setItem("redwar_online_player_id", myOnlinePlayerId);
+      } catch (_) {}
+    }
+    const playerId = myOnlinePlayerId;
+
     const tcEl = document.getElementById("timeControlSelect");
     const mEl = document.getElementById("modeSelect");
     const joinMsg = {
@@ -119,7 +178,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         } catch (_) {}
         const bName = document.getElementById("blackPlayerName");
         if (bName) {
-          bName.textContent = `Oponente Online (${data.room_id})`;
+          bName.textContent = `Oponente Online (${data.room_id}) [És ${data.cor === "brancas" ? "Brancas" : (data.cor === "pretas" ? "Pretas" : "Espetador")}]`;
         }
         showNotification(`Entrou na sala '${data.room_id}' como ${data.cor === "brancas" ? "Brancas" : (data.cor === "pretas" ? "Pretas" : "Espetador")}`, "success");
 
@@ -129,7 +188,14 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         }
       } else if (data.tipo === "start_game") {
         isGameOver = false;
-        showNotification("Partida iniciada! É a vez das Brancas.", "success");
+        if (data.room && data.room.players && myOnlinePlayerId) {
+          if (data.room.players.brancas === myOnlinePlayerId) {
+            myOnlineColor = "brancas";
+          } else if (data.room.players.pretas === myOnlinePlayerId) {
+            myOnlineColor = "pretas";
+          }
+        }
+        showNotification(`Partida iniciada! É a vez das Brancas. (Tu jogas com ${myOnlineColor === "brancas" ? "Brancas" : (myOnlineColor === "pretas" ? "Pretas" : "Espetador")})`, "success");
         if (data.room && data.room.clock) {
           whiteSeconds = Math.round(data.room.clock.white_time);
           blackSeconds = Math.round(data.room.clock.black_time);
@@ -168,9 +234,13 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         myOnlineColor = data.cor;
         myReconnectToken = data.reconnect_token;
         currentRoomId = data.room_id;
+        if (data.player_id) {
+          myOnlinePlayerId = data.player_id;
+        }
         try {
           localStorage.setItem("redwar_online_room", currentRoomId);
           if (myReconnectToken) localStorage.setItem("redwar_reconnect_token", myReconnectToken);
+          if (myOnlinePlayerId) localStorage.setItem("redwar_online_player_id", myOnlinePlayerId);
         } catch (_) {}
         const rBanner = document.getElementById("reconnectBanner");
         if (rBanner) rBanner.style.display = "none";
@@ -187,8 +257,29 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
           updateClockDisplays();
         }
         showNotification(`Reconexão efetuada com sucesso como ${data.cor === "brancas" ? "Brancas" : "Pretas"}!`, "success");
+      } else if (data.tipo === "rematch_proposal") {
+        showNotification(`${data.proposer || "O adversário"} propôs uma desforra. Clica em 'Desforra' para aceitar!`, "info");
       } else if (data.tipo === "rematch_update") {
-        showNotification("Desforra acordada. A reiniciar partida...", "info");
+        if (data.cor) {
+          myOnlineColor = data.cor;
+        } else if (data.room && data.room.players && myOnlinePlayerId) {
+          if (data.room.players.brancas === myOnlinePlayerId) {
+            myOnlineColor = "brancas";
+          } else if (data.room.players.pretas === myOnlinePlayerId) {
+            myOnlineColor = "pretas";
+          }
+        }
+        if (data.reconnect_token) {
+          myReconnectToken = data.reconnect_token;
+          try {
+            localStorage.setItem("redwar_reconnect_token", myReconnectToken);
+          } catch (_) {}
+        }
+        const bName = document.getElementById("blackPlayerName");
+        if (bName) {
+          bName.textContent = `Oponente Online (${currentRoomId || ""}) [Jogando como ${myOnlineColor === "brancas" ? "Brancas" : "Pretas"}]`;
+        }
+        showNotification(`Desforra acordada! As tuas peças agora são ${myOnlineColor === "brancas" ? "Brancas" : "Pretas"}.`, "info");
       } else if (data.tipo === "chat_emote") {
         const eNotif = document.getElementById("emoteNotification");
         if (eNotif) {
@@ -3442,6 +3533,29 @@ function drawBoard() {
   }
 }
 
+function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
+  if (typeof fetch !== "function") return Promise.reject(new Error("fetch unavailable"));
+  const baseUrl = getApiBaseUrl();
+  const endpoint = baseUrl ? `${baseUrl}/api/puzzles/verify` : "/api/puzzles/verify";
+  return fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      puzzle_id: puzzleId,
+      fromR: fromR,
+      fromC: fromC,
+      toR: toR,
+      toC: toC,
+      step: 0
+    })
+  }).then(resp => {
+    if (!resp.ok) {
+      throw new Error(`HTTP ${resp.status}`);
+    }
+    return resp.json();
+  });
+}
+
 // User Interaction Handler (STRICT INVARIANT: Player cannot move Black/AI pieces, No Self-Capture)
 canvas.addEventListener("click", (e) => {
   if (isGameOver || isAiThinking) return;
@@ -3525,31 +3639,28 @@ canvas.addEventListener("click", (e) => {
       }
     }
 
-function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
-  if (typeof fetch !== "function") return Promise.reject(new Error("fetch unavailable"));
-  return fetch("/api/puzzles/verify", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      puzzle_id: puzzleId,
-      fromR: fromR,
-      fromC: fromC,
-      toR: toR,
-      toC: toC,
-      step: 0
-    })
-  }).then(resp => resp.json());
-}
-
-    // If in Tactical Puzzle Mode, verify with puzzle solution
+    // If in Tactical Puzzle Mode, verify with puzzle solution before mutating board
     if (isPuzzleMode && currentPuzzle) {
       const banner = document.getElementById("puzzleStatusBanner");
       const nextBtn = document.getElementById("btnNextPuzzle");
       const pzId = currentPuzzle.puzzle_id;
 
+      if (banner) {
+        banner.style.display = "block";
+        banner.style.background = "rgba(59, 130, 246, 0.2)";
+        banner.style.border = "1px solid #3b82f6";
+        banner.style.color = "#60a5fa";
+        banner.innerHTML = "<strong>A verificar lance com o servidor...</strong>";
+      }
+
       verifyPuzzleMove(pzId, fromR, fromC, r, c)
         .then(data => {
           if (data && data.correct) {
+            applyAction(fromR, fromC, chosenAction);
+            selectedSquare = null;
+            currentLegalActions = [];
+            drawBoard();
+
             puzzleStreak++;
             puzzleUserElo += 15;
             savePuzzleStats();
@@ -3564,6 +3675,10 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
             if (nextBtn) nextBtn.style.display = "inline-block";
             playChime("brilliant");
           } else {
+            selectedSquare = null;
+            currentLegalActions = [];
+            drawBoard();
+
             puzzleStreak = 0;
             puzzleUserElo = Math.max(800, puzzleUserElo - 10);
             savePuzzleStats();
@@ -3573,21 +3688,26 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
               banner.style.background = "rgba(239, 68, 68, 0.2)";
               banner.style.border = "1px solid #ef4444";
               banner.style.color = "#f87171";
-              banner.innerHTML = "<strong>Lance Incorreto (-10 ELO).</strong> Tenta novamente ou consulta a Dica.";
+              banner.innerHTML = "<strong>Lance Incorreto (-10 ELO).</strong> O tabuleiro foi preservado. Tenta novamente ou consulta a Dica.";
             }
             playChime("blunder");
           }
         })
         .catch(err => {
+          selectedSquare = null;
+          currentLegalActions = [];
+          drawBoard();
           console.warn("Puzzle verification network error:", err);
           if (banner) {
             banner.style.display = "block";
             banner.style.background = "rgba(234, 179, 8, 0.2)";
             banner.style.border = "1px solid #eab308";
             banner.style.color = "#eab308";
-            banner.innerHTML = "<strong>Aviso:</strong> Não foi possível contactar o servidor para verificar o lance.";
+            banner.innerHTML = "<strong>Aviso:</strong> Não foi possível contactar o servidor para verificar o lance. O tabuleiro foi preservado.";
           }
         });
+
+      return; // CRITICAL: Stop! Do NOT execute applyAction or finishTurn synchronously!
     }
 
     applyAction(fromR, fromC, chosenAction);
@@ -4250,7 +4370,9 @@ async function loadLeaderboard() {
   const tbody = document.getElementById("leaderboardBody");
   tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>A carregar classificações...</td></tr>";
   try {
-    const res = await fetch("/api/leaderboard");
+    const baseUrl = getApiBaseUrl();
+    const endpoint = baseUrl ? `${baseUrl}/api/leaderboard` : "/api/leaderboard";
+    const res = await fetch(endpoint);
     if (res.ok) {
       const data = await res.json();
       const entries = data.leaderboard || [];

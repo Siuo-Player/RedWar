@@ -59,6 +59,7 @@ class GameRoom:
     is_finished: bool = False
     winner: Optional[str] = None
     termination_reason: Optional[str] = None
+    finished_timestamp: Optional[float] = None
 
     reconnect_tokens: dict[str, str] = field(default_factory=dict)
     player_tokens: dict[str, str] = field(default_factory=dict)
@@ -210,6 +211,7 @@ class GameRoom:
             setup_standard_board(self.session.state)
             self.is_started = True
             self.is_finished = False
+            self.finished_timestamp = None
             self.winner = None
             self.termination_reason = None
             self.last_move_timestamp = time.monotonic()
@@ -266,6 +268,7 @@ class GameRoom:
 
         if self.clock.is_flag_fallen(white_to_move):
             self.is_finished = True
+            self.finished_timestamp = time.time()
             self.termination_reason = "flag_fall"
             self.winner = "pretas" if white_to_move else "brancas"
             return self.winner
@@ -300,6 +303,7 @@ class GameRoom:
         # Check if flag fell on active player: finish cleanly without unhandled exception
         if self.clock.is_flag_fallen(white_to_move):
             self.is_finished = True
+            self.finished_timestamp = time.time()
             self.termination_reason = "flag_fall"
             self.winner = "pretas" if white_to_move else "brancas"
             return self.state_payload()
@@ -316,6 +320,7 @@ class GameRoom:
 
         if self.session.state.game_over:
             self.is_finished = True
+            self.finished_timestamp = time.time()
             self.winner = getattr(self.session.state, "winner_team", None)
             if not self.winner:
                 raw_winner = str(self.session.state.winner).lower()
@@ -339,6 +344,7 @@ class GameRoom:
             raise ValueError("only active players can resign")
 
         self.is_finished = True
+        self.finished_timestamp = time.time()
         self.termination_reason = "resignation"
         self.winner = "pretas" if player_id == self.white_player else "brancas"
         return self.state_payload()
@@ -365,6 +371,7 @@ class GameRoom:
             "spectator_count": len(self.spectators),
             "is_started": self.is_started,
             "is_finished": self.is_finished,
+            "finished_timestamp": self.finished_timestamp,
             "winner": self.winner,
             "termination_reason": self.termination_reason,
             "rematch_proposals": list(self.rematch_proposals),
@@ -431,14 +438,31 @@ class RoomManager:
             return True
         return False
 
-    def cleanup_stale_rooms(self, max_idle_seconds: float = 1800.0) -> int:
-        """Purge finished, empty, or idle rooms to prevent memory exhaustion."""
+    def cleanup_stale_rooms(
+        self,
+        max_idle_seconds: float = 1800.0,
+        finished_retention_seconds: float = 300.0,
+    ) -> int:
+        """Purge finished, empty, or idle rooms to prevent memory exhaustion,
+
+        preserving finished rooms during rematch and review grace period.
+        """
         now = time.time()
         to_remove = []
         for rid, room in self.rooms.items():
             idle = now - getattr(room, "last_activity_timestamp", now)
+
+            # If rematch is pending or proposed, retain room until max_idle_seconds
+            if room.rematch_pending or len(room.rematch_proposals) > 0:
+                if idle > max_idle_seconds:
+                    to_remove.append(rid)
+                continue
+
             if room.is_finished:
-                to_remove.append(rid)
+                finished_time = getattr(room, "finished_timestamp", None)
+                finished_elapsed = (now - finished_time) if finished_time else idle
+                if finished_elapsed > finished_retention_seconds or idle > max_idle_seconds:
+                    to_remove.append(rid)
             elif not room.white_player and not room.black_player and not room.spectators:
                 to_remove.append(rid)
             elif idle > max_idle_seconds:
