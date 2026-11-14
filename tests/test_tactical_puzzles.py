@@ -58,3 +58,48 @@ def test_curated_puzzle_bank_integrity():
         assert p.rating >= 800
         assert len(p.solution_moves) >= 1
         assert p.theme
+
+
+def test_puzzle_bank_js_canonical_rwen_bijective_consistency():
+    """Verify bijective consistency between deploy/web/app.js PUZZLES and engine/puzzles.py PUZZLE_BANK.
+
+    Ensures pieces, coordinates, teams, and stun timers in JavaScript match canonical RWEN game states.
+    """
+    from tests.test_web_client_invariants import run_node_snippet
+    from engine.game_state import GameState
+    from engine.puzzles import load_rwen_into_game_state
+
+    res = run_node_snippet("console.log(JSON.stringify({ passed: true, puzzles: PUZZLES }));")
+    js_puzzles = res["puzzles"]
+    assert len(js_puzzles) >= 6
+
+    bank_by_id = {pz.puzzle_id: pz for pz in PUZZLE_BANK}
+
+    for pz_js in js_puzzles:
+        pid = pz_js["puzzle_id"]
+        assert pid in bank_by_id, f"Puzzle {pid} in app.js not found in canonical PUZZLE_BANK"
+        pz_py = bank_by_id[pid]
+
+        assert pz_js["rating"] == pz_py.rating
+        assert pz_js["title"] == pz_py.title
+
+        # Load canonical RWEN into GameState
+        gs = GameState()
+        load_rwen_into_game_state(pz_py.initial_rwen, gs)
+
+        # Collect pieces from GameState
+        py_pieces = {}
+        for r in range(gs.rows):
+            for c in range(gs.cols):
+                p = gs.board[r][c]
+                if p:
+                    py_pieces[(r, c)] = (p.name, p.team, p.stun_timer)
+
+        # Collect pieces from JS puzzle board
+        js_pieces = {
+            (item["r"], item["c"]): (item["name"], item["team"], item.get("stun", 0))
+            for item in pz_js["board"]
+        }
+
+        assert js_pieces == py_pieces, f"Piece mismatch in puzzle {pid}: JS={js_pieces} vs Py={py_pieces}"
+

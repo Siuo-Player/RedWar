@@ -25,6 +25,7 @@ let currentRoomId = null;
 let lastAuthoritativeBoard = null;
 let lastAuthoritativeTurn = "white";
 let isOnlineMovePending = false;
+let isPuzzleVerifying = false;
 
 function showNotification(msg, type = "info") {
   console.log(`[RedWar ${type}] ${msg}`);
@@ -3608,7 +3609,7 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
 
 // User Interaction Handler (STRICT INVARIANT: Player cannot move Black/AI pieces, No Self-Capture)
 canvas.addEventListener("click", (e) => {
-  if (isGameOver || isAiThinking || isOnlineMovePending) return;
+  if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying) return;
 
   const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
   if (oppVal === "online_room") {
@@ -3710,8 +3711,10 @@ canvas.addEventListener("click", (e) => {
         banner.innerHTML = "<strong>A verificar lance com o servidor...</strong>";
       }
 
+      isPuzzleVerifying = true;
       verifyPuzzleMove(pzId, fromR, fromC, r, c)
         .then(data => {
+          isPuzzleVerifying = false;
           if (data && data.correct) {
             applyAction(fromR, fromC, chosenAction);
             selectedSquare = null;
@@ -3751,6 +3754,7 @@ canvas.addEventListener("click", (e) => {
           }
         })
         .catch(err => {
+          isPuzzleVerifying = false;
           selectedSquare = null;
           currentLegalActions = [];
           drawBoard();
