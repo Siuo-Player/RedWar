@@ -131,7 +131,13 @@ class _RedWarHTTPRequestHandler(BaseHTTPRequestHandler):
         for k, v in response.get("headers", {}).items():
             self.send_header(k, v)
         self.end_headers()
-        body_bytes = response.get("body", "").encode("utf-8")
+        raw_body = response.get("body", "")
+        if isinstance(raw_body, bytes):
+            body_bytes = raw_body
+        elif isinstance(raw_body, str):
+            body_bytes = raw_body.encode("utf-8")
+        else:
+            body_bytes = b""
         self.wfile.write(body_bytes)
 
     def log_message(self, format: str, *args: Any) -> None:
@@ -161,7 +167,7 @@ class RedWarWebApp:
     def _response(
         self,
         status: int,
-        body: str,
+        body: str | bytes,
         content_type: str = "application/json",
         extra_headers: Optional[dict[str, str]] = None,
         origin: Optional[str] = None,
@@ -460,15 +466,36 @@ class RedWarWebApp:
             )
 
         if candidate_path.is_file():
+            ext = candidate_path.suffix.lower()
+            binary_mimes = {
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".gif": "image/gif",
+                ".ico": "image/x-icon",
+                ".webp": "image/webp",
+                ".wav": "audio/wav",
+                ".mp3": "audio/mpeg",
+                ".ogg": "audio/ogg",
+            }
+            if ext in binary_mimes:
+                return self._response(
+                    status=200,
+                    body=candidate_path.read_bytes(),
+                    content_type=binary_mimes[ext],
+                    origin=origin,
+                )
             mime = "text/plain"
-            if candidate_path.suffix == ".html":
+            if ext == ".html":
                 mime = "text/html"
-            elif candidate_path.suffix == ".js":
+            elif ext == ".js":
                 mime = "application/javascript"
-            elif candidate_path.suffix == ".css":
+            elif ext == ".css":
                 mime = "text/css"
-            elif candidate_path.suffix == ".json":
+            elif ext == ".json":
                 mime = "application/json"
+            elif ext == ".svg":
+                mime = "image/svg+xml"
             return self._response(
                 status=200,
                 body=candidate_path.read_text(encoding="utf-8"),

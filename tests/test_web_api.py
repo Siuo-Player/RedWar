@@ -224,3 +224,15 @@ def test_puzzle_verify_rate_limiting(web_client):
     assert statuses[:20] == [200] * 20
     assert statuses[20:] == [429] * 5
     assert statuses[-1] == 429
+
+
+def test_index_html_loads_config_js_before_app_js():
+    """Verify that deploy/web/index.html loads config.js strictly before app.js."""
+    from pathlib import Path
+    html = Path("deploy/web/index.html").read_text(encoding="utf-8")
+    config_pos = html.find('src="config.js"')
+    app_pos = html.find('src="app.js"')
+    assert config_pos != -1, "config.js not found in index.html"
+    assert app_pos != -1, "app.js not found in index.html"
+    assert config_pos < app_pos, "config.js MUST be loaded before app.js in index.html"
+

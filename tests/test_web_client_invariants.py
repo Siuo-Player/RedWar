@@ -731,4 +731,32 @@ def test_web_client_github_pages_leaderboard_offline_notice():
     assert res["passed"], f"GitHub Pages leaderboard notice invariant failed: {res}"
 
 
+def test_web_client_puzzle_double_submission_prevented():
+    """Verify that clicks are rejected while a puzzle verification is pending (preventing double ELO or duplicate actions)."""
+    snippet = """
+    setupPuzzle("pz1");
+    puzzleStreak = 0;
+    puzzleUserElo = 1200;
+    isPuzzleVerifying = true; // Simulate in-flight verification
+    selectedSquare = { r: 4, c: 3 };
+    currentLegalActions = [{ type: "move", r: 2, c: 5 }];
+
+    // Attempt second rapid click on destination square (2, 5)
+    canvas.dispatchEvent("click", { clientX: 5 * 70 + 35, clientY: 2 * 70 + 35 });
+
+    // Invariant: selectedSquare must NOT have been cleared, action must NOT have been dispatched
+    const doubleClickBlocked = (selectedSquare !== null && puzzleStreak === 0 && puzzleUserElo === 1200);
+
+    console.log(JSON.stringify({
+      passed: doubleClickBlocked,
+      selectedSquare,
+      puzzleStreak,
+      puzzleUserElo
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Double submission was not blocked: {res}"
+
+
+
 
