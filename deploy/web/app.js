@@ -22,13 +22,20 @@ let myOnlineColor = null;
 let myOnlinePlayerId = null;
 let myReconnectToken = null;
 let currentRoomId = null;
+let lastAuthoritativeBoard = null;
+let lastAuthoritativeTurn = "white";
+let isOnlineMovePending = false;
 
 function showNotification(msg, type = "info") {
   console.log(`[RedWar ${type}] ${msg}`);
   const rBanner = document.getElementById("reconnectBanner");
   if (type === "error" && rBanner) {
     rBanner.style.display = "block";
-    rBanner.firstChild.textContent = msg + " ";
+    if (rBanner.firstChild) {
+      rBanner.firstChild.textContent = msg + " ";
+    } else {
+      rBanner.textContent = msg + " ";
+    }
   }
 }
 
@@ -96,6 +103,7 @@ function applyServerBoard(serverBoard) {
       };
     })
   );
+  lastAuthoritativeBoard = JSON.parse(JSON.stringify(boardData));
   drawBoard();
 }
 
@@ -168,6 +176,14 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
       const data = JSON.parse(event.data);
       if (data.tipo === "erro") {
         showNotification(data.mensagem || "Erro do servidor", "error");
+        isOnlineMovePending = false;
+        if (lastAuthoritativeBoard) {
+          boardData = JSON.parse(JSON.stringify(lastAuthoritativeBoard));
+          currentTurn = lastAuthoritativeTurn;
+          selectedSquare = null;
+          currentLegalActions = [];
+          drawBoard();
+        }
       } else if (data.tipo === "room_joined") {
         myOnlineColor = data.cor;
         myReconnectToken = data.reconnect_token;
@@ -188,6 +204,10 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         }
       } else if (data.tipo === "start_game") {
         isGameOver = false;
+        isOnlineMovePending = false;
+        if (typeof resetGameUIForNewMatch === "function") {
+          resetGameUIForNewMatch();
+        }
         if (data.room && data.room.players && myOnlinePlayerId) {
           if (data.room.players.brancas === myOnlinePlayerId) {
             myOnlineColor = "brancas";
@@ -203,12 +223,14 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         }
         startClock();
       } else if (data.tipo === "estado_jogo") {
+        isOnlineMovePending = false;
         if (data.dados) {
           if (Array.isArray(data.dados.board)) {
             applyServerBoard(data.dados.board);
           }
           if (data.dados.white_to_move !== undefined) {
             currentTurn = data.dados.white_to_move ? "white" : "black";
+            lastAuthoritativeTurn = currentTurn;
             if (typeof updateClockActiveTurn === "function") {
               updateClockActiveTurn();
             }
@@ -231,6 +253,10 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
           showNotification(`Partida terminada! Vencedor: ${data.room.winner || "Empate"}`, "info");
         }
       } else if (data.tipo === "reconnect_success") {
+        isOnlineMovePending = false;
+        if (typeof resetGameUIForNewMatch === "function") {
+          resetGameUIForNewMatch();
+        }
         myOnlineColor = data.cor;
         myReconnectToken = data.reconnect_token;
         currentRoomId = data.room_id;
@@ -247,6 +273,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         if (data.estado_jogo && Array.isArray(data.estado_jogo.board)) {
           applyServerBoard(data.estado_jogo.board);
           currentTurn = data.estado_jogo.white_to_move ? "white" : "black";
+          lastAuthoritativeTurn = currentTurn;
           if (typeof updateClockActiveTurn === "function") {
             updateClockActiveTurn();
           }
@@ -260,6 +287,10 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
       } else if (data.tipo === "rematch_proposal") {
         showNotification(`${data.proposer || "O adversário"} propôs uma desforra. Clica em 'Desforra' para aceitar!`, "info");
       } else if (data.tipo === "rematch_update") {
+        isOnlineMovePending = false;
+        if (typeof resetGameUIForNewMatch === "function") {
+          resetGameUIForNewMatch();
+        }
         if (data.cor) {
           myOnlineColor = data.cor;
         } else if (data.room && data.room.players && myOnlinePlayerId) {
@@ -293,10 +324,12 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
   };
 
   socket.onerror = function() {
+    isOnlineMovePending = false;
     showNotification("Erro na ligação WebSocket.", "error");
   };
 
   socket.onclose = function() {
+    isOnlineMovePending = false;
     showNotification("Ligação multiplayer terminada.", "error");
     const rBanner = document.getElementById("reconnectBanner");
     if (rBanner && !isGameOver && (myOnlineColor === "brancas" || myOnlineColor === "pretas")) {
@@ -3417,9 +3450,23 @@ function playAresBotMove() {
 }
 
 function showPostGameButtons() {
-  document.getElementById("btnResign").style.display = "none";
-  document.getElementById("btnRematch").style.display = "inline-block";
-  document.getElementById("btnGameReview").style.display = "inline-block";
+  const btnResign = document.getElementById("btnResign");
+  const btnRematch = document.getElementById("btnRematch");
+  const btnReview = document.getElementById("btnGameReview");
+  if (btnResign) btnResign.style.display = "none";
+  if (btnRematch) btnRematch.style.display = "inline-block";
+  if (btnReview) btnReview.style.display = "inline-block";
+}
+
+function resetGameUIForNewMatch() {
+  const btnResign = document.getElementById("btnResign");
+  const btnRematch = document.getElementById("btnRematch");
+  const btnReview = document.getElementById("btnGameReview");
+  if (btnResign) btnResign.style.display = "inline-block";
+  if (btnRematch) btnRematch.style.display = "none";
+  if (btnReview) btnReview.style.display = "none";
+  const banner = document.getElementById("puzzleStatusBanner");
+  if (banner && !isPuzzleMode) banner.style.display = "none";
 }
 
 // Board Rendering (Chessboard styling, asset silhouettes, move dots & attack rings)
@@ -3536,6 +3583,9 @@ function drawBoard() {
 function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
   if (typeof fetch !== "function") return Promise.reject(new Error("fetch unavailable"));
   const baseUrl = getApiBaseUrl();
+  if (isStaticGitHubPages() && !baseUrl) {
+    return Promise.reject(new Error("Servidor de verificação de puzzles não configurado no GitHub Pages."));
+  }
   const endpoint = baseUrl ? `${baseUrl}/api/puzzles/verify` : "/api/puzzles/verify";
   return fetch(endpoint, {
     method: "POST",
@@ -3558,10 +3608,17 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
 
 // User Interaction Handler (STRICT INVARIANT: Player cannot move Black/AI pieces, No Self-Capture)
 canvas.addEventListener("click", (e) => {
-  if (isGameOver || isAiThinking) return;
+  if (isGameOver || isAiThinking || isOnlineMovePending) return;
 
   const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
   if (oppVal === "online_room") {
+    if (!socket || socket.readyState !== 1) {
+      showNotification("Ligação multiplayer não está ativa. Lance cancelado.", "error");
+      selectedSquare = null;
+      currentLegalActions = [];
+      drawBoard();
+      return;
+    }
     if (myOnlineColor === "espetador") return;
     const isMyTurn = (currentTurn === "white" && myOnlineColor === "brancas") || (currentTurn === "black" && myOnlineColor === "pretas");
     if (!isMyTurn) return;
@@ -3710,9 +3767,16 @@ canvas.addEventListener("click", (e) => {
       return; // CRITICAL: Stop! Do NOT execute applyAction or finishTurn synchronously!
     }
 
-    applyAction(fromR, fromC, chosenAction);
     const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
-    if (oppVal === "online_room" && socket && socket.readyState === 1) {
+    if (oppVal === "online_room") {
+      if (!socket || socket.readyState !== 1) {
+        showNotification("Ligação multiplayer não está ativa. Lance cancelado.", "error");
+        selectedSquare = null;
+        currentLegalActions = [];
+        drawBoard();
+        return;
+      }
+      isOnlineMovePending = true;
       try {
         const targetR = chosenAction.r !== undefined ? chosenAction.r : chosenAction.toR;
         const targetC = chosenAction.c !== undefined ? chosenAction.c : chosenAction.toC;
@@ -3722,8 +3786,13 @@ canvas.addEventListener("click", (e) => {
           start: [fromR, fromC],
           end: [targetR, targetC]
         }));
-      } catch (_) {}
+      } catch (err) {
+        isOnlineMovePending = false;
+        showNotification("Erro ao enviar jogada para o servidor.", "error");
+        return;
+      }
     }
+    applyAction(fromR, fromC, chosenAction);
     finishTurn();
   } else {
     // Clicked an illegal destination: simply deselect
@@ -4369,8 +4438,14 @@ document.getElementById("btnStartGame").addEventListener("click", () => {
 async function loadLeaderboard() {
   const tbody = document.getElementById("leaderboardBody");
   tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>A carregar classificações...</td></tr>";
+  const baseUrl = getApiBaseUrl();
+
+  if (isStaticGitHubPages() && !baseUrl) {
+    tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#94a3b8; padding: 1.5rem;'>Modo Local / GitHub Pages — Servidor de classificações não configurado. Podes definir a URL do servidor em Opções.</td></tr>";
+    return;
+  }
+
   try {
-    const baseUrl = getApiBaseUrl();
     const endpoint = baseUrl ? `${baseUrl}/api/leaderboard` : "/api/leaderboard";
     const res = await fetch(endpoint);
     if (res.ok) {
@@ -4394,28 +4469,10 @@ async function loadLeaderboard() {
       return;
     }
   } catch (err) {
-    console.warn("Could not fetch remote leaderboard, displaying local fallback:", err);
+    console.warn("Could not fetch remote leaderboard:", err);
   }
 
-  // Fallback if offline or running static standalone
-  tbody.innerHTML = "";
-  const defaultEntries = [
-    { rank: 1, username: "Ares Stockfish Master", rating: 2650, wins: 412, losses: 18 },
-    { rank: 2, username: "Grandmaster_Vanguard", rating: 2340, wins: 280, losses: 65 },
-    { rank: 3, username: "ShadowStriker", rating: 2180, wins: 210, losses: 80 },
-    { rank: 4, username: "NecroKing", rating: 1950, wins: 175, losses: 92 },
-    { rank: 5, username: "TacticalRanger", rating: 1820, wins: 140, losses: 110 }
-  ];
-  defaultEntries.forEach((entry) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${entry.rank}</td>
-      <td><strong>${entry.username}</strong></td>
-      <td>${entry.rating}</td>
-      <td>${entry.wins}/${entry.losses}</td>
-    `;
-    tbody.appendChild(tr);
-  });
+  tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#ef4444; padding: 1.5rem;'>Não foi possível carregar as classificações do servidor. Verifica a ligação ou o URL configurado.</td></tr>";
 }
 
 const PUZZLES = [

@@ -22,21 +22,39 @@ const path = require('path');
 const vm = require('vm');
 
 global.window = {};
+const elementsStore = {};
 global.document = {
-  getElementById: (id) => ({
-    getContext: () => ({
-      clearRect: () => {}, fillRect: () => {}, beginPath: () => {},
-      arc: () => {}, fill: () => {}, stroke: () => {}, drawImage: () => {},
-      fillText: () => {}, measureText: () => ({ width: 10 }),
-      save: () => {}, restore: () => {}, setLineDash: () => {},
-      moveTo: () => {}, lineTo: () => {}, closePath: () => {}, strokeRect: () => {}
-    }),
-    addEventListener: () => {},
-    classList: { add: () => {}, remove: () => {} },
-    style: {}, dataset: {}, appendChild: () => {},
-    value: 'bot_intermediate', textContent: '', innerHTML: '',
-    width: 560, height: 560
-  }),
+  getElementById: (id) => {
+    if (!elementsStore[id]) {
+      const listeners = {};
+      elementsStore[id] = {
+        id,
+        listeners,
+        getContext: () => ({
+          clearRect: () => {}, fillRect: () => {}, beginPath: () => {},
+          arc: () => {}, fill: () => {}, stroke: () => {}, drawImage: () => {},
+          fillText: () => {}, measureText: () => ({ width: 10 }),
+          save: () => {}, restore: () => {}, setLineDash: () => {},
+          moveTo: () => {}, lineTo: () => {}, closePath: () => {}, strokeRect: () => {}
+        }),
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 560, height: 560 }),
+        addEventListener: (event, handler) => {
+          listeners[event] = listeners[event] || [];
+          listeners[event].push(handler);
+        },
+        dispatchEvent: (event, payload) => {
+          (listeners[event] || []).forEach(fn => fn(payload));
+        },
+        classList: { add: () => {}, remove: () => {} },
+        style: {}, dataset: {}, appendChild: () => {},
+        firstChild: { textContent: '' },
+        value: id === 'opponentSelect' ? 'bot_intermediate' : '',
+        textContent: '', innerHTML: '',
+        width: 560, height: 560
+      };
+    }
+    return elementsStore[id];
+  },
   createElement: (tag) => ({
     style: {}, dataset: {}, classList: { add: () => {} },
     appendChild: () => {}, textContent: '', innerHTML: '',
@@ -69,6 +87,13 @@ def run_node_snippet(snippet: str):
         text=True,
         check=True
     )
+    for line in reversed(res.stdout.strip().splitlines()):
+        line = line.strip()
+        if line.startswith("{") and line.endswith("}"):
+            try:
+                return json.loads(line)
+            except json.JSONDecodeError:
+                pass
     return json.loads(res.stdout.strip())
 
 
@@ -570,5 +595,140 @@ def test_web_client_static_github_pages_detection_and_api_base():
     """
     res = run_node_snippet(snippet)
     assert res["passed"], f"GitHub Pages detection and API configuration failed: {res}"
+
+
+def test_web_client_online_move_rejected_when_socket_not_open():
+    """Web client must refuse to move pieces or desync boardData if multiplayer socket is null or not open."""
+    snippet = """
+    document.getElementById("opponentSelect").value = "online_room";
+    myOnlineColor = "brancas";
+    currentTurn = "white";
+    socket = null; // No socket or readyState !== 1
+    initDefaultBoard();
+    const snapshotBefore = JSON.stringify(boardData);
+
+    // Attempt to click White piece at (6, 0)
+    canvas.dispatchEvent("click", { clientX: 35, clientY: 455 });
+
+    // Now attempt to move to (5, 0)
+    canvas.dispatchEvent("click", { clientX: 35, clientY: 385 });
+
+    const snapshotAfter = JSON.stringify(boardData);
+    console.log(JSON.stringify({
+      passed: (snapshotBefore === snapshotAfter) && (isOnlineMovePending === false),
+      snapshotUnchanged: snapshotBefore === snapshotAfter,
+      isOnlineMovePending
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Online move without open socket was not rejected: {res}"
+
+
+def test_web_client_online_move_rollback_on_server_error():
+    """Web client must roll back boardData and currentTurn when server rejects a move with { tipo: 'erro' }."""
+    snippet = """
+    initDefaultBoard();
+    const serverBoard = boardData.map(row => row.map(cell => cell ? { ...cell } : null));
+    applyServerBoard(serverBoard);
+    const initialBoardJson = JSON.stringify(boardData);
+    lastAuthoritativeTurn = "white";
+    currentTurn = "white";
+
+    // Setup an open WebSocket mock
+    let sentPayload = null;
+    global.WebSocket = class {
+      constructor(url) {
+        this.url = url;
+        this.readyState = 1;
+        this.send = (data) => { sentPayload = JSON.parse(data); };
+      }
+    };
+    connectOnlineWebSocket("TEST_ROOM_ROLLBACK");
+
+    // Perform an optimistic move from (6, 0) to (5, 0)
+    document.getElementById("opponentSelect").value = "online_room";
+    myOnlineColor = "brancas";
+    canvas.dispatchEvent("click", { clientX: 35, clientY: 455 }); // select (6, 0)
+    canvas.dispatchEvent("click", { clientX: 35, clientY: 385 }); // move to (5, 0)
+
+    const boardMutatedOptimistically = (JSON.stringify(boardData) !== initialBoardJson);
+    const pendingBefore = isOnlineMovePending;
+
+    // Simulate server returning rejection error
+    socket.onmessage({
+      data: JSON.stringify({
+        tipo: "erro",
+        mensagem: "Lance ilegal rejeitado pelo árbitro autoritativo."
+      })
+    });
+
+    const boardRestored = (JSON.stringify(boardData) === initialBoardJson);
+    const turnRestored = (currentTurn === "white");
+    const pendingAfter = isOnlineMovePending;
+
+    console.log(JSON.stringify({
+      passed: boardMutatedOptimistically && pendingBefore && boardRestored && turnRestored && !pendingAfter,
+      boardMutatedOptimistically,
+      pendingBefore,
+      boardRestored,
+      turnRestored,
+      pendingAfter
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Rollback on server error failed: {res}"
+
+
+def test_web_client_rematch_resets_ui_buttons():
+    """Rematch initialization (via resetGameUIForNewMatch, start_game, rematch_update) must reset UI buttons."""
+    snippet = """
+    // 1. Simulate post-game UI state
+    showPostGameButtons();
+    const resignHidden = (document.getElementById("btnResign").style.display === "none");
+    const rematchVisible = (document.getElementById("btnRematch").style.display === "inline-block");
+    const reviewVisible = (document.getElementById("btnGameReview").style.display === "inline-block");
+
+    // 2. Call resetGameUIForNewMatch
+    resetGameUIForNewMatch();
+    const resignRestored = (document.getElementById("btnResign").style.display === "inline-block");
+    const rematchHidden = (document.getElementById("btnRematch").style.display === "none");
+    const reviewHidden = (document.getElementById("btnGameReview").style.display === "none");
+
+    console.log(JSON.stringify({
+      passed: resignHidden && rematchVisible && reviewVisible && resignRestored && rematchHidden && reviewHidden,
+      resignHidden,
+      rematchVisible,
+      resignRestored,
+      rematchHidden
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Rematch UI reset failed: {res}"
+
+
+def test_web_client_github_pages_leaderboard_offline_notice():
+    """Leaderboard must display transparent offline notice on GitHub Pages without API URL, never dummy 2650 data."""
+    snippet = """
+    window.location = { hostname: "siuo-player.github.io", protocol: "https:" };
+    delete window.REDWAR_API_URL;
+    localStorage.removeItem("redwar_api_url");
+
+    loadLeaderboard().then(() => {
+      const tbody = document.getElementById("leaderboardBody");
+      const html = tbody.innerHTML;
+      const showsNotice = html.includes("Modo Local / GitHub Pages — Servidor de classificações não configurado");
+      const noFakeData = !html.includes("Ares Stockfish Master") && !html.includes("2650");
+
+      console.log(JSON.stringify({
+        passed: showsNotice && noFakeData,
+        showsNotice,
+        noFakeData,
+        html
+      }));
+    });
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"GitHub Pages leaderboard notice invariant failed: {res}"
+
 
 

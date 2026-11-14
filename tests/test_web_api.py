@@ -103,3 +103,124 @@ def test_static_files_served(web_client):
     resp_css = web_client.handle_request("GET", "/styles.css")
     assert resp_css["status"] == 200
     assert "--bg-primary" in resp_css["body"]
+
+
+def test_cors_preflight_and_headers_allowed(web_client):
+    """Verify CORS preflight OPTIONS and response headers for GitHub Pages and localhost."""
+    # 1. Preflight OPTIONS for GitHub Pages
+    resp_opt_gh = web_client.handle_request(
+        "OPTIONS",
+        "/api/puzzles/verify",
+        headers={"Origin": "https://siuo-player.github.io"},
+    )
+    assert resp_opt_gh["status"] == 204
+    assert resp_opt_gh["headers"]["Access-Control-Allow-Origin"] == "https://siuo-player.github.io"
+    assert "POST" in resp_opt_gh["headers"]["Access-Control-Allow-Methods"]
+
+    # 2. Preflight OPTIONS for Localhost development
+    resp_opt_local = web_client.handle_request(
+        "OPTIONS",
+        "/api/leaderboard",
+        headers={"Origin": "http://localhost:3000"},
+    )
+    assert resp_opt_local["status"] == 204
+    assert resp_opt_local["headers"]["Access-Control-Allow-Origin"] == "http://localhost:3000"
+
+    # 3. GET request from GitHub Pages receives CORS header
+    resp_get = web_client.handle_request(
+        "GET",
+        "/api/leaderboard",
+        headers={"Origin": "https://siuo-player.github.io"},
+    )
+    assert resp_get["status"] == 200
+    assert resp_get["headers"]["Access-Control-Allow-Origin"] == "https://siuo-player.github.io"
+
+    # 4. POST request from GitHub Pages receives CORS header
+    resp_post = web_client.handle_request(
+        "POST",
+        "/api/puzzles/verify",
+        body=json.dumps({"puzzle_id": "puz_001", "fromR": 6, "fromC": 3, "toR": 0, "toC": 3, "step": 0}),
+        headers={"Origin": "https://siuo-player.github.io"},
+    )
+    assert resp_post["status"] == 200
+    assert resp_post["headers"]["Access-Control-Allow-Origin"] == "https://siuo-player.github.io"
+
+
+def test_cors_unauthorized_origin_rejected(web_client):
+    """Verify that requests from unauthorized cross-origin domains are rejected with 403."""
+    # 1. GET with unauthorized origin
+    resp = web_client.handle_request(
+        "GET",
+        "/api/leaderboard",
+        headers={"Origin": "http://malicious-attacker.com"},
+    )
+    assert resp["status"] == 403
+    assert "Forbidden" in resp["body"]
+    assert "Access-Control-Allow-Origin" not in resp["headers"]
+
+    # 2. OPTIONS with unauthorized origin
+    resp_opt = web_client.handle_request(
+        "OPTIONS",
+        "/api/puzzles/verify",
+        headers={"Origin": "http://evil-site.org"},
+    )
+    assert resp_opt["status"] == 403
+
+
+def test_puzzle_verify_rejects_get_method(web_client):
+    """Verify that GET /api/puzzles/verify is strictly rejected with 405 Method Not Allowed."""
+    resp = web_client.handle_request("GET", "/api/puzzles/verify")
+    assert resp["status"] == 405
+    assert "Method Not Allowed" in resp["body"]
+    assert "Allow" in resp["headers"]
+    assert "POST" in resp["headers"]["Allow"]
+
+
+def test_puzzle_verify_robust_payload_validation(web_client):
+    """Verify comprehensive validation of JSON payload, types, coordinates, and puzzle IDs."""
+    # 1. Non-object payloads (null, [], string, number, bool)
+    for bad_body in ("null", "[]", '"just a string"', "12345", "true", "false"):
+        resp = web_client.handle_request("POST", "/api/puzzles/verify", body=bad_body)
+        assert resp["status"] == 400, f"Expected 400 for payload {bad_body}, got {resp['status']}"
+        assert "error" in json.loads(resp["body"])
+
+    # 2. Missing or malformed body
+    assert web_client.handle_request("POST", "/api/puzzles/verify", body="")["status"] == 400
+    assert web_client.handle_request("POST", "/api/puzzles/verify", body="{bad json")["status"] == 400
+
+    # 3. Missing or invalid puzzle_id
+    assert web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps({"step": 0}))["status"] == 400
+    assert web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps({"puzzle_id": "", "step": 0}))["status"] == 400
+    assert web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps({"puzzle_id": "non_existent_id", "step": 0}))["status"] == 404
+
+    # 4. Invalid step index
+    assert web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps({"puzzle_id": "puz_001", "step": -1, "fromR": 6, "fromC": 3, "toR": 0, "toC": 3}))["status"] == 400
+    assert web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps({"puzzle_id": "puz_001", "step": 999, "fromR": 6, "fromC": 3, "toR": 0, "toC": 3}))["status"] == 400
+
+    # 5. Invalid coordinates: negative, out-of-bounds, float, boolean, strings
+    bad_coords = [
+        {"fromR": -1, "fromC": 3, "toR": 0, "toC": 3},
+        {"fromR": 6, "fromC": 8, "toR": 0, "toC": 3},
+        {"fromR": 6, "fromC": 3, "toR": 10, "toC": 3},
+        {"fromR": 2.5, "fromC": 3, "toR": 0, "toC": 3},
+        {"fromR": True, "fromC": 3, "toR": 0, "toC": 3},
+        {"fromR": "6", "fromC": "3", "toR": "0", "toC": "3"},
+    ]
+    for bc in bad_coords:
+        body_dict = {"puzzle_id": "puz_001", "step": 0, **bc}
+        resp = web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps(body_dict))
+        assert resp["status"] == 400, f"Expected 400 for coordinate set {bc}, got {resp['status']}"
+
+
+def test_puzzle_verify_rate_limiting(web_client):
+    """Verify that rapid successive puzzle verification attempts trigger 429 Too Many Requests."""
+    valid_body = json.dumps({"puzzle_id": "puz_001", "fromR": 6, "fromC": 3, "toR": 0, "toC": 3, "step": 0})
+    statuses = []
+    for _ in range(25):
+        resp = web_client.handle_request("POST", "/api/puzzles/verify", body=valid_body, client_ip="198.51.100.42")
+        statuses.append(resp["status"])
+
+    # First 20 allowed, subsequent blocked with 429
+    assert statuses[:20] == [200] * 20
+    assert statuses[20:] == [429] * 5
+    assert statuses[-1] == 429
