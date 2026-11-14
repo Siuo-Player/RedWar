@@ -166,3 +166,192 @@ def test_responsive_css_selectors_match_html():
     assert "#gameBoard" in css_content
     assert ".board-container" in css_content
     assert ".nav-links" in css_content
+
+
+def test_room_manager_cleanup_preserves_finished_rooms_during_rematch():
+    """Verify that cleanup_stale_rooms retains finished rooms during rematch window
+
+    and does not prune rooms when subsequent create_room() calls are made.
+    """
+    rm = RoomManager()
+    room = rm.create_room("ROOM_FINISHED_GRACE")
+    room.white_player = "alice"
+    room.black_player = "bob"
+    room.start_game()
+    room.resign("bob")
+    assert room.is_finished is True
+    assert room.finished_timestamp is not None
+
+    # 1. Immediate create_room call must NOT prune the just-finished room
+    second_room = rm.create_room("ROOM_SECOND")
+    second_room.white_player = "charlie"
+    assert rm.get_room("ROOM_FINISHED_GRACE") is not None, "Finished room was improperly pruned on create_room!"
+
+    # 2. Cleanup with default grace period (300s) must retain room
+    pruned = rm.cleanup_stale_rooms(finished_retention_seconds=300.0)
+    assert pruned == 0
+    assert rm.get_room("ROOM_FINISHED_GRACE") is not None
+
+    # 3. If a rematch is proposed, room must be preserved even if retention period passes
+    room.propose_rematch("alice")
+    assert room.rematch_pending is True
+    # Simulate finished_timestamp far in the past
+    room.finished_timestamp = 1000.0
+    pruned_with_pending_rematch = rm.cleanup_stale_rooms(max_idle_seconds=1800.0, finished_retention_seconds=10.0)
+    assert pruned_with_pending_rematch == 0
+    assert rm.get_room("ROOM_FINISHED_GRACE") is not None
+
+    # 4. If rematch proposals are cleared and retention period has elapsed, room is pruned
+    room.rematch_proposals.clear()
+    pruned_after_expiry = rm.cleanup_stale_rooms(max_idle_seconds=1800.0, finished_retention_seconds=10.0)
+    assert pruned_after_expiry == 1
+    assert rm.get_room("ROOM_FINISHED_GRACE") is None
+
+
+def test_web_multiplayer_rematch_color_swap_e2e(tmp_path: Path):
+    """Verify end-to-end rematch flow with seat swapping, token rotation, and move gating."""
+    async def _run():
+        db_file = tmp_path / "rematch_ratings.json"
+        lb = LeaderboardManager(storage_path=str(db_file))
+        app.manager = RoomManager(leaderboard_manager=lb)
+
+        server = await websockets.serve(app.gerir_conexao, "127.0.0.1", 0)
+        port = server.sockets[0].getsockname()[1]
+        url = f"ws://127.0.0.1:{port}"
+
+        try:
+            # Game 1: Alice = White, Bob = Black
+            alice_ws = await websockets.connect(url)
+            _ = await alice_ws.recv()  # greeting
+            await alice_ws.send(json.dumps({
+                "tipo": "join_room",
+                "room_id": "REMATCH_TEST_ROOM",
+                "player_id": "alice",
+                "role_preference": "brancas",
+            }))
+            alice_join = json.loads(await alice_ws.recv())
+            assert alice_join["cor"] == "brancas"
+            alice_token_g1 = alice_join["reconnect_token"]
+
+            bob_ws = await websockets.connect(url)
+            _ = await bob_ws.recv()  # greeting
+            await bob_ws.send(json.dumps({
+                "tipo": "join_room",
+                "room_id": "REMATCH_TEST_ROOM",
+                "player_id": "bob",
+                "role_preference": "pretas",
+            }))
+            bob_join = json.loads(await bob_ws.recv())
+            assert bob_join["cor"] == "pretas"
+            bob_token_g1 = bob_join["reconnect_token"]
+
+            await alice_ws.send(json.dumps({"tipo": "pronto"}))
+            await bob_ws.send(json.dumps({"tipo": "pronto"}))
+
+            _ = await _recv_type(alice_ws, "start_game")
+            _ = await _recv_type(bob_ws, "start_game")
+            _ = await _recv_type(alice_ws, "estado_jogo")
+            _ = await _recv_type(bob_ws, "estado_jogo")
+
+            # Alice moves, then Bob resigns
+            await alice_ws.send(json.dumps({
+                "tipo": "acao",
+                "type": "move",
+                "start": [6, 0],
+                "end": [5, 0],
+            }))
+            _ = await _recv_type(alice_ws, "estado_jogo")
+            _ = await _recv_type(bob_ws, "estado_jogo")
+
+            await bob_ws.send(json.dumps({"tipo": "resign"}))
+            _ = await _recv_type(alice_ws, "game_over")
+            _ = await _recv_type(bob_ws, "game_over")
+
+            # Rematch Phase: Alice proposes rematch
+            await alice_ws.send(json.dumps({"tipo": "rematch"}))
+            alice_proposal = await _recv_type(alice_ws, "rematch_proposal")
+            assert alice_proposal["tipo"] == "rematch_proposal"
+
+            # Bob accepts rematch
+            await bob_ws.send(json.dumps({"tipo": "rematch"}))
+
+            # Both receive rematch_update with swapped colors and new tokens!
+            alice_rematch = await _recv_type(alice_ws, "rematch_update")
+            bob_rematch = await _recv_type(bob_ws, "rematch_update")
+
+            assert alice_rematch["cor"] == "pretas", f"Alice should now be black, got {alice_rematch['cor']}"
+            assert bob_rematch["cor"] == "brancas", f"Bob should now be white, got {bob_rematch['cor']}"
+
+            alice_token_g2 = alice_rematch["reconnect_token"]
+            bob_token_g2 = bob_rematch["reconnect_token"]
+
+            # Both receive start_game for Game 2
+            _ = await _recv_type(alice_ws, "start_game")
+            _ = await _recv_type(bob_ws, "start_game")
+            alice_g2_state = await _recv_type(alice_ws, "estado_jogo")
+            bob_g2_state = await _recv_type(bob_ws, "estado_jogo")
+
+            assert alice_g2_state["dados"]["white_to_move"] is True
+            assert bob_g2_state["dados"]["white_to_move"] is True
+
+            # Bob is now White and plays the opening move!
+            await bob_ws.send(json.dumps({
+                "tipo": "acao",
+                "type": "move",
+                "start": [6, 0],
+                "end": [5, 0],
+            }))
+
+            alice_after_bob = await _recv_type(alice_ws, "estado_jogo")
+            bob_after_bob = await _recv_type(bob_ws, "estado_jogo")
+            assert alice_after_bob["dados"]["white_to_move"] is False
+            assert bob_after_bob["dados"]["white_to_move"] is False
+
+            # Alice is now Black and plays response move!
+            await alice_ws.send(json.dumps({
+                "tipo": "acao",
+                "type": "move",
+                "start": [1, 0],
+                "end": [2, 0],
+            }))
+
+            alice_after_alice = await _recv_type(alice_ws, "estado_jogo")
+            bob_after_alice = await _recv_type(bob_ws, "estado_jogo")
+            assert alice_after_alice["dados"]["white_to_move"] is True
+            assert bob_after_alice["dados"]["white_to_move"] is True
+
+            # Alice resigns Game 2
+            await alice_ws.send(json.dumps({"tipo": "resign"}))
+            _ = await _recv_type(alice_ws, "game_over")
+            _ = await _recv_type(bob_ws, "game_over")
+
+            # Check leaderboard: 1 win and 1 loss for each
+            alice_prof = lb.get_profile("alice")
+            bob_prof = lb.get_profile("bob")
+            assert alice_prof.stats["standard_8x8"]["wins"] == 1
+            assert alice_prof.stats["standard_8x8"]["losses"] == 1
+            assert bob_prof.stats["standard_8x8"]["wins"] == 1
+            assert bob_prof.stats["standard_8x8"]["losses"] == 1
+
+            # Test reconnection in Game 2 with new tokens
+            await alice_ws.close()
+            alice_rec_ws = await websockets.connect(url)
+            _ = await alice_rec_ws.recv()
+            await alice_rec_ws.send(json.dumps({
+                "tipo": "reconnect",
+                "room_id": "REMATCH_TEST_ROOM",
+                "token": alice_token_g2,
+            }))
+            rec_msg = await _recv_type(alice_rec_ws, "reconnect_success")
+            assert rec_msg["cor"] == "pretas"
+            assert rec_msg["player_id"] == "alice"
+
+            await alice_rec_ws.close()
+            await bob_ws.close()
+
+        finally:
+            server.close()
+            await server.wait_closed()
+
+    asyncio.run(_run())
+

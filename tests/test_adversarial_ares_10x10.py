@@ -186,3 +186,52 @@ def test_bot_aleatorio_exhaustive_piece_survey_on_10x10_boundaries():
             assert 0 <= action["start"][1] < 10
             assert 0 <= action["end"][0] < 10
             assert 0 <= action["end"][1] < 10
+
+
+def test_grand10x10_full_game_to_completion():
+    """Verify that a Grand 10x10 game plays all the way to complete termination (game_over=True)
+
+    without ever invoking the 8x8 C++ bitboard accelerator or crashing.
+    """
+    mode = get_preset_mode(GameModeType.GRAND_10X10)
+    gs = mode.create_game_state()
+    # Populate a tactical endgame setup with 4 active units per side on 10x10
+    gs.board[9][4] = criar_peca_por_nome("Bone", "brancas")
+    gs.board[8][3] = criar_peca_por_nome("Dragoon", "brancas")
+    gs.board[7][5] = criar_peca_por_nome("FrostMage", "brancas")
+    gs.board[8][6] = criar_peca_por_nome("Bone", "brancas")
+
+    gs.board[0][4] = criar_peca_por_nome("Bone", "pretas")
+    gs.board[1][3] = criar_peca_por_nome("Dragoon", "pretas")
+    gs.board[2][5] = criar_peca_por_nome("FrostMage", "pretas")
+    gs.board[1][6] = criar_peca_por_nome("Bone", "pretas")
+
+    gs.max_twc = 25  # Ensure bounded turn limit for rapid deterministic termination
+    bridge_white = MockForbiddenEngineBridge()
+    bridge_black = MockForbiddenEngineBridge()
+
+    bot_white = AresTieredBot(tier=AresBotTier.MASTER, bridge=bridge_white, blunder_rate=0.0)
+    bot_black = AresTieredBot(tier=AresBotTier.INTERMEDIATE, bridge=bridge_black, blunder_rate=0.2)
+
+    plies = 0
+    max_limit = 100
+
+    while not gs.game_over and plies < max_limit:
+        active_bot = bot_white if gs.white_to_move else bot_black
+        action = active_bot.escolher_jogada(gs)
+        if action is None:
+            break
+        assert 0 <= action["start"][0] < 10
+        assert 0 <= action["start"][1] < 10
+        assert 0 <= action["end"][0] < 10
+        assert 0 <= action["end"][1] < 10
+
+        gs.execute_action(action)
+        plies += 1
+
+    # Invariant: Match must reach game_over terminal state (annihilation or material resolution)
+    assert gs.game_over is True, f"Game failed to reach completion within {plies} plies"
+    assert gs.winner is not None, "Winner must be determined upon game completion"
+    assert gs.winner_team in ("brancas", "pretas"), f"Winner team must be valid canonical team, got {gs.winner_team}"
+    assert bridge_white.invocation_count == 0
+    assert bridge_black.invocation_count == 0
