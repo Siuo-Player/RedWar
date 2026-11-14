@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import re
+import time
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlparse
 
@@ -12,6 +13,20 @@ from engine.game_modes import GameMode, GameModeType, TimeControl
 from engine.puzzles import PUZZLE_BANK
 from engine.ratings import LeaderboardManager
 from online.server.room import RoomManager
+
+
+ALLOWED_ORIGIN_PATTERNS = [
+    re.compile(r"^https://[a-zA-Z0-9-]+\.github\.io$"),
+    re.compile(r"^http://(localhost|127\.0\.0\.1)(:\d+)?$"),
+    re.compile(r"^https://(localhost|127\.0\.0\.1)(:\d+)?$"),
+]
+
+
+def is_allowed_origin(origin: str) -> bool:
+    """Validate cross-origin request against authorized whitelist."""
+    if not origin or not isinstance(origin, str):
+        return False
+    return any(pattern.match(origin.strip()) for pattern in ALLOWED_ORIGIN_PATTERNS)
 
 
 def _normalize_puzzle_move(move_val: Any) -> Optional[tuple[int, int, int, int]]:
@@ -73,11 +88,14 @@ class _RedWarHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:
         self._dispatch("POST")
 
+    def do_OPTIONS(self) -> None:
+        self._dispatch("OPTIONS")
+
     def _dispatch(self, method: str) -> None:
-        if method not in ("GET", "HEAD", "POST"):
+        if method not in ("GET", "HEAD", "POST", "OPTIONS"):
             self.send_response(405)
             self.send_header("Content-Type", "application/json")
-            self.send_header("Allow", "GET, HEAD, POST")
+            self.send_header("Allow", "GET, HEAD, POST, OPTIONS")
             self.end_headers()
             self.wfile.write(b'{"error": "Method Not Allowed"}\n')
             return
@@ -100,7 +118,15 @@ class _RedWarHTTPRequestHandler(BaseHTTPRequestHandler):
             if content_length > 0
             else ""
         )
-        response = self.app.handle_request(method=method, path=self.path, body=body)
+        client_ip = self.client_address[0] if hasattr(self, "client_address") and self.client_address else "127.0.0.1"
+        req_headers = dict(self.headers) if hasattr(self, "headers") and self.headers else {}
+        response = self.app.handle_request(
+            method=method,
+            path=self.path,
+            body=body,
+            headers=req_headers,
+            client_ip=client_ip,
+        )
         self.send_response(response["status"])
         for k, v in response.get("headers", {}).items():
             self.send_header(k, v)
@@ -130,6 +156,7 @@ class RedWarWebApp:
         self.host = host
         self.port = port
         self._server: Optional[ThreadingHTTPServer] = None
+        self._puzzle_attempts: dict[str, list[float]] = {}
 
     def _response(
         self,
@@ -137,10 +164,14 @@ class RedWarWebApp:
         body: str,
         content_type: str = "application/json",
         extra_headers: Optional[dict[str, str]] = None,
+        origin: Optional[str] = None,
     ) -> dict[str, Any]:
-        """Helper to construct a response with required security headers."""
+        """Helper to construct a response with required security headers and CORS."""
         headers = dict(DEFAULT_SECURITY_HEADERS)
         headers["Content-Type"] = content_type
+        if origin and is_allowed_origin(origin):
+            headers["Access-Control-Allow-Origin"] = origin
+            headers["Vary"] = "Origin"
         if extra_headers:
             headers.update(extra_headers)
         return {
@@ -155,68 +186,139 @@ class RedWarWebApp:
         path: str,
         query: str = "",
         body: str = "",
+        headers: Optional[dict[str, str]] = None,
+        client_ip: str = "127.0.0.1",
     ) -> dict[str, Any]:
-        """Dispatch an HTTP request and return a structured response with security headers."""
+        """Dispatch an HTTP request and return a structured response with security and CORS headers."""
         parsed_url = urlparse(path)
         route = parsed_url.path
         query_params = parse_qs(query or parsed_url.query)
+        req_headers = headers or {}
+        origin = req_headers.get("Origin") or req_headers.get("origin")
+
+        # CORS Authorization check
+        if origin and not is_allowed_origin(origin):
+            return {
+                "status": 403,
+                "headers": {
+                    "Content-Type": "application/json",
+                    "X-Content-Type-Options": "nosniff",
+                },
+                "body": json.dumps({"error": "Forbidden: Origin not allowed by CORS policy"}),
+            }
+
+        # Preflight OPTIONS request handling
+        if method == "OPTIONS":
+            cors_headers = {
+                "Allow": "GET, HEAD, POST, OPTIONS",
+            }
+            if origin and is_allowed_origin(origin):
+                cors_headers["Access-Control-Allow-Origin"] = origin
+                cors_headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+                cors_headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-Requested-With"
+                cors_headers["Access-Control-Max-Age"] = "86400"
+                cors_headers["Vary"] = "Origin"
+            return {
+                "status": 204,
+                "headers": cors_headers,
+                "body": "",
+            }
 
         # Endpoint for verifying tactical puzzle candidate moves without leaking solutions
         if route == "/api/puzzles/verify":
-            if method not in ("GET", "POST"):
+            if method != "POST":
                 return self._response(
                     status=405,
-                    body=json.dumps({"error": "Method Not Allowed"}),
+                    body=json.dumps({"error": "Method Not Allowed: use POST to verify puzzle moves"}),
+                    extra_headers={"Allow": "POST, OPTIONS"},
+                    origin=origin,
                 )
-            puzzle_id = ""
-            candidate_move: Any = ""
-            step = 0
-            if method == "POST" and body:
-                try:
-                    payload = json.loads(body)
-                    puzzle_id = str(payload.get("puzzle_id", "")).strip()
-                    step = int(payload.get("step", 0))
-                    if "fromR" in payload and "toR" in payload:
-                        candidate_move = payload
-                    elif "move" in payload:
-                        candidate_move = payload.get("move")
-                    else:
-                        candidate_move = payload
-                except (json.JSONDecodeError, ValueError, TypeError):
-                    return self._response(
-                        status=400,
-                        body=json.dumps({"error": "Invalid JSON payload"}),
-                    )
-            else:
-                puzzle_id = query_params.get("puzzle_id", [""])[0].strip()
-                if "fromR" in query_params and "toR" in query_params:
-                    try:
-                        candidate_move = {
-                            "fromR": int(query_params.get("fromR", [0])[0]),
-                            "fromC": int(query_params.get("fromC", [0])[0]),
-                            "toR": int(query_params.get("toR", [0])[0]),
-                            "toC": int(query_params.get("toC", [0])[0]),
-                        }
-                    except (ValueError, TypeError):
-                        candidate_move = ""
-                else:
-                    candidate_move = query_params.get("move", [""])[0].strip()
-                try:
-                    step = int(query_params.get("step", [0])[0])
-                except (ValueError, TypeError):
-                    step = 0
 
-            puzzle = next((p for p in PUZZLE_BANK if p.puzzle_id == puzzle_id), None)
+            # Rate Limiting: max 20 attempts per 60 seconds per IP
+            now = time.time()
+            attempts = self._puzzle_attempts.setdefault(client_ip, [])
+            self._puzzle_attempts[client_ip] = [t for t in attempts if now - t < 60.0]
+            if len(self._puzzle_attempts[client_ip]) >= 20:
+                return self._response(
+                    status=429,
+                    body=json.dumps({"error": "Too Many Requests: rate limit exceeded for puzzle verification"}),
+                    extra_headers={"Retry-After": "60"},
+                    origin=origin,
+                )
+            self._puzzle_attempts[client_ip].append(now)
+
+            if not body or not body.strip():
+                return self._response(
+                    status=400,
+                    body=json.dumps({"error": "Missing request body"}),
+                    origin=origin,
+                )
+
+            try:
+                payload = json.loads(body)
+            except Exception:
+                return self._response(
+                    status=400,
+                    body=json.dumps({"error": "Malformed JSON payload"}),
+                    origin=origin,
+                )
+
+            if not isinstance(payload, dict):
+                return self._response(
+                    status=400,
+                    body=json.dumps({"error": "Payload must be a JSON object"}),
+                    origin=origin,
+                )
+
+            puzzle_id = payload.get("puzzle_id")
+            if not isinstance(puzzle_id, str) or not puzzle_id.strip():
+                return self._response(
+                    status=400,
+                    body=json.dumps({"error": "puzzle_id must be a non-empty string"}),
+                    origin=origin,
+                )
+
+            puzzle = next((p for p in PUZZLE_BANK if p.puzzle_id == puzzle_id.strip()), None)
             if not puzzle:
                 return self._response(
                     status=404,
                     body=json.dumps({"error": "puzzle_not_found"}),
+                    origin=origin,
                 )
 
-            if step < 0 or step >= len(puzzle.solution_moves):
+            raw_step = payload.get("step", 0)
+            if not isinstance(raw_step, int) or isinstance(raw_step, bool) or raw_step < 0 or raw_step >= len(puzzle.solution_moves):
                 return self._response(
                     status=400,
                     body=json.dumps({"error": "invalid_step_index"}),
+                    origin=origin,
+                )
+            step = raw_step
+
+            candidate_move: Any = None
+            if "fromR" in payload or "toR" in payload:
+                for fld in ("fromR", "fromC", "toR", "toC"):
+                    val = payload.get(fld)
+                    if not isinstance(val, int) or isinstance(val, bool) or val < 0 or val >= 8:
+                        return self._response(
+                            status=400,
+                            body=json.dumps({"error": f"Field '{fld}' must be an integer between 0 and 7"}),
+                            origin=origin,
+                        )
+                candidate_move = payload
+            elif "move" in payload:
+                candidate_move = payload.get("move")
+                if not isinstance(candidate_move, (str, dict)):
+                    return self._response(
+                        status=400,
+                        body=json.dumps({"error": "Invalid move format"}),
+                        origin=origin,
+                    )
+            else:
+                return self._response(
+                    status=400,
+                    body=json.dumps({"error": "Missing move coordinates in payload"}),
+                    origin=origin,
                 )
 
             expected = puzzle.solution_moves[step].strip()
@@ -240,6 +342,7 @@ class RedWarWebApp:
                     "step": step,
                     "explanation": puzzle.description if is_completed else "",
                 }),
+                origin=origin,
             )
 
         # All remaining endpoints are read-only (GET/HEAD)
@@ -247,6 +350,7 @@ class RedWarWebApp:
             return self._response(
                 status=405,
                 body=json.dumps({"error": "Method Not Allowed"}),
+                origin=origin,
             )
 
         if route == "/api/leaderboard":
@@ -260,6 +364,7 @@ class RedWarWebApp:
             return self._response(
                 status=200,
                 body=json.dumps({"leaderboard": [e.to_dict() for e in entries]}),
+                origin=origin,
             )
 
         if route == "/api/bot_tiers":
@@ -277,6 +382,7 @@ class RedWarWebApp:
             return self._response(
                 status=200,
                 body=json.dumps({"tiers": tiers}),
+                origin=origin,
             )
 
         if route == "/api/puzzles":
@@ -295,6 +401,7 @@ class RedWarWebApp:
             return self._response(
                 status=200,
                 body=json.dumps({"puzzles": puzzles}),
+                origin=origin,
             )
 
         if route == "/api/rooms":
@@ -302,6 +409,7 @@ class RedWarWebApp:
             return self._response(
                 status=200,
                 body=json.dumps({"rooms": rooms}),
+                origin=origin,
             )
 
         if route == "/api/game_modes":
@@ -323,6 +431,7 @@ class RedWarWebApp:
             return self._response(
                 status=200,
                 body=json.dumps({"modes": modes, "time_controls": time_controls}),
+                origin=origin,
             )
 
         # Static file serving with strict Path Traversal prevention
@@ -334,6 +443,7 @@ class RedWarWebApp:
                     status=200,
                     body=index_path.read_text(encoding="utf-8"),
                     content_type="text/html; charset=utf-8",
+                    origin=origin,
                 )
 
         candidate_path = (self.static_dir / route.lstrip("/")).resolve()
@@ -346,6 +456,7 @@ class RedWarWebApp:
             return self._response(
                 status=403,
                 body=json.dumps({"error": "Forbidden: Path Traversal Detected"}),
+                origin=origin,
             )
 
         if candidate_path.is_file():
@@ -362,11 +473,13 @@ class RedWarWebApp:
                 status=200,
                 body=candidate_path.read_text(encoding="utf-8"),
                 content_type=f"{mime}; charset=utf-8",
+                origin=origin,
             )
 
         return self._response(
             status=404,
             body=json.dumps({"error": "Not Found"}),
+            origin=origin,
         )
 
     def run(self, host: Optional[str] = None, port: Optional[int] = None) -> None:

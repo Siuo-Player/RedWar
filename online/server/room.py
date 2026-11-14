@@ -331,7 +331,8 @@ class GameRoom:
                 else:
                     self.winner = None
             is_surrender = self.session.state.last_move and self.session.state.last_move.get("type") == "surrender"
-            self.termination_reason = "surrender" if is_surrender else ("elimination" if self.winner else "turn_limit")
+            is_turn_limit = getattr(self.session.state, "turns_without_capture", 0) >= getattr(self.session.state, "max_twc", 50)
+            self.termination_reason = "surrender" if is_surrender else ("turn_limit" if is_turn_limit else ("elimination" if self.winner else "turn_limit"))
 
         return self.state_payload()
 

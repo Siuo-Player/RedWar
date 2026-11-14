@@ -355,3 +355,130 @@ def test_web_multiplayer_rematch_color_swap_e2e(tmp_path: Path):
 
     asyncio.run(_run())
 
+
+def test_room_manager_all_termination_pathways_and_retention_lifecycle():
+    """Systematically verify all 8 termination and retention conditions in RoomManager."""
+    import time
+    from engine.pieces import criar_peca_por_nome
+
+    rm = RoomManager()
+
+    # 1. Termination Pathway: Resignation
+    r_resign = rm.create_room("ROOM_TERM_RESIGN")
+    r_resign.white_player = "alice"
+    r_resign.black_player = "bob"
+    r_resign.start_game()
+    r_resign.resign("alice")
+    assert r_resign.is_finished is True
+    assert r_resign.finished_timestamp is not None
+    assert r_resign.winner == "pretas"
+    assert r_resign.termination_reason == "resignation"
+
+    # 2. Termination Pathway: Flag Fall
+    r_flag = rm.create_room("ROOM_TERM_FLAG")
+    r_flag.white_player = "alice"
+    r_flag.black_player = "bob"
+    r_flag.start_game()
+    winner_flag = r_flag.tick_clock(elapsed_seconds=r_flag.clock.white_time + 10.0)
+    assert r_flag.is_finished is True
+    assert r_flag.finished_timestamp is not None
+    assert r_flag.termination_reason == "flag_fall"
+    assert r_flag.winner == "pretas"
+    assert winner_flag == "pretas"
+
+    # 3. Termination Pathway: Elimination Game Over
+    r_elim = rm.create_room("ROOM_TERM_ELIM")
+    r_elim.white_player = "alice"
+    r_elim.black_player = "bob"
+    r_elim.start_game()
+    state_elim = r_elim.session.state
+    for r in range(len(state_elim.board)):
+        for c in range(len(state_elim.board[0])):
+            state_elim.board[r][c] = None
+    state_elim.board[4][4] = criar_peca_por_nome("Paladin", "brancas")
+    state_elim.board[4][5] = criar_peca_por_nome("Bone", "pretas")
+    state_elim.board[4][5].stun_timer = 2  # Stunned target -> lethal kill on 2nd hit
+    r_elim.apply_action("alice", {
+        "type": "attack",
+        "start": [4, 4],
+        "end": [4, 5],
+    })
+    assert r_elim.is_finished is True
+    assert r_elim.finished_timestamp is not None
+    assert r_elim.termination_reason == "elimination"
+    assert r_elim.winner == "brancas"
+
+    # 4. Termination Pathway: Turn Limit
+    r_turn = rm.create_room("ROOM_TERM_TURN_LIMIT")
+    r_turn.white_player = "alice"
+    r_turn.black_player = "bob"
+    r_turn.start_game()
+    state_turn = r_turn.session.state
+    state_turn.turns_without_capture = state_turn.max_twc - 1
+    r_turn.apply_action("alice", {
+        "type": "move",
+        "start": [6, 0],
+        "end": [5, 0],
+    })
+    assert r_turn.is_finished is True
+    assert r_turn.finished_timestamp is not None
+    assert r_turn.termination_reason == "turn_limit"
+
+    # 5. Retention Lifecycle: Active Rematch Proposal retains room beyond 300s grace period
+    r_rematch = rm.create_room("ROOM_REMATCH_LIFECYCLE")
+    r_rematch.white_player = "alice"
+    r_rematch.black_player = "bob"
+    r_rematch.start_game()
+    r_rematch.resign("bob")
+    assert r_rematch.is_finished is True
+
+    r_rematch.propose_rematch("alice")
+    assert r_rematch.rematch_pending is True
+    r_rematch.finished_timestamp = time.time() - 600.0
+    r_rematch.last_activity_timestamp = time.time() - 100.0
+
+    pruned = rm.cleanup_stale_rooms(finished_retention_seconds=300.0, max_idle_seconds=1800.0)
+    assert rm.get_room("ROOM_REMATCH_LIFECYCLE") is not None, "Room with pending rematch proposal must NOT be pruned"
+
+    # 6. Retention Lifecycle: Abandoned rematch proposal pruned after max_idle_seconds
+    r_rematch.last_activity_timestamp = time.time() - 2000.0  # idle > 1800.0
+    pruned_abandoned = rm.cleanup_stale_rooms(finished_retention_seconds=300.0, max_idle_seconds=1800.0)
+    assert rm.get_room("ROOM_REMATCH_LIFECYCLE") is None, "Abandoned rematch past max_idle_seconds must be pruned"
+
+    # 7. Rematch Acceptance: Resets is_finished=False and finished_timestamp=None
+    r_accept = rm.create_room("ROOM_REMATCH_ACCEPT")
+    r_accept.white_player = "alice"
+    r_accept.black_player = "bob"
+    r_accept.start_game()
+    r_accept.resign("bob")
+    assert r_accept.is_finished is True
+    assert r_accept.finished_timestamp is not None
+
+    r_accept.propose_rematch("alice")
+    accepted = r_accept.propose_rematch("bob")
+    assert accepted is True
+    assert r_accept.is_finished is False
+    assert r_accept.finished_timestamp is None
+    assert r_accept.is_started is True
+    assert r_accept.white_player == "bob"
+    assert r_accept.black_player == "alice"
+
+    # 8. Normal Finished Room: Pruned after 300s retention grace period when no rematch pending
+    r_stale = rm.create_room("ROOM_EXPIRED_NO_REMATCH")
+    r_stale.white_player = "alice"
+    r_stale.black_player = "bob"
+    r_stale.start_game()
+    r_stale.resign("alice")
+    assert len(r_stale.rematch_proposals) == 0
+
+    # Before 300s: not pruned
+    r_stale.finished_timestamp = time.time() - 150.0
+    rm.cleanup_stale_rooms(finished_retention_seconds=300.0, max_idle_seconds=1800.0)
+    assert rm.get_room("ROOM_EXPIRED_NO_REMATCH") is not None
+
+    # After 300s: pruned
+    r_stale.finished_timestamp = time.time() - 350.0
+    rm.cleanup_stale_rooms(finished_retention_seconds=300.0, max_idle_seconds=1800.0)
+    assert rm.get_room("ROOM_EXPIRED_NO_REMATCH") is None
+
+

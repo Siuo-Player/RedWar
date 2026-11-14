@@ -235,3 +235,51 @@ def test_grand10x10_full_game_to_completion():
     assert gs.winner_team in ("brancas", "pretas"), f"Winner team must be valid canonical team, got {gs.winner_team}"
     assert bridge_white.invocation_count == 0
     assert bridge_black.invocation_count == 0
+
+
+def test_grand10x10_full_game_normal_formation_to_completion():
+    """Verify that a Grand 10x10 game starting from the standard opening formation (setup_standard_board)
+
+    plays all the way to complete terminal game_over status with 0 C++ bridge invocations.
+    """
+    random.seed(42)
+
+    mode = GameMode.grand_10x10()
+    gs = mode.create_game_state()
+    setup_standard_board(gs)
+
+    # Invariants: 10x10 board with rows=10, cols=10, full standard initial pieces
+    assert gs.rows == 10
+    assert gs.cols == 10
+    assert gs.board[9][0] is not None
+    assert gs.board[0][0] is not None
+
+    bridge_white = MockForbiddenEngineBridge()
+    bridge_black = MockForbiddenEngineBridge()
+
+    bot_white = AresTieredBot(tier=AresBotTier.INTERMEDIATE, bridge=bridge_white, blunder_rate=0.2)
+    bot_black = AresTieredBot(tier=AresBotTier.INTERMEDIATE, bridge=bridge_black, blunder_rate=0.3)
+
+    plies = 0
+    max_plies = 200
+
+    while not gs.game_over and plies < max_plies:
+        active_bot = bot_white if gs.white_to_move else bot_black
+        action = active_bot.escolher_jogada(gs)
+        if action is None:
+            break
+
+        assert 0 <= action["start"][0] < 10
+        assert 0 <= action["start"][1] < 10
+        assert 0 <= action["end"][0] < 10
+        assert 0 <= action["end"][1] < 10
+
+        gs.execute_action(action)
+        plies += 1
+
+    assert gs.game_over is True, f"Game failed to reach completion within {plies} plies"
+    assert gs.winner is not None, "Winner must be determined upon game completion"
+    assert gs.winner_team in ("brancas", "pretas"), f"Winner team must be valid canonical team, got {gs.winner_team}"
+    assert bridge_white.invocation_count == 0
+    assert bridge_black.invocation_count == 0
+
