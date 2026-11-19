@@ -31,6 +31,7 @@ def run(command: list[str], label: str, env: dict[str, str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build/test pipeline local do RedWar")
     parser.add_argument("--report", type=Path, help="Escreve um pequeno relatório no caminho indicado")
+    parser.add_argument("--skip-tests", action="store_true", help="Salta a execução dos testes pytest")
     args = parser.parse_args()
 
     env = os.environ.copy()
@@ -66,11 +67,20 @@ def main() -> int:
         "Build C++ perft differential bridge test",
         env,
     )
-    run(
-        [sys.executable, "-m", "pytest", "tests/"],
-        "Python test suite",
-        env,
-    )
+    if not args.skip_tests and not os.environ.get("REDWAR_SKIP_TESTS"):
+        pytest_cmd = [sys.executable, "-m", "pytest", "tests/"]
+        try:
+            import xdist  # type: ignore # noqa: F401
+            pytest_cmd.extend(["-n", "2", "--dist=loadfile"])
+        except ImportError:
+            pass
+        run(
+            pytest_cmd,
+            "Python test suite",
+            env,
+        )
+    else:
+        print("\n== Python test suite ==\n[SALTADO via flag ou REDWAR_SKIP_TESTS]")
     run(
         [sys.executable, "tools/scripts/audit_structure.py", "--strict"],
         "Repository structure audit",

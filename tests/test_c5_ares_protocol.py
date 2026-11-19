@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
-import subprocess
 import sys
+from pathlib import Path
 import time
 
 import pytest
@@ -14,14 +13,15 @@ from engine.pieces import criar_peca_por_nome
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILD_SCRIPT = ROOT / "tools" / "scripts" / "build_cpp_engine.py"
 ENGINE_PATH = ROOT / "ai" / "cpp_engine" / ("engine.exe" if sys.platform == "win32" else "engine")
 
 
 @pytest.fixture(scope="session")
 def production_engine() -> Path:
-    subprocess.run([sys.executable, str(BUILD_SCRIPT)], cwd=ROOT, check=True)
-    assert ENGINE_PATH.is_file()
+    assert ENGINE_PATH.is_file(), (
+        f"Production C++ engine is missing at {ENGINE_PATH}. "
+        "Build it with: python tools/scripts/build_cpp_engine.py"
+    )
     return ENGINE_PATH
 
 
