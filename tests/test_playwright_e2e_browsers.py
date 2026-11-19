@@ -15,7 +15,7 @@ from http.server import ThreadingHTTPServer
 import json
 import threading
 import time
-from typing import Generator
+from typing import Any, Generator
 import pytest
 
 playwright = pytest.importorskip("playwright", reason="playwright is required for browser E2E tests")
@@ -98,7 +98,6 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, c
         {"name": "desktop_widescreen", "width": 1366, "height": 768},
     ]
 
-
     for vp in viewports:
         context: BrowserContext = chromium_browser.new_context(viewport={"width": vp["width"], "height": vp["height"]})
         page: Page = context.new_page()
@@ -165,8 +164,8 @@ def test_playwright_interactive_panels_and_tabs(web_and_ws_servers, chromium_bro
     review_display = page.evaluate("document.getElementById('reviewPanel').style.display")
     assert review_display != "none", "Review panel should be visible after clicking tabReview"
 
-
     context.close()
+
 
 def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_browser):
     """Verify live dual-browser multiplayer interaction, real legal moves, state synchronization,
@@ -175,7 +174,6 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_bro
     http_url = web_and_ws_servers["http_url"]
     ws_url = web_and_ws_servers["ws_url"]
     room_id = f"PLAYWRIGHT_ROOM_{int(time.time() * 1000)}"
-
 
     ctx_alice: BrowserContext = chromium_browser.new_context()
     ctx_bob: BrowserContext = chromium_browser.new_context()
