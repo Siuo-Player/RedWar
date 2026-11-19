@@ -505,8 +505,8 @@
     "cost": 65,
     "acronym": "Sb",
     "draftable": true,
-    "descricao": "Movimento: At\u00e9 3 casas diagonais. Ataque: 1 casa diagonal.",
-    "passiva": "Furtividade: Atravessa outras pe\u00e7as ao mover-se.",
+    "descricao": "Movimento: At\u00e9 3 casas diagonais com furtividade. Ataque: At\u00e9 3 casas diagonais atrav\u00e9s de obst\u00e1culos.",
+    "passiva": "Furtividade: Atravessa outras pe\u00e7as ao mover-se e atacar.",
     "behavior": {
       "movement": {
         "type": "diagonal",
@@ -598,8 +598,8 @@
     "cost": 22,
     "acronym": "Va",
     "draftable": true,
-    "descricao": "Movimento: At\u00e9 3 casas (Ortogonal/Diagonal) com voo espectral. Ataque: At\u00e9 2 casas ortogonais.",
-    "passiva": "Asas Celestes: Salta sobre obst\u00e1culos terrestres e pe\u00e7as intermedi\u00e1rias em voo planado.",
+    "descricao": "Movimento: At\u00e9 3 casas (Ortogonal/Diagonal) com voo espectral. Ataque: At\u00e9 3 casas ortogonais atrav\u00e9s de obst\u00e1culos.",
+    "passiva": "Asas Celestes: Salta sobre obst\u00e1culos terrestres e pe\u00e7as intermedi\u00e1rias em movimento e ataque espectral.",
     "behavior": {
       "movement": {
         "type": "adjacent",

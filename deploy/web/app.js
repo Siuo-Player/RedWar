@@ -10,6 +10,7 @@ const ctx = canvas.getContext("2d");
 
 let boardGrid = 8;
 let boardData = Array(boardGrid).fill(null).map(() => Array(boardGrid).fill(null));
+let tileEffects = [];
 let selectedSquare = null;
 let currentLegalActions = [];
 let currentTurn = "white";
@@ -96,9 +97,11 @@ function promptConfigureServer() {
   }
 }
 
-function applyServerBoard(serverBoard) {
+function applyServerBoard(serverBoard, serverData) {
   if (!Array.isArray(serverBoard)) return;
   boardGrid = serverBoard.length;
+
+  const oldBoard = boardData;
   boardData = serverBoard.map(row =>
     row.map(cell => {
       if (!cell) return null;
@@ -106,9 +109,62 @@ function applyServerBoard(serverBoard) {
         name: cell.name,
         team: cell.team,
         stun: cell.stun_timer !== undefined ? cell.stun_timer : (cell.stun || 0),
+        lifespan: cell.lifespan !== undefined ? cell.lifespan : null,
+        spawn_cooldown: cell.spawn_cooldown !== undefined ? cell.spawn_cooldown : 0,
       };
     })
   );
+
+  if (serverData && Array.isArray(serverData.tile_effects)) {
+    tileEffects = serverData.tile_effects;
+  }
+
+  // Update graveyards from board diff
+  if (Array.isArray(oldBoard) && oldBoard.length === boardGrid) {
+    const oldCounts = {};
+    const newCounts = {};
+    for (let r = 0; r < boardGrid; r++) {
+      for (let c = 0; c < boardGrid; c++) {
+        const op = oldBoard[r][c];
+        if (op && op.lifespan === null) {
+          const k = `${op.team}:${op.name}`;
+          oldCounts[k] = (oldCounts[k] || 0) + 1;
+        }
+        const np = boardData[r][c];
+        if (np && np.lifespan === null) {
+          const k = `${np.team}:${np.name}`;
+          newCounts[k] = (newCounts[k] || 0) + 1;
+        }
+      }
+    }
+    for (const [k, count] of Object.entries(oldCounts)) {
+      const remaining = newCounts[k] || 0;
+      if (count > remaining) {
+        const [team, name] = k.split(":");
+        const diff = count - remaining;
+        for (let i = 0; i < diff; i++) {
+          if (team === "brancas") capturedWhite.push(name);
+          else capturedBlack.push(name);
+        }
+      }
+    }
+    updateGraveyardsUI();
+  }
+
+  // Authoritative Move History and Game Review Sync
+  if (serverData && Array.isArray(serverData.move_history)) {
+    if (serverData.move_history.length > moveHistory.length) {
+      moveHistory = [...serverData.move_history];
+      const currentEval = computeBoardCentipawns(boardData);
+      while (evalHistory.length < moveHistory.length) {
+        evalHistory.push(currentEval);
+      }
+      evalHistory[moveHistory.length - 1] = currentEval;
+      updateLiveEvalBar(currentEval);
+      renderGameReviewPanel();
+    }
+  }
+
   recordAuthoritativeSnapshot();
   drawBoard();
 }
@@ -266,6 +322,14 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         }
         showNotification(`Entrou na sala '${data.room_id}' como ${data.cor === "brancas" ? "Brancas" : (data.cor === "pretas" ? "Pretas" : "Espetador")}`, "success");
 
+        if (data.estado_jogo && Array.isArray(data.estado_jogo.board)) {
+          applyServerBoard(data.estado_jogo.board, data.estado_jogo);
+          if (data.estado_jogo.white_to_move !== undefined) {
+            currentTurn = data.estado_jogo.white_to_move ? "white" : "black";
+            lastAuthoritativeTurn = currentTurn;
+          }
+        }
+
         // Send ready handshake to begin game
         if (data.cor === "brancas" || data.cor === "pretas") {
           socket.send(JSON.stringify({ tipo: "pronto" }));
@@ -295,7 +359,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         isOnlineMovePending = false;
         if (data.dados) {
           if (Array.isArray(data.dados.board)) {
-            applyServerBoard(data.dados.board);
+            applyServerBoard(data.dados.board, data.dados);
           }
           if (data.dados.white_to_move !== undefined) {
             currentTurn = data.dados.white_to_move ? "white" : "black";
@@ -351,7 +415,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         const rBanner = document.getElementById("reconnectBanner");
         if (rBanner) rBanner.style.display = "none";
         if (data.estado_jogo && Array.isArray(data.estado_jogo.board)) {
-          applyServerBoard(data.estado_jogo.board);
+          applyServerBoard(data.estado_jogo.board, data.estado_jogo);
           currentTurn = data.estado_jogo.white_to_move ? "white" : "black";
           lastAuthoritativeTurn = currentTurn;
           if (typeof updateClockActiveTurn === "function") {
@@ -630,7 +694,8 @@ const HERO_RULES = {
   },
   Stormcaller: {
     move: { type: "orthogonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 4 },
+    attack: { type: "none" },
+    special_attack: { type: "orthogonal", steps: 3, ray: true, spell_name: "chain_lightning" },
     cost: 72,
     acronym: "Sc"
   },
@@ -647,20 +712,23 @@ const HERO_RULES = {
     acronym: "Tk"
   },
   Dragoon: {
-    move: { type: "knight" },
-    attack: { type: "knight" },
+    move: { type: "orthogonal", steps: 1, ghost: false },
+    attack: { type: "orthogonal", steps: 1 },
+    spell: { name: "jump", range: 2 },
     cost: 193,
     acronym: "Dr"
   },
   FrostMage: {
-    move: { type: "diagonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 3, stunOnly: true },
+    move: { type: "diagonal", steps: 2, ghost: false },
+    attack: { type: "none" },
+    spell: { name: "nevada", range: 3, shape: "cross" },
     cost: 5,
     acronym: "FM"
   },
   BoneLord: {
-    move: { type: "orthogonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 1 },
+    move: { type: "adjacent", steps: 1, ghost: false },
+    attack: { type: "none" },
+    special_attack: { type: "pattern", deltas: [[-1, -1], [-1, 1], [-2, -2], [-2, 2]], spell_name: "bone_v" },
     cost: 86,
     acronym: "BL"
   },
@@ -678,25 +746,29 @@ const HERO_RULES = {
   },
   Ranger: {
     move: { type: "orthogonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 4 },
+    attack: { type: "none" },
+    special_attack: { type: "orthogonal", steps: 4, min_steps: 2, ray: true, spell_name: "aimed_shot" },
     cost: 40,
     acronym: "Ra"
   },
   Pyromancer: {
-    move: { type: "diagonal", steps: 2, ghost: false },
-    attack: { type: "orthogonal", steps: 2 },
+    move: { type: "diagonal", steps: 1, ghost: false },
+    attack: { type: "none" },
+    spell: { name: "ignite", range: 3 },
     cost: 17,
     acronym: "Py"
   },
   Phantom: {
-    move: { type: "knight" },
-    attack: { type: "knight" },
+    move: { type: "knight", ghost: true },
+    attack: { type: "none" },
+    special_attack: { type: "knight", spell_name: "spectral_strike" },
     cost: 5,
     acronym: "Ph"
   },
   Cleric: {
-    move: { type: "diagonal", steps: 2, ghost: false },
-    attack: { type: "adjacent", steps: 1 },
+    move: { type: "diagonal", steps: 1, ghost: false },
+    attack: { type: "none" },
+    spell: { name: "purify", range: 2 },
     cost: 58,
     acronym: "Cl"
   },
@@ -714,13 +786,15 @@ const HERO_RULES = {
   },
   Geomancer: {
     move: { type: "orthogonal", steps: 1, ghost: false },
-    attack: { type: "diagonal", steps: 1 },
+    attack: { type: "none" },
+    spell: { name: "barricade", range: 1 },
     cost: 21,
     acronym: "Ge"
   },
   Lich: {
     move: { type: "diagonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 2 },
+    attack: { type: "none" },
+    spawn: { name: "Ghoul", cooldown: 4 },
     cost: 11,
     acronym: "Li"
   },
@@ -738,19 +812,21 @@ const HERO_RULES = {
   },
   Sentry: {
     move: { type: "orthogonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 3 },
+    attack: { type: "none" },
+    special_attack: { type: "orthogonal", steps: 3, ray: true, spell_name: "sentinel_shot" },
     cost: 96,
     acronym: "Se"
   },
   StoneWall: {
-    move: { type: "orthogonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 1 },
+    move: { type: "none" },
+    attack: { type: "none" },
     cost: 8,
     acronym: "SW"
   },
   Trickster: {
     move: { type: "knight" },
-    attack: { type: "adjacent", steps: 1 },
+    attack: { type: "none" },
+    spell: { name: "swap", range: 3 },
     cost: 26,
     acronym: "Tr"
   },
@@ -768,7 +844,8 @@ const HERO_RULES = {
   },
   Arcanist: {
     move: { type: "diagonal", steps: 2, ghost: false },
-    attack: { type: "orthogonal", steps: 3 },
+    attack: { type: "none" },
+    special_attack: { type: "orthogonal", steps: 3, ray: true, spell_name: "arcane_blast" },
     cost: 23,
     acronym: "Ar"
   },
@@ -792,7 +869,8 @@ const HERO_RULES = {
   },
   Marksman: {
     move: { type: "adjacent", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 3, ray: true },
+    attack: { type: "none" },
+    special_attack: { type: "orthogonal", steps: 3, ray: true, spell_name: "sniper_shot" },
     cost: 28,
     acronym: "Ma"
   }
@@ -3252,7 +3330,7 @@ function playChime(type) {
   } catch (e) {}
 }
 
-// --- Legal Action Engine (INVARIANTS: No Self-Capture, Strict Turn, Two-Hit Stun) ---
+// --- Legal Action Engine (INVARIANTS: No Self-Capture, Strict Turn, Two-Hit Stun, Hero Special Parity) ---
 function getLegalActionsForPiece(r, c, board) {
   const piece = board[r][c];
   if (!piece) return [];
@@ -3268,7 +3346,7 @@ function getLegalActionsForPiece(r, c, board) {
   const actions = [];
   const grid = board.length;
 
-  // 1. Calculate Legal Moves (Must land on EMPTY square, allies strictly block)
+  // 1. Calculate Legal Moves (Must land on EMPTY square, allies strictly block unless ghost)
   if (rule.move && rule.move.type !== "none") {
     if (rule.move.type === "knight") {
       for (const [dr, dc] of KNIGHT_DIRS) {
@@ -3299,7 +3377,6 @@ function getLegalActionsForPiece(r, c, board) {
           if (board[nr][nc] === null) {
             actions.push({ type: "move", r: nr, c: nc });
           } else {
-            // Blocked by any piece! If ghost is true, it may fly over
             if (!rule.move.ghost) break;
           }
         }
@@ -3307,8 +3384,8 @@ function getLegalActionsForPiece(r, c, board) {
     }
   }
 
-  // 2. Calculate Legal Attacks (Must target an ENEMY piece, never an ally!)
-  if (rule.attack) {
+  // 2. Calculate Legal Standard Attacks (Must target an ENEMY piece, never an ally)
+  if (rule.attack && rule.attack.type !== "none") {
     if (rule.attack.type === "knight") {
       for (const [dr, dc] of KNIGHT_DIRS) {
         const nr = r + dr;
@@ -3338,15 +3415,172 @@ function getLegalActionsForPiece(r, c, board) {
 
           const target = board[nr][nc];
           if (target === null) {
-            // Can pass through empty space in ranged ray attacks
             continue;
           } else {
-            // Reached a piece
             if (target.team !== piece.team) {
-              // Enemy piece! Legal attack target!
               actions.push({ type: "attack", r: nr, c: nc, target, stunOnly: !!rule.attack.stunOnly });
             }
             if (!rule.attack.ghost) break;
+          }
+        }
+      }
+    }
+  }
+
+  // 3. Calculate Special Attacks (attack_action: "spell")
+  if (rule.special_attack) {
+    const spec = rule.special_attack;
+    const spellName = spec.spell_name;
+    if (spec.type === "knight") {
+      for (const [dr, dc] of KNIGHT_DIRS) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < grid && nc >= 0 && nc < grid) {
+          const target = board[nr][nc];
+          if (target && target.team !== piece.team) {
+            actions.push({ type: "spell", r: nr, c: nc, spell_name: spellName, targetPiece: target });
+          }
+        }
+      }
+    } else if (spec.type === "pattern" && spec.deltas) {
+      for (const [dr, dc] of spec.deltas) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < grid && nc >= 0 && nc < grid) {
+          const target = board[nr][nc];
+          if (target && target.team !== piece.team) {
+            actions.push({ type: "spell", r: nr, c: nc, spell_name: spellName, targetPiece: target });
+          }
+        }
+      }
+    } else {
+      let dirs = ORTHO_DIRS;
+      if (spec.type === "diagonal") dirs = DIAG_DIRS;
+      else if (spec.type === "adjacent") dirs = ADJ_DIRS;
+
+      const maxSteps = spec.steps || 1;
+      const minSteps = spec.min_steps || 1;
+      for (const [dr, dc] of dirs) {
+        for (let step = 1; step <= maxSteps; step++) {
+          const nr = r + dr * step, nc = c + dc * step;
+          if (nr < 0 || nr >= grid || nc < 0 || nc >= grid) break;
+          if (tileEffects[nr] && tileEffects[nr][nc] && tileEffects[nr][nc].type === "ice") break;
+
+          const target = board[nr][nc];
+          if (target === null) {
+            if (!spec.ray) break;
+            continue;
+          } else {
+            if (target.team !== piece.team && step >= minSteps) {
+              actions.push({ type: "spell", r: nr, c: nc, spell_name: spellName, targetPiece: target });
+            }
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Calculate Special Hero Spells & Spawns
+  if (rule.spell) {
+    const spellDef = rule.spell;
+    const spellName = spellDef.name;
+    if (spellName === "nevada") {
+      for (let dr = -3; dr <= 3; dr++) {
+        for (let dc = -3; dc <= 3; dc++) {
+          if (Math.abs(dr) + Math.abs(dc) > 3) continue;
+          const focusR = r + dr, focusC = c + dc;
+          if (focusR < 0 || focusR >= grid || focusC < 0 || focusC >= grid) continue;
+          if (tileEffects[focusR] && tileEffects[focusR][focusC] && tileEffects[focusR][focusC].type === "ice") continue;
+
+          let hasEnemy = false;
+          const cross = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]];
+          for (const [adr, adc] of cross) {
+            const ar = focusR + adr, ac = focusC + adc;
+            if (ar >= 0 && ar < grid && ac >= 0 && ac < grid) {
+              const target = board[ar][ac];
+              if (target && target.team !== piece.team) {
+                hasEnemy = true;
+                break;
+              }
+            }
+          }
+          if (hasEnemy) {
+            actions.push({ type: "spell", r: focusR, c: focusC, spell_name: "nevada" });
+          }
+        }
+      }
+    } else if (spellName === "ignite") {
+      for (let dr = -3; dr <= 3; dr++) {
+        for (let dc = -3; dc <= 3; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < grid && nc >= 0 && nc < grid) {
+            const target = board[nr][nc];
+            if (target === null || target.team !== piece.team) {
+              actions.push({ type: "spell", r: nr, c: nc, spell_name: "ignite", targetPiece: target });
+            }
+          }
+        }
+      }
+    } else if (spellName === "purify") {
+      for (let dr = -2; dr <= 2; dr++) {
+        for (let dc = -2; dc <= 2; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < grid && nc >= 0 && nc < grid) {
+            const target = board[nr][nc];
+            if (target && target.team === piece.team && target.stun > 0) {
+              actions.push({ type: "spell", r: nr, c: nc, spell_name: "purify", targetPiece: target });
+            }
+          }
+        }
+      }
+    } else if (spellName === "swap") {
+      for (let dr = -3; dr <= 3; dr++) {
+        for (let dc = -3; dc <= 3; dc++) {
+          if (dr === 0 && dc === 0) continue;
+          const nr = r + dr, nc = c + dc;
+          if (nr >= 0 && nr < grid && nc >= 0 && nc < grid) {
+            const target = board[nr][nc];
+            if (target && target.team === piece.team && target !== piece) {
+              actions.push({ type: "spell", r: nr, c: nc, spell_name: "swap", targetPiece: target });
+            }
+          }
+        }
+      }
+    } else if (spellName === "barricade") {
+      for (const [dr, dc] of ADJ_DIRS) {
+        const nr = r + dr, nc = c + dc;
+        if (nr >= 0 && nr < grid && nc >= 0 && nc < grid) {
+          if (board[nr][nc] === null) {
+            actions.push({ type: "spell", r: nr, c: nc, spell_name: "barricade" });
+          }
+        }
+      }
+    } else if (spellName === "jump") {
+      for (const [dr, dc] of ADJ_DIRS) {
+        const midr = r + dr, midc = c + dc;
+        const landr = r + dr * 2, landc = c + dc * 2;
+        if (midr >= 0 && midr < grid && midc >= 0 && midc < grid &&
+            landr >= 0 && landr < grid && landc >= 0 && landc < grid) {
+          if (board[midr][midc] !== null) {
+            const dest = board[landr][landc];
+            if (dest === null || dest.team !== piece.team) {
+              actions.push({ type: "spell", r: landr, c: landc, spell_name: "jump", targetPiece: dest });
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (rule.spawn) {
+    if (!piece.spawn_cooldown || piece.spawn_cooldown <= 0) {
+      const forward = piece.team === "brancas" ? -1 : 1;
+      for (const dc of [-1, 0, 1]) {
+        const nr = r + forward, nc = c + dc;
+        if (nr >= 0 && nr < grid && nc >= 0 && nc < grid) {
+          if (board[nr][nc] === null && (!tileEffects[nr] || !tileEffects[nr][nc] || tileEffects[nr][nc].type !== "ice")) {
+            actions.push({ type: "spawn", r: nr, c: nc, spawn_name: rule.spawn.name || "Ghoul" });
           }
         }
       }
@@ -3371,28 +3605,109 @@ function applyAction(fromR, fromC, action) {
     moveNotation = `${piece.name} ${coordsToNotation(fromR, fromC)} - ${coordsToNotation(action.r, action.c)}`;
     addMoveToHistory(moveNotation);
   } else if (action.type === "attack") {
-    const target = action.target;
-    if (target.stun > 0) {
-      // INVARIANT: Second hit on stunned unit eliminates it immediately!
-      boardData[action.r][action.c] = piece;
-      boardData[fromR][fromC] = null;
-      playChime("victory");
-      moveNotation = `${piece.name} captura ${target.name} [Lethal Kill]`;
-      addMoveToHistory(moveNotation);
-    } else if (action.stunOnly) {
-      // Stun-only ability (e.g. FrostMage)
-      target.stun = 2;
-      playChime("stun");
-      moveNotation = `${piece.name} congela ${target.name} (Stun 2 turnos)`;
-      addMoveToHistory(moveNotation);
-    } else {
-      // Standard attack capture
-      boardData[action.r][action.c] = piece;
-      boardData[fromR][fromC] = null;
-      playChime("stun");
-      moveNotation = `${piece.name} x ${target.name} [${coordsToNotation(action.r, action.c)}]`;
-      addMoveToHistory(moveNotation);
+    const target = action.target || boardData[action.r][action.c];
+    if (target) {
+      if (target.stun > 0) {
+        boardData[action.r][action.c] = piece;
+        boardData[fromR][fromC] = null;
+        recordCapture(target);
+        playChime("victory");
+        moveNotation = `${piece.name} captura ${target.name} [Lethal Kill]`;
+      } else {
+        boardData[action.r][action.c] = piece;
+        boardData[fromR][fromC] = null;
+        recordCapture(target);
+        playChime("stun");
+        moveNotation = `${piece.name} x ${target.name} [${coordsToNotation(action.r, action.c)}]`;
+      }
     }
+    addMoveToHistory(moveNotation);
+  } else if (action.type === "spell") {
+    const spellName = (action.spell_name || "").toLowerCase();
+    const target = action.targetPiece || boardData[action.r][action.c];
+    if (spellName === "nevada") {
+      if (!tileEffects[action.r]) tileEffects[action.r] = [];
+      tileEffects[action.r][action.c] = { type: "ice", timer: 3, team: piece.team };
+      const cross = [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]];
+      for (const [dr, dc] of cross) {
+        const ar = action.r + dr, ac = action.c + dc;
+        if (ar >= 0 && ar < boardGrid && ac >= 0 && ac < boardGrid) {
+          const t = boardData[ar][ac];
+          if (t && t.team !== piece.team) {
+            if (t.stun > 0) {
+              recordCapture(t);
+              boardData[ar][ac] = null;
+            } else {
+              t.stun = 2;
+            }
+          }
+        }
+      }
+      playChime("stun");
+      moveNotation = `${piece.name} NEVADA ${coordsToNotation(action.r, action.c)}`;
+    } else if (spellName === "ignite") {
+      if (!tileEffects[action.r]) tileEffects[action.r] = [];
+      tileEffects[action.r][action.c] = { type: "fire", timer: 3, team: piece.team };
+      if (target && target.team !== piece.team) {
+        if (target.stun > 0) {
+          recordCapture(target);
+          boardData[action.r][action.c] = null;
+        } else {
+          target.stun = 2;
+        }
+      }
+      playChime("stun");
+      moveNotation = `${piece.name} IGNITE ${coordsToNotation(action.r, action.c)}`;
+    } else if (spellName === "purify") {
+      if (target && target.team === piece.team) {
+        target.stun = 0;
+      }
+      playChime("move");
+      moveNotation = `${piece.name} PURIFY ${coordsToNotation(action.r, action.c)}`;
+    } else if (spellName === "swap") {
+      if (target && target.team === piece.team) {
+        boardData[fromR][fromC] = target;
+        boardData[action.r][action.c] = piece;
+      }
+      playChime("move");
+      moveNotation = `${piece.name} SWAP ${coordsToNotation(fromR, fromC)} <-> ${coordsToNotation(action.r, action.c)}`;
+    } else if (spellName === "barricade") {
+      boardData[action.r][action.c] = { name: "StoneWall", team: piece.team, stun: 0, lifespan: 3, spawn_cooldown: 0 };
+      playChime("move");
+      moveNotation = `${piece.name} BARRICADE ${coordsToNotation(action.r, action.c)}`;
+    } else if (spellName === "jump") {
+      if (target && target.team !== piece.team) {
+        recordCapture(target);
+      }
+      boardData[action.r][action.c] = piece;
+      boardData[fromR][fromC] = null;
+      playChime("move");
+      moveNotation = `${piece.name} JUMP ${coordsToNotation(fromR, fromC)} -> ${coordsToNotation(action.r, action.c)}`;
+    } else if (spellName === "bone_v") {
+      if (target && target.team !== piece.team) {
+        recordCapture(target);
+      }
+      boardData[action.r][action.c] = { name: "Bone", team: piece.team, stun: 0, lifespan: null, spawn_cooldown: 0 };
+      playChime("victory");
+      moveNotation = `${piece.name} BONE_V ${coordsToNotation(action.r, action.c)}`;
+    } else {
+      // Special attack spells: spectral_strike, sentinel_shot, aimed_shot, chain_lightning, arcane_blast, sniper_shot
+      if (target && target.team !== piece.team) {
+        recordCapture(target);
+        boardData[action.r][action.c] = null;
+      }
+      playChime("stun");
+      moveNotation = `${piece.name} ${spellName.toUpperCase()} ${coordsToNotation(action.r, action.c)}`;
+    }
+    addMoveToHistory(moveNotation);
+  } else if (action.type === "spawn") {
+    const spawnName = action.spawn_name || "Ghoul";
+    boardData[action.r][action.c] = { name: spawnName, team: piece.team, stun: 0, lifespan: null, spawn_cooldown: 0 };
+    piece.spawn_cooldown = 4;
+    piece.stun = 1;
+    playChime("move");
+    moveNotation = `${piece.name} SPAWN ${spawnName} ${coordsToNotation(action.r, action.c)}`;
+    addMoveToHistory(moveNotation);
   }
 
   const evalAfter = computeBoardCentipawns(boardData);
@@ -3567,13 +3882,31 @@ function drawBoard() {
       ctx.fillStyle = isLight ? "#eeeed2" : "#769656"; // Chess.com style green & cream
       ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
 
+      // Tile effects (ice and fire)
+      if (Array.isArray(tileEffects) && tileEffects[r] && tileEffects[r][c]) {
+        const effect = tileEffects[r][c];
+        if (effect && effect.type === "ice") {
+          ctx.fillStyle = "rgba(56, 189, 248, 0.45)";
+          ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          ctx.fillStyle = "#0284c7";
+          ctx.font = `bold ${Math.floor(squareSize * 0.22)}px sans-serif`;
+          ctx.fillText("❄", c * squareSize + squareSize * 0.2, r * squareSize + squareSize * 0.28);
+        } else if (effect && effect.type === "fire") {
+          ctx.fillStyle = "rgba(239, 68, 68, 0.45)";
+          ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
+          ctx.fillStyle = "#dc2626";
+          ctx.font = `bold ${Math.floor(squareSize * 0.22)}px sans-serif`;
+          ctx.fillText("🔥", c * squareSize + squareSize * 0.2, r * squareSize + squareSize * 0.28);
+        }
+      }
+
       // Selected square highlight
       if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) {
         ctx.fillStyle = "rgba(255, 255, 0, 0.4)";
         ctx.fillRect(c * squareSize, r * squareSize, squareSize, squareSize);
       }
 
-      // Legal move/attack indicators
+      // Legal move/attack/spell indicators
       for (const act of currentLegalActions) {
         if (act.r === r && act.c === c) {
           const cx = c * squareSize + squareSize / 2;
@@ -3589,6 +3922,27 @@ function drawBoard() {
             ctx.beginPath();
             ctx.arc(cx, cy, squareSize * 0.42, 0, Math.PI * 2);
             ctx.strokeStyle = "rgba(239, 68, 68, 0.85)";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+          } else if (act.type === "spell") {
+            // Purple ring for spell action
+            ctx.beginPath();
+            ctx.arc(cx, cy, squareSize * 0.42, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(168, 85, 247, 0.9)";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+          } else if (act.type === "spawn") {
+            // Green ring for spawn action
+            ctx.beginPath();
+            ctx.arc(cx, cy, squareSize * 0.42, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(34, 197, 94, 0.9)";
+            ctx.lineWidth = 4;
+            ctx.stroke();
+          } else if (act.type === "stun") {
+            // Cyan ring for stun action
+            ctx.beginPath();
+            ctx.arc(cx, cy, squareSize * 0.42, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(14, 165, 233, 0.9)";
             ctx.lineWidth = 4;
             ctx.stroke();
           }
@@ -3637,6 +3991,20 @@ function drawBoard() {
           ctx.fillStyle = "#00e5ff";
           ctx.font = "bold 11px sans-serif";
           ctx.fillText(`❄${piece.stun}`, cx + radius - 6, cy - radius + 8);
+        }
+
+        // Lifespan badge (hourglass)
+        if (piece.lifespan !== null && piece.lifespan !== undefined) {
+          ctx.fillStyle = "#f59e0b";
+          ctx.font = `bold ${Math.floor(squareSize * 0.16)}px sans-serif`;
+          ctx.fillText(`⏳${piece.lifespan}`, cx + radius - 6, cy + radius - 4);
+        }
+
+        // Spawn cooldown badge (stopwatch)
+        if (piece.spawn_cooldown > 0) {
+          ctx.fillStyle = "#a855f7";
+          ctx.font = `bold ${Math.floor(squareSize * 0.16)}px sans-serif`;
+          ctx.fillText(`⏱${piece.spawn_cooldown}`, cx - radius + 8, cy + radius - 4);
         }
 
         // Draw Hero Visual Asset or fallback acronym
@@ -3695,7 +4063,7 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
 
 // User Interaction Handler (STRICT INVARIANT: Player cannot move Black/AI pieces, No Self-Capture)
 canvas.addEventListener("click", (e) => {
-  if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying) return;
+  if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying || (isPuzzleMode && currentPuzzleSolved)) return;
 
   const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
   if (oppVal === "online_room") {
@@ -3882,12 +4250,16 @@ canvas.addEventListener("click", (e) => {
       try {
         const targetR = chosenAction.r !== undefined ? chosenAction.r : chosenAction.toR;
         const targetC = chosenAction.c !== undefined ? chosenAction.c : chosenAction.toC;
-        socket.send(JSON.stringify({
+        const actionPayload = {
           tipo: "acao",
           type: chosenAction.type || "move",
           start: [fromR, fromC],
           end: [targetR, targetC]
-        }));
+        };
+        if (chosenAction.spell_name) actionPayload.spell_name = chosenAction.spell_name;
+        if (chosenAction.spawn_name) actionPayload.spawn_name = chosenAction.spawn_name;
+        if (chosenAction.area) actionPayload.area = chosenAction.area;
+        socket.send(JSON.stringify(actionPayload));
       } catch (err) {
         isOnlineMovePending = false;
         prePendingMoveSnapshot = null;

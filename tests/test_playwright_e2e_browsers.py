@@ -79,8 +79,23 @@ def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None
     http_app.stop()
 
 
+def click_canvas_square(page: Page, r: int, c: int, grid_size: int = 8) -> None:
+    """Simulate a real mouse click on the given board coordinates on the canvas."""
+    canvas = page.query_selector("#gameBoard")
+    assert canvas is not None, "Canvas #gameBoard not found"
+    box = canvas.bounding_box()
+    assert box is not None, "Canvas bounding box is None"
+    cell_w = box["width"] / grid_size
+    cell_h = box["height"] / grid_size
+    x = box["x"] + c * cell_w + cell_w / 2
+    y = box["y"] + r * cell_h + cell_h / 2
+    page.mouse.click(x, y)
+
+
 def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers):
-    """Verify that the RedWar web application adapts across mobile, tablet, and desktop viewports."""
+    """Verify that the RedWar web application adapts across mobile, tablet, and desktop viewports,
+    and maintains zero horizontal overflow across all major interactive tabs.
+    """
     http_url = web_and_ws_servers["http_url"]
 
     viewports = [
@@ -110,9 +125,14 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers):
             )
             assert box["width"] <= vp["width"], f"Canvas width {box['width']} exceeds viewport {vp['width']}"
 
-            # Check horizontal overflow: scrollWidth must not exceed innerWidth
-            no_horizontal_overflow = page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-            assert no_horizontal_overflow, f"Horizontal overflow detected in viewport {vp['name']}"
+            # Check horizontal overflow across all tabs: scrollWidth must not exceed innerWidth
+            tab_selectors = ["#tabAcademy", "#tabPuzzles", "#tabAnalytics", "#tabLeaderboard", "#tabReview"]
+            for tab_sel in tab_selectors:
+                el = page.query_selector(tab_sel)
+                if el:
+                    page.click(tab_sel)
+                    overflow = page.evaluate("document.documentElement.scrollWidth <= window.innerWidth && document.body.scrollWidth <= window.innerWidth")
+                    assert overflow, f"Horizontal overflow detected in {vp['name']} on tab {tab_sel}"
 
             # Check primary controls are visible
             btn_resign = page.query_selector("#btnResign")
@@ -220,23 +240,9 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers):
         page_white = page_alice if alice_color == "brancas" else page_bob
         page_black = page_bob if alice_color == "brancas" else page_alice
 
-        # --- MOVE 1: White executes legal move (Bone from (6, 2) to (5, 2)) ---
-        page_white.evaluate("""
-            isOnlineMovePending = true;
-            prePendingMoveSnapshot = {
-                boardData: JSON.parse(JSON.stringify(boardData)),
-                currentTurn: currentTurn,
-                moveHistory: [...moveHistory],
-                evalHistory: [...evalHistory],
-                classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
-            };
-            socket.send(JSON.stringify({
-                tipo: 'acao',
-                type: 'move',
-                start: [6, 2],
-                end: [5, 2]
-            }));
-        """)
+        # --- MOVE 1: White executes legal move via REAL CANVAS CLICKS (Bone from (6, 2) to (5, 2)) ---
+        click_canvas_square(page_white, 6, 2)
+        click_canvas_square(page_white, 5, 2)
 
         # Wait conditionally for both browsers to receive authoritative board update
         page_white.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[5][2] !== null && boardData[6][2] === null && currentTurn === 'black'", timeout=5000)
@@ -247,23 +253,9 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers):
         pb_piece_name = page_black.evaluate("boardData[5][2].name")
         assert pw_piece_name == pb_piece_name == "Bone", f"Mismatch in move 1 piece: White={pw_piece_name}, Black={pb_piece_name}"
 
-        # --- MOVE 2: Black executes legal move (Bone from (1, 2) to (2, 2)) ---
-        page_black.evaluate("""
-            isOnlineMovePending = true;
-            prePendingMoveSnapshot = {
-                boardData: JSON.parse(JSON.stringify(boardData)),
-                currentTurn: currentTurn,
-                moveHistory: [...moveHistory],
-                evalHistory: [...evalHistory],
-                classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
-            };
-            socket.send(JSON.stringify({
-                tipo: 'acao',
-                type: 'move',
-                start: [1, 2],
-                end: [2, 2]
-            }));
-        """)
+        # --- MOVE 2: Black executes legal move via REAL CANVAS CLICKS (Bone from (1, 2) to (2, 2)) ---
+        click_canvas_square(page_black, 1, 2)
+        click_canvas_square(page_black, 2, 2)
 
         # Wait conditionally for both browsers to receive authoritative board update
         page_white.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[2][2] !== null && boardData[1][2] === null && currentTurn === 'white'", timeout=5000)
