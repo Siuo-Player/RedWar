@@ -106,6 +106,15 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, c
         page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
 
         page.goto(http_url, wait_until="domcontentloaded")
+        page.evaluate("""async () => {
+            await document.fonts.ready;
+            await Promise.all(
+                Array.from(document.images, image => image.decode().catch(() => undefined))
+            );
+            await new Promise(resolve =>
+                requestAnimationFrame(() => requestAnimationFrame(resolve))
+            );
+        }""")
 
         # Check Canvas exists and is rendered
         canvas = page.query_selector("#gameBoard")
