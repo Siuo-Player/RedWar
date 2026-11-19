@@ -62,5 +62,8 @@ jobs:
           python tools/scripts/build_cpp_engine.py --smoke
           ./ai/cpp_engine/SmokeTest
 
+      - name: Build production C++ engine for Ares tests
+        run: python tools/scripts/build_cpp_engine.py
+
       - name: Run Python test suite
-        run: python -m pytest tests/ -n auto --dist=loadfile --durations=20 --durations-min=0.5
+        run: python -m pytest tests/ -n 2 --dist=loadfile --durations=20 --durations-min=0.5
