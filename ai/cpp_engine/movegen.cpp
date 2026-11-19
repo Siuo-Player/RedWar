@@ -148,19 +148,24 @@ std::vector<MoveVector> compile_attack_behavior(const json& atk_json) {
     const std::string type = atk_json.value("type", "");
     const int max_steps = atk_json.value("max_steps", 1);
     const int min_steps = atk_json.value("min_steps", 1);
+    const bool ghost = atk_json.value("ghost", false) || atk_json.value("ghost_attack", false);
 
     if (type == "none") return {};
     if (type == "orthogonal") {
         return normalize_vectors({{-1, 0, max_steps}, {1, 0, max_steps},
-                                  {0, -1, max_steps}, {0, 1, max_steps}}, min_steps, false);
+                                  {0, -1, max_steps}, {0, 1, max_steps}}, min_steps, ghost);
     }
     if (type == "diagonal") {
         return normalize_vectors({{-1, -1, max_steps}, {-1, 1, max_steps},
-                                  {1, -1, max_steps}, {1, 1, max_steps}}, min_steps, false);
+                                  {1, -1, max_steps}, {1, 1, max_steps}}, min_steps, ghost);
+    }
+    if (type == "adjacent" || type == "adj") {
+        return normalize_vectors({{-1, -1, max_steps}, {-1, 0, max_steps}, {-1, 1, max_steps},
+                                  {0, -1, max_steps}, {0, 1, max_steps}, {1, -1, max_steps}, {1, 0, max_steps}, {1, 1, max_steps}}, min_steps, ghost);
     }
     if (type == "knight") {
         return normalize_vectors({{-2, -1, 1}, {-2, 1, 1}, {-1, -2, 1}, {-1, 2, 1},
-                                  {1, -2, 1}, {1, 2, 1}, {2, -1, 1}, {2, 1, 1}}, min_steps, false);
+                                  {1, -2, 1}, {1, 2, 1}, {2, -1, 1}, {2, 1, 1}}, min_steps, ghost);
     }
     if (type == "ray") {
         const json dirs = atk_json.contains("dirs") ? atk_json["dirs"]
@@ -170,7 +175,7 @@ std::vector<MoveVector> compile_attack_behavior(const json& atk_json) {
             if (d.size() < 2) throw std::runtime_error("Attack ray direction needs dr and dc");
             expanded.push_back({d[0], d[1], std::max(LINHAS, COLUNAS)});
         }
-        return normalize_vectors(expanded, min_steps, false);
+        return normalize_vectors(expanded, min_steps, ghost);
     }
     if (type == "pattern" || atk_json.contains("deltas")) {
         std::vector<std::vector<int>> expanded;
@@ -178,7 +183,7 @@ std::vector<MoveVector> compile_attack_behavior(const json& atk_json) {
             if (d.size() < 2) throw std::runtime_error("Attack pattern needs dr and dc");
             expanded.push_back({d[0], d[1], max_steps});
         }
-        return normalize_vectors(expanded, min_steps, false);
+        return normalize_vectors(expanded, min_steps, ghost);
     }
 
     return {};
@@ -436,7 +441,7 @@ std::vector<Move> generate_valid_moves(char current_turn) {
                             moves.push_back({r, c, nr, nc, "ATTACK", "", "", 0});
                         }
                     }
-                    break;
+                    if (!mv.ghost) break;
                 }
             }
 

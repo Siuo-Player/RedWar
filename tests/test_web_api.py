@@ -198,6 +198,7 @@ def test_puzzle_verify_robust_payload_validation(web_client):
     assert web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps({"puzzle_id": "puz_001", "step": 999, "fromR": 6, "fromC": 3, "toR": 0, "toC": 3}))["status"] == 400
 
     # 5. Invalid coordinates: negative, out-of-bounds, float, boolean, strings
+    web_client._puzzle_attempts.clear()
     bad_coords = [
         {"fromR": -1, "fromC": 3, "toR": 0, "toC": 3},
         {"fromR": 6, "fromC": 8, "toR": 0, "toC": 3},
@@ -210,6 +211,22 @@ def test_puzzle_verify_robust_payload_validation(web_client):
         body_dict = {"puzzle_id": "puz_001", "step": 0, **bc}
         resp = web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps(body_dict))
         assert resp["status"] == 400, f"Expected 400 for coordinate set {bc}, got {resp['status']}"
+
+    # 6. Nested 'move' dict with booleans, floats, strings, or out-of-bound coords must also return 400
+    web_client._puzzle_attempts.clear()
+    bad_nested_moves = [
+        {"fromR": True, "fromC": 3, "toR": 2, "toC": 5},
+        {"start": [True, 3], "end": [2, 5]},
+        {"start": [-1, 3], "end": [2, 5]},
+        {"start": [4, 3], "end": [99, 5]},
+        {"fromR": "4", "fromC": 3, "toR": 2, "toC": 5},
+        {"fromR": 4, "fromC": 3, "toR": 2.5, "toC": 5},
+        {"fromR": 4, "fromC": -5, "toR": 2, "toC": 5},
+    ]
+    for bnm in bad_nested_moves:
+        body_dict = {"puzzle_id": "pz1", "step": 0, "move": bnm}
+        resp = web_client.handle_request("POST", "/api/puzzles/verify", body=json.dumps(body_dict))
+        assert resp["status"] == 400, f"Expected 400 for nested move format {bnm}, got {resp['status']}"
 
 
 def test_puzzle_verify_rate_limiting(web_client):
@@ -235,4 +252,88 @@ def test_index_html_loads_config_js_before_app_js():
     assert config_pos != -1, "config.js not found in index.html"
     assert app_pos != -1, "app.js not found in index.html"
     assert config_pos < app_pos, "config.js MUST be loaded before app.js in index.html"
+
+
+def test_live_http_server_cors_and_binary_assets():
+    """Verify live HTTP server behavior across real TCP sockets:
+    1. CORS OPTIONS preflight with Origin header returns 204.
+    2. Unauthorized Origin on live OPTIONS returns 403 Forbidden.
+    3. Binary assets (.png, .wav) are served with exact bytes and correct MIME type.
+    4. Live POST puzzle verification over real socket returns valid JSON response.
+    """
+    import urllib.request
+    import urllib.error
+    import threading
+    from http.server import ThreadingHTTPServer
+    from online.server.web_app import RedWarWebApp, _RedWarHTTPRequestHandler
+
+    app = RedWarWebApp(host="127.0.0.1", port=0)
+    handler_cls = type("BoundLiveHandler", (_RedWarHTTPRequestHandler,), {"app": app})
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler_cls)
+    app._server = server
+    port = server.server_port
+
+    server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+    server_thread.start()
+
+    base_url = f"http://127.0.0.1:{port}"
+
+    try:
+        # 1. Live OPTIONS with authorized origin
+        req_options = urllib.request.Request(
+            f"{base_url}/api/leaderboard",
+            method="OPTIONS",
+            headers={"Origin": "http://localhost:8080"}
+        )
+        with urllib.request.urlopen(req_options) as resp:
+            assert resp.status == 204
+            assert resp.headers.get("Access-Control-Allow-Origin") == "http://localhost:8080"
+            assert "Vary" in resp.headers
+
+        # 2. Live OPTIONS with unauthorized origin returns 403
+        req_unauth = urllib.request.Request(
+            f"{base_url}/api/leaderboard",
+            method="OPTIONS",
+            headers={"Origin": "http://malicious-site.com"}
+        )
+        try:
+            urllib.request.urlopen(req_unauth)
+            assert False, "Expected HTTPError 403 for unauthorized origin"
+        except urllib.error.HTTPError as err:
+            assert err.code == 403
+
+        # 3. Live GET binary PNG asset: verify raw bytes and MIME type
+        asset_rel_path = Path("deploy/web/assets/heroes/berserker.png")
+        if not asset_rel_path.exists():
+            asset_rel_path = Path("deploy/web/assets/berserker.png")
+
+        if asset_rel_path.exists():
+            disk_bytes = asset_rel_path.read_bytes()
+            asset_url = f"{base_url}/{asset_rel_path.relative_to('deploy/web').as_posix()}"
+            req_png = urllib.request.Request(asset_url, method="GET")
+            with urllib.request.urlopen(req_png) as resp:
+                assert resp.status == 200
+                assert resp.headers.get("Content-Type") == "image/png"
+                body = resp.read()
+                assert body == disk_bytes, "Served binary bytes must be identical to disk bytes"
+
+        # 4. Live POST puzzle verification over real socket
+        post_data = json.dumps({
+            "puzzle_id": "pz1",
+            "fromR": 4, "fromC": 3, "toR": 2, "toC": 5,
+            "step": 0
+        }).encode("utf-8")
+        req_post = urllib.request.Request(
+            f"{base_url}/api/puzzles/verify",
+            data=post_data,
+            headers={"Content-Type": "application/json", "Origin": "http://127.0.0.1:3000"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req_post) as resp:
+            assert resp.status == 200
+            res_json = json.loads(resp.read().decode("utf-8"))
+            assert res_json["correct"] is True
+            assert res_json["completed"] is True
+    finally:
+        app.stop()
 

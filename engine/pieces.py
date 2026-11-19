@@ -235,25 +235,26 @@ class BehaviorCompiler:
             kind = atk.get("type")
             steps = int(atk.get("max_steps", 1) or 1)
             min_steps = int(atk.get("min_steps", 1) or 1)
+            ghost = bool(atk.get("ghost", False) or atk.get("ghost_attack", False))
             if kind == "none":
                 attack_is_none = True
             elif kind == "orthogonal":
-                vecs = BehaviorCompiler._normalize(BehaviorCompiler._orthogonal(steps), min_steps)
+                vecs = BehaviorCompiler._normalize(BehaviorCompiler._orthogonal(steps), min_steps, ghost)
                 attack_base_white = attack_base_black = vecs
             elif kind == "diagonal":
-                vecs = BehaviorCompiler._normalize(BehaviorCompiler._diagonal(steps), min_steps)
+                vecs = BehaviorCompiler._normalize(BehaviorCompiler._diagonal(steps), min_steps, ghost)
                 attack_base_white = attack_base_black = vecs
             elif kind in ("adjacent", "adj"):
-                vecs = BehaviorCompiler._normalize(BehaviorCompiler._adjacent(steps), min_steps)
+                vecs = BehaviorCompiler._normalize(BehaviorCompiler._adjacent(steps), min_steps, ghost)
                 attack_base_white = attack_base_black = vecs
             elif kind == "knight":
-                vecs = BehaviorCompiler._normalize(BehaviorCompiler._knight(), min_steps)
+                vecs = BehaviorCompiler._normalize(BehaviorCompiler._knight(), min_steps, ghost)
                 attack_base_white = attack_base_black = vecs
             elif kind == "ray":
                 dirs = atk.get("dirs") or atk.get("deltas")
                 if dirs:
                     raw = [(int(dr), int(dc), max_range) for dr, dc in dirs]
-                    vecs = BehaviorCompiler._normalize(raw, min_steps)
+                    vecs = BehaviorCompiler._normalize(raw, min_steps, ghost)
                     attack_base_white = attack_base_black = vecs
             elif kind == "forward_cone":
                 deltas = atk.get("deltas", [])
@@ -340,7 +341,7 @@ class DataPiece(Piece):
             return []
         attacks = []
         rows, cols = len(board), len(board[0])
-        for dr, dc, max_steps, min_steps, _ghost in self._attack_vectors:
+        for dr, dc, max_steps, min_steps, ghost in self._attack_vectors:
             for step in range(1, max_steps + 1):
                 nr = r + dr * step
                 nc = c + dc * step
@@ -353,7 +354,8 @@ class DataPiece(Piece):
                     continue
                 if target.team != self.team and step >= min_steps:
                     attacks.append((nr, nc))
-                break
+                if not ghost:
+                    break
         return attacks
 
     def get_valid_spells(self, r, c, board, tile_effects=None) -> list:

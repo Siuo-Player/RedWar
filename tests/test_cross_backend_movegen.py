@@ -174,3 +174,25 @@ def test_python_cpp_move_generation_equivalence():
             f"Missing in C++ ({len(missing)}): {missing}\n"
             f"Extra in C++ ({len(extra)}): {extra}"
         )
+
+
+def test_tactical_heroes_adjacent_and_ghost_parity():
+    """Verify cross-backend parity for adjacent attacks (Illusionist) and spectral ghost moves/attacks (Valkyrie, Shadowblade)."""
+    assert BRIDGE.exists(), f"C++ movegen bridge missing: {BRIDGE}."
+
+    state = GameState()
+    put(state, 3, 6, "Illusionist", "brancas")
+    put(state, 5, 6, "Bone", "pretas")
+    put(state, 4, 4, "Shadowblade", "brancas")
+    put(state, 2, 2, "Bone", "pretas")
+    put(state, 6, 2, "Valkyrie", "brancas")
+    state.white_to_move = True
+
+    py_moves = python_actions(state)
+    cpp_moves = cpp_actions([state.to_rwen()])[0]
+
+    missing = sorted(py_moves - cpp_moves)
+    extra = sorted(cpp_moves - py_moves)
+    assert not missing and not extra, (
+        f"tactical_heroes mismatch: Missing in C++: {missing}, Extra in C++: {extra}"
+    )

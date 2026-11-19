@@ -24,8 +24,13 @@ let myReconnectToken = null;
 let currentRoomId = null;
 let lastAuthoritativeBoard = null;
 let lastAuthoritativeTurn = "white";
+let lastAuthoritativeMoveHistory = [];
+let lastAuthoritativeEvalHistory = [0];
+let lastAuthoritativeClassifiedMoves = [];
+let prePendingMoveSnapshot = null;
 let isOnlineMovePending = false;
 let isPuzzleVerifying = false;
+let currentPuzzleSolved = false;
 
 function showNotification(msg, type = "info") {
   console.log(`[RedWar ${type}] ${msg}`);
@@ -104,8 +109,77 @@ function applyServerBoard(serverBoard) {
       };
     })
   );
-  lastAuthoritativeBoard = JSON.parse(JSON.stringify(boardData));
+  recordAuthoritativeSnapshot();
   drawBoard();
+}
+
+function recordAuthoritativeSnapshot() {
+  if (Array.isArray(boardData)) {
+    lastAuthoritativeBoard = JSON.parse(JSON.stringify(boardData));
+  }
+  lastAuthoritativeTurn = currentTurn;
+  lastAuthoritativeMoveHistory = (typeof moveHistory !== "undefined" && Array.isArray(moveHistory)) ? [...moveHistory] : [];
+  lastAuthoritativeEvalHistory = (typeof evalHistory !== "undefined" && Array.isArray(evalHistory)) ? [...evalHistory] : [0];
+  lastAuthoritativeClassifiedMoves = (typeof classifiedMoves !== "undefined" && Array.isArray(classifiedMoves))
+    ? JSON.parse(JSON.stringify(classifiedMoves))
+    : [];
+  prePendingMoveSnapshot = null;
+}
+
+function rollbackToLastAuthoritativeState() {
+  isOnlineMovePending = false;
+  const snap = prePendingMoveSnapshot;
+  if (snap && snap.boardData) {
+    boardData = JSON.parse(JSON.stringify(snap.boardData));
+    currentTurn = snap.currentTurn;
+    if (Array.isArray(snap.moveHistory)) {
+      moveHistory = [...snap.moveHistory];
+    }
+    if (Array.isArray(snap.evalHistory)) {
+      evalHistory = [...snap.evalHistory];
+    }
+    if (Array.isArray(snap.classifiedMoves)) {
+      classifiedMoves = JSON.parse(JSON.stringify(snap.classifiedMoves));
+    }
+    if (Array.isArray(snap.capturedWhite)) {
+      capturedWhite = [...snap.capturedWhite];
+    }
+    if (Array.isArray(snap.capturedBlack)) {
+      capturedBlack = [...snap.capturedBlack];
+    }
+  } else if (lastAuthoritativeBoard) {
+    boardData = JSON.parse(JSON.stringify(lastAuthoritativeBoard));
+    currentTurn = lastAuthoritativeTurn;
+    if (Array.isArray(lastAuthoritativeMoveHistory)) {
+      moveHistory = [...lastAuthoritativeMoveHistory];
+    }
+    if (Array.isArray(lastAuthoritativeEvalHistory)) {
+      evalHistory = [...lastAuthoritativeEvalHistory];
+    }
+    if (Array.isArray(lastAuthoritativeClassifiedMoves)) {
+      classifiedMoves = JSON.parse(JSON.stringify(lastAuthoritativeClassifiedMoves));
+    }
+  }
+  prePendingMoveSnapshot = null;
+  selectedSquare = null;
+  currentLegalActions = [];
+
+  drawBoard();
+  if (typeof renderGameReviewPanel === "function") {
+    renderGameReviewPanel();
+  }
+  if (typeof updateGraveyardsUI === "function") {
+    updateGraveyardsUI();
+  }
+  if (typeof updateClockActiveTurn === "function") {
+    updateClockActiveTurn();
+  }
+  const lastEval = (typeof evalHistory !== "undefined" && Array.isArray(evalHistory) && evalHistory.length > 0)
+    ? evalHistory[evalHistory.length - 1]
+    : (typeof computeBoardCentipawns === "function" ? computeBoardCentipawns(boardData) : 0);
+  if (typeof updateLiveEvalBar === "function") {
+    updateLiveEvalBar(lastEval);
+  }
 }
 
 function connectOnlineWebSocket(roomId, reconnectToken = null) {
@@ -177,14 +251,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
       const data = JSON.parse(event.data);
       if (data.tipo === "erro") {
         showNotification(data.mensagem || "Erro do servidor", "error");
-        isOnlineMovePending = false;
-        if (lastAuthoritativeBoard) {
-          boardData = JSON.parse(JSON.stringify(lastAuthoritativeBoard));
-          currentTurn = lastAuthoritativeTurn;
-          selectedSquare = null;
-          currentLegalActions = [];
-          drawBoard();
-        }
+        rollbackToLastAuthoritativeState();
       } else if (data.tipo === "room_joined") {
         myOnlineColor = data.cor;
         myReconnectToken = data.reconnect_token;
@@ -223,6 +290,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
           updateClockDisplays();
         }
         startClock();
+        recordAuthoritativeSnapshot();
       } else if (data.tipo === "estado_jogo") {
         isOnlineMovePending = false;
         if (data.dados) {
@@ -240,6 +308,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
             isGameOver = data.dados.game_over;
           }
         }
+        recordAuthoritativeSnapshot();
         if (data.room && data.room.clock) {
           whiteSeconds = Math.round(data.room.clock.white_time);
           blackSeconds = Math.round(data.room.clock.black_time);
@@ -253,6 +322,16 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
           }
           showNotification(`Partida terminada! Vencedor: ${data.room.winner || "Empate"}`, "info");
         }
+      } else if (data.tipo === "game_over") {
+        isGameOver = true;
+        isOnlineMovePending = false;
+        if (clockInterval) clearInterval(clockInterval);
+        if (typeof showPostGameButtons === "function") {
+          showPostGameButtons();
+        }
+        const winner = (data.room && data.room.winner) ? data.room.winner : (data.winner || "Adversário");
+        const reason = data.reason === "resignation" ? "desistência" : (data.reason || "conclusão");
+        showNotification(`Partida terminada por ${reason}! Vencedor: ${winner}`, "info");
       } else if (data.tipo === "reconnect_success") {
         isOnlineMovePending = false;
         if (typeof resetGameUIForNewMatch === "function") {
@@ -285,6 +364,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
           updateClockDisplays();
         }
         showNotification(`Reconexão efetuada com sucesso como ${data.cor === "brancas" ? "Brancas" : "Pretas"}!`, "success");
+        recordAuthoritativeSnapshot();
       } else if (data.tipo === "rematch_proposal") {
         showNotification(`${data.proposer || "O adversário"} propôs uma desforra. Clica em 'Desforra' para aceitar!`, "info");
       } else if (data.tipo === "rematch_update") {
@@ -311,6 +391,7 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
         if (bName) {
           bName.textContent = `Oponente Online (${currentRoomId || ""}) [Jogando como ${myOnlineColor === "brancas" ? "Brancas" : "Pretas"}]`;
         }
+        recordAuthoritativeSnapshot();
         showNotification(`Desforra acordada! As tuas peças agora são ${myOnlineColor === "brancas" ? "Brancas" : "Pretas"}.`, "info");
       } else if (data.tipo === "chat_emote") {
         const eNotif = document.getElementById("emoteNotification");
@@ -325,11 +406,17 @@ function connectOnlineWebSocket(roomId, reconnectToken = null) {
   };
 
   socket.onerror = function() {
+    if (isOnlineMovePending) {
+      rollbackToLastAuthoritativeState();
+    }
     isOnlineMovePending = false;
     showNotification("Erro na ligação WebSocket.", "error");
   };
 
   socket.onclose = function() {
+    if (isOnlineMovePending) {
+      rollbackToLastAuthoritativeState();
+    }
     isOnlineMovePending = false;
     showNotification("Ligação multiplayer terminada.", "error");
     const rBanner = document.getElementById("reconnectBanner");
@@ -675,7 +762,7 @@ const HERO_RULES = {
   },
   Valkyrie: {
     move: { type: "adjacent", steps: 3, ghost: true },
-    attack: { type: "orthogonal", steps: 2 },
+    attack: { type: "orthogonal", steps: 3, ghost: true },
     cost: 22,
     acronym: "Va"
   },
@@ -3259,8 +3346,7 @@ function getLegalActionsForPiece(r, c, board) {
               // Enemy piece! Legal attack target!
               actions.push({ type: "attack", r: nr, c: nc, target, stunOnly: !!rule.attack.stunOnly });
             }
-            // Cannot attack past any unit in a line
-            break;
+            if (!rule.attack.ghost) break;
           }
         }
       }
@@ -3721,10 +3807,13 @@ canvas.addEventListener("click", (e) => {
             currentLegalActions = [];
             drawBoard();
 
-            puzzleStreak++;
-            puzzleUserElo += 15;
-            savePuzzleStats();
-            updatePuzzleStatsUI();
+            if (!currentPuzzleSolved) {
+              currentPuzzleSolved = true;
+              puzzleStreak++;
+              puzzleUserElo += 15;
+              savePuzzleStats();
+              updatePuzzleStatsUI();
+            }
             if (banner) {
               banner.style.display = "block";
               banner.style.background = "rgba(34, 197, 94, 0.2)";
@@ -3780,6 +3869,15 @@ canvas.addEventListener("click", (e) => {
         drawBoard();
         return;
       }
+      prePendingMoveSnapshot = {
+        boardData: JSON.parse(JSON.stringify(boardData)),
+        currentTurn: currentTurn,
+        moveHistory: (typeof moveHistory !== "undefined" && Array.isArray(moveHistory)) ? [...moveHistory] : [],
+        evalHistory: (typeof evalHistory !== "undefined" && Array.isArray(evalHistory)) ? [...evalHistory] : [0],
+        classifiedMoves: (typeof classifiedMoves !== "undefined" && Array.isArray(classifiedMoves)) ? JSON.parse(JSON.stringify(classifiedMoves)) : [],
+        capturedWhite: (typeof capturedWhite !== "undefined" && Array.isArray(capturedWhite)) ? [...capturedWhite] : [],
+        capturedBlack: (typeof capturedBlack !== "undefined" && Array.isArray(capturedBlack)) ? [...capturedBlack] : [],
+      };
       isOnlineMovePending = true;
       try {
         const targetR = chosenAction.r !== undefined ? chosenAction.r : chosenAction.toR;
@@ -3792,6 +3890,7 @@ canvas.addEventListener("click", (e) => {
         }));
       } catch (err) {
         isOnlineMovePending = false;
+        prePendingMoveSnapshot = null;
         showNotification("Erro ao enviar jogada para o servidor.", "error");
         return;
       }
@@ -4622,6 +4721,7 @@ function setupPuzzle(puzzleId) {
   loadPuzzleStats();
   const pz = PUZZLES.find(p => p.puzzle_id === puzzleId) || PUZZLES[0];
   currentPuzzle = pz;
+  currentPuzzleSolved = false;
   isPuzzleMode = true;
   isAcademyMode = false;
   boardGrid = 8;

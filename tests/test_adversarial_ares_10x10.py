@@ -283,3 +283,54 @@ def test_grand10x10_full_game_normal_formation_to_completion():
     assert bridge_white.invocation_count == 0
     assert bridge_black.invocation_count == 0
 
+
+def test_grand_10x10_corner_and_boundary_tactics():
+    """Verify that boundary positions and all 4 extreme corners (0,0), (0,9), (9,0), (9,9)
+    generate valid actions within 10x10 bounds without IndexError or C++ bridge calls.
+    """
+    mode = GameMode.grand_10x10()
+    gs = mode.create_game_state()
+
+    # Place pieces on all 4 corners and borders
+    # White pieces
+    gs.board[9][0] = Bone("brancas")
+    gs.board[9][9] = criar_peca_por_nome("Paladin", "brancas")
+    gs.board[9][5] = criar_peca_por_nome("Dragoon", "brancas")
+    gs.board[5][0] = criar_peca_por_nome("FrostMage", "brancas")
+
+    # Black pieces
+    gs.board[0][0] = Bone("pretas")
+    gs.board[0][9] = criar_peca_por_nome("Shadowblade", "pretas")
+    gs.board[0][4] = criar_peca_por_nome("Hookmaster", "pretas")
+    gs.board[5][9] = criar_peca_por_nome("BoneLord", "pretas")
+
+    # Check legal actions for White
+    from engine.legal_actions import legal_actions
+    white_actions = legal_actions(gs)
+    assert len(white_actions) > 0, "Corner/boundary white pieces must have legal moves"
+    for act in white_actions:
+        assert 0 <= act.start[0] < 10 and 0 <= act.start[1] < 10
+        assert 0 <= act.end[0] < 10 and 0 <= act.end[1] < 10
+
+    # Ensure Ares bot can search and choose a move from these boundary positions
+    forbidden_bridge = MockForbiddenEngineBridge()
+    bot = AresTieredBot(tier=AresBotTier.ADVANCED, bridge=forbidden_bridge)
+    chosen = bot.escolher_jogada(gs)
+    assert chosen is not None
+    assert 0 <= chosen["start"][0] < 10 and 0 <= chosen["start"][1] < 10
+    assert 0 <= chosen["end"][0] < 10 and 0 <= chosen["end"][1] < 10
+    assert forbidden_bridge.invocation_count == 0
+
+    # Execute move on gs
+    gs.execute_action(chosen)
+    assert not gs.game_over
+    assert gs.white_to_move is False
+
+    # Check Black legal actions on boundaries
+    black_actions = legal_actions(gs)
+    assert len(black_actions) > 0, "Corner/boundary black pieces must have legal moves"
+    for act in black_actions:
+        assert 0 <= act.start[0] < 10 and 0 <= act.start[1] < 10
+        assert 0 <= act.end[0] < 10 and 0 <= act.end[1] < 10
+
+
