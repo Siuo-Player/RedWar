@@ -258,13 +258,23 @@ async def gerir_conexao(websocket: Any):
 
                 token = room.player_tokens.get(player_id) if assigned_role in ("brancas", "pretas") else None
 
-                await websocket.send(json.dumps({
+                join_payload = {
                     "tipo": "room_joined",
                     "room_id": room_id,
                     "cor": assigned_role,
                     "reconnect_token": token,
                     "room": room.state_payload(),
-                }))
+                    "estado_jogo": room.session.state_payload() if (room.is_started and room.session) else None,
+                }
+                await websocket.send(json.dumps(join_payload))
+
+                # Immediately provide authoritative game state to late joiners/spectators
+                if room.is_started and room.session:
+                    await websocket.send(json.dumps({
+                        "tipo": "estado_jogo",
+                        "dados": room.session.state_payload(),
+                        "room": room.state_payload(),
+                    }))
                 continue
 
             # Player ready notification
@@ -326,6 +336,24 @@ async def gerir_conexao(websocket: Any):
                                 _room_sockets.pop(prev_room_id, None)
 
                         recovered_id = room.white_player if role == "brancas" else room.black_player
+
+                        # Invalidate and close previous active WebSocket connection for this player
+                        if room_id in _room_sockets:
+                            old_sockets = [
+                                ws for ws in list(_room_sockets[room_id])
+                                if ws != websocket and ws in _connections and _connections[ws].get("player_id") == recovered_id
+                            ]
+                            for old_ws in old_sockets:
+                                _room_sockets[room_id].discard(old_ws)
+                                if old_ws in _connections:
+                                    _connections[old_ws]["cor"] = "invalidated"
+                                    _connections[old_ws]["room_id"] = None
+                                    _connections[old_ws]["player_id"] = None
+                                try:
+                                    await old_ws.close(code=1000, reason="Sessao substituida por nova reconexao")
+                                except Exception:
+                                    pass
+
                         meta["room_id"] = room_id
                         meta["player_id"] = recovered_id
                         meta["cor"] = role
@@ -455,10 +483,15 @@ async def gerir_conexao(websocket: Any):
         jogadores.pop(websocket, None)
         prontos.discard(websocket)
         room_id = meta.get("room_id")
-        if room_id and room_id in _room_sockets:
-            _room_sockets[room_id].discard(websocket)
-            if not _room_sockets[room_id]:
-                _room_sockets.pop(room_id, None)
+        if room_id:
+            room = manager.get_room(room_id)
+            if room:
+                if meta.get("cor") == "espetador" and meta.get("player_id"):
+                    room.remove_spectator(meta.get("player_id"))
+            if room_id in _room_sockets:
+                _room_sockets[room_id].discard(websocket)
+                if not _room_sockets[room_id]:
+                    _room_sockets.pop(room_id, None)
 
         if not jogadores:
             prontos.clear()

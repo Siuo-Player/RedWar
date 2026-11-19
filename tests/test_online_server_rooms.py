@@ -112,6 +112,11 @@ async def _test_room_join_and_isolated_match(tmp_path: Path):
     }))
     joined_c = await _recv_until_type(ws_charlie, "room_joined")
     assert joined_c["cor"] == "espetador"
+    assert joined_c["estado_jogo"] is not None
+
+    # Charlie immediately receives the active game state on joining
+    initial_c = await _recv_until_type(ws_charlie, "estado_jogo")
+    assert initial_c["dados"]["white_to_move"] is True
 
     # Place test pieces
     room.session.state.board[6][0] = Bone("brancas")
@@ -125,7 +130,7 @@ async def _test_room_join_and_isolated_match(tmp_path: Path):
         "end": (5, 0)
     }))
 
-    # Charlie receives update
+    # Charlie receives update after move
     update_c = await _recv_until_type(ws_charlie, "estado_jogo")
     assert update_c["dados"]["white_to_move"] is False
 

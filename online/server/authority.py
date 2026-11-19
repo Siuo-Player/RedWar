@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from engine.action_parser import ActionParser
@@ -15,6 +15,22 @@ class AuthoritativeSession:
     """Server-side authority boundary for one multiplayer game."""
 
     state: GameState
+    move_history: list[str] = field(default_factory=list)
+    actions_history: list[dict[str, Any]] = field(default_factory=list)
+    last_move: str | None = None
+    last_action: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        if self.state and getattr(self.state, "move_log", None):
+            self.move_history = [entry["short"] for entry in self.state.move_log]
+            self.actions_history = [
+                entry.get("acao_escolhida")
+                for entry in self.state.move_log
+                if entry.get("acao_escolhida")
+            ]
+            if self.state.move_log:
+                self.last_move = self.state.move_log[-1].get("short")
+                self.last_action = self.state.move_log[-1].get("acao_escolhida")
 
     @classmethod
     def new(cls) -> "AuthoritativeSession":
@@ -47,6 +63,16 @@ class AuthoritativeSession:
                 raise ValueError("action source does not belong to player")
 
         self.state.execute_action(normalized.to_dict())
+        if self.state.move_log:
+            latest = self.state.move_log[-1]
+            self.last_move = latest.get("short")
+            self.last_action = latest.get("acao_escolhida")
+            self.move_history = [entry["short"] for entry in self.state.move_log]
+            self.actions_history = [
+                entry.get("acao_escolhida")
+                for entry in self.state.move_log
+                if entry.get("acao_escolhida")
+            ]
         return self.state.to_rwen()
 
     def apply_text_action(self, player: str, action_text: str) -> str:
@@ -97,4 +123,8 @@ class AuthoritativeSession:
             "game_over": bool(self.state.game_over),
             "winner": self.state.winner,
             "turns_without_capture": int(self.state.turns_without_capture),
+            "move_history": list(self.move_history),
+            "actions_history": list(self.actions_history),
+            "last_move": self.last_move,
+            "last_action": self.last_action,
         }
