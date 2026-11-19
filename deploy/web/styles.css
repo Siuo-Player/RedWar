@@ -342,6 +342,20 @@ select, input {
 
 /* Responsive Layout for Mobile & Tablet */
 @media (max-width: 960px) {
+  header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 8px 12px;
+    justify-content: center;
+  }
+  .nav-links {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .user-auth-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
   main {
     flex-direction: column;
     align-items: center;

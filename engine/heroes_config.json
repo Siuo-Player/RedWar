@@ -515,7 +515,8 @@
       },
       "attack": {
         "type": "diagonal",
-        "max_steps": 1
+        "max_steps": 3,
+        "ghost": true
       }
     }
   },
@@ -607,7 +608,8 @@
       },
       "attack": {
         "type": "orthogonal",
-        "max_steps": 2
+        "max_steps": 3,
+        "ghost": true
       }
     }
   },

@@ -30,32 +30,55 @@ def is_allowed_origin(origin: str) -> bool:
 
 
 def _normalize_puzzle_move(move_val: Any) -> Optional[tuple[int, int, int, int]]:
-    """Attempt to parse move representation into canonical coordinates (from_r, from_c, to_r, to_c)."""
+    """Attempt to parse move representation into canonical coordinates (from_r, from_c, to_r, to_c).
+
+    Strictly enforces:
+    - No boolean values (isinstance(x, bool) is False)
+    - Valid integer bounds: 0 <= coord < 8
+    """
     if isinstance(move_val, dict):
         if "fromR" in move_val and "toR" in move_val:
-            try:
-                return (int(move_val["fromR"]), int(move_val["fromC"]), int(move_val["toR"]), int(move_val["toC"]))
-            except (ValueError, TypeError):
-                return None
+            for fld in ("fromR", "fromC", "toR", "toC"):
+                if fld not in move_val:
+                    return None
+                val = move_val[fld]
+                if isinstance(val, bool) or not isinstance(val, int):
+                    return None
+                if val < 0 or val >= 8:
+                    return None
+            return (move_val["fromR"], move_val["fromC"], move_val["toR"], move_val["toC"])
+
         if "start" in move_val and "end" in move_val:
-            try:
-                s, e = move_val["start"], move_val["end"]
-                return (int(s[0]), int(s[1]), int(e[0]), int(e[1]))
-            except (ValueError, TypeError, IndexError):
+            s, e = move_val["start"], move_val["end"]
+            if not isinstance(s, (list, tuple)) or not isinstance(e, (list, tuple)):
                 return None
+            if len(s) != 2 or len(e) != 2:
+                return None
+            for val in (s[0], s[1], e[0], e[1]):
+                if isinstance(val, bool) or not isinstance(val, int):
+                    return None
+                if val < 0 or val >= 8:
+                    return None
+            return (s[0], s[1], e[0], e[1])
+
     if isinstance(move_val, str):
         # Match '4,3->2,5' or '4,3 to 2,5' or '4,3 2,5'
-        m = re.search(r"(\d+)\s*,\s*(\d+)\s*(?:->|to|\s)\s*(\d+)\s*,\s*(\d+)", move_val)
+        m = re.search(r"^(\d+)\s*,\s*(\d+)\s*(?:->|to|\s)\s*(\d+)\s*,\s*(\d+)$", move_val.strip())
         if m:
-            return (int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4)))
-        # Match algebraic notation like 'MOVE D4 F6' or 'D4 F6' or 'D4-F6'
-        m_alg = re.search(r"\b([A-Ja-j]\d+)\b[^\w]*\b([A-Ja-j]\d+)\b", move_val)
+            r1, c1, r2, c2 = int(m.group(1)), int(m.group(2)), int(m.group(3)), int(m.group(4))
+            if all(0 <= x < 8 for x in (r1, c1, r2, c2)):
+                return (r1, c1, r2, c2)
+            return None
+
+        # Match algebraic notation like 'MOVE D4 F6' or 'D4 F6' or 'D4-F6' or 'SPELL D2 D7'
+        m_alg = re.search(r"\b([A-Ha-h][1-8])\b[^\w]*\b([A-Ha-h][1-8])\b", move_val.strip())
         if m_alg:
             try:
                 from engine.action_parser import ActionParser
                 r1, c1 = ActionParser.alg_to_coords(m_alg.group(1), total_linhas=8)
                 r2, c2 = ActionParser.alg_to_coords(m_alg.group(2), total_linhas=8)
-                return (r1, c1, r2, c2)
+                if all(0 <= x < 8 for x in (r1, c1, r2, c2)):
+                    return (r1, c1, r2, c2)
             except Exception:
                 pass
     return None
@@ -317,7 +340,7 @@ class RedWarWebApp:
                 if not isinstance(candidate_move, (str, dict)):
                     return self._response(
                         status=400,
-                        body=json.dumps({"error": "Invalid move format"}),
+                        body=json.dumps({"error": "Invalid move format: must be dict or string"}),
                         origin=origin,
                     )
             else:
@@ -331,11 +354,27 @@ class RedWarWebApp:
             cand_coords = _normalize_puzzle_move(candidate_move)
             exp_coords = _normalize_puzzle_move(expected)
 
-            if cand_coords is not None and exp_coords is not None:
-                is_correct = (cand_coords == exp_coords)
+            if cand_coords is None:
+                if isinstance(candidate_move, dict) or not isinstance(candidate_move, str):
+                    return self._response(
+                        status=400,
+                        body=json.dumps({"error": "Invalid move coordinates: coordinates must be integers between 0 and 7 without booleans"}),
+                        origin=origin,
+                    )
+                cand_str = candidate_move.strip().upper()
+                if cand_str != expected.upper():
+                    return self._response(
+                        status=400,
+                        body=json.dumps({"error": "Malformed move string: coordinates must be within 8x8 board bounds (0-7)"}),
+                        origin=origin,
+                    )
+                is_correct = True
             else:
-                cand_str = str(candidate_move).strip().upper()
-                is_correct = (cand_str == expected.upper())
+                if exp_coords is not None:
+                    is_correct = (cand_coords == exp_coords)
+                else:
+                    cand_str = str(candidate_move).strip().upper()
+                    is_correct = (cand_str == expected.upper())
 
             is_completed = is_correct and (step + 1 >= len(puzzle.solution_moves))
 

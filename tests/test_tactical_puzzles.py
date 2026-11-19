@@ -103,3 +103,44 @@ def test_puzzle_bank_js_canonical_rwen_bijective_consistency():
 
         assert js_pieces == py_pieces, f"Piece mismatch in puzzle {pid}: JS={js_pieces} vs Py={py_pieces}"
 
+
+def test_puzzle_bank_solutions_legality_and_execution():
+    """Verify that every tactical puzzle in PUZZLE_BANK has fully legal solution moves
+    under GameState legal_actions and can be executed to solve the puzzle.
+    """
+    from engine.game_state import GameState
+    from engine.legal_actions import legal_actions
+    from engine.puzzles import PUZZLE_BANK, load_rwen_into_game_state
+    from online.server.web_app import _normalize_puzzle_move
+
+    canonical_puzzles = [p for p in PUZZLE_BANK if p.puzzle_id.startswith("pz")]
+    assert len(canonical_puzzles) >= 6
+
+    for puzzle in canonical_puzzles:
+        gs = GameState()
+        load_rwen_into_game_state(puzzle.initial_rwen, gs)
+
+        for step_idx, move_str in enumerate(puzzle.solution_moves):
+            coords = _normalize_puzzle_move(move_str)
+            assert coords is not None, f"Failed to normalize solution move {move_str!r} for puzzle {puzzle.puzzle_id}"
+            from_r, from_c, to_r, to_c = coords
+
+            # Ensure start square has a friendly piece to move
+            piece = gs.board[from_r][from_c]
+            assert piece is not None, f"No piece at start position ({from_r}, {from_c}) for puzzle {puzzle.puzzle_id}"
+            expected_team = "brancas" if gs.white_to_move else "pretas"
+            assert piece.team == expected_team, f"Piece team {piece.team} does not match turn team {expected_team}"
+
+            # Verify that destination is among legal action targets
+            all_legals = legal_actions(gs)
+            matching_actions = [
+                act for act in all_legals
+                if act.start == (from_r, from_c) and act.end == (to_r, to_c)
+            ]
+            assert len(matching_actions) > 0, (
+                f"Puzzle {puzzle.puzzle_id} step {step_idx}: move {coords} is not among legal actions! "
+                f"Available actions from ({from_r}, {from_c}): {[a.end for a in all_legals if a.start == (from_r, from_c)]}"
+            )
+            # Execute the action on gs
+            gs.execute_action(matching_actions[0].to_dict())
+

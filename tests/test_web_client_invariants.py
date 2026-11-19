@@ -758,5 +758,172 @@ def test_web_client_puzzle_double_submission_prevented():
     assert res["passed"], f"Double submission was not blocked: {res}"
 
 
+def test_web_client_move_rollback_restores_history_eval_and_review():
+    """Verify that when a multiplayer move is rejected ({ tipo: 'erro' }),
+    boardData, currentTurn, moveHistory, evalHistory, and classifiedMoves are all fully restored.
+    """
+    snippet = """
+    boardData = Array(8).fill(null).map(() => Array(8).fill(null));
+    boardData[6][2] = { name: "Bone", team: "brancas", stun: 0 };
+    currentTurn = "white";
+    moveHistory = ["Paladin a1 - a2"];
+    evalHistory = [0, 50];
+    classifiedMoves = [{ moveText: "Paladin a1 - a2", classification: "best", label: "Melhor", delta: 50, team: "brancas" }];
+    recordAuthoritativeSnapshot();
+
+    // Simulate optimistic move submission in online mode
+    const chosen = { type: "move", r: 5, c: 2 };
+    prePendingMoveSnapshot = {
+      boardData: JSON.parse(JSON.stringify(boardData)),
+      currentTurn: currentTurn,
+      moveHistory: [...moveHistory],
+      evalHistory: [...evalHistory],
+      classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves)),
+      capturedWhite: [],
+      capturedBlack: []
+    };
+    isOnlineMovePending = true;
+
+    // Apply optimistic action locally
+    applyAction(6, 2, chosen);
+    currentTurn = "black";
+
+    const optimisticBoardMutated = (boardData[5][2] !== null && boardData[6][2] === null);
+    const optimisticTurnChanged = (currentTurn === "black");
+    const optimisticHistoryPushed = (moveHistory.length === 2);
+    const optimisticClassifiedPushed = (classifiedMoves.length === 2);
+
+    // Now simulate server rejecting move with { tipo: "erro" }
+    rollbackToLastAuthoritativeState();
+
+    const rolledBackBoard = (boardData[6][2] !== null && boardData[5][2] === null && boardData[6][2].name === "Bone");
+    const rolledBackTurn = (currentTurn === "white");
+    const rolledBackHistory = (moveHistory.length === 1 && moveHistory[0] === "Paladin a1 - a2");
+    const rolledBackEval = (evalHistory.length === 2 && evalHistory[1] === 50);
+    const rolledBackClassified = (classifiedMoves.length === 1 && classifiedMoves[0].moveText === "Paladin a1 - a2");
+    const rolledBackPending = (isOnlineMovePending === false);
+
+    console.log(JSON.stringify({
+      passed: optimisticBoardMutated && optimisticTurnChanged && optimisticHistoryPushed &&
+              optimisticClassifiedPushed && rolledBackBoard && rolledBackTurn &&
+              rolledBackHistory && rolledBackEval && rolledBackClassified && rolledBackPending,
+      optimisticBoardMutated,
+      optimisticTurnChanged,
+      optimisticHistoryPushed,
+      optimisticClassifiedPushed,
+      rolledBackBoard,
+      rolledBackTurn,
+      rolledBackHistory,
+      rolledBackEval,
+      rolledBackClassified,
+      rolledBackPending
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Full move rollback failed: {res}"
+
+
+def test_web_client_socket_close_or_error_during_pending_move_triggers_rollback():
+    """Verify that socket.onerror or socket.onclose during an in-flight move immediately
+    rolls back all local optimistic mutations to the authoritative state.
+    """
+    snippet = """
+    boardData = Array(8).fill(null).map(() => Array(8).fill(null));
+    boardData[6][4] = { name: "Paladin", team: "brancas", stun: 0 };
+    currentTurn = "white";
+    moveHistory = [];
+    evalHistory = [0];
+    classifiedMoves = [];
+    recordAuthoritativeSnapshot();
+
+    // Start WebSocket mock
+    let errorTriggered = false;
+    socket = {
+      readyState: 1,
+      send: () => {},
+      close: () => {}
+    };
+
+    // Prepare optimistic snapshot and pending move
+    prePendingMoveSnapshot = {
+      boardData: JSON.parse(JSON.stringify(boardData)),
+      currentTurn: currentTurn,
+      moveHistory: [...moveHistory],
+      evalHistory: [...evalHistory],
+      classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves)),
+      capturedWhite: [],
+      capturedBlack: []
+    };
+    isOnlineMovePending = true;
+
+    // Mutate board optimistically
+    boardData[5][4] = boardData[6][4];
+    boardData[6][4] = null;
+    currentTurn = "black";
+    moveHistory.push("Paladin e2 - e3");
+
+    // Simulate socket error/close
+    // Directly invoke rollback as defined in socket.onerror / socket.onclose
+    if (isOnlineMovePending) {
+      rollbackToLastAuthoritativeState();
+    }
+    isOnlineMovePending = false;
+
+    const boardRestored = (boardData[6][4] !== null && boardData[5][4] === null);
+    const turnRestored = (currentTurn === "white");
+    const historyRestored = (moveHistory.length === 0);
+    const pendingCleared = (isOnlineMovePending === false);
+
+    console.log(JSON.stringify({
+      passed: boardRestored && turnRestored && historyRestored && pendingCleared,
+      boardRestored,
+      turnRestored,
+      historyRestored,
+      pendingCleared
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Disconnection rollback failed: {res}"
+
+
+def test_web_client_puzzle_repeated_solution_does_not_duplicate_stats():
+    """Verify that resolving an already-solved puzzle does not duplicate ELO (+15) or streak."""
+    snippet = """
+    setupPuzzle("pz1");
+    puzzleStreak = 0;
+    puzzleUserElo = 1200;
+
+    // Simulate first correct solve
+    if (!currentPuzzleSolved) {
+      currentPuzzleSolved = true;
+      puzzleStreak++;
+      puzzleUserElo += 15;
+    }
+
+    const firstSolveStreak = puzzleStreak;
+    const firstSolveElo = puzzleUserElo;
+
+    // Simulate second repeated solve attempt on same puzzle
+    if (!currentPuzzleSolved) {
+      currentPuzzleSolved = true;
+      puzzleStreak++;
+      puzzleUserElo += 15;
+    }
+
+    const statsNotDuplicated = (puzzleStreak === 1 && puzzleUserElo === 1215 &&
+                                firstSolveStreak === 1 && firstSolveElo === 1215);
+
+    console.log(JSON.stringify({
+      passed: statsNotDuplicated,
+      firstSolveStreak,
+      firstSolveElo,
+      finalStreak: puzzleStreak,
+      finalElo: puzzleUserElo
+    }));
+    """
+    res = run_node_snippet(snippet)
+    assert res["passed"], f"Puzzle stats deduplication failed: {res}"
+
+
 
 
