@@ -177,19 +177,38 @@ def test_python_cpp_move_generation_equivalence():
 
 
 def test_tactical_heroes_adjacent_and_ghost_parity():
-    """Verify cross-backend parity for adjacent attacks (Illusionist) and spectral ghost moves/attacks (Valkyrie, Shadowblade)."""
+    """Verify cross-backend parity for adjacent attacks (Illusionist) and spectral ghost moves/attacks (Valkyrie, Shadowblade) through intervening obstacles."""
     assert BRIDGE.exists(), f"C++ movegen bridge missing: {BRIDGE}."
 
     state = GameState()
     put(state, 3, 6, "Illusionist", "brancas")
     put(state, 5, 6, "Bone", "pretas")
+
+    # Shadowblade at (4,4) with intervening ally at (3,3) and enemy at (2,2)
     put(state, 4, 4, "Shadowblade", "brancas")
+    put(state, 3, 3, "Bone", "brancas")
     put(state, 2, 2, "Bone", "pretas")
+
+    # Valkyrie at (6,2) with intervening ally at (5,2) and enemy at (4,2)
     put(state, 6, 2, "Valkyrie", "brancas")
+    put(state, 5, 2, "Bone", "brancas")
+    put(state, 4, 2, "Bone", "pretas")
+
     state.white_to_move = True
 
     py_moves = python_actions(state)
     cpp_moves = cpp_actions([state.to_rwen()])[0]
+
+    # Verify that ghost attacks through obstacles are actually generated
+    # Shadowblade attacks (2,2) through (3,3)
+    sb_attack = "ATTACK E4 C6"  # (4,4) is E4, (2,2) is C6
+    assert sb_attack in py_moves, f"Shadowblade ghost attack through obstacle missing in Python: {sb_attack}"
+    assert sb_attack in cpp_moves, f"Shadowblade ghost attack through obstacle missing in C++: {sb_attack}"
+
+    # Valkyrie attacks (4,2) through (5,2)
+    va_attack = "ATTACK C2 C4"  # (6,2) is C2, (4,2) is C4
+    assert va_attack in py_moves, f"Valkyrie ghost attack through obstacle missing in Python: {va_attack}"
+    assert va_attack in cpp_moves, f"Valkyrie ghost attack through obstacle missing in C++: {va_attack}"
 
     missing = sorted(py_moves - cpp_moves)
     extra = sorted(cpp_moves - py_moves)
