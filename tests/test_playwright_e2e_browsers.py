@@ -79,7 +79,16 @@ def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None
     http_app.stop()
 
 
-def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers):
+@pytest.fixture(scope="module")
+def chromium_browser() -> Generator[Browser, None, None]:
+    """Reuse one Chromium process while keeping each test in its own BrowserContext."""
+    with sync_playwright() as playwright_instance:
+        browser = playwright_instance.chromium.launch(headless=True)
+        yield browser
+        browser.close()
+
+
+def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, chromium_browser):
     """Verify that the RedWar web application adapts across mobile, tablet, and desktop viewports."""
     http_url = web_and_ws_servers["http_url"]
 
@@ -89,82 +98,77 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers):
         {"name": "desktop_widescreen", "width": 1366, "height": 768},
     ]
 
-    with sync_playwright() as p:
-        browser: Browser = p.chromium.launch(headless=True)
 
-        for vp in viewports:
-            context: BrowserContext = browser.new_context(viewport={"width": vp["width"], "height": vp["height"]})
-            page: Page = context.new_page()
+    for vp in viewports:
+        context: BrowserContext = chromium_browser.new_context(viewport={"width": vp["width"], "height": vp["height"]})
+        page: Page = context.new_page()
 
-            console_errors = []
-            page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+        console_errors = []
+        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
 
-            page.goto(http_url, wait_until="networkidle")
+        page.goto(http_url, wait_until="domcontentloaded")
 
-            # Check Canvas exists and is rendered
-            canvas = page.query_selector("#gameBoard")
-            assert canvas is not None, f"Canvas #gameBoard not found in viewport {vp['name']}"
-            box = canvas.bounding_box()
-            assert box is not None and box["width"] > 0 and box["height"] > 0, (
-                f"Canvas must have non-zero dimensions in viewport {vp['name']}"
-            )
-            assert box["width"] <= vp["width"], f"Canvas width {box['width']} exceeds viewport {vp['width']}"
+        # Check Canvas exists and is rendered
+        canvas = page.query_selector("#gameBoard")
+        assert canvas is not None, f"Canvas #gameBoard not found in viewport {vp['name']}"
+        box = canvas.bounding_box()
+        assert box is not None and box["width"] > 0 and box["height"] > 0, (
+            f"Canvas must have non-zero dimensions in viewport {vp['name']}"
+        )
+        assert box["width"] <= vp["width"], f"Canvas width {box['width']} exceeds viewport {vp['width']}"
 
-            # Check horizontal overflow: scrollWidth must not exceed innerWidth
-            no_horizontal_overflow = page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-            assert no_horizontal_overflow, f"Horizontal overflow detected in viewport {vp['name']}"
+        # Check horizontal overflow: scrollWidth must not exceed innerWidth
+        no_horizontal_overflow = page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+        assert no_horizontal_overflow, f"Horizontal overflow detected in viewport {vp['name']}"
 
-            # Check primary controls are visible
-            btn_resign = page.query_selector("#btnResign")
-            assert btn_resign is not None, f"Button #btnResign missing in {vp['name']}"
+        # Check primary controls are visible
+        btn_resign = page.query_selector("#btnResign")
+        assert btn_resign is not None, f"Button #btnResign missing in {vp['name']}"
 
-            # Check that no unhandled fatal script errors occurred
-            fatal_errors = [e for e in console_errors if "SyntaxError" in e or "ReferenceError" in e]
-            assert len(fatal_errors) == 0, f"Fatal JS errors in {vp['name']}: {fatal_errors}"
+        # Check that no unhandled fatal script errors occurred
+        fatal_errors = [e for e in console_errors if "SyntaxError" in e or "ReferenceError" in e]
+        assert len(fatal_errors) == 0, f"Fatal JS errors in {vp['name']}: {fatal_errors}"
 
-            context.close()
-
-        browser.close()
+        context.close()
 
 
-def test_playwright_interactive_panels_and_tabs(web_and_ws_servers):
+def test_playwright_interactive_panels_and_tabs(web_and_ws_servers, chromium_browser):
     """Verify tab navigation toggles panels between Academy, Puzzles, Analytics, and Leaderboard."""
     http_url = web_and_ws_servers["http_url"]
 
-    with sync_playwright() as p:
-        browser: Browser = p.chromium.launch(headless=True)
-        page: Page = browser.new_page()
-        page.goto(http_url, wait_until="networkidle")
+    context = chromium_browser.new_context()
+    page = context.new_page()
+    page.goto(http_url, wait_until="domcontentloaded")
 
-        # 1. Click Academy Tab
-        page.click("#tabAcademy")
-        academy_display = page.evaluate("document.getElementById('academyPanel').style.display")
-        assert academy_display != "none", "Academy panel should be visible after clicking tabAcademy"
+    # 1. Click Academy Tab
+    page.click("#tabAcademy")
+    academy_display = page.evaluate("document.getElementById('academyPanel').style.display")
+    assert academy_display != "none", "Academy panel should be visible after clicking tabAcademy"
 
-        # 2. Click Puzzles Tab
-        page.click("#tabPuzzles")
-        puzzles_display = page.evaluate("document.getElementById('puzzlesPanel').style.display")
-        assert puzzles_display != "none", "Puzzles panel should be visible after clicking tabPuzzles"
+    # 2. Click Puzzles Tab
+    page.click("#tabPuzzles")
+    puzzles_display = page.evaluate("document.getElementById('puzzlesPanel').style.display")
+    assert puzzles_display != "none", "Puzzles panel should be visible after clicking tabPuzzles"
 
-        # 3. Click Analytics Tab
-        page.click("#tabAnalytics")
-        analytics_display = page.evaluate("document.getElementById('analyticsPanel').style.display")
-        assert analytics_display != "none", "Analytics panel should be visible after clicking tabAnalytics"
+    # 3. Click Analytics Tab
+    page.click("#tabAnalytics")
+    analytics_display = page.evaluate("document.getElementById('analyticsPanel').style.display")
+    assert analytics_display != "none", "Analytics panel should be visible after clicking tabAnalytics"
 
-        # 4. Click Leaderboard Tab
-        page.click("#tabLeaderboard")
-        leaderboard_display = page.evaluate("document.getElementById('leaderboardPanel').style.display")
-        assert leaderboard_display != "none", "Leaderboard panel should be visible after clicking tabLeaderboard"
+    # 4. Click Leaderboard Tab
+    page.click("#tabLeaderboard")
+    leaderboard_display = page.evaluate("document.getElementById('leaderboardPanel').style.display")
+    assert leaderboard_display != "none", "Leaderboard panel should be visible after clicking tabLeaderboard"
 
-        # 5. Click Game Review Tab
-        page.click("#tabReview")
-        review_display = page.evaluate("document.getElementById('reviewPanel').style.display")
-        assert review_display != "none", "Review panel should be visible after clicking tabReview"
-
-        browser.close()
+    # 5. Click Game Review Tab
+    page.click("#tabReview")
+    review_display = page.evaluate("document.getElementById('reviewPanel').style.display")
+    assert review_display != "none", "Review panel should be visible after clicking tabReview"
 
 
-def test_playwright_dual_player_web_multiplayer(web_and_ws_servers):
+    context.close()
+
+def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_browser):
     """Verify live dual-browser multiplayer interaction, real legal moves, state synchronization,
     rejection rollback, resignation, and rematch button reset using Playwright conditional waits.
     """
@@ -172,152 +176,149 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers):
     ws_url = web_and_ws_servers["ws_url"]
     room_id = f"PLAYWRIGHT_ROOM_{int(time.time() * 1000)}"
 
-    with sync_playwright() as p:
-        browser: Browser = p.chromium.launch(headless=True)
 
-        ctx_alice: BrowserContext = browser.new_context()
-        ctx_bob: BrowserContext = browser.new_context()
+    ctx_alice: BrowserContext = chromium_browser.new_context()
+    ctx_bob: BrowserContext = chromium_browser.new_context()
 
-        page_alice: Page = ctx_alice.new_page()
-        page_bob: Page = ctx_bob.new_page()
+    page_alice: Page = ctx_alice.new_page()
+    page_bob: Page = ctx_bob.new_page()
 
-        # Load page for both players and configure WebSocket endpoint
-        for page, pid in [(page_alice, "alice_pw"), (page_bob, "bob_pw")]:
-            page.goto(http_url, wait_until="networkidle")
-            page.evaluate(f"""
-                localStorage.setItem('redwar_ws_url', '{ws_url}');
-                localStorage.setItem('redwar_online_player_id', '{pid}');
-            """)
-
-        # Connect Alice to room
-        page_alice.evaluate(f"""
-            document.getElementById('opponentSelect').value = 'online_room';
-            connectOnlineWebSocket('{room_id}');
-        """)
-        page_alice.wait_for_function("() => typeof socket !== 'undefined' && socket && socket.readyState === 1", timeout=5000)
-
-        # Connect Bob to room
-        page_bob.evaluate(f"""
-            document.getElementById('opponentSelect').value = 'online_room';
-            connectOnlineWebSocket('{room_id}');
-        """)
-        page_bob.wait_for_function("() => typeof socket !== 'undefined' && socket && socket.readyState === 1", timeout=5000)
-
-        # Both players send ready handshake
-        page_alice.evaluate("if (typeof socket !== 'undefined' && socket && socket.readyState === 1) socket.send(JSON.stringify({ tipo: 'pronto' }));")
-        page_bob.evaluate("if (typeof socket !== 'undefined' && socket && socket.readyState === 1) socket.send(JSON.stringify({ tipo: 'pronto' }));")
-
-        # Wait conditionally for match start on both browsers
-        page_alice.wait_for_function("() => typeof myOnlineColor !== 'undefined' && (myOnlineColor === 'brancas' || myOnlineColor === 'pretas')", timeout=5000)
-        page_bob.wait_for_function("() => typeof myOnlineColor !== 'undefined' && (myOnlineColor === 'brancas' || myOnlineColor === 'pretas')", timeout=5000)
-        page_alice.wait_for_function("() => typeof isGameOver !== 'undefined' && !isGameOver && typeof currentTurn !== 'undefined' && currentTurn === 'white'", timeout=5000)
-        page_bob.wait_for_function("() => typeof isGameOver !== 'undefined' && !isGameOver && typeof currentTurn !== 'undefined' && currentTurn === 'white'", timeout=5000)
-
-        alice_color = page_alice.evaluate("myOnlineColor")
-        bob_color = page_bob.evaluate("myOnlineColor")
-        assert {alice_color, bob_color} == {"brancas", "pretas"}, f"Colors assigned: Alice={alice_color}, Bob={bob_color}"
-
-        page_white = page_alice if alice_color == "brancas" else page_bob
-        page_black = page_bob if alice_color == "brancas" else page_alice
-
-        # --- MOVE 1: White executes legal move (Bone from (6, 2) to (5, 2)) ---
-        page_white.evaluate("""
-            isOnlineMovePending = true;
-            prePendingMoveSnapshot = {
-                boardData: JSON.parse(JSON.stringify(boardData)),
-                currentTurn: currentTurn,
-                moveHistory: [...moveHistory],
-                evalHistory: [...evalHistory],
-                classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
-            };
-            socket.send(JSON.stringify({
-                tipo: 'acao',
-                type: 'move',
-                start: [6, 2],
-                end: [5, 2]
-            }));
+    # Load page for both players and configure WebSocket endpoint
+    for page, pid in [(page_alice, "alice_pw"), (page_bob, "bob_pw")]:
+        page.goto(http_url, wait_until="domcontentloaded")
+        page.evaluate(f"""
+            localStorage.setItem('redwar_ws_url', '{ws_url}');
+            localStorage.setItem('redwar_online_player_id', '{pid}');
         """)
 
-        # Wait conditionally for both browsers to receive authoritative board update
-        page_white.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[5][2] !== null && boardData[6][2] === null && currentTurn === 'black'", timeout=5000)
-        page_black.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[5][2] !== null && boardData[6][2] === null && currentTurn === 'black'", timeout=5000)
+    # Connect Alice to room
+    page_alice.evaluate(f"""
+        document.getElementById('opponentSelect').value = 'online_room';
+        connectOnlineWebSocket('{room_id}');
+    """)
+    page_alice.wait_for_function("() => typeof socket !== 'undefined' && socket && socket.readyState === 1", timeout=5000)
 
-        # Invariant: Move 1 synchronized identically between White and Black
-        pw_piece_name = page_white.evaluate("boardData[5][2].name")
-        pb_piece_name = page_black.evaluate("boardData[5][2].name")
-        assert pw_piece_name == pb_piece_name == "Bone", f"Mismatch in move 1 piece: White={pw_piece_name}, Black={pb_piece_name}"
+    # Connect Bob to room
+    page_bob.evaluate(f"""
+        document.getElementById('opponentSelect').value = 'online_room';
+        connectOnlineWebSocket('{room_id}');
+    """)
+    page_bob.wait_for_function("() => typeof socket !== 'undefined' && socket && socket.readyState === 1", timeout=5000)
 
-        # --- MOVE 2: Black executes legal move (Bone from (1, 2) to (2, 2)) ---
-        page_black.evaluate("""
-            isOnlineMovePending = true;
-            prePendingMoveSnapshot = {
-                boardData: JSON.parse(JSON.stringify(boardData)),
-                currentTurn: currentTurn,
-                moveHistory: [...moveHistory],
-                evalHistory: [...evalHistory],
-                classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
-            };
-            socket.send(JSON.stringify({
-                tipo: 'acao',
-                type: 'move',
-                start: [1, 2],
-                end: [2, 2]
-            }));
-        """)
+    # Both players send ready handshake
+    page_alice.evaluate("if (typeof socket !== 'undefined' && socket && socket.readyState === 1) socket.send(JSON.stringify({ tipo: 'pronto' }));")
+    page_bob.evaluate("if (typeof socket !== 'undefined' && socket && socket.readyState === 1) socket.send(JSON.stringify({ tipo: 'pronto' }));")
 
-        # Wait conditionally for both browsers to receive authoritative board update
-        page_white.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[2][2] !== null && boardData[1][2] === null && currentTurn === 'white'", timeout=5000)
-        page_black.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[2][2] !== null && boardData[1][2] === null && currentTurn === 'white'", timeout=5000)
+    # Wait conditionally for match start on both browsers
+    page_alice.wait_for_function("() => typeof myOnlineColor !== 'undefined' && (myOnlineColor === 'brancas' || myOnlineColor === 'pretas')", timeout=5000)
+    page_bob.wait_for_function("() => typeof myOnlineColor !== 'undefined' && (myOnlineColor === 'brancas' || myOnlineColor === 'pretas')", timeout=5000)
+    page_alice.wait_for_function("() => typeof isGameOver !== 'undefined' && !isGameOver && typeof currentTurn !== 'undefined' && currentTurn === 'white'", timeout=5000)
+    page_bob.wait_for_function("() => typeof isGameOver !== 'undefined' && !isGameOver && typeof currentTurn !== 'undefined' && currentTurn === 'white'", timeout=5000)
 
-        pw_b22 = page_white.evaluate("boardData[2][2].name")
-        pb_b22 = page_black.evaluate("boardData[2][2].name")
-        assert pw_b22 == pb_b22 == "Bone", f"Mismatch in move 2 piece: White={pw_b22}, Black={pb_b22}"
+    alice_color = page_alice.evaluate("myOnlineColor")
+    bob_color = page_bob.evaluate("myOnlineColor")
+    assert {alice_color, bob_color} == {"brancas", "pretas"}, f"Colors assigned: Alice={alice_color}, Bob={bob_color}"
 
-        # --- MOVE REJECTION & ROLLBACK: Black attempts illegal out-of-turn move ---
-        page_black.evaluate("""
-            isOnlineMovePending = true;
-            prePendingMoveSnapshot = {
-                boardData: JSON.parse(JSON.stringify(boardData)),
-                currentTurn: currentTurn,
-                moveHistory: [...moveHistory],
-                evalHistory: [...evalHistory],
-                classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
-            };
-            socket.send(JSON.stringify({
-                tipo: 'acao',
-                type: 'move',
-                start: [2, 2],
-                end: [3, 2]
-            }));
-        """)
-        page_black.wait_for_function("() => typeof isOnlineMovePending !== 'undefined' && !isOnlineMovePending", timeout=5000)
-        black_turn_after_reject = page_black.evaluate("currentTurn")
-        assert black_turn_after_reject == "white", "Turn must roll back to white after illegal out-of-turn move"
+    page_white = page_alice if alice_color == "brancas" else page_bob
+    page_black = page_bob if alice_color == "brancas" else page_alice
 
-        # --- RESIGNATION ---
-        alice_resign_disp = page_alice.evaluate("document.getElementById('btnResign').style.display")
-        assert alice_resign_disp != "none", "btnResign must be visible during active match"
+    # --- MOVE 1: White executes legal move (Bone from (6, 2) to (5, 2)) ---
+    page_white.evaluate("""
+        isOnlineMovePending = true;
+        prePendingMoveSnapshot = {
+            boardData: JSON.parse(JSON.stringify(boardData)),
+            currentTurn: currentTurn,
+            moveHistory: [...moveHistory],
+            evalHistory: [...evalHistory],
+            classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
+        };
+        socket.send(JSON.stringify({
+            tipo: 'acao',
+            type: 'move',
+            start: [6, 2],
+            end: [5, 2]
+        }));
+    """)
 
-        page_white.click("#btnResign")
-        page_white.wait_for_function("() => typeof isGameOver !== 'undefined' && isGameOver", timeout=5000)
-        page_black.wait_for_function("() => typeof isGameOver !== 'undefined' && isGameOver", timeout=5000)
+    # Wait conditionally for both browsers to receive authoritative board update
+    page_white.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[5][2] !== null && boardData[6][2] === null && currentTurn === 'black'", timeout=5000)
+    page_black.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[5][2] !== null && boardData[6][2] === null && currentTurn === 'black'", timeout=5000)
 
-        # Invariant: Post-game UI shows rematch and hides resign
-        page_white.wait_for_function("() => document.getElementById('btnRematch').style.display !== 'none'", timeout=5000)
-        page_white.wait_for_function("() => document.getElementById('btnResign').style.display === 'none'", timeout=5000)
+    # Invariant: Move 1 synchronized identically between White and Black
+    pw_piece_name = page_white.evaluate("boardData[5][2].name")
+    pb_piece_name = page_black.evaluate("boardData[5][2].name")
+    assert pw_piece_name == pb_piece_name == "Bone", f"Mismatch in move 1 piece: White={pw_piece_name}, Black={pb_piece_name}"
 
-        # --- REMATCH ---
-        page_white.click("#btnRematch")
-        page_black.click("#btnRematch")
+    # --- MOVE 2: Black executes legal move (Bone from (1, 2) to (2, 2)) ---
+    page_black.evaluate("""
+        isOnlineMovePending = true;
+        prePendingMoveSnapshot = {
+            boardData: JSON.parse(JSON.stringify(boardData)),
+            currentTurn: currentTurn,
+            moveHistory: [...moveHistory],
+            evalHistory: [...evalHistory],
+            classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
+        };
+        socket.send(JSON.stringify({
+            tipo: 'acao',
+            type: 'move',
+            start: [1, 2],
+            end: [2, 2]
+        }));
+    """)
 
-        # Wait for color swap
-        page_alice.wait_for_function(f"() => typeof myOnlineColor !== 'undefined' && myOnlineColor !== '{alice_color}'", timeout=5000)
-        alice_new_color = page_alice.evaluate("myOnlineColor")
-        assert alice_new_color != alice_color, f"Colors must be swapped on rematch (was {alice_color}, now {alice_new_color})"
+    # Wait conditionally for both browsers to receive authoritative board update
+    page_white.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[2][2] !== null && boardData[1][2] === null && currentTurn === 'white'", timeout=5000)
+    page_black.wait_for_function("() => typeof boardData !== 'undefined' && boardData && boardData[2][2] !== null && boardData[1][2] === null && currentTurn === 'white'", timeout=5000)
 
-        page_alice.wait_for_function("() => document.getElementById('btnResign').style.display !== 'none'", timeout=5000)
-        page_alice.wait_for_function("() => document.getElementById('btnRematch').style.display === 'none'", timeout=5000)
+    pw_b22 = page_white.evaluate("boardData[2][2].name")
+    pb_b22 = page_black.evaluate("boardData[2][2].name")
+    assert pw_b22 == pb_b22 == "Bone", f"Mismatch in move 2 piece: White={pw_b22}, Black={pb_b22}"
 
-        ctx_alice.close()
-        ctx_bob.close()
-        browser.close()
+    # --- MOVE REJECTION & ROLLBACK: Black attempts illegal out-of-turn move ---
+    page_black.evaluate("""
+        isOnlineMovePending = true;
+        prePendingMoveSnapshot = {
+            boardData: JSON.parse(JSON.stringify(boardData)),
+            currentTurn: currentTurn,
+            moveHistory: [...moveHistory],
+            evalHistory: [...evalHistory],
+            classifiedMoves: JSON.parse(JSON.stringify(classifiedMoves))
+        };
+        socket.send(JSON.stringify({
+            tipo: 'acao',
+            type: 'move',
+            start: [2, 2],
+            end: [3, 2]
+        }));
+    """)
+    page_black.wait_for_function("() => typeof isOnlineMovePending !== 'undefined' && !isOnlineMovePending", timeout=5000)
+    black_turn_after_reject = page_black.evaluate("currentTurn")
+    assert black_turn_after_reject == "white", "Turn must roll back to white after illegal out-of-turn move"
+
+    # --- RESIGNATION ---
+    alice_resign_disp = page_alice.evaluate("document.getElementById('btnResign').style.display")
+    assert alice_resign_disp != "none", "btnResign must be visible during active match"
+
+    page_white.click("#btnResign")
+    page_white.wait_for_function("() => typeof isGameOver !== 'undefined' && isGameOver", timeout=5000)
+    page_black.wait_for_function("() => typeof isGameOver !== 'undefined' && isGameOver", timeout=5000)
+
+    # Invariant: Post-game UI shows rematch and hides resign
+    page_white.wait_for_function("() => document.getElementById('btnRematch').style.display !== 'none'", timeout=5000)
+    page_white.wait_for_function("() => document.getElementById('btnResign').style.display === 'none'", timeout=5000)
+
+    # --- REMATCH ---
+    page_white.click("#btnRematch")
+    page_black.click("#btnRematch")
+
+    # Wait for color swap
+    page_alice.wait_for_function(f"() => typeof myOnlineColor !== 'undefined' && myOnlineColor !== '{alice_color}'", timeout=5000)
+    alice_new_color = page_alice.evaluate("myOnlineColor")
+    assert alice_new_color != alice_color, f"Colors must be swapped on rematch (was {alice_color}, now {alice_new_color})"
+
+    page_alice.wait_for_function("() => document.getElementById('btnResign').style.display !== 'none'", timeout=5000)
+    page_alice.wait_for_function("() => document.getElementById('btnRematch').style.display === 'none'", timeout=5000)
+
+    ctx_alice.close()
+    ctx_bob.close()
