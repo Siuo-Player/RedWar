@@ -9,7 +9,6 @@ from engine.game_state import GameState
 from engine.pieces import criar_peca_por_nome
 
 ROOT = Path(__file__).resolve().parents[1]
-BUILD_SCRIPT = ROOT / "tools" / "scripts" / "build_cpp_engine.py"
 ENGINE_PATH = ROOT / "ai" / "cpp_engine" / ("engine.exe" if sys.platform == "win32" else "engine")
 
 DIAGNOSTICS_RE = re.compile(r"^info string search diagnostics nodes=(\d+) tt_probes=(\d+) tt_hits=(\d+) tt_stores=(\d+)$")
@@ -66,8 +65,10 @@ def _run_fixed_budget(rwen: str, budget: int) -> tuple[int, str]:
 
 
 def test_go_nodes_is_a_fixed_node_budget_independent_of_wall_clock():
-    subprocess.run([sys.executable, str(BUILD_SCRIPT)], cwd=ROOT, check=True)
-    assert ENGINE_PATH.is_file()
+    assert ENGINE_PATH.is_file(), (
+        f"Production C++ engine is missing at {ENGINE_PATH}. "
+        "Build it with: python tools/scripts/build_cpp_engine.py"
+    )
 
     rwen = _fixture_rwen()
     for budget in (1, 7, 31):
