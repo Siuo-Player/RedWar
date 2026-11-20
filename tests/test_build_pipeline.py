@@ -48,8 +48,10 @@ def test_build_pipeline_report_reflects_skipped_tests(tmp_path: Path, monkeypatc
     content = report_file.read_text(encoding="utf-8")
     assert "Python tests: SKIPPED" in content
     assert "Python tests: PASS" not in content
-    assert "C++ terminal contract differential bridge: PASS" in content
+    assert "C++ terminal contract differential bridge build: PASS" in content
+    assert "Cython evaluator build: PASS" in content
     assert "Native reversibility contract execution: PASS" in content
+    assert "C++ terminal contract differential bridge: PASS" not in content
     assert "Structure audit: PASS" in content
 
 
@@ -73,6 +75,7 @@ def test_build_pipeline_report_reflects_executed_tests(tmp_path: Path, monkeypat
     content = report_file.read_text(encoding="utf-8")
     assert "Python tests: PASS" in content
     assert "Python tests: SKIPPED" not in content
+    assert "Build Cython evaluator" in calls
 
 
 def test_build_pipeline_env_skip_tests_triggers_skip(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -94,4 +97,6 @@ def test_build_pipeline_env_skip_tests_triggers_skip(tmp_path: Path, monkeypatch
 
     content = report_file.read_text(encoding="utf-8")
     assert "Python tests: SKIPPED" in content
+    assert "Cython evaluator build: PASS" in content
+    assert "Build Cython evaluator" in calls
     assert not any("Python test suite" in call for call in calls)

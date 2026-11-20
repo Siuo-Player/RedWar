@@ -4,9 +4,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
   push:
-    branches-ignore:
-      - 'dependabot/**'
-      - 'gh-pages'
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
