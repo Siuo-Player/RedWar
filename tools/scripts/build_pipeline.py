@@ -89,6 +89,11 @@ def main() -> int:
         "Build C++ reversibility differential bridge test",
         env,
     )
+    run(
+        [sys.executable, "setup.py", "build_ext", "--inplace"],
+        "Build Cython evaluator",
+        env,
+    )
 
     # 2. Run native contracts (matching CI pipeline)
     exe_suffix = ".exe" if sys.platform == "win32" else ""
@@ -156,12 +161,13 @@ def main() -> int:
             "C++ engine: PASS\n"
             "C++ smoke test build: PASS\n"
             "C++ smoke test execution: PASS\n"
-            "C++ make/unmake bridge: PASS\n"
-            "C++ movegen differential bridge: PASS\n"
-            "C++ numeric bounds differential bridge: PASS\n"
-            "C++ perft differential bridge: PASS\n"
-            "C++ terminal contract differential bridge: PASS\n"
-            "C++ reversibility differential bridge: PASS\n"
+            "C++ make/unmake bridge build: PASS\n"
+            "C++ movegen differential bridge build: PASS\n"
+            "C++ numeric bounds differential bridge build: PASS\n"
+            "C++ perft differential bridge build: PASS\n"
+            "C++ terminal contract differential bridge build: PASS\n"
+            "C++ reversibility differential bridge build: PASS\n"
+            "Cython evaluator build: PASS\n"
             "Native reversibility contract execution: PASS\n"
             f"Python tests: {test_status}\n"
             "Structure audit: PASS\n"
