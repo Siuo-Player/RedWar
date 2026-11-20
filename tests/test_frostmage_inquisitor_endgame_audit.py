@@ -55,8 +55,8 @@ def test_stunning_lone_inquisitor_triggers_blocked_side_terminal_result():
     assert gs.winner_team == "brancas"
 
 
-def test_ice_on_inquisitor_square_prevents_direct_focus_and_splash_targeting():
-    """An ice-covered enemy tile is excluded from direct focus and cross splash."""
+def test_ice_on_inquisitor_square_blocks_direct_focus_and_cross_splash_effect():
+    """An iced enemy tile cannot be focused and is skipped by cross splash."""
     gs = GameState()
     gs.board[4][4] = Inquisitor("pretas")
     gs.board[0][0] = Cleric("pretas")
@@ -78,15 +78,21 @@ def test_ice_on_inquisitor_square_prevents_direct_focus_and_splash_targeting():
         and action.end == (4, 4)
         for action in white_actions
     )
-    # A cross focused at (3, 4) would only hit the Inquisitor on (4, 4);
-    # because that tile is iced, no such spell is offered as a legal action.
-    assert not any(
-        action.type is ActionType.SPELL
-        and action.spell_name == "nevada"
-        and action.end == (3, 4)
+    # The adjacent cross cast is legal, but its iced arm at (4, 4) is
+    # skipped. Since the Inquisitor is already stunned, an applied splash
+    # would remove it; surviving the cast proves the ice blocked that effect.
+    splash_actions = [
+        action
         for action in white_actions
-    )
+        if action.type is ActionType.SPELL
+        and action.spell_name == "nevada"
+        and action.start == (4, 1)
+        and action.end == (3, 4)
+    ]
+    assert len(splash_actions) == 1
+    gs.execute_action(splash_actions[0])
     assert gs.board[4][4] is not None
+    assert gs.board[4][4].stun_timer == 0
 
 
 def test_indirect_splash_then_direct_nevada_is_legal_when_black_has_auxiliary_piece():
