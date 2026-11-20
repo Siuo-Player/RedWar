@@ -39,10 +39,10 @@ The interaction tests now execute actions through the canonical sequence `legal_
 
 The tests cover these narrower claims:
 
-- Directly focusing `NEVADA` on the Inquisitor's square creates ice there.
-- An ice-covered square is excluded from direct spell focus and from the cross-shaped splash.
-- Focusing `NEVADA` on an adjacent square can stun the Inquisitor without icing its square.
-- If a Black auxiliary piece can legally move, a second FrostMage can legally focus the still-stunned Inquisitor and capture it.
+- Directly focusing `NEVADA` on the Inquisitor's square creates ice there; that square is not offered as a direct focus target while iced.
+- A cross centered on an adjacent square remains a legal spell action. However, the effect skips the already iced square, so the Inquisitor on that square is not hit by the cross.
+- Focusing `NEVADA` on an adjacent square that is not already iced can stun the Inquisitor without placing ice on the Inquisitor's square.
+- If a Black auxiliary piece can legally move, a second FrostMage can legally focus the still-stunned Inquisitor and capture it when its square is not protected by the existing ice effect.
 
 These tests demonstrate the local action sequence only. They do not prove a universal winning strategy for either side.
 
