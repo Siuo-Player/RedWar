@@ -1,6 +1,6 @@
 pygame==2.6.1
 pytest==9.1.1
-websockets==17.2
+websockets==17.4
 Cython>=3.3.1
 setuptools>=69.0.0
 playwright>=1.40.0
