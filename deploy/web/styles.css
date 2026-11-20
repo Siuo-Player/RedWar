@@ -20,12 +20,14 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-body {
+html, body {
   background-color: var(--bg-primary);
   color: var(--text-main);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+  max-width: 100%;
 }
 
 header {
@@ -181,24 +183,40 @@ canvas#gameBoard {
   background: var(--accent-green-hover);
 }
 
-.select-group {
+.form-group, .select-group {
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
-.select-group label {
+.select-group label, .form-group label {
   display: block;
   font-size: 0.85rem;
   margin-bottom: 4px;
 }
 
-select, input {
+select, input, textarea {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 8px;
   border-radius: 6px;
   background: #1b1a18;
   border: 1px solid #444;
   color: #fff;
   font-size: 0.95rem;
+  box-sizing: border-box;
+  text-overflow: ellipsis;
+}
+
+#heroCard {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .leaderboard-table {
@@ -389,6 +407,8 @@ select, input {
     flex-direction: column;
     gap: 8px;
     padding: 8px 12px;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .brand h1 {
     font-size: 1.2rem;
@@ -396,9 +416,40 @@ select, input {
   .nav-links {
     flex-wrap: wrap;
     justify-content: center;
+    max-width: 100%;
+  }
+  main {
+    padding: 8px;
+    gap: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .board-container, .board-area-wrapper {
+    padding: 8px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .sidebar {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .panel-card {
+    padding: 12px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
   .btn, .btn-primary {
     padding: 6px 12px;
+    font-size: 0.85rem;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+  }
+  select, input, textarea {
     font-size: 0.85rem;
   }
 }
