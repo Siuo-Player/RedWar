@@ -20,6 +20,12 @@ if hasattr(sys.stderr, "reconfigure"):
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def is_env_truthy(var_name: str) -> bool:
+    """Return True only if the environment variable is explicitly enabled."""
+    val = os.environ.get(var_name, "").strip().lower()
+    return val in ("1", "true", "yes", "on")
+
+
 def run(command: list[str], label: str, env: dict[str, str]) -> None:
     print(f"\n== {label} ==")
     print("$", " ".join(command))
@@ -42,6 +48,7 @@ def main() -> int:
         else str(ROOT) + os.pathsep + current_pythonpath
     )
 
+    # 1. Build C++ engine and native differential test helpers
     run(
         [sys.executable, "tools/scripts/build_cpp_engine.py"],
         "Build C++ engine",
@@ -63,43 +70,104 @@ def main() -> int:
         env,
     )
     run(
+        [sys.executable, "tools/scripts/build_cpp_engine.py", "--numeric-test"],
+        "Build C++ numeric bounds differential bridge test",
+        env,
+    )
+    run(
         [sys.executable, "tools/scripts/build_cpp_engine.py", "--perft-test"],
         "Build C++ perft differential bridge test",
         env,
     )
-    if not args.skip_tests and not os.environ.get("REDWAR_SKIP_TESTS"):
-        pytest_cmd = [sys.executable, "-m", "pytest", "tests/"]
+    run(
+        [sys.executable, "tools/scripts/build_cpp_engine.py", "--terminal-test"],
+        "Build C++ terminal contract differential bridge test",
+        env,
+    )
+    run(
+        [sys.executable, "tools/scripts/build_cpp_engine.py", "--reversibility-test"],
+        "Build C++ reversibility differential bridge test",
+        env,
+    )
+
+    # 2. Run native contracts (matching CI pipeline)
+    exe_suffix = ".exe" if sys.platform == "win32" else ""
+    smoke_bin = ROOT / "ai" / "cpp_engine" / f"SmokeTest{exe_suffix}"
+    rev_bin = ROOT / f"cpp_reversibility_test{exe_suffix}"
+
+    run([str(smoke_bin)], "Run C++ smoke test", env)
+    run([str(rev_bin)], "Run native reversibility contract", env)
+
+    # 3. Python test suite (with isolated heavy tests and parallelization)
+    should_skip_tests = args.skip_tests or is_env_truthy("REDWAR_SKIP_TESTS")
+    if not should_skip_tests:
+        has_xdist = False
         try:
             import xdist  # type: ignore # noqa: F401
-            pytest_cmd.extend(["-n", "2", "--dist=loadfile"])
+            has_xdist = True
         except ImportError:
             pass
-        run(
-            pytest_cmd,
-            "Python test suite",
-            env,
-        )
+
+        if has_xdist:
+            run(
+                [
+                    sys.executable, "-m", "pytest", "tests/",
+                    "--ignore=tests/test_perft_nodecount_differential.py",
+                    "--ignore=tests/test_lite_headless_product.py",
+                    "-n", "2", "--dist=loadfile", "--durations=20", "--durations-min=0.5",
+                ],
+                "Parallel Python test suite",
+                env,
+            )
+            run(
+                [
+                    sys.executable, "-m", "pytest",
+                    "tests/test_perft_nodecount_differential.py",
+                    "tests/test_lite_headless_product.py",
+                    "--durations=20", "--durations-min=0.5",
+                ],
+                "CPU-intensive Python tests without worker contention",
+                env,
+            )
+        else:
+            run(
+                [sys.executable, "-m", "pytest", "tests/"],
+                "Python test suite (sequential)",
+                env,
+            )
+        test_status = "PASS"
     else:
-        print("\n== Python test suite ==\n[SALTADO via flag ou REDWAR_SKIP_TESTS]")
+        test_status = "SKIPPED"
+        print("\n== Python test suite ==")
+        print("[SALTADO via flag --skip-tests ou REDWAR_SKIP_TESTS]")
+
+    # 4. Structure audit
     run(
         [sys.executable, "tools/scripts/audit_structure.py", "--strict"],
         "Repository structure audit",
         env,
     )
 
+    # 5. Report writing
     if args.report:
         args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(
+        report_content = (
             "RedWar local build pipeline: PASS\n"
             "C++ engine: PASS\n"
             "C++ smoke test build: PASS\n"
+            "C++ smoke test execution: PASS\n"
             "C++ make/unmake bridge: PASS\n"
             "C++ movegen differential bridge: PASS\n"
-            "Python tests: PASS\n"
+            "C++ numeric bounds differential bridge: PASS\n"
+            "C++ perft differential bridge: PASS\n"
+            "C++ terminal contract differential bridge: PASS\n"
+            "C++ reversibility differential bridge: PASS\n"
+            "Native reversibility contract execution: PASS\n"
+            f"Python tests: {test_status}\n"
             "Structure audit: PASS\n"
-            "Trainer/Auto-Balancer: not run by this pipeline\n",
-            encoding="utf-8",
+            "Trainer/Auto-Balancer: not run by this pipeline\n"
         )
+        args.report.write_text(report_content, encoding="utf-8")
         print(f"Relatório: {args.report}")
 
     print("\n✅ PIPELINE LOCAL CONCLUÍDA")
