@@ -144,7 +144,12 @@ def test_execute_action_perft_equivalence_contract():
     total_actions = 0
     for label, state in roots:
         actions = legal_actions(state)
-        assert actions, f"{label}: expected at least one canonical legal action"
+        if not actions:
+            # GameState() is the empty-board fixture: it is intentionally terminal
+            # and has no board actions. Its perft leaf count is still one.
+            assert label == "initial", f"{label}: unexpected empty canonical action space"
+            assert python_perft(state, 1) == 1
+            continue
 
         for action in actions:
             assert isinstance(action, GameAction), f"{label}: legal_actions returned a non-canonical action"
