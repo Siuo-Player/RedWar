@@ -1,6 +1,7 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -129,3 +130,32 @@ def test_load_real_arena_dataset_and_run_existing_empirical_audit():
     assert result["units"] == 50
     assert result["audit"]["audit_status"].startswith("descriptive_paired_resampling_only")
     assert result["audit"]["aggregate_implied_elo_delta"] == 0.0
+
+def test_load_historical_bridge_dataset_and_reproduce_paired_audit():
+    dataset_path = Path("data/arena/strength/2026-10-20-historical-bridge-100.json")
+    audit_path = Path("data/arena/strength/2026-10-20-historical-bridge-100.audit.json")
+    bundle = load_dataset(dataset_path)
+    stored_audit = json.loads(audit_path.read_text(encoding="utf-8"))
+
+    assert bundle["manifest"]["evidence_class"] == "real_arena"
+    assert bundle["manifest"]["source_artifact"]["workflow_run_id"] == 37858487666
+    assert bundle["manifest"]["source_artifact"]["artifact_id"] == 11584718698
+    assert bundle["manifest"]["validation"]["valid_games"] == 100
+    assert bundle["manifest"]["validation"]["outcomes"] == {
+        "baseline": 46,
+        "challenger": 54,
+        "draw": 0,
+        "invalid": 0,
+    }
+    assert bundle["manifest"]["independent_units"] == 50
+    assert bundle["manifest"]["canonical_sha256"] == stored_audit["source_dataset_canonical_sha256"]
+
+    result = audit_dataset(bundle, bootstrap_samples=20_000, seed=0)
+    assert result["status"] == "descriptive_empirical_audit_only"
+    assert result["audit"]["audit_status"] == stored_audit["audit"]["audit_status"]
+    assert result["audit"]["aggregate_implied_elo_delta"] == pytest.approx(
+        stored_audit["audit"]["aggregate_implied_elo_delta"]
+    )
+    assert result["audit"]["empirical_p02_5"] == pytest.approx(stored_audit["audit"]["empirical_p02_5"])
+    assert result["audit"]["empirical_p97_5"] == pytest.approx(stored_audit["audit"]["empirical_p97_5"])
+
