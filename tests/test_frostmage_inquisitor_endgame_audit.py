@@ -69,7 +69,7 @@ def test_ice_on_inquisitor_square_prevents_direct_focus_and_splash_targeting():
     assert gs.tile_effects[4][4]["type"] == "ice"
     assert gs.board[4][4].stun_timer == 1
 
-    _play_legal(gs, (0, 0), (1, 0), ActionType.MOVE)
+    _play_legal(gs, (0, 0), (1, 1), ActionType.MOVE)
 
     white_actions = legal_actions(gs)
     assert not any(
@@ -105,7 +105,7 @@ def test_indirect_splash_then_direct_nevada_is_legal_when_black_has_auxiliary_pi
     assert gs.tile_effects[4][4] is None
     assert gs.board[4][4].stun_timer == 1
 
-    _play_legal(gs, (0, 0), (1, 0), ActionType.MOVE)
+    _play_legal(gs, (0, 0), (1, 1), ActionType.MOVE)
     _play_legal(gs, (1, 4), (4, 4), ActionType.SPELL, spell_name="nevada")
 
     assert gs.board[4][4] is None
