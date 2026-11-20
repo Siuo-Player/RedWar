@@ -51,8 +51,8 @@ def test_stunning_lone_inquisitor_triggers_blocked_side_terminal_result():
     assert gs.game_over is True
     assert gs.white_to_move is False
     assert legal_actions(gs) == ()
-    assert gs.winner == "Pretas Vencem (Oponente Bloqueado)"
-    assert gs.winner_team == "pretas"
+    assert gs.winner == "Brancas Vencem (Oponente Bloqueado)"
+    assert gs.winner_team == "brancas"
 
 
 def test_ice_on_inquisitor_square_prevents_direct_focus_and_splash_targeting():
