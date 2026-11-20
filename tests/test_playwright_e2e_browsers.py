@@ -31,72 +31,75 @@ from online.server.web_app import RedWarWebApp, _RedWarHTTPRequestHandler
 
 @pytest.fixture(scope="module")
 def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None]:
-    """Start headless HTTP web server and WebSocket multiplayer server on ephemeral ports with strict lifecycle management."""
+    """Start HTTP and WebSocket servers and always stop their threads and event loop."""
     tmp_dir = tmp_path_factory.mktemp("playwright_servers")
     db_file = tmp_dir / "ratings.json"
     lb = LeaderboardManager(storage_path=str(db_file))
     ws_app.manager = RoomManager(leaderboard_manager=lb)
 
-    # 1. Start HTTP web server
     http_app = RedWarWebApp(host="127.0.0.1", port=0)
     handler_cls = type("BoundRedWarHandler", (_RedWarHTTPRequestHandler,), {"app": http_app})
     http_server = ThreadingHTTPServer(("127.0.0.1", 0), handler_cls)
     http_app._server = http_server
     http_port = http_server.server_port
-
-    http_thread = threading.Thread(target=http_server.serve_forever, daemon=True)
+    http_thread = threading.Thread(target=http_server.serve_forever, name="redwar-playwright-http", daemon=True)
     http_thread.start()
 
-    # 2. Start WebSocket server in dedicated asyncio thread
-    ws_port_box = [0]
-    ws_server_box = [None]
-    ws_ready = threading.Event()
     loop = asyncio.new_event_loop()
+    loop_started = threading.Event()
 
-    def _run_ws():
+    def _run_ws_loop() -> None:
         asyncio.set_event_loop(loop)
-        import websockets
-
-        async def _serve():
-            server = await websockets.serve(ws_app.gerir_conexao, "127.0.0.1", 0)
-            ws_server_box[0] = server
-            ws_port_box[0] = server.sockets[0].getsockname()[1]
-            ws_ready.set()
-            await server.wait_closed()
-
+        loop_started.set()
         try:
-            loop.run_until_complete(_serve())
+            loop.run_forever()
         finally:
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                task.cancel()
+            if pending:
+                loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
             loop.close()
 
-    ws_thread = threading.Thread(target=_run_ws, daemon=True)
+    ws_thread = threading.Thread(target=_run_ws_loop, name="redwar-playwright-ws", daemon=True)
     ws_thread.start()
-    assert ws_ready.wait(timeout=5.0), "WebSocket server failed to start within 5.0 seconds"
 
-    servers = {
-        "http_url": f"http://127.0.0.1:{http_port}",
-        "ws_url": f"ws://127.0.0.1:{ws_port_box[0]}",
-        "http_app": http_app,
-        "loop": loop,
-    }
+    ws_server = None
+    try:
+        assert loop_started.wait(timeout=5.0), "WebSocket event loop failed to start within 5.0 seconds"
 
-    yield servers
+        async def _start_ws_server():
+            import websockets
 
-    # Explicit teardown of HTTP, WebSocket, event loop, and threads
-    http_app.stop()
-    if ws_server_box[0] is not None:
-        async def _stop_ws():
-            ws_server_box[0].close()
-            await ws_server_box[0].wait_closed()
+            return await websockets.serve(ws_app.gerir_conexao, "127.0.0.1", 0)
 
-        try:
-            future = asyncio.run_coroutine_threadsafe(_stop_ws(), loop)
-            future.result(timeout=3.0)
-        except Exception:
-            pass
+        start_future = asyncio.run_coroutine_threadsafe(_start_ws_server(), loop)
+        ws_server = start_future.result(timeout=5.0)
+        ws_port = ws_server.sockets[0].getsockname()[1]
 
-    loop.call_soon_threadsafe(loop.stop)
-    ws_thread.join(timeout=3.0)
+        yield {
+            "http_url": f"http://127.0.0.1:{http_port}",
+            "ws_url": f"ws://127.0.0.1:{ws_port}",
+            "http_app": http_app,
+        }
+    finally:
+        # Stop HTTP before waiting for its serving thread.
+        http_app.stop()
+        http_thread.join(timeout=3.0)
+        assert not http_thread.is_alive(), "HTTP server thread did not stop cleanly"
+
+        if ws_server is not None and not loop.is_closed():
+            async def _stop_ws_server() -> None:
+                ws_server.close()
+                await ws_server.wait_closed()
+
+            stop_future = asyncio.run_coroutine_threadsafe(_stop_ws_server(), loop)
+            stop_future.result(timeout=5.0)
+
+        if not loop.is_closed():
+            loop.call_soon_threadsafe(loop.stop)
+        ws_thread.join(timeout=3.0)
+        assert not ws_thread.is_alive(), "WebSocket event-loop thread did not stop cleanly"
 
 
 @pytest.fixture(scope="module")
@@ -106,6 +109,42 @@ def chromium_browser() -> Generator[Browser, None, None]:
         browser = playwright_instance.chromium.launch(headless=True)
         yield browser
         browser.close()
+
+
+def _is_ignorable_favicon(url_or_message: str) -> bool:
+    return "favicon.ico" in url_or_message.lower()
+
+
+def attach_browser_error_capture(page: Page) -> list[str]:
+    """Collect uncaught JS errors, console errors, failed requests, and HTTP error responses."""
+    errors: list[str] = []
+
+    page.on("pageerror", lambda exc: errors.append(f"pageerror: {exc}"))
+    page.on(
+        "console",
+        lambda message: errors.append(f"console: {message.text}")
+        if message.type == "error" and not _is_ignorable_favicon(message.text)
+        else None,
+    )
+    page.on(
+        "requestfailed",
+        lambda request: errors.append(
+            f"request failed: {request.method} {request.url} ({request.failure})"
+        )
+        if not _is_ignorable_favicon(request.url)
+        else None,
+    )
+    page.on(
+        "response",
+        lambda response: errors.append(f"HTTP {response.status}: {response.url}")
+        if response.status >= 400 and not _is_ignorable_favicon(response.url)
+        else None,
+    )
+    return errors
+
+
+def assert_browser_has_no_errors(errors: list[str], label: str) -> None:
+    assert not errors, f"{label} reported browser/runtime/network errors:\\n" + "\\n".join(errors)
 
 
 def click_canvas_square(page: Page, r: int, c: int, grid_size: int = 8) -> None:
@@ -137,10 +176,7 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, c
         context: BrowserContext = chromium_browser.new_context(viewport={"width": vp["width"], "height": vp["height"]})
         page: Page = context.new_page()
 
-        console_errors: list[str] = []
-        page_errors: list[str] = []
-        page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
-        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+        browser_errors = attach_browser_error_capture(page)
 
         page.goto(http_url, wait_until="domcontentloaded")
         page.evaluate("""async () => {
@@ -175,13 +211,7 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, c
         btn_resign = page.query_selector("#btnResign")
         assert btn_resign is not None, f"Button #btnResign missing in {vp['name']}"
 
-        # Strict JS error checking: fail on any uncaught page error or console errors
-        assert len(page_errors) == 0, f"Unhandled page exceptions in {vp['name']}: {page_errors}"
-        fatal_errors = [
-            e for e in console_errors
-            if not any(ign in e for ign in ["favicon.ico", "Failed to load resource"])
-        ]
-        assert len(fatal_errors) == 0, f"Critical console errors in {vp['name']}: {fatal_errors}"
+        assert_browser_has_no_errors(browser_errors, f"Responsive viewport {vp['name']}")
 
         context.close()
 
@@ -195,8 +225,7 @@ def test_playwright_interactive_panels_and_tabs(web_and_ws_servers, chromium_bro
     context: BrowserContext = chromium_browser.new_context()
     page: Page = context.new_page()
 
-    page_errors: list[str] = []
-    page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+    browser_errors = attach_browser_error_capture(page)
 
     page.goto(http_url, wait_until="domcontentloaded")
     page.evaluate("""async () => {
@@ -263,7 +292,7 @@ def test_playwright_interactive_panels_and_tabs(web_and_ws_servers, chromium_bro
     assert not page.is_visible("#leaderboardPanel"), "Leaderboard panel should be hidden"
     assert not page.is_visible("#reviewPanel"), "Review panel should be hidden"
 
-    assert len(page_errors) == 0, f"Unhandled page exceptions during tab switching: {page_errors}"
+    assert_browser_has_no_errors(browser_errors, "Interactive tab switching")
     context.close()
 
 
@@ -281,10 +310,8 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_bro
     page_alice: Page = ctx_alice.new_page()
     page_bob: Page = ctx_bob.new_page()
 
-    alice_errors: list[str] = []
-    bob_errors: list[str] = []
-    page_alice.on("pageerror", lambda exc: alice_errors.append(str(exc)))
-    page_bob.on("pageerror", lambda exc: bob_errors.append(str(exc)))
+    alice_errors = attach_browser_error_capture(page_alice)
+    bob_errors = attach_browser_error_capture(page_bob)
 
     # Load page for both players and configure WebSocket endpoint
     for page, pid in [(page_alice, "alice_pw"), (page_bob, "bob_pw")]:
@@ -395,8 +422,8 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_bro
     page_alice.wait_for_function("() => document.getElementById('btnResign').style.display !== 'none'", timeout=5000)
     page_alice.wait_for_function("() => document.getElementById('btnRematch').style.display === 'none'", timeout=5000)
 
-    assert len(alice_errors) == 0, f"Alice encountered unhandled page errors: {alice_errors}"
-    assert len(bob_errors) == 0, f"Bob encountered unhandled page errors: {bob_errors}"
+    assert_browser_has_no_errors(alice_errors, "Alice browser")
+    assert_browser_has_no_errors(bob_errors, "Bob browser")
 
     ctx_alice.close()
     ctx_bob.close()
