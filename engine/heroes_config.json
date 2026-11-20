@@ -1,21 +1,711 @@
 {
-  "Bone": {"cost": 8, "acronym": "Bo", "draftable": false, "lifespan": 5, "descricao": "Movimento: 1 casa ortogonal. Ataque: 1 casa ortogonal.", "passiva": "Fragmentação: Volta ao pó após 5 turnos.", "behavior": {"movement": {"type": "orthogonal", "max_steps": 1}, "attack": {"type": "orthogonal", "max_steps": 1}}},
-  "Ghoul": {"cost": 5, "acronym": "Gh", "draftable": false, "lifespan": 5, "descricao": "Movimento: 1 casa (Diagonal-Frente ou Frente). Ataque: Igual ao movimento.", "passiva": "Fome: Desintegra-se após 5 turnos.", "behavior": {"forward_dir_by_team": true, "movement": {"type": "forward_cone", "deltas": [[1,-1],[1,0],[1,1]]}, "attack": {"type": "forward_cone", "deltas": [[1,-1],[1,0],[1,1]]}}},
-  "Obelisk": {"cost": 16, "acronym": "Ob", "draftable": true, "descricao": "Movimento: Nenhum (Imóvel). Ataque: 1 casa ortogonal.", "passiva": "Vigia de Pedra: Peça defensiva impenetrável.", "behavior": {"movement": {"type": "none"}, "attack": {"type": "orthogonal", "max_steps": 1}}},
-  "Phantom": {"cost": 5, "acronym": "Ph", "draftable": true, "descricao": "Movimento: Em 'L' (Como o Cavalo). Feitiço: Golpe Espectral.", "passiva": "Espectral: Salta por cima das peças no caminho.", "spells": ["spectral_strike"], "behavior": {"movement": {"type": "knight", "ghost_move": true}, "attack": {"type": "knight", "attack_action": "spell", "spell_name": "spectral_strike"}}},
-  "Sentry": {"cost": 96, "acronym": "Se", "draftable": true, "descricao": "Movimento: 1 casa ortogonal. Feitiço: Tiro de Sentinela (Raio).", "passiva": "Sem passiva.", "spells": ["sentinel_shot"], "behavior": {"movement": {"type": "orthogonal", "max_steps": 1}, "attack": {"type": "ray", "dirs": [[1,0],[-1,0],[0,1],[0,-1]], "attack_action": "spell", "spell_name": "sentinel_shot"}}},
-  "FrostMage": {"cost": 5, "acronym": "FM", "draftable": true, "descricao": "Movimento: Até 2 casas diagonais. Feitiço: Nevada — atordoa em área e cria gelo no centro.", "passiva": "Sem passiva.", "spells": ["nevada"], "behavior": {"movement": {"type": "diagonal", "max_steps": 2}, "attack": {"type": "none"}, "nevada": {"range": 3, "shape": "cross", "creates_ice": true, "stun": true}}},
-  "Lich": {"cost": 11, "acronym": "Li", "draftable": true, "spawn_cooldown": 0, "descricao": "Movimento: 1 casa diagonal. Feitiço: Invocar Ghoul.", "passiva": "Sem passiva.", "spells": ["spawn_ghoul"], "behavior": {"movement": {"type": "diagonal", "max_steps": 1}, "attack": {"type": "none"}}},
-  "BoneLord": {"cost": 86, "acronym": "BL", "draftable": true, "descricao": "Movimento: 1 casa em qualquer direção. Feitiço: Golpe em V.", "passiva": "Rei: Transformar baixas inimigas em Bones.", "spells": ["bone_v"], "behavior": {"movement": {"type": "adjacent", "max_steps": 1}, "attack": {"type": "pattern", "deltas": [[-1,-1],[-1,1],[-2,-2],[-2,2]], "attack_action": "spell", "spell_name": "bone_v"}, "passives": [{"trigger": "on_kill", "effect": "spawn_unit", "params": {"unit_name": "Bone", "spawn_location": "target_square"}}]}},
-  "Ranger": {"cost": 40, "acronym": "Ra", "draftable": true, "descricao": "Movimento: 1 casa ortogonal. Feitiço: Tiro Preciso (alcance mínimo 2).", "passiva": "Mira: O tiro especial não pode atingir alvos a menos de 2 casas.", "spells": ["aimed_shot"], "behavior": {"movement": {"type": "orthogonal", "max_steps": 1}, "attack": {"type": "ray", "dirs": [[1,0],[-1,0],[0,1],[0,-1]], "min_steps": 2, "attack_action": "spell", "spell_name": "aimed_shot"}}},
-  "Templar": {"cost": 15, "acronym": "Te", "draftable": true, "descricao": "Movimento: 1 casa ortogonal. Ataque: 1 casa ortogonal.", "passiva": "Escudo Divino: Reflete ataques (Mecânica em desenvolvimento).", "behavior": {"movement": {"type": "orthogonal", "max_steps": 1}, "attack": {"type": "orthogonal", "max_steps": 1}, "passives": [{"trigger": "on_attacked", "effect": "redirect_damage", "params": {"target": "attacker", "cooldown_turns": 3}}]}},
-  "Berserker": {"cost": 31, "acronym": "Be", "draftable": true, "descricao": "Movimento: 1 casa em qualquer direção. Ataque: 1 casa em qualquer direção.", "passiva": "Fúria: Ao atacar, causa dano em área adjacente sem friendly fire.", "behavior": {"movement": {"type": "adjacent", "max_steps": 1}, "attack": {"type": "adjacent", "max_steps": 1}, "passives": [{"trigger": "on_attack", "effect": "aoe_damage", "params": {"pattern": "adjacent", "friendly_fire": false}}]}},
-  "Pyromancer": {"cost": 17, "acronym": "Py", "draftable": true, "descricao": "Movimento: 1 casa diagonal. Feitiço: Incendiar (Ignite).", "passiva": "Combustão: Fogo aplicado por este herói mantém as regras globais de stun/morte por fogo.", "spells": ["ignite"], "behavior": {"movement": {"type": "diagonal", "max_steps": 1}, "attack": {"type": "none"}}},
-  "Dragoon": {"cost": 193, "acronym": "Dr", "draftable": true, "jump_max": 2, "descricao": "Movimento: 1 casa ortogonal. Ataque: 1 casa ortogonal. Feitiço: Salto.", "passiva": "Sem passiva.", "spells": ["jump"], "behavior": {"movement": {"type": "orthogonal", "max_steps": 1}, "attack": {"type": "orthogonal", "max_steps": 1}}},
-  "Nightshade": {"cost": 193, "acronym": "Ni", "draftable": true, "descricao": "Movimento: Até 4 casas ortogonais. Ataque: 1 casa ortogonal.", "passiva": "Sombra: Atravessa outras peças ao mover-se.", "behavior": {"movement": {"type": "orthogonal", "max_steps": 4, "ghost_move": true}, "attack": {"type": "orthogonal", "max_steps": 1}}},
-  "Cleric": {"cost": 58, "acronym": "Cl", "draftable": true, "descricao": "Movimento: 1 casa diagonal. Feitiço: Purificar.", "passiva": "Sem passiva.", "spells": ["purify"], "behavior": {"movement": {"type": "diagonal", "max_steps": 1}, "attack": {"type": "none"}}},
-  "Trickster": {"cost": 26, "acronym": "Tr", "draftable": true, "descricao": "Movimento: Em 'L' (Como o Cavalo). Feitiço: Troca.", "passiva": "Sem passiva.", "spells": ["swap"], "behavior": {"movement": {"type": "knight"}, "attack": {"type": "none"}}},
-  "Geomancer": {"cost": 21, "acronym": "Ge", "draftable": true, "descricao": "Movimento: 1 casa ortogonal. Feitiço: Barricada.", "passiva": "Sem passiva.", "spells": ["barricade"], "behavior": {"movement": {"type": "orthogonal", "max_steps": 1}, "attack": {"type": "none"}}},
-  "StoneWall": {"cost": 8, "acronym": "SW", "draftable": false, "lifespan": 3, "descricao": "Movimento: Imóvel. Ataque: Nenhum.", "passiva": "Barricada: Bloqueia ataques. Colapsa em 3 turnos.", "behavior": {"movement": {"type": "none"}, "attack": {"type": "none"}}},
-  "Inquisitor": {"cost": 128, "acronym": "In", "draftable": true, "aura_radius": 2, "descricao": "Movimento: 1 casa em qualquer direção. Ataque: 1 casa em qualquer direção.", "passiva": "Silêncio: Impede o lançamento de spells pelos inimigos dentro do raio 2.", "behavior": {"movement": {"type": "adjacent", "max_steps": 1}, "attack": {"type": "adjacent", "max_steps": 1}, "passives": [{"trigger": "aura_passive", "effect": "disable_spells", "params": {"radius": 2, "target_team": "enemy"}}]}}
-}
+  "Bone": {
+    "cost": 8,
+    "acronym": "Bo",
+    "draftable": false,
+    "lifespan": 5,
+    "descricao": "Movimento: 1 casa ortogonal. Ataque: 1 casa ortogonal.",
+    "passiva": "Fragmenta\u00e7\u00e3o: Volta ao p\u00f3 ap\u00f3s 5 turnos.",
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Ghoul": {
+    "cost": 5,
+    "acronym": "Gh",
+    "draftable": false,
+    "lifespan": 5,
+    "descricao": "Movimento: 1 casa (Diagonal-Frente ou Frente). Ataque: Igual ao movimento.",
+    "passiva": "Fome: Desintegra-se ap\u00f3s 5 turnos.",
+    "behavior": {
+      "forward_dir_by_team": true,
+      "movement": {
+        "type": "forward_cone",
+        "deltas": [
+          [
+            1,
+            -1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "attack": {
+        "type": "forward_cone",
+        "deltas": [
+          [
+            1,
+            -1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      }
+    }
+  },
+  "Obelisk": {
+    "cost": 16,
+    "acronym": "Ob",
+    "draftable": true,
+    "descricao": "Movimento: Nenhum (Im\u00f3vel). Ataque: 1 casa ortogonal.",
+    "passiva": "Vigia de Pedra: Pe\u00e7a defensiva impenetr\u00e1vel.",
+    "behavior": {
+      "movement": {
+        "type": "none"
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Phantom": {
+    "cost": 5,
+    "acronym": "Ph",
+    "draftable": true,
+    "descricao": "Movimento: Em 'L' (Como o Cavalo). Feiti\u00e7o: Golpe Espectral.",
+    "passiva": "Espectral: Salta por cima das pe\u00e7as no caminho.",
+    "spells": [
+      "spectral_strike"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "knight",
+        "ghost_move": true
+      },
+      "attack": {
+        "type": "knight",
+        "attack_action": "spell",
+        "spell_name": "spectral_strike"
+      }
+    }
+  },
+  "Sentry": {
+    "cost": 96,
+    "acronym": "Se",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa ortogonal. Feiti\u00e7o: Tiro de Sentinela (Raio).",
+    "passiva": "Sem passiva.",
+    "spells": [
+      "sentinel_shot"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "ray",
+        "dirs": [
+          [
+            1,
+            0
+          ],
+          [
+            -1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            -1
+          ]
+        ],
+        "attack_action": "spell",
+        "spell_name": "sentinel_shot"
+      }
+    }
+  },
+  "FrostMage": {
+    "cost": 5,
+    "acronym": "FM",
+    "draftable": true,
+    "descricao": "Movimento: At\u00e9 2 casas diagonais. Feiti\u00e7o: Nevada \u2014 atordoa em \u00e1rea e cria gelo no centro.",
+    "passiva": "Sem passiva.",
+    "spells": [
+      "nevada"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 2
+      },
+      "attack": {
+        "type": "none"
+      },
+      "nevada": {
+        "range": 3,
+        "shape": "cross",
+        "creates_ice": true,
+        "stun": true
+      }
+    }
+  },
+  "Lich": {
+    "cost": 11,
+    "acronym": "Li",
+    "draftable": true,
+    "spawn_cooldown": 0,
+    "descricao": "Movimento: 1 casa diagonal. Feiti\u00e7o: Invocar Ghoul.",
+    "passiva": "Sem passiva.",
+    "spells": [
+      "spawn_ghoul"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "none"
+      }
+    }
+  },
+  "BoneLord": {
+    "cost": 86,
+    "acronym": "BL",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa em qualquer dire\u00e7\u00e3o. Feiti\u00e7o: Golpe em V.",
+    "passiva": "Rei: Transformar baixas inimigas em Bones.",
+    "spells": [
+      "bone_v"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "pattern",
+        "deltas": [
+          [
+            -1,
+            -1
+          ],
+          [
+            -1,
+            1
+          ],
+          [
+            -2,
+            -2
+          ],
+          [
+            -2,
+            2
+          ]
+        ],
+        "attack_action": "spell",
+        "spell_name": "bone_v"
+      },
+      "passives": [
+        {
+          "trigger": "on_kill",
+          "effect": "spawn_unit",
+          "params": {
+            "unit_name": "Bone",
+            "spawn_location": "target_square"
+          }
+        }
+      ]
+    }
+  },
+  "Ranger": {
+    "cost": 40,
+    "acronym": "Ra",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa ortogonal. Feiti\u00e7o: Tiro Preciso (alcance m\u00ednimo 2).",
+    "passiva": "Mira: O tiro especial n\u00e3o pode atingir alvos a menos de 2 casas.",
+    "spells": [
+      "aimed_shot"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "ray",
+        "dirs": [
+          [
+            1,
+            0
+          ],
+          [
+            -1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            -1
+          ]
+        ],
+        "min_steps": 2,
+        "attack_action": "spell",
+        "spell_name": "aimed_shot"
+      }
+    }
+  },
+  "Templar": {
+    "cost": 15,
+    "acronym": "Te",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa ortogonal. Ataque: 1 casa ortogonal.",
+    "passiva": "Escudo Divino: Reflete ataques (Mec\u00e2nica em desenvolvimento).",
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "passives": [
+        {
+          "trigger": "on_attacked",
+          "effect": "redirect_damage",
+          "params": {
+            "target": "attacker",
+            "cooldown_turns": 3
+          }
+        }
+      ]
+    }
+  },
+  "Berserker": {
+    "cost": 31,
+    "acronym": "Be",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa em qualquer dire\u00e7\u00e3o. Ataque: 1 casa em qualquer dire\u00e7\u00e3o.",
+    "passiva": "F\u00faria: Ao atacar, causa dano em \u00e1rea adjacente sem friendly fire.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "passives": [
+        {
+          "trigger": "on_attack",
+          "effect": "aoe_damage",
+          "params": {
+            "pattern": "adjacent",
+            "friendly_fire": false
+          }
+        }
+      ]
+    }
+  },
+  "Pyromancer": {
+    "cost": 17,
+    "acronym": "Py",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa diagonal. Feiti\u00e7o: Incendiar (Ignite).",
+    "passiva": "Combust\u00e3o: Fogo aplicado por este her\u00f3i mant\u00e9m as regras globais de stun/morte por fogo.",
+    "spells": [
+      "ignite"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "none"
+      }
+    }
+  },
+  "Dragoon": {
+    "cost": 193,
+    "acronym": "Dr",
+    "draftable": true,
+    "jump_max": 2,
+    "descricao": "Movimento: 1 casa ortogonal. Ataque: 1 casa ortogonal. Feiti\u00e7o: Salto.",
+    "passiva": "Sem passiva.",
+    "spells": [
+      "jump"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Nightshade": {
+    "cost": 193,
+    "acronym": "Ni",
+    "draftable": true,
+    "descricao": "Movimento: At\u00e9 4 casas ortogonais. Ataque: 1 casa ortogonal.",
+    "passiva": "Sombra: Atravessa outras pe\u00e7as ao mover-se.",
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 4,
+        "ghost_move": true
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Cleric": {
+    "cost": 58,
+    "acronym": "Cl",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa diagonal. Feiti\u00e7o: Purificar.",
+    "passiva": "Sem passiva.",
+    "spells": [
+      "purify"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "none"
+      }
+    }
+  },
+  "Trickster": {
+    "cost": 26,
+    "acronym": "Tr",
+    "draftable": true,
+    "descricao": "Movimento: Em 'L' (Como o Cavalo). Feiti\u00e7o: Troca.",
+    "passiva": "Sem passiva.",
+    "spells": [
+      "swap"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "knight"
+      },
+      "attack": {
+        "type": "none"
+      }
+    }
+  },
+  "Geomancer": {
+    "cost": 21,
+    "acronym": "Ge",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa ortogonal. Feiti\u00e7o: Barricada.",
+    "passiva": "Sem passiva.",
+    "spells": [
+      "barricade"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "none"
+      }
+    }
+  },
+  "StoneWall": {
+    "cost": 8,
+    "acronym": "SW",
+    "draftable": false,
+    "lifespan": 3,
+    "descricao": "Movimento: Im\u00f3vel. Ataque: Nenhum.",
+    "passiva": "Barricada: Bloqueia ataques. Colapsa em 3 turnos.",
+    "behavior": {
+      "movement": {
+        "type": "none"
+      },
+      "attack": {
+        "type": "none"
+      }
+    }
+  },
+  "Inquisitor": {
+    "cost": 128,
+    "acronym": "In",
+    "draftable": true,
+    "aura_radius": 2,
+    "descricao": "Movimento: 1 casa em qualquer dire\u00e7\u00e3o. Ataque: 1 casa em qualquer dire\u00e7\u00e3o.",
+    "passiva": "Sil\u00eancio: Impede o lan\u00e7amento de spells pelos inimigos dentro do raio 2.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "passives": [
+        {
+          "trigger": "aura_passive",
+          "effect": "disable_spells",
+          "params": {
+            "radius": 2,
+            "target_team": "enemy"
+          }
+        }
+      ]
+    }
+  },
+  "Paladin": {
+    "cost": 55,
+    "acronym": "Pa",
+    "draftable": true,
+    "descricao": "Movimento: At\u00e9 2 casas ortogonais. Ataque: 1 casa ortogonal.",
+    "passiva": "Guarda Sagrada: Linha de frente resiliente.",
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 2
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Shadowblade": {
+    "cost": 65,
+    "acronym": "Sb",
+    "draftable": true,
+    "descricao": "Movimento: At\u00e9 3 casas diagonais com furtividade. Ataque: At\u00e9 3 casas diagonais atrav\u00e9s de obst\u00e1culos.",
+    "passiva": "Furtividade: Atravessa outras pe\u00e7as ao mover-se e atacar.",
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 3,
+        "ghost_move": true
+      },
+      "attack": {
+        "type": "diagonal",
+        "max_steps": 3,
+        "ghost": true
+      }
+    }
+  },
+  "Stormcaller": {
+    "cost": 72,
+    "acronym": "Sc",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa ortogonal. Feiti\u00e7o: Rel\u00e2mpago em Cadeia.",
+    "passiva": "Tempestade: Ataque el\u00e9trico de raio direto.",
+    "spells": [
+      "chain_lightning"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "ray",
+        "dirs": [
+          [
+            1,
+            0
+          ],
+          [
+            -1,
+            0
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            -1
+          ]
+        ],
+        "max_steps": 3,
+        "attack_action": "spell",
+        "spell_name": "chain_lightning"
+      }
+    }
+  },
+  "Hookmaster": {
+    "cost": 52,
+    "acronym": "Hk",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa adjacente. Habilidade: Gancho T\u00e1tico (puxa inimigo em linha reta).",
+    "passiva": "Ancorado: Imune a empurr\u00f5es advers\u00e1rios.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Timekeeper": {
+    "cost": 59,
+    "acronym": "Tk",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa ortogonal ou diagonal. Habilidade: Distor\u00e7\u00e3o Temporal (altera turnos de stun).",
+    "passiva": "Cronomancia: Acelera recupera\u00e7\u00e3o de aliados e prolonga atordoamento de inimigos.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Valkyrie": {
+    "cost": 22,
+    "acronym": "Va",
+    "draftable": true,
+    "descricao": "Movimento: At\u00e9 3 casas (Ortogonal/Diagonal) com voo espectral. Ataque: At\u00e9 3 casas ortogonais atrav\u00e9s de obst\u00e1culos.",
+    "passiva": "Asas Celestes: Salta sobre obst\u00e1culos terrestres e pe\u00e7as intermedi\u00e1rias em movimento e ataque espectral.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 3,
+        "ghost_move": true
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 3,
+        "ghost": true
+      }
+    }
+  },
+  "Arcanist": {
+    "cost": 23,
+    "acronym": "Ar",
+    "draftable": true,
+    "descricao": "Movimento: 2 casas em diagonal. Feiti\u00e7o: Rajada Arcana (raio ortogonal at\u00e9 3 casas).",
+    "passiva": "Foco R\u00fanico: Feiti\u00e7o linear perfurante que elimina unidades atordoadas \u00e0 dist\u00e2ncia.",
+    "spells": [
+      "arcane_blast"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 2
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 3,
+        "attack_action": "spell",
+        "spell_name": "arcane_blast"
+      }
+    }
+  },
+  "Duelist": {
+    "cost": 24,
+    "acronym": "Du",
+    "draftable": true,
+    "descricao": "Movimento: At\u00e9 2 casas diagonais. Ataque: 1 a 2 casas diagonais.",
+    "passiva": "Estocada Precisa: Especialista em trespassar linhas inimigas em diagonal com letalidade cir\u00fargica.",
+    "behavior": {
+      "movement": {
+        "type": "diagonal",
+        "max_steps": 2
+      },
+      "attack": {
+        "type": "diagonal",
+        "max_steps": 2
+      }
+    }
+  },
+  "Warden": {
+    "cost": 25,
+    "acronym": "Wa",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa adjacente. Ataque: 1 casa ortogonal com golpe de escudo.",
+    "passiva": "Basti\u00e3o Inabal\u00e1vel: \u00c2ncora defensiva de curto alcance com poder de impacto e conten\u00e7\u00e3o de linha.",
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 1
+      }
+    }
+  },
+  "Illusionist": {
+    "cost": 27,
+    "acronym": "Il",
+    "draftable": true,
+    "descricao": "Movimento: At\u00e9 2 casas ortogonais. Ataque: 1 casa adjacente.",
+    "passiva": "Reflexo Prism\u00e1tico: Especialista em deslocamento ortogonal t\u00e1tico e controle de linhas e diagonais pr\u00f3ximas.",
+    "behavior": {
+      "movement": {
+        "type": "orthogonal",
+        "max_steps": 2
+      },
+      "attack": {
+        "type": "adjacent",
+        "max_steps": 1
+      }
+    }
+  },
+  "Marksman": {
+    "cost": 28,
+    "acronym": "Ma",
+    "draftable": true,
+    "descricao": "Movimento: 1 casa adjacente. Feiti\u00e7o: Disparo de Precis\u00e3o (raio ortogonal at\u00e9 3 casas).",
+    "passiva": "Visada Bal\u00edstica: Disparo bal\u00edstico em linha de vis\u00e3o aberta com letalidade contra alvos atordoados.",
+    "spells": [
+      "sniper_shot"
+    ],
+    "behavior": {
+      "movement": {
+        "type": "adjacent",
+        "max_steps": 1
+      },
+      "attack": {
+        "type": "orthogonal",
+        "max_steps": 3,
+        "attack_action": "spell",
+        "spell_name": "sniper_shot"
+      }
+    }
+  }
+}

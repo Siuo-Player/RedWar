@@ -43,3 +43,28 @@ As regressões de ações especiais provam os casos e condições que exercitam;
 ## Regra para nova mecânica
 
 Uma nova mecânica só entra no contrato como concluída quando passa a cadeia relevante da matriz: configuração/schema quando aplicável → Python → C++ → ações → transição → RWEN → make/unmake → hash → differential → regressão → benchmark quando altera capacidade de search.
+
+## Arquétipos do Catálogo Expandido
+
+O catálogo de heróis de RedWar divide-se em 4 arquétipos estratégicos balanceados:
+1. **Defesa e Controlo de Terreno:**
+   - `Paladin` (custo 55): Linha de frente ágil com avanço ortogonal até 2 casas e ataque direto.
+   - `Templar` (custo 15): Bloqueador robusto com contra-ataque.
+   - `Obelisk` (custo 16) & `StoneWall` (custo 8): Estruturas defensivas de controle de espaço.
+2. **Furtividade e Flanqueamento:**
+   - `Shadowblade` (custo 65): Flanqueador diagonal com mobilidade fantasma (atravessa peças) até 3 casas.
+   - `Nightshade` (custo 193): Mobilidade extrema ortogonal atravessando peças.
+   - `Phantom` (custo 5): Salto em L e golpe espectral.
+   - `Berserker` (custo 31): Dano em área em redor do alvo sem friendly fire.
+3. **Magia, Área e Suporte:**
+   - `FrostMage` (custo 5): Controle de área com Nevada e criação de gelo.
+   - `Stormcaller` (custo 72): Atacante em raio elétrico com capacidade de stun à distância.
+   - `Pyromancer` (custo 17): Terreno de fogo persistente.
+   - `Inquisitor` (custo 128): Aura passiva de silêncio a raio 2.
+   - `Cleric` (custo 58), `Trickster` (custo 26), `Geomancer` (custo 21), `Lich` (custo 11).
+4. **Artilharia e Dano de Longo Alcance:**
+   - `Ranger` (custo 40): Tiro de precisão com distância mínima de 2 casas.
+   - `Sentry` (custo 96): Raio ortogonal direto de alta ameaça.
+   - `BoneLord` (custo 86): Golpe em V e invocação de Bones em baixas inimigas.
+   - `Dragoon` (custo 193): Mobilidade ortogonal e feitiço de salto.
+

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RedWar — Modern Turn-Based Tactical Strategy & AI Platform</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>RedWar</h1>
+      <span class="badge">RedWar 2.0 (Flagship)</span>
+      <span class="badge" id="spectatorBadge" style="display: none; background: #3b82f6; margin-left: 8px;">👀 <span id="spectatorCount">0</span> espetadores</span>
+    </div>
+    <nav class="nav-links">
+      <button class="nav-btn active" id="tabPlay">Jogar</button>
+      <button class="nav-btn" id="tabAcademy">Academia</button>
+      <button class="nav-btn" id="tabPuzzles">Puzzles</button>
+      <button class="nav-btn" id="tabLeaderboard">Leaderboard</button>
+      <button class="nav-btn" id="tabReview">Game Review</button>
+      <button class="nav-btn" id="tabAnalytics">Estatísticas</button>
+    </nav>
+    <div class="user-auth-bar" style="display: flex; align-items: center; gap: 8px;">
+      <button id="btnToggleAudio" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; padding: 4px 10px; border-radius: 6px; font-size: 0.82rem; color: #cbd5e1; cursor: pointer;">🔊 Som: Ligado</button>
+      <span id="userAuthBadge" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; padding: 4px 10px; border-radius: 20px; font-size: 0.82rem; color: #cbd5e1;">👤 Convidado (1200)</span>
+      <button id="btnOpenAuthModal" class="btn-primary" style="padding: 4px 12px; font-size: 0.82rem; border-radius: 6px; background: #3b82f6; border: none; color: #fff; cursor: pointer;">🔐 Conta</button>
+    </div>
+  </header>
+
+  <div id="reconnectBanner" style="display: none; background: #f59e0b; color: #000; padding: 6px 16px; text-align: center; font-weight: bold; font-size: 0.9rem;">
+    Conexão interrompida. <button id="btnReconnect" style="margin-left: 10px; padding: 2px 8px; border-radius: 4px; border: none; cursor: pointer; background: #000; color: #fff;">Reconectar</button>
+  </div>
+
+  <main>
+    <div class="board-container">
+      <div class="player-bar" id="blackPlayerBar">
+        <div class="player-info">
+          <span id="blackPlayerName">Bot Tático Web (Heurística Local)</span>
+          <span id="blackPlayerElo">(1400)</span>
+        </div>
+        <div class="clock-timer" id="blackClock">10:00</div>
+      </div>
+      <div class="graveyard" id="blackGraveyard"></div>
+
+      <div class="board-area-wrapper">
+        <div class="eval-bar-wrapper">
+          <div class="eval-bar" id="evalBar" title="Avaliação Centipawn Ares">
+            <div class="eval-bar-fill" id="evalBarFill" style="height: 50%;"></div>
+            <div class="eval-bar-label top" id="evalBarLabelTop"></div>
+            <div class="eval-bar-label bottom" id="evalBarLabelBottom">0.0</div>
+          </div>
+        </div>
+        <canvas id="gameBoard" width="560" height="560"></canvas>
+      </div>
+
+      <div class="graveyard" id="whiteGraveyard"></div>
+      <div class="player-bar" id="whitePlayerBar">
+        <div class="player-info">
+          <span id="whitePlayerName">Jogador</span>
+          <span id="whitePlayerElo">(1200)</span>
+        </div>
+        <div class="clock-timer active" id="whiteClock">10:00</div>
+      </div>
+
+      <div class="emote-bar" id="emoteBar" style="display: flex; gap: 8px; margin-top: 8px; justify-content: center;">
+        <button class="btn-emote" data-emote="gg" style="padding: 4px 10px; background: #262626; color: #ddd; border: 1px solid #444; border-radius: 4px; cursor: pointer;">GG</button>
+        <button class="btn-emote" data-emote="well_played" style="padding: 4px 10px; background: #262626; color: #ddd; border: 1px solid #444; border-radius: 4px; cursor: pointer;">Well Played</button>
+        <button class="btn-emote" data-emote="thinking" style="padding: 4px 10px; background: #262626; color: #ddd; border: 1px solid #444; border-radius: 4px; cursor: pointer;">Thinking 🤔</button>
+        <button class="btn-emote" data-emote="wow" style="padding: 4px 10px; background: #262626; color: #ddd; border: 1px solid #444; border-radius: 4px; cursor: pointer;">Wow ⚡</button>
+      </div>
+      <div id="emoteNotification" style="text-align: center; color: #38bdf8; font-size: 0.85rem; height: 18px; margin-top: 4px;"></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="panel-card" id="playPanel">
+        <h2>Modo de Jogo</h2>
+        <div class="select-group">
+          <label for="modeSelect">Tabuleiro / Modo:</label>
+          <select id="modeSelect">
+            <option value="standard_8x8">Padrão 8×8 (200 pts)</option>
+            <option value="grand_10x10">Grand RedWar 10×10 (Experimental / Tabuleiro Expandido)</option>
+            <option value="snake_draft">Tournament Snake Draft</option>
+            <option value="hazard_arena">Hazard Arena (Lava & Barreiras)</option>
+          </select>
+        </div>
+
+        <div class="select-group">
+          <label for="boardThemeSelect">Tema do Tabuleiro:</label>
+          <select id="boardThemeSelect">
+            <option value="classic" selected>Clássico (Verde & Creme)</option>
+            <option value="cyberpunk">Obsidiana & Ciano</option>
+            <option value="volcanic">Arena Vulcânica</option>
+            <option value="glacial">Templo Glacial</option>
+          </select>
+        </div>
+
+        <div class="select-group">
+          <label for="timeControlSelect">Controlo de Tempo:</label>
+          <select id="timeControlSelect">
+            <option value="bullet_1_0">Bullet (1+0)</option>
+            <option value="blitz_3_2">Blitz (3+2)</option>
+            <option value="blitz_5_0">Blitz (5+0)</option>
+            <option value="rapid_10_0" selected>Rápido (10+0)</option>
+            <option value="rapid_15_10">Rápido (15+10)</option>
+          </select>
+        </div>
+
+        <div class="select-group">
+          <label for="opponentSelect">Oponente:</label>
+          <select id="opponentSelect">
+            <option value="bot_apprentice">Heurística Local — Aprendiz</option>
+            <option value="bot_intermediate" selected>Heurística Local — Intermédio</option>
+            <option value="bot_advanced">Heurística Local — Avançado</option>
+            <option value="bot_master">Heurística Local — Mestre Tático</option>
+            <option value="online_room">Partida Online (WebSocket)</option>
+          </select>
+        </div>
+
+        <div class="select-group" id="roomCodeGroup" style="display: none;">
+          <label for="roomCodeInput">Código da Sala:</label>
+          <input type="text" id="roomCodeInput" placeholder="Ex: SALA_01">
+        </div>
+
+        <button class="btn-primary" id="btnStartGame">Iniciar Partida</button>
+        <button class="btn-primary" id="btnRematch" style="background: #22c55e; margin-top: 6px; display: none;">Propor Desforra (Rematch)</button>
+        <button class="btn-primary" id="btnGameReview" style="background: #8b5cf6; margin-top: 6px; display: none;">📊 Análise de Partida (Game Review)</button>
+        <button class="btn-primary" id="btnResign" style="background: var(--accent-red); margin-top: 6px; display: none;">Abandonar</button>
+      </div>
+
+      <div class="panel-card" id="puzzlesPanel" style="display: none;">
+        <h2>🧩 Treino de Táticas (Puzzles)</h2>
+        <div class="puzzle-stats-bar" style="display: flex; justify-content: space-between; margin-bottom: 12px; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem;">
+          <div>Classificação: <strong id="puzzleElo" style="color: #38bdf8;">1200</strong></div>
+          <div>Sequência: <strong id="puzzleStreak" style="color: #22c55e;">🔥 0</strong></div>
+        </div>
+        <div class="select-group">
+          <label for="puzzleSelect">Problema Tático:</label>
+          <select id="puzzleSelect"></select>
+        </div>
+        <p id="puzzleDesc" style="font-size: 0.88rem; margin-bottom: 12px; color: #cbd5e1;"></p>
+        <div id="puzzleStatusBanner" style="display: none; padding: 10px; border-radius: 6px; font-size: 0.88rem; margin-bottom: 12px; font-weight: bold; text-align: center;"></div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn-primary" id="btnLoadPuzzle" style="flex: 1; margin-top: 0;">Carregar Problema</button>
+          <button class="btn-primary" id="btnPuzzleHint" style="background: #f59e0b; padding: 8px 12px; flex: 0.6; margin-top: 0;">💡 Dica</button>
+          <button class="btn-primary" id="btnNextPuzzle" style="background: #22c55e; display: none; padding: 8px 12px; flex: 0.8; margin-top: 0;">Próximo ➔</button>
+        </div>
+      </div>
+
+      <div class="panel-card" id="leaderboardPanel" style="display: none;">
+        <h2>Classificação ELO</h2>
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jogador</th>
+              <th>ELO</th>
+              <th>V/D</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </div>
+      <div class="panel-card" id="academyPanel" style="display: none;">
+        <h2>🎓 Academia de Heróis</h2>
+        <p style="font-size: 0.85rem; color: #888; margin-bottom: 12px;">Aprende as habilidades únicas, movimentação e táticas de cada herói através de tutoriais interativos e puzzles passo a passo.</p>
+        
+        <div class="form-group">
+          <label for="heroSelect">Escolhe o Herói:</label>
+          <select id="heroSelect">
+            <option value="paladin">Paladin — O Bastião Sagrado</option>
+            <option value="shadowblade">Shadowblade — A Lâmina Fantasma</option>
+            <option value="stormcaller">Stormcaller — O Mestre dos Raios</option>
+            <option value="valkyrie">Valkyrie — As Asas Celestes</option>
+            <option value="arcanist">Arcanist — A Rajada Arcana</option>
+            <option value="duelist">Duelist — A Estocada Precisa</option>
+            <option value="warden">Warden — O Bastião Inabalável</option>
+            <option value="illusionist">Illusionist — O Mestre dos Espelhos</option>
+            <option value="marksman">Marksman — O Atirador de Elite</option>
+            <option value="hookmaster">Hookmaster — O Gancho Tático</option>
+            <option value="timekeeper">Timekeeper — A Cronomancia</option>
+            <option value="dragoon">Dragoon — O Salto do Dragão</option>
+            <option value="frostmage">FrostMage — O Domínio do Gelo</option>
+            <option value="bonelord">BoneLord — O Soberano das Criptas</option>
+          </select>
+        </div>
+
+        <div id="heroCard" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 12px; margin-bottom: 14px;">
+          <h3 id="heroTitle" style="color: #a855f7; margin-bottom: 6px; font-size: 1.05rem;">Paladin: O Bastião da Linha de Frente</h3>
+          <p id="heroLore" style="font-size: 0.85rem; color: #aaa; margin-bottom: 8px; font-style: italic;">Treinado nos mosteiros de ferro das montanhas do norte, o Paladino é um guerreiro sagrado inabalável.</p>
+          <div style="font-size: 0.85rem; margin-bottom: 6px;"><strong>Habilidade:</strong> <span id="heroAbility" style="color: #38bdf8;">Avanço Ortogonal até 2 casas.</span></div>
+          <div style="font-size: 0.85rem; margin-bottom: 6px;"><strong>Objetivo:</strong> <span id="heroObjective" style="color: #22c55e;">Avança 2 casas para cima para aplicar o segundo stun no Dragoon enfraquecido.</span></div>
+        </div>
+
+        <button class="btn-primary" id="btnStartLesson" style="background: #a855f7; margin-bottom: 10px;">Carregar Lição no Tabuleiro</button>
+        <div id="academyFeedback" style="display: none; padding: 10px; border-radius: 4px; font-size: 0.85rem; line-height: 1.4; margin-top: 8px;"></div>
+      </div>
+      <div class="panel-card" id="reviewPanel" style="display: none;">
+        <h2>Análise de Precisão (Game Review)</h2>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 0.95rem;">
+          <div>Brancas: <strong id="whiteAccScore" style="color: #22c55e;">98.5%</strong></div>
+          <div>Pretas: <strong id="blackAccScore" style="color: #38bdf8;">94.2%</strong></div>
+        </div>
+        <div style="margin-bottom: 8px; font-size: 0.85rem; color: #888;">Evolução de Vantagem (Centipawns):</div>
+        <canvas id="evalChartCanvas" width="280" height="90" style="background: #111; border-radius: 4px; width: 100%; margin-bottom: 12px;"></canvas>
+        <div id="reviewBreakdown" style="font-size: 0.85rem; color: #ccc; line-height: 1.4;">
+          <p>✨ <strong>Brilhantes:</strong> <span id="countBrilliant">0</span> | 🎯 <strong>Melhores:</strong> <span id="countBest">0</span></p>
+          <p>👍 <strong>Excelentes:</strong> <span id="countGreat">0</span> | ⚠️ <strong>Imprecisões:</strong> <span id="countInacc">0</span></p>
+          <p>❓ <strong>Erros:</strong> <span id="countMistake">0</span> | 💥 <strong>Gaffes (Blunders):</strong> <span id="countBlunder">0</span></p>
+        </div>
+        <div id="reviewMovesList" style="margin-top: 12px; max-height: 160px; overflow-y: auto; background: #0f172a; border-radius: 6px; padding: 8px; font-size: 0.8rem; display: flex; flex-direction: column; gap: 4px;"></div>
+        <div class="rwn-section" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08);">
+          <div style="font-size: 0.85rem; font-weight: bold; margin-bottom: 6px; color: #38bdf8;">Notação RedWar (RWN):</div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn-primary" id="btnExportRwn" style="flex: 1; padding: 6px 8px; font-size: 0.8rem; background: #0284c7; margin-top: 0;">📋 Exportar RWN</button>
+            <button class="btn-primary" id="btnImportRwn" style="flex: 1; padding: 6px 8px; font-size: 0.8rem; background: #475569; margin-top: 0;">📂 Importar RWN</button>
+          </div>
+          <textarea id="rwnTextArea" placeholder="Cole aqui o texto da notação RWN para carregar a partida..." style="display: none; width: 100%; margin-top: 8px; height: 70px; background: #0f172a; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px; padding: 6px; font-size: 0.75rem; font-family: monospace; resize: vertical;"></textarea>
+          <div id="rwnNotification" style="font-size: 0.75rem; color: #22c55e; margin-top: 4px; display: none;"></div>
+        </div>
+      </div>
+      <div class="panel-card" id="analyticsPanel" style="display: none;">
+        <h2>📊 Estatísticas e Perfis Baseados em Dados</h2>
+        <p style="font-size: 0.8rem; color: #888; margin-bottom: 12px;">Métricas empíricas extraídas de partidas reais e simulações do motor Ares (estilo estatísticas avançadas de futebol). Zero atributos numéricos em jogo.</p>
+
+        <div class="form-group">
+          <label for="analyticsHeroSelect">Seleciona a Peça:</label>
+          <select id="analyticsHeroSelect">
+            <option value="Paladin">Paladin (Custo 16)</option>
+            <option value="Shadowblade">Shadowblade (Custo 18)</option>
+            <option value="Stormcaller">Stormcaller (Custo 17)</option>
+            <option value="Hookmaster">Hookmaster (Custo 15)</option>
+            <option value="Timekeeper">Timekeeper (Custo 16)</option>
+            <option value="Dragoon">Dragoon (Custo 18)</option>
+            <option value="FrostMage">FrostMage (Custo 16)</option>
+            <option value="BoneLord">BoneLord (Custo 16)</option>
+            <option value="Bone">Bone (Custo 8)</option>
+            <option value="Berserker">Berserker (Custo 18)</option>
+            <option value="Ranger">Ranger (Custo 14)</option>
+            <option value="Pyromancer">Pyromancer (Custo 16)</option>
+            <option value="Phantom">Phantom (Custo 5)</option>
+            <option value="Cleric">Cleric (Custo 14)</option>
+            <option value="Templar">Templar (Custo 15)</option>
+            <option value="Inquisitor">Inquisitor (Custo 15)</option>
+            <option value="Geomancer">Geomancer (Custo 14)</option>
+            <option value="Lich">Lich (Custo 15)</option>
+            <option value="Nightshade">Nightshade (Custo 14)</option>
+            <option value="Obelisk">Obelisk (Custo 12)</option>
+            <option value="Sentry">Sentry (Custo 10)</option>
+            <option value="Stonewall">Stonewall (Custo 12)</option>
+            <option value="Trickster">Trickster (Custo 14)</option>
+            <option value="Ghoul">Ghoul (Custo 10)</option>
+            <option value="Valkyrie">Valkyrie (Custo 22)</option>
+            <option value="Arcanist">Arcanist (Custo 23)</option>
+            <option value="Duelist">Duelist (Custo 24)</option>
+            <option value="Warden">Warden (Custo 25)</option>
+            <option value="Illusionist">Illusionist (Custo 27)</option>
+            <option value="Marksman">Marksman (Custo 28)</option>
+          </select>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 6px; padding: 10px; margin-bottom: 12px;">
+          <div style="font-size: 0.85rem; color: #aaa; margin-bottom: 4px;">Classes Derivadas por Dados:</div>
+          <div id="analyticsDerivedClasses" style="font-size: 0.9rem; font-weight: bold; color: #38bdf8;">Vanguard (Tanque/Âncora)</div>
+          <div style="margin-top: 6px; font-size: 0.8rem; color: #aaa;">Eficiência de Custo: <span id="analyticsCostEfficiency" style="color: #22c55e; font-weight: bold;">1.02x (Equilibrado)</span></div>
+          <div style="margin-top: 6px; font-size: 0.8rem; color: #aaa;">Status Riot Balance: <span id="analyticsRiotBadge" style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; background: #065f46; color: #34d399;">Equilibrado</span></div>
+          <div style="margin-top: 6px; display: flex; gap: 12px; font-size: 0.8rem; color: #aaa;">
+            <div>Taxa Vitória: <strong id="analyticsWinRate" style="color: #38bdf8;">51.2%</strong></div>
+            <div>Presença Draft: <strong id="analyticsPresenceRate" style="color: #facc15;">18.5%</strong></div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-size: 0.8rem;">
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #22c55e; font-weight: bold; margin-bottom: 4px;">⚡ Power Tiles (ΔWR):</div>
+            <div id="analyticsPowerTiles" style="color: #cbd5e1; font-family: monospace; font-size: 0.75rem; line-height: 1.4;">d4 (+6.2%)<br>e4 (+5.8%)<br>d5 (+5.1%)</div>
+          </div>
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #f87171; font-weight: bold; margin-bottom: 4px;">⚠️ Casas Vulneráveis:</div>
+            <div id="analyticsVulnerableTiles" style="color: #cbd5e1; font-family: monospace; font-size: 0.75rem; line-height: 1.4;">a1 (-7.4%)<br>h8 (-6.9%)<br>a8 (-6.1%)</div>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; font-size: 0.8rem;">
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #38bdf8; font-weight: bold; margin-bottom: 4px;">🤝 Top Sinergias (Duo):</div>
+            <div id="analyticsSynergies" style="color: #cbd5e1; font-size: 0.75rem; line-height: 1.4;">Valkyrie (+5.4%)<br>Warden (+4.2%)</div>
+          </div>
+          <div style="background: #161b22; padding: 8px; border-radius: 6px; border: 1px solid #30363d;">
+            <div style="color: #fb923c; font-weight: bold; margin-bottom: 4px;">🎯 Counters & Ameaças:</div>
+            <div id="analyticsCounters" style="color: #cbd5e1; font-size: 0.75rem; line-height: 1.4;">Inquisitor (-6.8%)<br>Duelist (-5.1%)</div>
+          </div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: #888; margin-bottom: 6px;">Radar de Desempenho (6 Dimensões):</div>
+        <canvas id="radarChartCanvas" width="280" height="200" style="background: #111; border-radius: 6px; width: 100%; margin-bottom: 12px;"></canvas>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.8rem; background: #161b22; padding: 8px; border-radius: 4px;">
+          <div>Abertura: <strong id="openingRating" style="color: #38bdf8;">75</strong></div>
+          <div>Meio-Jogo: <strong id="midgameRating" style="color: #a855f7;">88</strong></div>
+          <div>Final: <strong id="endgameRating" style="color: #22c55e;">82</strong></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <div style="font-size: 0.85rem; color: #888;">Mapa Posicional:</div>
+          <div style="display: flex; gap: 4px;">
+            <button id="btnHeatmapDensity" class="btn-secondary" style="font-size: 0.7rem; padding: 2px 6px; background: #0284c7; color: white; border: none; border-radius: 4px; cursor: pointer;">Densidade</button>
+            <button id="btnHeatmapDeltaWR" class="btn-secondary" style="font-size: 0.7rem; padding: 2px 6px; background: #334155; color: #cbd5e1; border: none; border-radius: 4px; cursor: pointer;">Δ Win Rate</button>
+          </div>
+        </div>
+        <canvas id="heatmapCanvas" width="200" height="200" style="background: #111; border-radius: 6px; width: 200px; height: 200px; margin: 0 auto; display: block;"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <!-- Auth Modal -->
+  <div id="authModal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.75); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; max-width: 480px; width: 90%; padding: 24px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); color: #f8fafc; position: relative;">
+      <button id="btnCloseAuthModal" style="position: absolute; top: 14px; right: 14px; background: none; border: none; color: #94a3b8; font-size: 1.3rem; cursor: pointer;">&times;</button>
+      <h2 style="margin-top: 0; font-size: 1.25rem; display: flex; align-items: center; gap: 8px;">🛡️ Sessão & Identidade do Jogador</h2>
+      <p style="font-size: 0.82rem; color: #94a3b8; margin-bottom: 20px;">
+        O RedWar opera de forma <strong>100% privada e local</strong> no seu navegador. Os dados de jogo, ELO e puzzles são mantidos localmente no seu dispositivo (LocalStorage).
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Option 1: Guest / Local Session (Active) -->
+        <div style="background: #0f172a; border: 1px solid #22c55e; border-radius: 8px; padding: 12px;">
+          <div style="font-weight: bold; font-size: 0.9rem; color: #86efac; margin-bottom: 4px;">👤 Modo Convidado Local (Ativo)</div>
+          <div style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 8px;">Zero recolha de dados pessoais. Identificador local anónimo guardado apenas no LocalStorage deste navegador.</div>
+          <button id="btnAuthGuest" style="width: 100%; padding: 8px; background: #15803d; border: none; border-radius: 6px; color: #fff; font-size: 0.82rem; cursor: pointer; font-weight: bold;">Continuar Sessão Local</button>
+        </div>
+
+        <!-- Option 2: Google OIDC -->
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; opacity: 0.85;">
+          <div style="font-weight: bold; font-size: 0.9rem; color: #94a3b8; margin-bottom: 4px;">🟢 Conectar com Google (Servidor Remoto)</div>
+          <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 8px;">Requer servidor de autenticação federada online ativo. No cliente estático local, a sessão opera localmente sem envio de dados a terceiros.</div>
+          <button id="btnAuthGoogle" style="width: 100%; padding: 8px; background: #334155; border: none; border-radius: 6px; color: #cbd5e1; font-size: 0.82rem; cursor: pointer; font-weight: bold;">Autenticação Online (Requer Servidor)</button>
+        </div>
+
+        <!-- Option 3: Dedicated Account -->
+        <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; opacity: 0.85;">
+          <div style="font-weight: bold; font-size: 0.9rem; color: #94a3b8; margin-bottom: 4px;">🔐 Conta Dedicada StudioAuth</div>
+          <div style="font-size: 0.78rem; color: #64748b; margin-bottom: 8px;">Requer servidor Python StudioAuth em execução. No navegador, digite o nome desejado para identificar o perfil local.</div>
+          <input type="text" id="authDedicatedUser" placeholder="Nome de jogador local" style="width: 100%; padding: 6px 8px; margin-bottom: 6px; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #fff; font-size: 0.8rem; box-sizing: border-box;" />
+          <button id="btnAuthDedicated" style="width: 100%; padding: 8px; background: #334155; border: none; border-radius: 6px; color: #cbd5e1; font-size: 0.82rem; cursor: pointer; font-weight: bold;">Atualizar Nome de Jogador Local</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 16px; padding: 10px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 6px; font-size: 0.75rem; color: #93c5fd; text-align: center;">
+        ℹ️ <strong>Transparência:</strong> Este cliente Web opera no modo cliente-estático com persistência no LocalStorage. Autenticação remota federada é suportada quando ligado a uma instância de servidor RedWar ativa.
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

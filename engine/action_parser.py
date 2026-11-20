@@ -14,8 +14,8 @@ class ActionParser:
     PATTERN_SPAWN = re.compile(rf"^SPAWN\s+([a-zA-Z_]+)\s+{COORD}\s+{COORD}$", re.IGNORECASE)
     PATTERN_SPELL = re.compile(rf"^SPELL\s+([a-zA-Z_]+)\s+{COORD}\s+{COORD}$", re.IGNORECASE)
 
-    @staticmethod
-    def _valid_alg(alg: str) -> bool:
+    @classmethod
+    def _valid_alg(cls, alg: str, max_rows: int = LINHAS, max_cols: int = COLUNAS) -> bool:
         if not isinstance(alg, str) or not re.fullmatch(r"[A-Z][1-9][0-9]*", alg.upper()):
             return False
         alg = alg.upper()
@@ -24,15 +24,15 @@ class ActionParser:
             row_number = int(alg[1:])
         except ValueError:
             return False
-        return 0 <= col < COLUNAS and 1 <= row_number <= LINHAS
+        return 0 <= col < max_cols and 1 <= row_number <= max_rows
 
     @classmethod
-    def _parse_match(cls, match, action: str, group_count: int) -> dict | None:
+    def _parse_match(cls, match, action: str, group_count: int, max_rows: int = LINHAS, max_cols: int = COLUNAS) -> dict | None:
         if not match:
             return None
         groups = match.groups()
         coords = groups[-2:]
-        if not all(cls._valid_alg(coord) for coord in coords):
+        if not all(cls._valid_alg(coord, max_rows=max_rows, max_cols=max_cols) for coord in coords):
             return None
 
         result = {
@@ -47,7 +47,7 @@ class ActionParser:
         return result
 
     @classmethod
-    def parse(cls, action_str: str) -> dict | None:
+    def parse(cls, action_str: str, max_rows: int = LINHAS, max_cols: int = COLUNAS) -> dict | None:
         if not isinstance(action_str, str):
             return None
 
@@ -55,22 +55,22 @@ class ActionParser:
         if not action_str:
             return None
 
-        parsed = cls._parse_match(cls.PATTERN_MOVE.fullmatch(action_str), "MOVE", 2)
+        parsed = cls._parse_match(cls.PATTERN_MOVE.fullmatch(action_str), "MOVE", 2, max_rows=max_rows, max_cols=max_cols)
         if parsed:
             return parsed
-        parsed = cls._parse_match(cls.PATTERN_ATTACK.fullmatch(action_str), "ATTACK", 2)
+        parsed = cls._parse_match(cls.PATTERN_ATTACK.fullmatch(action_str), "ATTACK", 2, max_rows=max_rows, max_cols=max_cols)
         if parsed:
             return parsed
-        parsed = cls._parse_match(cls.PATTERN_STUN.fullmatch(action_str), "STUN", 2)
+        parsed = cls._parse_match(cls.PATTERN_STUN.fullmatch(action_str), "STUN", 2, max_rows=max_rows, max_cols=max_cols)
         if parsed:
             return parsed
-        parsed = cls._parse_match(cls.PATTERN_SPAWN.fullmatch(action_str), "SPAWN", 3)
+        parsed = cls._parse_match(cls.PATTERN_SPAWN.fullmatch(action_str), "SPAWN", 3, max_rows=max_rows, max_cols=max_cols)
         if parsed:
             return parsed
-        return cls._parse_match(cls.PATTERN_SPELL.fullmatch(action_str), "SPELL", 3)
+        return cls._parse_match(cls.PATTERN_SPELL.fullmatch(action_str), "SPELL", 3, max_rows=max_rows, max_cols=max_cols)
 
     @staticmethod
-    def alg_to_coords(alg: str, total_linhas: int) -> tuple[int, int]:
+    def alg_to_coords(alg: str, total_linhas: int, total_colunas: int | None = None) -> tuple[int, int]:
         """Converte, por exemplo, ``A8`` em ``(0, 0)``."""
         if not isinstance(alg, str):
             raise ValueError("Coordinate must be a string")
@@ -79,12 +79,13 @@ class ActionParser:
         if not re.fullmatch(r"[A-Z][1-9][0-9]*", alg):
             raise ValueError(f"Invalid coordinate: {alg!r}")
 
-        if total_linhas <= 0 or total_linhas != LINHAS:
+        if total_linhas <= 0:
             raise ValueError(f"Unsupported board height: {total_linhas}")
 
+        max_cols = total_colunas if total_colunas is not None else total_linhas
         col = ord(alg[0]) - ord("A")
         row_number = int(alg[1:])
-        if not (0 <= col < COLUNAS and 1 <= row_number <= total_linhas):
+        if not (0 <= col < max_cols and 1 <= row_number <= total_linhas):
             raise ValueError(f"Coordinate outside board: {alg!r}")
 
         return total_linhas - row_number, col

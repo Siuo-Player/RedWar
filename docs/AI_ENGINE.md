@@ -4,20 +4,26 @@
 
 Este documento define o contrato durável da Ares. O comportamento realmente implementado é determinado pelo código/testes do `main`; [`ROADMAP.md`](ROADMAP.md) define a ordem dos gates.
 
-## Engine
+## Visão e Inspiração Stockfish
 
-Ares é o engine C++ de busca do RedWar. O desenho suporta:
+Ares é o motor de busca e avaliação em C++ de alta performance de RedWar, concebido sob os mesmos princípios rigorosos que governam o **Stockfish**:
+- Separação estrita entre representação de estado, geração de lances, busca e avaliação;
+- Hot path mínimo e altamente otimizado;
+- Busca Alfa-Beta / Principal Variation Search (PVS) com Iterative Deepening;
+- Transposition Table (TT) com Zobrist hashing;
+- Ordenação de lances preditiva (Move Ordering) com heurísticas Killer e History;
+- Reduções em lances tardios (Late Move Reductions - LMR);
+- Busca de tranquilidade (Quiescence Search) focada em cadeias de stun e mortes letais;
+- Avaliação clássica como referência sólida e rede neural **NNUE** para avaliação posicional profunda.
 
-- alpha-beta/PVS;
-- iterative deepening;
-- transposition table e Zobrist hashing;
-- move ordering, killer/history heuristics;
-- quiescence/tactical search;
-- limites por nós/tempo.
+## Oráculo do Balance Lab
 
-O estado relevante inclui peças, stun, lifespan, spawn cooldown, efeitos, TWC e side-to-move. Ares deve respeitar exatamente a semântica do ruleset RedWar e a informação autorizada pelo modo de jogo.
+Ares atua também como o motor de simulação e avaliação do **Balance Lab**:
+- Avaliação de custos de draft de heróis baseada em desempenho contextual em partidas emparelhadas;
+- Identificação de heróis desbalanceados ou sinergias degeneradas através de self-play e matrizes de confronto;
+- Calibração de múltiplos modos de jogo (8×8 padrão, 10×10 estendido e controlos de tempo).
 
-## Fronteira de execução
+## Fronteira de Execução
 
 A ordem canónica é:
 
@@ -29,11 +35,9 @@ input action
 → mutate
 ```
 
-Legalidade de action-space e validade da transição são conceitos distintos. Uma otimização de pesquisa não pode contornar a autoridade de execução.
+Legalidade de action-space e validade da transição são conceitos distintos. Uma otimização de pesquisa não pode contornar a autoridade de execução. `fast_clone()` não é hot path C++ nem preflight aceite do executor.
 
-`fast_clone()` não é hot path C++ nem preflight aceite do executor.
-
-## Pesquisa
+## Pesquisa e Otimizações
 
 Alterações de search, pruning, ordering ou evaluation são hipóteses isoladas. Devem demonstrar:
 
@@ -44,21 +48,31 @@ correção
 → strength independente
 ```
 
-Um melhor resultado num puzzle, maior NPS ou menor custo local não constitui prova de strength global.
+Um maior NPS ou melhor resultado pontual num puzzle não constitui prova de ganho global de força.
 
-## Evaluation / NNUE
+### Prioridades Técnicas de Busca
+1. **Move Ordering:**
+   - Hash Move (da Transposition Table)
+   - Lances de captura letal de 2º stun ordenados por MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
+   - Lances de 1º stun em heróis de alto custo
+   - Spells ofensivos com impacto direto
+   - Killer Moves (2 slots por profundidade ply)
+   - History Heuristic para lances calmos
+   - Lances calmos restantes
+2. **Late Move Reductions (LMR):**
+   - Reduzir a profundidade de pesquisa de lances calmos testados tardiamente na ordenação em nós com profundidade $\ge 3$.
+   - Isentar lances táticos (stuns, capturas letais e respostas a ameaças imediatas).
+3. **Quiescence Search:**
+   - Evitar avaliar nós intermédios instáveis onde peças chave estão prestes a receber o segundo stun letal.
 
-A avaliação clássica permanece uma referência de compatibilidade/correção. NNUE é opcional e deve manter paridade semântica com o estado observável.
+## Avaliação Clássica e NNUE
 
-O caminho incremental de NNUE é aceite apenas quando a equivalência com full resync estiver demonstrada nos caminhos reais de mutação. `sync_board()` pode permanecer como oracle/recovery path sem ser usado silenciosamente para mascarar erros incrementais.
+A avaliação clássica permanece a referência de compatibilidade e o oráculo de calibração rápida. A rede neural NNUE é validada incrementalmente e apenas promovida a padrão após demonstrar ganho estatístico comprovado na Arena por unidade de tempo de CPU.
 
-## Evidência de força
+## Níveis de Bot (Chess.com Model)
 
-A promoção de Ares requer evidência independente, tipicamente Arena A/B sob orçamento comparável e protocolo estatístico explícito.
-
-```text
-benchmark
-≠ capability geral
-≠ performance geral
-≠ strength
-```
+Para suportar o modelo da plataforma, Ares suporta parametrização de força e profundidade para expor bots de diferentes níveis:
+- **800 ELO (Iniciante):** Profundidade restrita (1-2 plies) com jitter aleatório;
+- **1400 ELO (Intermédio):** Profundidade 3-4, busca tática e avaliação clássica básica;
+- **1900 ELO (Avançado):** Profundidade 5-6, TT completa e busca quiescente;
+- **2500+ ELO (Mestre Ares):** Full search, TT, LMR e avaliação profunda.

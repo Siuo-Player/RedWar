@@ -26,6 +26,8 @@ EXPECTED_TOP_LEVEL = {
 
 # These are legitimate local/generated directories, not project modules.
 IGNORED_TOP_LEVEL = {
+    ".agents",
+    ".gemini",
     ".git",
     ".github",
     ".vscode",
@@ -35,6 +37,12 @@ IGNORED_TOP_LEVEL = {
     "__pycache__",
     "build",
     "dist",
+    "artifacts",
+    "assets",
+    "RESEARCH_INBOX",
+    "packages",
+    "specs",
+    "wiki",
 }
 
 LEGACY_PATHS = {

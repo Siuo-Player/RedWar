@@ -42,6 +42,18 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | UI | `BATTLE_UI_SIDEBAR.md` |
 | Replay/telemetria | `REPLAY_STORAGE.md` + `TELEMETRY.md` |
 | Online | `WEB_MULTIPLAYER.md` |
+| Publicação & Deployment | `DEPLOYMENT_GUIDE.md` |
+| RoadMap 2.0 | `ROADMAP_2_0.md` |
+| Modos Avançados & Draft | `ROADMAP_2_0.md` + `engine/draft_tournament.py` |
+| Ares Engine 2.0 | `ROADMAP_2_0.md` + `ai/ares2.py` |
+| Ares SPRT & Perfis | `ROADMAP_2_0.md` + `ai/sprt.py` + `ai/profiles.py` |
+| Academia de Heróis | `ROADMAP_2_0.md` + `engine/hero_academy.py` |
+| Análise Empírica & Heatmaps | `tools/analytics/hero_data_profiler.py` + `deploy/web/` |
+| Wiki Oficial | `../wiki/` |
+| Fundações Teóricas & Papers | `THEORETICAL_FOUNDATIONS_AND_PAPERS.md` |
+| Game Review & Precisão | `ROADMAP_2_0.md` + `engine/review.py` |
+| Segurança | `../SECURITY.md` |
+| Arquitetura de Segurança & Federação | `SECURITY_ARCHITECTURE_AND_FEDERATION.md` + `engine/auth.py` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
 
 ## 1.0-Lite baseline selection

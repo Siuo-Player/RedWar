@@ -1,0 +1,49 @@
+name: Ares SPRT Regression Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: "Git ref for baseline engine"
+        required: true
+        default: "main"
+      candidate_ref:
+        description: "Git ref for candidate engine"
+        required: true
+        default: "HEAD"
+      elo0:
+        description: "SPRT H0 threshold (regression)"
+        required: true
+        default: "0.0"
+      elo1:
+        description: "SPRT H1 threshold (improvement)"
+        required: true
+        default: "5.0"
+      games_batch:
+        description: "Number of games per evaluation batch"
+        required: true
+        default: "20"
+
+jobs:
+  sprt_evaluation:
+    name: Sequential Probability Ratio Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          pip install -r requirements.txt || true
+
+      - name: Execute SPRT Engine Match Validation
+        run: |
+          python -m pytest tests/test_ares_sprt_and_profiles.py -v

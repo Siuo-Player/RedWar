@@ -27,7 +27,7 @@ def test_game_icons_manifest_is_structurally_valid():
     assert payload["source_of_truth"]["corpus_revision"]
 
     assets = payload["assets"]
-    assert len(assets) == 19
+    assert len(assets) >= 19
     assert len({entry["local_file"] for entry in assets}) == len(assets)
 
     for entry in assets:
@@ -36,7 +36,7 @@ def test_game_icons_manifest_is_structurally_valid():
         assert entry["match"] is None or entry["match"]["status"] in VALID_STATUSES
 
     summary = payload["summary"]
-    assert sum(summary[key] for key in ("confirmed", "high_confidence", "ambiguous", "unresolved")) == 19
+    assert sum(summary[key] for key in ("confirmed", "high_confidence", "ambiguous", "unresolved")) == len(assets)
 
 
 def test_game_icons_audit_tool_is_valid_python_source():

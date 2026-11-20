@@ -1,9 +1,10 @@
 """Execute one predeclared RedWar Strength calibration run.
 
 This wrapper binds a concrete Arena execution to a validated calibration-plan run.
-It does not change Arena semantics or grant promotion authority. Calibration runs
-use an impossible promotion threshold and are persisted through the existing
-scientific dataset builder with the declared experiment/run identifiers.
+It does not grant promotion authority. Calibration runs explicitly invoke Arena
+in non-authoritative experiment mode; an impossible promotion threshold remains
+as defense in depth. Results are persisted through the existing scientific
+dataset builder with the declared experiment/run identifiers.
 """
 from __future__ import annotations
 
@@ -172,6 +173,7 @@ def build_arena_command(
         "--rules-version", rules_version,
         "--jogos", str(games),
         "--margem-vitorias", str(promotion_threshold),
+        "--mode", "experiment",
         "--nodes", str(nodes),
         "--opening-seeds", seed_text,
         "--seed-policy", str(run["seed_policy"]),
@@ -228,8 +230,14 @@ def run_calibration(
     if not summary_path.is_file():
         raise RuntimeError(f"Arena summary was not produced: {summary_path}")
     summary = json.loads(summary_path.read_text(encoding="utf-8"))
-    if summary.get("promoted") is not False:
-        raise RuntimeError("calibration run produced a promotion=true summary; evidence is rejected")
+    if (
+        summary.get("promotion_authority") is not False
+        or summary.get("promotion_decision") != "not_authorized"
+        or summary.get("promoted") is not False
+    ):
+        raise RuntimeError(
+            "calibration run lacks an explicit non-authoritative summary; evidence is rejected"
+        )
 
     dataset = Path(dataset_path)
     dataset.parent.mkdir(parents=True, exist_ok=True)

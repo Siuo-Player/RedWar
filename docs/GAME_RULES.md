@@ -29,6 +29,15 @@ Não existem HP nem atributos numéricos tradicionais.
 
 Uma ação normal consiste em selecionar um herói e uma casa de destino/alvo para executar uma ação legal.
 
+### Invariante Fundamental: Proibição de Fogo Amigo e Auto-captura
+Peças da mesma equipa são aliadas intransponíveis:
+- **Movimento**: Um movimento só pode ter como destino uma casa **vazia** (`board[r][c] == None`). Não é permitido saltar sobre aliados a menos que a peça possua habilidade de transposição espectral (como `Shadowblade` ou `Phantom`).
+- **Ataque**: Um ataque só pode ter como alvo uma peça **inimiga**. Peças da mesma cor nunca podem ser atacadas ou capturadas por aliados. Clicar numa peça aliada na interface apenas altera a seleção ativa.
+
+### Invariante de Alternância Estrita de Turnos
+- No turno das Brancas, apenas as Brancas podem selecionar e mover peças.
+- Ao concluir o lance, o turno passa deterministicamente para as Pretas. No cliente web/singleplayer, o tabuleiro bloqueia e a IA Ares executa o seu lance de forma autónoma antes de devolver o controlo.
+
 Exemplos:
 
 - mover;
@@ -144,21 +153,22 @@ Não existe uma condição de vitória baseada num “rei” específico.
 
 O projeto procura eliminar empates por design.
 
-Existe um contador de turnos sem captura para impedir partidas potencialmente infinitas.
+Existe um contador de turnos sem captura para impedir partidas potencialmente infinitas. O contador só reinicia quando ocorre a **morte de uma peça permanente**; a morte ou expiração de uma invocação temporária não o reinicia.
 
-O contador só reinicia quando ocorre a **morte de uma peça permanente**.
-
-O limite atual é de **50 turnos sem captura**.
-
-Quando o limite é atingido, aplica-se o desempate material atualmente definido.
+O limite atual é de **50 turnos sem captura**. O limite e a repetição de uma posição são terminais e resolvem-se pelo desempate material; não produzem um resultado de empate.
 
 ## 10. Desempate material
 
-Quando necessário, comparam-se os valores das peças permanentes que permanecem no tabuleiro.
+O valor material do desempate é a soma dos custos configurados das **peças permanentes** que continuam no tabuleiro. Invocações temporárias não contam para esse valor. A regra de reinício do contador e a regra de contagem material são distintas: uma peça temporária não reinicia o contador quando morre, e também não altera o material usado no desempate.
 
-A regra de qual cor recebe a vitória nesse caso é uma variável de balanceamento. Atualmente existe uma preferência por dar o desempate à cor que demonstrar desvantagem estatística, em vez de assumir que uma cor é sempre a correta.
+A regra determinística atual é:
 
-O objetivo de longo prazo é manter as duas cores aproximadamente equilibradas, com uma tolerância de cerca de 4% durante os testes.
+- se o material branco for estritamente superior ao preto, vencem as Brancas;
+- caso contrário, vencem as Pretas, incluindo quando os totais são exatamente iguais.
+
+Isto é uma regra fixa do ruleset atual, não uma política adaptativa que calcula em tempo real qual cor está estatisticamente em desvantagem. Qualquer futura alteração ao material contado ou à compensação de cor deve ser sustentada por evidência de balanceamento controlada e registada numa decisão própria.
+
+O objetivo de longo prazo é manter as duas cores aproximadamente equilibradas, com uma tolerância de cerca de 4% durante os testes; essa meta não altera implicitamente a regra terminal executada.
 
 ## 11. Balanceamento
 
@@ -178,3 +188,41 @@ A arquitetura deverá permitir variantes sem substituir o modo normal, incluindo
 - efeitos de terreno adicionais;
 - exceções ao número de ações;
 - regras especiais.
+
+
+## 13. Notação RedWar (RWN — RedWar Notation)
+
+A **Notação RedWar (RWN)** é o formato padrão canónico (análogo ao PGN do xadrez) para registo, exportação, partilha e análise reproduzível de partidas de RedWar.
+
+Exemplo de cabeçalho e lances RWN:
+```rwn
+[Event "RedWar 2.0 Match"]
+[Site "RedWar Platform"]
+[Date "2026.11.07"]
+[White "Jogador"]
+[Black "Ares AI"]
+[Roster "Paladin,Shadowblade,Valkyrie,Arcanist,Duelist,Warden,Illusionist,Marksman"]
+
+1. Wa e2-e3 Du d7-d6
+2. Il c2-c4 Ma f7-f5
+```
+
+O cliente Web permite tanto a **Exportação RWN** (com cópia direta para o clipboard) como a **Importação RWN** para análise retrospetiva lance a lance no **Game Review**.
+
+## 14. Roster Expandido de 30 Heróis Táticos
+
+O RedWar conta com um catálogo dinâmico de 30 heróis e unidades táticas, cada um com geometria posicional e custo de draft calibrados:
+- **Flanqueadores Aéreos e Rápidos**: `Valkyrie` (Custo 22), `Shadowblade` (Custo 18/65), `Duelist` (Custo 24), `Dragoon` (Custo 193).
+- **Controladores e Artilharia à Distância**: `Arcanist` (Custo 23), `Marksman` (Custo 28), `Ranger` (Custo 40), `Stormcaller` (Custo 72), `Pyromancer` (Custo 17), `FrostMage` (Custo 5).
+- **Âncoras, Guardiões e Vanguardas**: `Warden` (Custo 25), `Paladin` (Custo 16/55), `Templar` (Custo 15), `Inquisitor` (Custo 128), `Stonewall` (Custo 14).
+- **Disruptores e Mestres de Transposição**: `Illusionist` (Custo 27), `Hookmaster` (Custo 15/52), `Timekeeper` (Custo 16/59), `Trickster` (Custo 12/26), `Geomancer` (Custo 21).
+- **Necromancia e Invocações Estruturais**: `BoneLord` (Custo 86), `Lich` (Custo 11), `Ghoul` (Custo 5), `Bone` (Custo 8), `Obelisk` (Custo 16).
+
+## 15. Motor de IA Ares 2.0 Max
+
+O motor **Ares** opera com técnicas contemporâneas de motores de jogos abstratos de tabuleiro de alto nível:
+- **Tabela de Transposição Zobrist (64-bit)**: Chaves hash aleatórias que preservam o estado e evitam re-exploração de transposições.
+- **Ordenação MVV-LVA com Priorização do Horizonte de Stun**: Lances que eliminam peças atordoadas ("um segundo enquanto atordoado mata") têm prioridade absoluta ($300.000 + 100 \times \text{custo\_vitima} - \text{custo\_atacante}$).
+- **Quiescence Search**: Estabilização tática das folhas para evitar o efeito de horizonte em trocas críticas.
+- **Late Move Reductions (LMR)**: Redução seletiva de profundidade em lances silenciosos profundos para maximizar a profundidade efetiva.
+- **Opening Book Tático**: Desenvolvimento estruturado de centros e flancos nas primeiras 4 jogadas.

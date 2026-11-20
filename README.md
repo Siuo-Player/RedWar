@@ -1,12 +1,10 @@
 # ⚔️ RedWar
 
-**RedWar** é um RPG de tabuleiro tático em grelha, inspirado no xadrez e em jogos de estratégia, mas construído à volta de heróis com movimentações, ataques, passivas e efeitos de terreno diferentes.
-
-Não existem HP, força, defesa ou outros atributos numéricos tradicionais. O combate é definido por **stun** e **morte**: uma peça pode ser atordoada e perder a capacidade de agir durante alguns turnos; um segundo stun enquanto continua atordoada transforma-se em morte.
+**RedWar** é um jogo de tabuleiro tático puro em grelha, inspirado no xadrez e na estratégia abstrata, construído à volta de peças com movimentações, ataques, passivas e efeitos de terreno diferentes. **O RedWar não é um RPG**: não existem atributos numéricos, pontos de vida (HP), força ou defesa. O único número contado durante a partida é a **contagem de turnos** (duração de stun, recarga de habilidades e relógio). O combate combina golpes diretos letais com **stun** (concebido para equilibrar ataques de longo alcance e em área) e **morte**: qualquer segundo ataque sobre uma peça enquanto atordoada transforma-se em morte imediata.
 
 O objetivo a longo prazo é criar uma experiência semelhante ao modelo de **Chess.com**: aplicação, versão web, partidas contra IA, análise de partidas, multiplayer online, matchmaking, ranking e replays.
 
-> **Estado atual:** projeto em desenvolvimento. As regras continuam a poder mudar. O primeiro objetivo de produto é um **1.0-Lite local**, enquanto o Ares continua a evoluir como open-project separado.
+> **Estado atual:** **RedWar 2.0 Flagship Platform alcançado!** As plataformas Desktop e Web estão unificadas através do launcher oficial, suportando IA inspirada em Stockfish (Ares 2.0 com Killer Moves, History Heuristics e gestão dinâmica de relógio), modos de jogo competitivos (Standard 8×8, Grand 10×10, Tournament Snake Draft e Hazard Arena com lava e barreiras mágicas), análise pós-partida com precisão e curva de centipawns (Game Review no estilo Chess.com), leaderboard com ELO persistente, multiplayer online seguro e resiliente (reconexão em voo, desforras, rate limiting defensivo) e deploy automatizado e gratuito no GitHub Pages e Docker.
 
 ## O projeto em duas partes
 
@@ -69,7 +67,7 @@ Uma partida termina quando uma das cores:
 
 O projeto procura eliminar empates. As regras de desempate são portanto consideradas parte do design oficial, embora ainda sejam um sistema em calibração.
 
-Quando é necessário desempatar por material, a cor vencedora atual é determinada pelo maior valor das peças permanentes que continuam no tabuleiro. O balanceamento de cores é validado empiricamente e pode levar a alterações no orçamento ou nas condições de desempate.
+No desempate por material, somam-se os custos das peças permanentes que continuam no tabuleiro; invocações temporárias não contam. Se o material branco for estritamente superior, vencem as Brancas; caso contrário, vencem as Pretas, incluindo em igualdade exata. Esta é a regra determinística atual, não uma compensação adaptativa por cor; qualquer alteração futura exige evidência de balanceamento e uma decisão própria.
 
 ### Contador sem captura
 
@@ -130,6 +128,33 @@ O formato está documentado em:
 
 `engine/HEROES_SCHEMA.md`
 
+### 🛡️ Catálogo de 24 Heróis & Paridade Visual
+O elenco foi expandido para **24 heróis** táticos com silhuetas visuais em 512×512 RGBA em `ui/assets/` e `deploy/web/assets/`, preenchendo papéis de linha de frente, flanqueamento, artilharia e controlo:
+- **Novos Heróis**: `Paladin` (vanguarda de avanço ortogonal), `Shadowblade` (lâmina fantasma com transposição espectral diagonal), `Stormcaller` (artilharia elétrica de longo alcance), `Hookmaster` (puxador zonal e vanguarda pesada), `Timekeeper` (manipulador de turnos e temporizadores).
+- **Heróis Consagrados**: `Dragoon`, `FrostMage`, `BoneLord`, `Berserker`, `Ranger`, `Pyromancer`, `Cleric`, `Templar`, `Lich`, etc.
+- **Auditoria de Licenciamento**: 100% dos assets registrados e auditados em `tools/licensing/game_icons_manifest.json`.
+
+---
+
+## 🛡️ Invariantes Formais & Política Anti-Involução
+
+Para garantir que a qualidade, as regras canónicas e as funcionalidades progridam sem regressões ("involução") de versão em versão:
+
+1. **Princípio da Não-Regressão Aditiva**:
+   - Funcionalidades estabelecidas (autenticação segura com Zero Blast Radius, abas web, tutoriais de academia, analytics estilo Opta/futebol e heróis) nunca são descartadas em refatorações posteriores.
+2. **Bug $\to$ Teste Obrigatório**:
+   - Todo e qualquer bug identificado (ex: auto-captura de peças aliadas, desvio de controle de peças da IA, contagem de heróis hardcoded) é imediatamente transformado num teste de regressão automatizado permanente.
+3. **Invariante de Impossibilidade de Auto-captura**:
+   - Peças da mesma cor nunca podem capturar, sobrescrever ou colidir com aliados. No cliente web (`deploy/web/app.js`), clicar num aliado alterna a seleção ativa.
+4. **Invariante dos Dois Golpes ("Um segundo enquanto atordoado mata")**:
+   - Qualquer ataque ou feitiço subsequente contra uma peça atordoada resulta em eliminação imediata.
+5. **Invariante de Alternância Estrita de Turnos & Autonomia da IA**:
+   - O utilizador apenas pode mover as peças da sua própria cor (`"brancas"`). No turno das Pretas, a IA Ares avalia e executa o lance autonomamente.
+6. **Verificação em Três Níveis**:
+   - **Lean 4 (`specs/RedWarInvariants.lean`)**: Provas matemáticas de involução de turnos, impossibilidade de alvo aliado e letalidade de stun.
+   - **Pytest Invariants (`tests/test_game_invariants.py`)**: 12 testes de propriedade cobrindo o motor Python.
+   - **Headless Node.js (`tests/test_web_client_invariants.py`)**: 5 testes automatizados em Node.js simulando o cliente web sem navegador.
+
 ## 🧠 Ares Engine
 
 **Ares** é a IA especializada de RedWar.
@@ -147,7 +172,7 @@ Funções pretendidas:
 
 A implementação está em transição para um núcleo C++ mais rápido, mantendo ferramentas Python onde isso for conveniente.
 
-A metodologia de desenvolvimento segue uma abordagem **Stockfish-like adaptada ao RPG**: separar estado, pesquisa, avaliação e move ordering, manter o hot path pequeno e exigir evidência antes de aceitar alterações strength-sensitive.
+A metodologia de desenvolvimento segue uma abordagem **Stockfish-like adaptada ao RedWar**: separar estado, pesquisa, avaliação e move ordering, manter o hot path pequeno e exigir evidência antes de aceitar alterações strength-sensitive.
 
 O Ares suporta atualmente uma avaliação clássica e um caminho **NNUE opcional**. A rede não é considerada superior só por existir: o objetivo é demonstrar ganho de força por CPU-segundo antes de a tornar default.
 
@@ -291,24 +316,24 @@ Scripts obsoletos não devem permanecer apenas porque “podem ser úteis um dia
 O ciclo de branch é deliberadamente simples:
 
 ```text
+Issue governante + critérios de aceitação
+   ↓
 branch nova
    ↓
-roadmap atualizado
+implementação + regressões
    ↓
-bloco completo
-   ↓
-testes + benchmark
+validação apropriada
    ↓
 PR
    ↓
-merge
+CI + revisão + merge
    ↓
-apagar branch
+limpeza da branch
    ↓
-próxima branch
+próximo bloco
 ```
 
-Erros encontrados durante o bloco são corrigidos na própria branch.
+O roadmap só é atualizado quando muda uma prioridade, a sequência operacional ou o estado durável de um gate. O objetivo, os critérios de aceitação e o progresso transitório de cada branch pertencem à Issue/PR/CI; não devem ser copiados para o roadmap. Erros encontrados durante o bloco são corrigidos na própria branch.
 
 ## 🌐 Aplicação e web
 
@@ -363,6 +388,27 @@ A arquitetura de servidor ainda está em definição. A intenção é usar servi
 
 O servidor deverá, por princípio, validar as ações recebidas pelo cliente e impedir que o cliente possa simplesmente declarar um estado impossível.
 
+## 🚀 Como Executar (Launcher Unificado)
+
+O RedWar dispõe de um launcher unificado (`launcher.py` e `run_redwar.bat`) para iniciar os diferentes modos e plataformas:
+
+```bash
+# 1. Desktop Pygame Client (padrão)
+python launcher.py desktop
+# ou no Windows:
+run_redwar.bat
+
+# 2. Servidor Web & REST API (HTML5 Canvas no browser)
+python launcher.py web --port 8000
+# Abrir no browser: http://localhost:8000/
+
+# 3. Cliente Desktop Multijogador Online
+python launcher.py multiplayer --server ws://localhost:8765
+
+# 4. Arena Diagnóstica Ares Engine
+python launcher.py arena --nodes 100 --games 4
+```
+
 ## 🧪 Desenvolvimento local
 
 ### Testes Python
@@ -386,37 +432,44 @@ python tools/scripts/build_cpp_engine.py --smoke
 
 O script usa uma lista explícita de fontes e inclui o caminho NNUE quando aplicável.
 
-## 📚 Documentação atual
+## 📚 Documentação
 
-| Documento | Conteúdo |
+O índice canónico é [`docs/00_INDEX.md`](docs/00_INDEX.md). Usa-o para encontrar o contrato atual de cada área; decisões históricas em `docs/DECISIONS/` explicam o porquê de escolhas anteriores, mas não substituem o contrato atual.
+
+| Documento canónico | Conteúdo |
 |---|---|
-| `README.md` | Visão geral, jogo, produto e estado atual |
-| `docs/Documento_Design_Jogo.md` | Filosofia e decisões de design do jogo |
-| `docs/Estrutura_Projeto.md` | Estrutura do projeto |
-| `docs/ARCHITECTURE.md` | Fronteiras e dependências técnicas |
-| `docs/AI_ENGINE.md` | Ares, search, avaliação, NNUE e Arena |
-| `docs/NNUE.md` | Arquitetura, formato, treino e validação NNUE |
-| `docs/TOOLING.md` | Ferramentas e contratos de tooling |
-| `docs/DEVELOPMENT_WORKFLOW.md` | Ciclo branch → validação → PR → merge |
-| `docs/CONTRIBUTING.md` | Regras de contribuição e validação |
-| `docs/ROADMAP.md` | Estado, prioridades e próximos blocos |
-| `engine/HEROES_SCHEMA.md` | Formato técnico de `heroes_config.json` |
+| [`docs/ROADMAP.md`](docs/ROADMAP.md) | Ordem operacional, gates e prioridades duráveis |
+| [`docs/GAME_RULES.md`](docs/GAME_RULES.md) | Regras do jogo |
+| [`docs/GAME_DESIGN.md`](docs/GAME_DESIGN.md) | Visão e decisões de design |
+| [`docs/HERO_SYSTEM.md`](docs/HERO_SYSTEM.md) | Sistema e fronteiras de comportamento dos heróis |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Fronteiras e invariantes técnicos |
+| [`docs/AI_ENGINE.md`](docs/AI_ENGINE.md) | Ares, pesquisa, avaliação e promoção |
+| [`docs/ARES_BALANCE_BASELINE_1_0_LITE.md`](docs/ARES_BALANCE_BASELINE_1_0_LITE.md) | Baseline congelado do 1.0-Lite |
+| [`docs/NNUE.md`](docs/NNUE.md) | Formato, features, treino e validação NNUE |
+| [`docs/ARENA_STATISTICAL_METHODOLOGY.md`](docs/ARENA_STATISTICAL_METHODOLOGY.md) | Metodologia estatística da Arena |
+| [`docs/STRENGTH_EVALUATION.md`](docs/STRENGTH_EVALUATION.md) | Avaliação e evidência de força |
+| [`docs/BALANCE_METHODOLOGY.md`](docs/BALANCE_METHODOLOGY.md) | Metodologia do Balance Lab |
+| [`docs/TOOLING.md`](docs/TOOLING.md) | Ferramentas e contratos de tooling |
+| [`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md) | Issue, branch, validação e PR |
+| [`docs/CONTRIBUTING.md`](docs/CONTRIBUTING.md) | Regras de contribuição |
+| [`engine/HEROES_SCHEMA.md`](engine/HEROES_SCHEMA.md) | Formato técnico de `heroes_config.json` |
+
+`docs/Documento_Design_Jogo.md` e `docs/Estrutura_Projeto.md` permanecem como documentos de transição/contexto histórico; não são fontes canónicas quando existe um documento dedicado acima.
 
 ## 🗺️ Estado do projeto
 
-RedWar ainda não é um produto lançado.
+RedWar ainda não é um produto lançado publicamente. A aceitação local do **1.0-Lite** está concluída: o baseline Ares Lite (#526) e a aceitação final do produto local (#555) foram fechados, incluindo validação E2E real em Windows integrada no PR #587.
 
-A prioridade atual é:
+**Importante:** a aceitação do 1.0-Lite valida um produto local com baseline congelado; não certifica força competitiva da Ares e não fecha o gate #372.
 
-1. definir e congelar o **Ares Balance Baseline** e o protocolo mínimo do Balance Lab para o 1.0-Lite;
-2. completar a aplicação local 1.0-Lite: fluxo de partida, draft, Battle UI, VFX/som, dificuldades, replay básico e usabilidade;
-3. manter regras, legalidade e regressões continuamente protegidas;
-4. manter Arena, datasets e tooling reproduzíveis;
-5. lançar a primeira versão local jogável sem depender de servidor ou matchmaking;
-6. continuar o desenvolvimento competitivo da Ares como open-project sob #372;
-7. desenvolver a versão web e o multiplayer;
-8. criar contas, matchmaking, ranking e histórico;
-9. só então considerar o lançamento público completo/Full.
+As prioridades atuais, alinhadas com [`docs/ROADMAP.md`](docs/ROADMAP.md), são:
+
+1. manter a correção do ruleset, a legalidade e as regressões protegidas;
+2. continuar o programa competitivo Ares sob **#372**: correctness, capability, eficiência e evidência Arena independente antes de qualquer promoção;
+3. manter Arena, datasets, provenance e tooling reproduzíveis; a validação do rating histórico continua sob #488;
+4. preparar o Product Full (#373) apenas nas áreas que não contornem os bloqueios de Ares;
+5. avançar para o online (#374) e o release público (#375) pela sequência canónica, sem tratar protótipos como aceitação final;
+6. manter a auditoria de licenças, assets, segurança e distribuição como requisito antes de um lançamento público.
 
 ### 10×10 e outros modos
 

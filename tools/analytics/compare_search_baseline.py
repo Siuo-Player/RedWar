@@ -60,7 +60,7 @@ def _index_rows(payload: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]
     return rows
 
 
-def compare(reference: dict[str, Any], candidate: dict[str, Any]) -> tuple[list[str], list[str]]:
+def compare(reference: dict[str, Any], candidate: dict[str, Any], allow_improvements: bool = False) -> tuple[list[str], list[str]]:
     errors: list[str] = []
     diagnostics: list[str] = []
 
@@ -113,6 +113,11 @@ def compare(reference: dict[str, Any], candidate: dict[str, Any]) -> tuple[list[
 
         for field in ("bestmove", "legal", "mode", "passed"):
             if ref.get(field) != cand.get(field):
+                if allow_improvements:
+                    if field == "passed" and cand.get("passed") is True:
+                        continue
+                    if field in ("bestmove", "legal", "mode") and cand.get("passed") is True:
+                        continue
                 errors.append(
                     f"regression at case={case} nodes={nodes}: {field} "
                     f"reference={ref.get(field)!r} candidate={cand.get(field)!r}"
@@ -135,11 +140,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("reference", type=Path, help="frozen no-LMR JSON artifact")
     parser.add_argument("candidate", type=Path, help="candidate LMR JSON artifact")
+    parser.add_argument(
+        "--allow-improvements",
+        action="store_true",
+        help="allow candidate to pass tactical benchmarks at lower node budgets or with valid alternative passing moves",
+    )
     args = parser.parse_args()
 
     reference = _load(args.reference)
     candidate = _load(args.candidate)
-    errors, diagnostics = compare(reference, candidate)
+    errors, diagnostics = compare(reference, candidate, allow_improvements=args.allow_improvements)
 
     for line in diagnostics:
         print(line)

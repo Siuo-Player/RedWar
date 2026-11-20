@@ -1,0 +1,336 @@
+from __future__ import annotations
+
+import random
+from typing import Any
+
+import pytest
+
+from ai.bot import BOT_ALEATORIO, BotAleatorio, CppEngineBot
+from ai.difficulty_tiers import AresBotTier, AresTieredBot
+from ai.engine_bridge import EngineBridge
+from engine.game_modes import GameMode, GameModeType, get_preset_mode
+from engine.game_state import GameState
+from engine.pieces import HERO_DEFS, Bone, criar_peca_por_nome
+from online.server.room import setup_standard_board
+
+
+class MockForbiddenEngineBridge(EngineBridge):
+    """EngineBridge that immediately raises AssertionError if any C++ communication is attempted.
+
+    Used to empirically verify that non-8x8 variants NEVER invoke the 8x8 C++ bitboard accelerator.
+    """
+
+    def __init__(self):
+        self.invocation_count = 0
+
+    def ensure_running(self) -> None:
+        self.invocation_count += 1
+        raise AssertionError("CRITICAL VIOLATION: C++ Bitboard engine bridge was invoked for non-8x8 board!")
+
+    def send_command(self, cmd: str) -> None:
+        self.invocation_count += 1
+        raise AssertionError(f"CRITICAL VIOLATION: C++ engine received command {cmd!r} for non-8x8 board!")
+
+    def read_response(self) -> str | None:
+        self.invocation_count += 1
+        raise AssertionError("CRITICAL VIOLATION: C++ engine read_response called for non-8x8 board!")
+
+    def close(self) -> None:
+        pass
+
+
+def test_cpp_engine_bot_never_invokes_bridge_on_10x10():
+    """Adversarially verify that CppEngineBot does NOT touch the C++ engine bridge
+
+    under any operation on a 10x10 board (escolher_jogada, play, start_pondering).
+    """
+    forbidden_bridge = MockForbiddenEngineBridge()
+    bot = CppEngineBot(nodes=50_000, bridge=forbidden_bridge)
+
+    gs_10x10 = GameState(rows=10, cols=10)
+    gs_10x10.board[9][4] = Bone("brancas")
+    gs_10x10.board[8][4] = Bone("brancas")
+    gs_10x10.board[1][4] = Bone("pretas")
+
+    # 1. start_pondering must safely no-op without invoking C++ engine
+    bot.start_pondering(gs_10x10)
+    assert forbidden_bridge.invocation_count == 0
+
+    # 2. escolher_jogada must use Python fallback without invoking C++ engine
+    action = bot.escolher_jogada(gs_10x10)
+    assert forbidden_bridge.invocation_count == 0
+    assert action is not None
+    assert 0 <= action["start"][0] < 10
+    assert 0 <= action["start"][1] < 10
+    assert 0 <= action["end"][0] < 10
+    assert 0 <= action["end"][1] < 10
+
+    # 3. play must use Python fallback without invoking C++ engine
+    action_play = bot.play(gs_10x10)
+    assert forbidden_bridge.invocation_count == 0
+    assert action_play is not None
+
+    # Positive control: on standard 8x8, start_pondering DOES invoke bridge
+    gs_8x8 = GameState(rows=8, cols=8)
+    gs_8x8.board[7][0] = Bone("brancas")
+    with pytest.raises(AssertionError, match="CRITICAL VIOLATION"):
+        bot.start_pondering(gs_8x8)
+
+
+def test_bot_aleatorio_100_percent_blunders_on_10x10():
+    """Stress test BotAleatorio and AresTieredBot with 100% blunder rate across 50 10x10 positions.
+
+    Verifies that BotAleatorio scans dynamic rows/cols without raising IndexError or returning None.
+    """
+    bot_blunder = AresTieredBot(
+        tier=AresBotTier.APPRENTICE,
+        bridge=MockForbiddenEngineBridge(),
+        blunder_rate=1.0,
+    )
+
+    random.seed(12345)
+
+    for i in range(50):
+        gs = GameState(rows=10, cols=10)
+        # Randomly place pieces on bottom rows (8, 9), middle rows, and top rows
+        white_r1, white_c1 = random.randint(8, 9), random.randint(0, 9)
+        white_r2, white_c2 = random.randint(5, 7), random.randint(0, 9)
+        black_r1, black_c1 = random.randint(0, 2), random.randint(0, 9)
+
+        gs.board[white_r1][white_c1] = criar_peca_por_nome("Bone", "brancas")
+        gs.board[white_r2][white_c2] = criar_peca_por_nome("Dragoon", "brancas")
+        gs.board[black_r1][black_c1] = criar_peca_por_nome("FrostMage", "pretas")
+
+        gs.white_to_move = True
+        action_white = bot_blunder.escolher_jogada(gs)
+        assert action_white is not None, f"Bot failed to find move on 10x10 position #{i}"
+        assert 0 <= action_white["start"][0] < 10
+        assert 0 <= action_white["start"][1] < 10
+        assert 0 <= action_white["end"][0] < 10
+        assert 0 <= action_white["end"][1] < 10
+
+        gs.white_to_move = False
+        action_black = bot_blunder.escolher_jogada(gs)
+        assert action_black is not None, f"Bot failed to find move for black on 10x10 position #{i}"
+        assert 0 <= action_black["start"][0] < 10
+        assert 0 <= action_black["start"][1] < 10
+        assert 0 <= action_black["end"][0] < 10
+        assert 0 <= action_black["end"][1] < 10
+
+
+def test_full_multi_ply_grand10x10_match_simulation():
+    """Simulate a 50-ply Grand 10x10 game between two AresTieredBots (with 40% and 100% blunders).
+
+    Verifies game progresses, actions execute legally, and C++ engine is never called.
+    """
+    mode = get_preset_mode(GameModeType.GRAND_10X10)
+    gs = mode.create_game_state()
+    setup_standard_board(gs)
+
+    bridge_white = MockForbiddenEngineBridge()
+    bridge_black = MockForbiddenEngineBridge()
+
+    bot_white = AresTieredBot(tier=AresBotTier.INTERMEDIATE, bridge=bridge_white, blunder_rate=0.4)
+    bot_black = AresTieredBot(tier=AresBotTier.APPRENTICE, bridge=bridge_black, blunder_rate=1.0)
+
+    plies_played = 0
+    max_plies = 50
+
+    while plies_played < max_plies:
+        gs.check_game_over()
+        if gs.game_over:
+            break
+
+        active_bot = bot_white if gs.white_to_move else bot_black
+        action = active_bot.escolher_jogada(gs)
+
+        if action is None:
+            break
+
+        assert 0 <= action["start"][0] < 10
+        assert 0 <= action["start"][1] < 10
+        assert 0 <= action["end"][0] < 10
+        assert 0 <= action["end"][1] < 10
+
+        # Execute action through engine
+        gs.execute_action(action)
+        plies_played += 1
+
+    # Verify that a non-trivial game was played without raising errors
+    assert plies_played >= 10, f"Game ended prematurely after only {plies_played} plies"
+    assert bridge_white.invocation_count == 0
+    assert bridge_black.invocation_count == 0
+
+
+def test_bot_aleatorio_exhaustive_piece_survey_on_10x10_boundaries():
+    """Place every piece type in HERO_DEFS on 10x10 boundary cells and corners.
+
+    Verify that BotAleatorio scans without IndexError and produces legal coordinates.
+    """
+    corners_and_edges = [(9, 9), (9, 0), (0, 9), (0, 0), (8, 9), (9, 5), (1, 8)]
+
+    for name in list(HERO_DEFS.keys())[:15]:  # Test first 15 representative hero types
+        gs = GameState(rows=10, cols=10)
+        pos = corners_and_edges[hash(name) % len(corners_and_edges)]
+        try:
+            piece = criar_peca_por_nome(name, "brancas")
+        except Exception:
+            continue
+
+        gs.board[pos[0]][pos[1]] = piece
+        gs.white_to_move = True
+
+        action = BOT_ALEATORIO.escolher_jogada(gs)
+        if action is not None:
+            assert 0 <= action["start"][0] < 10
+            assert 0 <= action["start"][1] < 10
+            assert 0 <= action["end"][0] < 10
+            assert 0 <= action["end"][1] < 10
+
+
+def test_grand10x10_full_game_to_completion():
+    """Verify that a Grand 10x10 game plays all the way to complete termination (game_over=True)
+
+    without ever invoking the 8x8 C++ bitboard accelerator or crashing.
+    """
+    mode = get_preset_mode(GameModeType.GRAND_10X10)
+    gs = mode.create_game_state()
+    # Populate a tactical endgame setup with 4 active units per side on 10x10
+    gs.board[9][4] = criar_peca_por_nome("Bone", "brancas")
+    gs.board[8][3] = criar_peca_por_nome("Dragoon", "brancas")
+    gs.board[7][5] = criar_peca_por_nome("FrostMage", "brancas")
+    gs.board[8][6] = criar_peca_por_nome("Bone", "brancas")
+
+    gs.board[0][4] = criar_peca_por_nome("Bone", "pretas")
+    gs.board[1][3] = criar_peca_por_nome("Dragoon", "pretas")
+    gs.board[2][5] = criar_peca_por_nome("FrostMage", "pretas")
+    gs.board[1][6] = criar_peca_por_nome("Bone", "pretas")
+
+    gs.max_twc = 25  # Ensure bounded turn limit for rapid deterministic termination
+    bridge_white = MockForbiddenEngineBridge()
+    bridge_black = MockForbiddenEngineBridge()
+
+    bot_white = AresTieredBot(tier=AresBotTier.MASTER, bridge=bridge_white, blunder_rate=0.0)
+    bot_black = AresTieredBot(tier=AresBotTier.INTERMEDIATE, bridge=bridge_black, blunder_rate=0.2)
+
+    plies = 0
+    max_limit = 100
+
+    while not gs.game_over and plies < max_limit:
+        active_bot = bot_white if gs.white_to_move else bot_black
+        action = active_bot.escolher_jogada(gs)
+        if action is None:
+            break
+        assert 0 <= action["start"][0] < 10
+        assert 0 <= action["start"][1] < 10
+        assert 0 <= action["end"][0] < 10
+        assert 0 <= action["end"][1] < 10
+
+        gs.execute_action(action)
+        plies += 1
+
+    # Invariant: Match must reach game_over terminal state (annihilation or material resolution)
+    assert gs.game_over is True, f"Game failed to reach completion within {plies} plies"
+    assert gs.winner is not None, "Winner must be determined upon game completion"
+    assert gs.winner_team in ("brancas", "pretas"), f"Winner team must be valid canonical team, got {gs.winner_team}"
+    assert bridge_white.invocation_count == 0
+    assert bridge_black.invocation_count == 0
+
+
+def test_grand10x10_full_game_normal_formation_to_completion():
+    """Verify that a Grand 10x10 game starting from the standard opening formation (setup_standard_board)
+
+    plays all the way to complete terminal game_over status with 0 C++ bridge invocations.
+    """
+    random.seed(42)
+
+    mode = GameMode.grand_10x10()
+    gs = mode.create_game_state()
+    setup_standard_board(gs)
+
+    # Invariants: 10x10 board with rows=10, cols=10, full standard initial pieces
+    assert gs.rows == 10
+    assert gs.cols == 10
+    assert gs.board[9][0] is not None
+    assert gs.board[0][0] is not None
+
+    bridge_white = MockForbiddenEngineBridge()
+    bridge_black = MockForbiddenEngineBridge()
+
+    bot_white = AresTieredBot(tier=AresBotTier.INTERMEDIATE, bridge=bridge_white, blunder_rate=0.2)
+    bot_black = AresTieredBot(tier=AresBotTier.INTERMEDIATE, bridge=bridge_black, blunder_rate=0.3)
+
+    plies = 0
+    max_plies = 200
+
+    while not gs.game_over and plies < max_plies:
+        active_bot = bot_white if gs.white_to_move else bot_black
+        action = active_bot.escolher_jogada(gs)
+        if action is None:
+            break
+
+        assert 0 <= action["start"][0] < 10
+        assert 0 <= action["start"][1] < 10
+        assert 0 <= action["end"][0] < 10
+        assert 0 <= action["end"][1] < 10
+
+        gs.execute_action(action)
+        plies += 1
+
+    assert gs.game_over is True, f"Game failed to reach completion within {plies} plies"
+    assert gs.winner is not None, "Winner must be determined upon game completion"
+    assert gs.winner_team in ("brancas", "pretas"), f"Winner team must be valid canonical team, got {gs.winner_team}"
+    assert bridge_white.invocation_count == 0
+    assert bridge_black.invocation_count == 0
+
+
+def test_grand_10x10_corner_and_boundary_tactics():
+    """Verify that boundary positions and all 4 extreme corners (0,0), (0,9), (9,0), (9,9)
+    generate valid actions within 10x10 bounds without IndexError or C++ bridge calls.
+    """
+    mode = GameMode.grand_10x10()
+    gs = mode.create_game_state()
+
+    # Place pieces on all 4 corners and borders
+    # White pieces
+    gs.board[9][0] = Bone("brancas")
+    gs.board[9][9] = criar_peca_por_nome("Paladin", "brancas")
+    gs.board[9][5] = criar_peca_por_nome("Dragoon", "brancas")
+    gs.board[5][0] = criar_peca_por_nome("FrostMage", "brancas")
+
+    # Black pieces
+    gs.board[0][0] = Bone("pretas")
+    gs.board[0][9] = criar_peca_por_nome("Shadowblade", "pretas")
+    gs.board[0][4] = criar_peca_por_nome("Hookmaster", "pretas")
+    gs.board[5][9] = criar_peca_por_nome("BoneLord", "pretas")
+
+    # Check legal actions for White
+    from engine.legal_actions import legal_actions
+    white_actions = legal_actions(gs)
+    assert len(white_actions) > 0, "Corner/boundary white pieces must have legal moves"
+    for act in white_actions:
+        assert 0 <= act.start[0] < 10 and 0 <= act.start[1] < 10
+        assert 0 <= act.end[0] < 10 and 0 <= act.end[1] < 10
+
+    # Ensure Ares bot can search and choose a move from these boundary positions
+    forbidden_bridge = MockForbiddenEngineBridge()
+    bot = AresTieredBot(tier=AresBotTier.ADVANCED, bridge=forbidden_bridge)
+    chosen = bot.escolher_jogada(gs)
+    assert chosen is not None
+    assert 0 <= chosen["start"][0] < 10 and 0 <= chosen["start"][1] < 10
+    assert 0 <= chosen["end"][0] < 10 and 0 <= chosen["end"][1] < 10
+    assert forbidden_bridge.invocation_count == 0
+
+    # Execute move on gs
+    gs.execute_action(chosen)
+    assert not gs.game_over
+    assert gs.white_to_move is False
+
+    # Check Black legal actions on boundaries
+    black_actions = legal_actions(gs)
+    assert len(black_actions) > 0, "Corner/boundary black pieces must have legal moves"
+    for act in black_actions:
+        assert 0 <= act.start[0] < 10 and 0 <= act.start[1] < 10
+        assert 0 <= act.end[0] < 10 and 0 <= act.end[1] < 10
+
+

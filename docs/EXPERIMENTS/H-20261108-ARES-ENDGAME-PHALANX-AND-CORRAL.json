@@ -1,0 +1,87 @@
+{
+  "hypothesis": {
+    "id": "H-20261108-ARES-ENDGAME-PHALANX-AND-CORRAL",
+    "title": "Endgame Mutual Support Phalanx and Perimeter Corral Evaluation",
+    "bottleneck": "Endgames with low piece counts risk aimless wandering and isolated piece pick-offs.",
+    "proposed_heuristic": "Endgame phalanx mutual support clustering (+3.5 cp/pair), stunned enemy perimeter corraling (+4.0 cp), and endgame convergence.",
+    "baseline_version": "ares-depth1-baseline",
+    "candidate_version": "ares-countermove-ttaging-d2",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-08 22:37:15"
+  },
+  "total_games": 6,
+  "pairs_played": 3,
+  "challenger_wins": 2,
+  "baseline_wins": 2,
+  "draws": 2,
+  "score": 0.5,
+  "delta_elo": -0.0,
+  "elo_margin_95": 227.0,
+  "ci_lower": -227.0,
+  "ci_upper": 227.0,
+  "llr": -0.008,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "REJECTED",
+  "verdict_reason": "Sem evidência de melhoria (Score: 50.0%, ΔElo: -0.0).",
+  "elo_margin_3sigma": 347.4,
+  "ci_lower_3sigma": -347.4,
+  "ci_upper_3sigma": 347.4,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 25
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 94
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 98
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 32
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.004,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": null,
+        "plies": 39
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": null,
+        "plies": 72
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.008,
+      "current_elo": -0.0
+    }
+  ]
+}

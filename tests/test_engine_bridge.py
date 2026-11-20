@@ -96,7 +96,7 @@ def test_subprocess_bridge_resolves_repository_root_from_engine_path():
         str(Path("/workspace/RedWar/ai/cpp_engine/engine"))
     )
 
-    assert bridge.project_root == str(Path("/workspace/RedWar"))
+    assert bridge.project_root == str(Path("/workspace/RedWar").resolve())
     assert bridge.process is None
     assert bridge.lifecycle is BridgeLifecycle.NEW
 

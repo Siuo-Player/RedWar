@@ -1,0 +1,104 @@
+{
+  "hypothesis": {
+    "id": "H-20261109-ARES-ENDGAME-MOP-UP-AND-CORRAL",
+    "title": "Endgame Mop-Up Evaluation & Corner Corral Drive",
+    "bottleneck": "In decisive endgames with material superiority (Delta M >= 30), the engine hovers in the center rather than cornering lone remaining enemy units to execute 2-hit stun kills.",
+    "proposed_heuristic": "Stockfish-inspired mop-up evaluation scaling with material superiority (+2.0/sq towards edges, -1.5/sq ally-enemy distance compression).",
+    "baseline_version": "ares-d2-mopup-off",
+    "candidate_version": "ares-d2-mopup-on",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-09 00:06:53"
+  },
+  "total_games": 8,
+  "pairs_played": 4,
+  "challenger_wins": 3,
+  "baseline_wins": 3,
+  "draws": 2,
+  "score": 0.5,
+  "delta_elo": -0.0,
+  "elo_margin_95": 208.5,
+  "ci_lower": -208.5,
+  "ci_upper": 208.5,
+  "llr": -0.01,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "REJECTED",
+  "verdict_reason": "Sem evidência de melhoria (Score: 50.0%, ΔElo: -0.0).",
+  "elo_margin_3sigma": 319.1,
+  "ci_lower_3sigma": -319.1,
+  "ci_upper_3sigma": 319.1,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 25
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 31
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "white",
+        "plies": 93
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "white",
+        "plies": 65
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.004,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "white",
+        "plies": 65
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": null,
+        "plies": 38
+      },
+      "challenger_pair_score": 1.5,
+      "current_llr": 0.047,
+      "current_elo": 58.5
+    },
+    {
+      "pair_index": 3,
+      "seed": 401,
+      "game1": {
+        "challenger_color": "white",
+        "winner": null,
+        "plies": 28
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "white",
+        "plies": 91
+      },
+      "challenger_pair_score": 0.5,
+      "current_llr": -0.01,
+      "current_elo": -0.0
+    }
+  ]
+}

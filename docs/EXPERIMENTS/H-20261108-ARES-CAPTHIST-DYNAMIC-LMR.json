@@ -1,0 +1,87 @@
+{
+  "hypothesis": {
+    "id": "H-20261108-ARES-CAPTHIST-DYNAMIC-LMR",
+    "title": "Capture History Heuristic and Dynamic History-Modulated LMR",
+    "bottleneck": "Suboptimal tactical move ranking among equal-cost pieces and uniform LMR reduction regardless of historical refutation potency.",
+    "proposed_heuristic": "CaptureHistoryTable with Stockfish gravity aging and History-Modulated LMR (+/- 1 ply reduction scaling).",
+    "baseline_version": "ares-depth1-baseline",
+    "candidate_version": "ares-countermove-ttaging-d2",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-08 21:56:02"
+  },
+  "total_games": 6,
+  "pairs_played": 3,
+  "challenger_wins": 2,
+  "baseline_wins": 4,
+  "draws": 0,
+  "score": 0.3333,
+  "delta_elo": -120.4,
+  "elo_margin_95": 294.9,
+  "ci_lower": -415.3,
+  "ci_upper": 174.5,
+  "llr": -0.103,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "REJECTED",
+  "verdict_reason": "Sem evidência de melhoria (Score: 33.3%, ΔElo: -120.4).",
+  "elo_margin_3sigma": 451.3,
+  "ci_lower_3sigma": -571.7,
+  "ci_upper_3sigma": 330.9,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 23
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 27
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 58
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 62
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.004,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 65
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "white",
+        "plies": 107
+      },
+      "challenger_pair_score": 0.0,
+      "current_llr": -0.103,
+      "current_elo": -120.4
+    }
+  ]
+}

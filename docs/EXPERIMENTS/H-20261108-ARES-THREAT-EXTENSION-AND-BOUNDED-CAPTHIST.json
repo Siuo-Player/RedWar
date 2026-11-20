@@ -1,0 +1,87 @@
+{
+  "hypothesis": {
+    "id": "H-20261108-ARES-THREAT-EXTENSION-AND-BOUNDED-CAPTHIST",
+    "title": "Tactical Threat Extension and Bounded Capture History",
+    "bottleneck": "Shallow horizons miss defensive blocks on stunned allies and unbounded capthist risked inverting MVV-LVA tiers.",
+    "proposed_heuristic": "Singular threat extension (+1 ply on imminent execution threat) and strictly bounded (+/-500) Capthist.",
+    "baseline_version": "ares-depth1-baseline",
+    "candidate_version": "ares-countermove-ttaging-d2",
+    "target_elo_gain": 25.0,
+    "created_at": "2026-11-08 21:59:17"
+  },
+  "total_games": 6,
+  "pairs_played": 3,
+  "challenger_wins": 3,
+  "baseline_wins": 2,
+  "draws": 1,
+  "score": 0.5833,
+  "delta_elo": 58.5,
+  "elo_margin_95": 256.6,
+  "ci_lower": -198.1,
+  "ci_upper": 315.1,
+  "llr": 0.047,
+  "sprt_bounds": [
+    -2.944,
+    2.944
+  ],
+  "sprt_status": "CONTINUE",
+  "verdict": "CONTINUE",
+  "verdict_reason": "Tendência positiva (+58.5 Elo), mas requer mais partidas para confirmação formal (CI95%: [-198.1, 315.1], 3σ: [-334.3, 451.3]).",
+  "elo_margin_3sigma": 392.8,
+  "ci_lower_3sigma": -334.3,
+  "ci_upper_3sigma": 451.3,
+  "sigma_gate_passed": false,
+  "pair_outcomes": [
+    {
+      "pair_index": 0,
+      "seed": 101,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 23
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 55
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.002,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 1,
+      "seed": 211,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "black",
+        "plies": 59
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": "black",
+        "plies": 58
+      },
+      "challenger_pair_score": 1.0,
+      "current_llr": -0.004,
+      "current_elo": -0.0
+    },
+    {
+      "pair_index": 2,
+      "seed": 307,
+      "game1": {
+        "challenger_color": "white",
+        "winner": "white",
+        "plies": 59
+      },
+      "game2": {
+        "challenger_color": "black",
+        "winner": null,
+        "plies": 45
+      },
+      "challenger_pair_score": 1.5,
+      "current_llr": 0.047,
+      "current_elo": 58.5
+    }
+  ]
+}

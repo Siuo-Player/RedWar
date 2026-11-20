@@ -34,6 +34,15 @@ def real_display():
     pygame.quit()
 
 
+@pytest.fixture(autouse=True)
+def isolated_replay_directory(tmp_path, monkeypatch):
+    """Ensure each acceptance test run uses an isolated, pristine replay storage."""
+    replay_dir = tmp_path / "acceptance_replays"
+    replay_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("REDWAR_REPLAY_DIR", str(replay_dir))
+    yield replay_dir
+
+
 def _new_controller() -> main.JogoController:
     controller = main.JogoController()
     controller.desenhar_animacao = lambda *args, **kwargs: None

@@ -264,6 +264,31 @@ int main() {
     std::cout << "Effect in hash: "
               << (effect_hash_ok ? "PASS" : "FAIL") << '\n';
 
+    // Terminal material is permanent-piece cost only, not evaluator score.
+    clear_board();
+    board.pieces[0][0] = create_piece("Templar", 'W');
+    Piece temporary_bone = create_piece("Bone", 'W');
+    temporary_bone.lifespan = 5;
+    board.pieces[0][1] = temporary_bone;
+    board.pieces[7][7] = create_piece("Geomancer", 'B');
+    compute_initial_eval();
+    const bool temporary_piece_excluded =
+        board.material_score > 0 && terminal_material_score() == -6 && terminal_tiebreak_score(0) < 0;
+    all_ok &= temporary_piece_excluded;
+    std::cout << "Terminal material excludes temporary pieces: "
+              << (temporary_piece_excluded ? "PASS" : "FAIL") << '\n';
+
+    clear_board();
+    board.pieces[3][3] = create_piece("FrostMage", 'W');
+    board.pieces[3][3].stun_timer = 2;
+    board.pieces[7][7] = create_piece("FrostMage", 'B');
+    compute_initial_eval();
+    const bool equal_material_black_tiebreak =
+        board.material_score > 0 && terminal_material_score() == 0 && terminal_tiebreak_score(0) < 0;
+    all_ok &= equal_material_black_tiebreak;
+    std::cout << "Terminal equal-material tiebreak: "
+              << (equal_material_black_tiebreak ? "PASS" : "FAIL") << '\n';
+
     std::cout << "SMOKE_RESULT " << (all_ok ? "PASS" : "FAIL") << '\n';
     return all_ok ? 0 : 1;
 }

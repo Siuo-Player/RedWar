@@ -20,3 +20,16 @@ Changing the production estimator requires a separate methodological decision an
 ## Consequences
 
 This guardrail prevents result ordering from being mistaken for experimental evidence and preserves separation between the production engineering proxy and the empirical calibration analysis.
+
+
+## Arena output contract (#597)
+
+The Arena summary now keeps two different quantities separate:
+
+- `rating_delta_sequential_elo_diagnostic` (also retained under the legacy `rating_delta` key) is produced by replaying each result in order. It is deliberately order-dependent and is diagnostic only.
+- `rating_delta_aggregate_score_elo_equivalent` is derived only from the final aggregate win/draw/loss score. For a fixed aggregate score it is order-invariant, but it is a descriptive Elo-equivalent transformation—not a calibrated strength estimate, uncertainty interval, or promotion criterion. It is undefined when there are no valid games or the score is exactly 0%/100%.
+
+The console labels both quantities explicitly. Neither quantity replaces the complete colour-inverted pair analysis, the declared statistical protocol, or the authoritative `ai_quality_gate.yml` promotion gate. Experimental runs also record `promotion_authority=false` and `promotion_decision=not_authorized`; the legacy `promoted` field remains false for those runs.
+
+
+The raw-data recomputation for the 100-game historical bridge is preserved in [`docs/EXECUTIONS/2026-10-20-arena-597-raw-recompute.md`](../EXECUTIONS/2026-10-20-arena-597-raw-recompute.md), including the JSONL SHA-256, paired/color audit, the sequential result, and the aggregate-score equivalent.

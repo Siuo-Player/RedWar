@@ -4,9 +4,10 @@ import os
 import subprocess
 from pathlib import Path
 
+from engine.actions import ActionType, GameAction
 from engine.game_state import GameState
+from engine.legal_actions import legal_actions
 from tools.analytics.opening_book import carregar_abertura_do_book, gerar_abertura
-from tests.test_cross_backend_make_unmake import actions_for
 
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE_NAME = "cpp_perft_bridge_test.exe" if os.name == "nt" else "cpp_perft_bridge_test"
@@ -24,15 +25,42 @@ CASES = (
 SEED_B_OPENING_1_SEED = 10211
 
 
+def apply_perft_action(state: GameState, action: GameAction) -> None:
+    """Apply one action produced by legal_actions without enumerating the action space again.
+
+    This is an internal perft fast path: callers must supply an action from
+    legal_actions(state). Public callers should continue using execute_action().
+    """
+    if not isinstance(action, GameAction):
+        raise TypeError("perft traversal requires a canonical GameAction")
+
+    if action.type is ActionType.SURRENDER:
+        state._execute_surrender(action.actor_team)
+        return
+
+    if action.start is None or action.end is None:
+        raise ValueError(f"board action is missing coordinates: {action!r}")
+
+    state.make_action(
+        action.start,
+        action.end,
+        action.type.value,
+        affected_area=list(action.area),
+        spawn_name=action.spawn_name,
+        spell_name=action.spell_name,
+    )
+
+
 def python_perft(state: GameState, depth: int) -> int:
+    """Traverse the canonical Python action space without redundant re-validation."""
     if depth == 0:
         return 1
 
-    actions = actions_for(state)
+    actions = legal_actions(state)
     total = 0
     for action in actions:
         child = state.fast_clone()
-        child.execute_action(action)
+        apply_perft_action(child, action)
         total += python_perft(child, depth - 1)
     return total
 
@@ -81,6 +109,62 @@ def assert_cpp_perft_matches(requests: list[tuple[str, GameState, int]]) -> None
             f"{label}: Python/C++ node-count mismatch at depth {depth}: "
             f"Python={expected_nodes}, C++={actual_nodes}"
         )
+
+
+def _transition_contract_snapshot(state: GameState) -> tuple:
+    return (
+        state.to_rwen(),
+        state.white_to_move,
+        state.turns_without_capture,
+        state.game_over,
+        state.winner,
+        getattr(state, "winner_team", None),
+        state.current_hash,
+        state._hash_valid,
+        state.get_state_hash(),
+        dict(state.state_history),
+        state._last_history_hash,
+        state.last_move,
+        tuple(
+            (entry["short"], entry["team"], entry["acao_escolhida"])
+            for entry in state.move_log
+        ),
+        state.current_score,
+    )
+
+
+def test_execute_action_perft_equivalence_contract():
+    """Compare the public validated path with canonical perft transitions on every root fixture."""
+    roots = [
+        (label, make_case(opening_index))
+        for label, opening_index, _depth in CASES
+    ]
+    roots.append(("seed-b-opening-1", make_seed_b_opening_1_case()))
+
+    total_actions = 0
+    for label, state in roots:
+        actions = legal_actions(state)
+        if not actions:
+            # GameState() is the empty-board fixture: it has no board actions.
+            # At positive remaining depth, a terminal position contributes zero nodes.
+            assert label == "initial", f"{label}: unexpected empty canonical action space"
+            assert python_perft(state, 1) == 0
+            continue
+
+        for action in actions:
+            assert isinstance(action, GameAction), f"{label}: legal_actions returned a non-canonical action"
+            public_child = state.fast_clone()
+            perft_child = state.fast_clone()
+
+            public_child.execute_action(action)
+            apply_perft_action(perft_child, action)
+
+            assert _transition_contract_snapshot(public_child) == _transition_contract_snapshot(perft_child), (
+                f"{label}: execute_action and perft transition differ for {action.to_dict()}"
+            )
+            total_actions += 1
+
+    assert total_actions > 0, "Expected at least one canonical action across all root fixtures"
 
 
 def test_python_cpp_perft_node_counts_match():
