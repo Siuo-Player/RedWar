@@ -684,7 +684,7 @@ class GameState:
             self.winner_team = "brancas"
             return
 
-        adversario_vencedor = "Brancas" if self.white_to_move else "Pretas"
+        adversario_vencedor = "Pretas" if self.white_to_move else "Brancas"
 
         def resolver_por_material():
             white_mat = sum(

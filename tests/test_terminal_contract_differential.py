@@ -67,7 +67,15 @@ def test_terminal_contract_matrix_matches_python_terminal_classes():
     stunned.stun_timer = 1
     blocked.board[6][0] = stunned
     blocked.board[1][0] = criar_peca_por_nome("Cleric", "pretas")
-    _assert_python_terminal(blocked, True, "Brancas Vencem (Oponente Bloqueado)")
+    _assert_python_terminal(blocked, True, "Pretas Vencem (Oponente Bloqueado)")
+
+    black_blocked = GameState()
+    black_stunned = criar_peca_por_nome("StoneWall", "pretas")
+    black_stunned.stun_timer = 1
+    black_blocked.board[1][0] = black_stunned
+    black_blocked.board[6][0] = criar_peca_por_nome("Geomancer", "brancas")
+    black_blocked.white_to_move = False
+    _assert_python_terminal(black_blocked, True, "Brancas Vencem (Oponente Bloqueado)")
 
     twc50 = GameState()
     twc50.board[6][0] = criar_peca_por_nome("Geomancer", "brancas")
@@ -82,32 +90,34 @@ def test_terminal_contract_matrix_matches_python_terminal_classes():
     twc49.turns_without_capture = 49
     _assert_python_terminal(twc49, False)
 
-    native = _run_native([mutual, white_only, black_only, blocked, twc50, twc49])
+    native = _run_native([mutual, white_only, black_only, blocked, black_blocked, twc50, twc49])
     kinds = [row[0] for row in native]
     assert kinds == [
         "MUTUAL_ANNIHILATION",
         "WHITE_ANNIHILATION",
         "BLACK_ANNIHILATION",
         "BLOCKED",
+        "BLOCKED",
         "TWC_50",
         "NON_TERMINAL",
     ]
 
-    for kind, score, bestmove in native[:5]:
+    for kind, score, bestmove in native[:6]:
         assert bestmove == "0000"
         assert abs(score) >= 9_999_899
 
     assert native[0][1] < 0
     assert native[1][1] > 0
     assert native[2][1] < 0
-    assert native[3][1] < 0
+    assert native[3][1] < 0  # White is blocked: White loses.
+    assert native[4][1] > 0  # Black is blocked: Black loses.
 
-    twc_score = native[4][1]
+    twc_score = native[5][1]
     assert twc_score != 0
     if "Brancas Vencem" in twc50.winner:
         assert twc_score > 0
     else:
         assert twc_score < 0
 
-    assert native[5][1] == 0
-    assert native[5][2] != "0000"
+    assert native[6][1] == 0
+    assert native[6][2] != "0000"

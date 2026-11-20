@@ -1,98 +1,66 @@
-# Deterministic Audit: FrostMage vs Inquisitor Endgame Dynamics
+# FrostMage vs Inquisitor: Rule Audit and Evidence Limits
 
 **Issue:** #444  
-**Date:** 2026-11-20  
-**Scope:** Authoritative game-rules audit of the 16 FrostMages vs 1 Inquisitor endgame.
+**Initial audit:** 2026-11-20  
+**Follow-up:** PR #675 review  
+**Status:** Local rule interactions covered; original strategic position not yet reproduced.
 
----
+## 1. Scope
 
-## 1. Context and Problem Statement
+The tests in this file construct synthetic board states. They are useful for checking individual rule interactions, but they are not a replay of the manual 16-FrostMage-versus-1-Inquisitor game described in Issue #444.
 
-Manual play on `main` exposed a perplexing scenario: a player commanding 16 FrostMages against a single enemy Inquisitor was unable to win or finish the position.
+The original issue did not provide a complete initial RWEN position and action sequence. Therefore, the tests cannot establish a forced result for every possible 16-vs-1 position.
 
-Issue #444 posed three deterministic questions:
-1. Is this position **legally winnable** with correct FrostMage play?
-2. Is it a **legitimate losing/stalemate position** under authoritative rules?
-3. Or is it an **actual interaction/ice-placement deadlock**?
+## 2. Blocked-player terminal rule and backend parity
 
----
+When a side has no legal actions, Python's `check_game_over()` declares the game terminal. The C++ search engine independently treats an empty legal-move list as a loss for the side to move:
 
-## 2. Deterministic Findings
+- White to move and blocked: C++ terminal score is negative; Black wins.
+- Black to move and blocked: C++ terminal score is positive; White wins.
 
-### A. Is it legally winnable with FrostMages against a lone Inquisitor?
-**No.** Under authoritative rules, the position cannot be won by White (FrostMages):
-- FrostMage has no basic attack (`behavior.attack.type == "none"`).
-- The only offensive mechanism available to FrostMage is the `NEVADA` spell, which applies a 2-turn stun on the first hit and captures on a second stun during an active stun window.
-- When Black has only a single piece (the Inquisitor), stunning the Inquisitor immediately leaves Black with zero legal moves on their turn (`can_act() == False`).
-- The authoritative transition engine calls `check_game_over()` at turn switch. When the active player has zero legal moves, the `Oponente Bloqueado` terminal rule triggers immediately.
-- In `check_game_over()`:
-  ```python
-  adversario_vencedor = "Brancas" if self.white_to_move else "Pretas"
-  ```
-  On Black's turn (`white_to_move == False`), `adversario_vencedor` evaluates to `"Pretas"`.
-  The game terminates instantly with:
-  ```text
-  Pretas Vencem (Oponente Bloqueado)
-  ```
-- Thus, stunning the lone Inquisitor immediately causes Black to win.
+The Python winner mapping must therefore name the **opposing** side:
+```python
+adversario_vencedor = "Pretas" if self.white_to_move else "Brancas"
+```
 
----
+The previous Python mapping named the blocked side and disagreed with C++. The parity regression now checks both colours against the native terminal evaluator. The unusual game rule is not being changed; Python is being aligned with the existing native interpretation.
 
-### B. Is it a legitimate losing position?
-**Yes, authoritative rules classify this endgame as a definitive loss for White:**
-1. **If White stuns Inquisitor:** Black wins immediately via `Pretas Vencem (Oponente Bloqueado)`.
-2. **If White refuses to stun Inquisitor:** FrostMage cannot capture without stunning. The game reaches 50 turns without capture (`twc == 50`). At `twc == 50`, `resolver_por_material()` compares piece costs:
-   - 1 Inquisitor: **128 points** (`HERO_DEFS["Inquisitor"]["cost"]`)
-   - 16 FrostMages: **80 points** ($16 \times 5 = 80$, `HERO_DEFS["FrostMage"]["cost"] = 5`)
-   - Since $128 > 80$, Black wins on material tiebreak:
-     ```text
-     Desempate por Material (128 vs 80) - Pretas Vencem no Desempate
-     ```
-3. **If Inquisitor approaches:** Inquisitor has adjacent movement and attack (`cost 128`), and projects a silence aura of Chebyshev radius 2 (`aura_radius = 2`). Any FrostMage within radius 2 is silenced and unable to cast `NEVADA`. Inquisitor can systematically eliminate FrostMages one by one.
+## 3. FrostMage stun against a lone Inquisitor
 
----
+In the synthetic fixture, a FrostMage can legally cast `NEVADA` so its cross-shaped effect reaches the lone Inquisitor. Black then has no legal action. Under the native terminal rule, the blocked side loses, so White wins this constructed position.
 
-### C. Is there an interaction/ice-placement deadlock?
-**Yes, whenever direct targeting is used:**
-1. When `NEVADA` is targeted directly on the Inquisitor's tile `(r, c)`:
-   - The tile `(r, c)` receives an ice tile effect (`timer: 3`).
-   - The Inquisitor receives `stun_timer = 2`.
-2. On White's subsequent turn:
-   - `_install_frostmage_nevada_rules()` explicitly forbids targeting any tile that already contains ice:
-     ```python
-     if tile_effects and tile_effects[focus_r][focus_c].get("type") == "ice":
-         continue
-     ```
-   - Adjacent `NEVADA` casts aimed at neighboring tiles skip `(r, c)` from splash/cross-AOE because `(r, c)` has ice:
-     ```python
-     if tile and tile.get("type") == "ice" and (fr, fc) != (end_row, end_col):
-         continue
-     ```
-   - This creates an **"ice shield"**: while sitting on ice, the Inquisitor is completely immune to further stuns.
-   - The ice persists for 3 turns, whereas the stun lasts 2 turns. By the time the ice melts, the stun has already expired.
+This finding corrects the previous PR #675 conclusion, which incorrectly treated the Python winner string as authoritative without checking the native evaluator.
 
-### D. The Indirect Splash Execution Technique (When Auxiliary Enemies Exist)
-If Black possesses at least one auxiliary piece (e.g. a Cleric or Bone) so that Black is not blocked when Inquisitor is stunned, White **can** eliminate Inquisitor using indirect splash targeting:
-1. **Turn 1:** FrostMage centers `NEVADA` on an adjacent square $(r, c-1)$.
-   - Tile $(r, c-1)$ receives ice.
-   - The cross-AOE reaches $(r, c)$, stunning Inquisitor without placing ice on $(r, c)$.
-2. **Black Turn:** Black moves their auxiliary piece (Inquisitor remains stunned).
-3. **Turn 2:** A second FrostMage targets $(r, c)$ directly with `NEVADA`.
-   - Since $(r, c)$ has no ice, the action is legal.
-   - The stunned Inquisitor is captured and removed from the board.
+It remains a fixture-level result. It does not prove that the original manual position had the same geometry, available actions, or tactical sequence.
 
----
+## 4. Ice and indirect splash
 
-## 3. Policy and Product Impact
+The interaction tests now execute actions through the canonical sequence `legal_actions()` → `GameState.execute_action()`. They no longer use `make_action()` to force transitions that are not present in the legal action space.
 
-In accordance with Issue #444 guidance:
-> *"Do not change combat semantics merely to make the reported position easier. First reproduce with a focused state-level regression/fixture and document the conclusion."*
+The tests cover these narrower claims:
 
-1. **Combat Semantics Preserved:** Combat and terminal contracts are strictly preserved.
-2. **Player Feedback:** PR #615 implemented dedicated sidebar feedback explaining Inquisitor silence and aura radius so players understand tactical constraints.
-3. **Regression Suite:** Added `tests/test_frostmage_inquisitor_endgame_audit.py` covering all 5 key dynamics:
-   - Immediate terminal block when stunning a lone enemy piece.
-   - Ice shield immunity from direct targeting.
-   - Indirect splash execution with auxiliary enemy pieces.
-   - 50-turn material tiebreak (128 vs 80).
-   - Inquisitor silence radius boundary vs FrostMage casting range.
+- Directly focusing `NEVADA` on the Inquisitor's square creates ice there; that square is not offered as a direct focus target while iced.
+- A cross centered on an adjacent square remains a legal spell action. However, the effect skips the already iced square, so the Inquisitor on that square is not hit by the cross.
+- Focusing `NEVADA` on an adjacent square that is not already iced can stun the Inquisitor without placing ice on the Inquisitor's square.
+- If a Black auxiliary piece can legally move, a second FrostMage can legally focus the still-stunned Inquisitor and capture it when its square is not protected by the existing ice effect.
+
+These tests demonstrate the local action sequence only. They do not prove a universal winning strategy for either side.
+
+## 5. Material tiebreak
+
+The material fixture places the no-capture counter at its terminal threshold and checks the resolver's comparison: 128 points for the Inquisitor against 80 points for sixteen FrostMages.
+
+This verifies the tiebreak calculation **at the threshold**. It does not prove that avoiding `NEVADA` necessarily forces the game to reach that threshold, nor that the Inquisitor can systematically eliminate all FrostMages.
+
+The counter increments per action/ply, not per complete two-player turn. Describing 50 increments as 50 full turns was inaccurate.
+
+## 6. What remains to close Issue #444
+
+To answer the original strategic question rather than only test isolated mechanics, the issue needs the original replay or the initial RWEN plus the full action sequence. Then the audit can:
+
+1. Reproduce the exact position on the corrected engine.
+2. Verify the legal actions, aura distances, spell ranges, and ice effects at each ply.
+3. Compare both players' continuations using the same terminal contract as the native engine.
+4. Only then classify the original position as forced win, forced loss, draw, or interaction deadlock.
+
+No combat or terminal semantics are changed beyond correcting the Python/C++ winner mismatch.
