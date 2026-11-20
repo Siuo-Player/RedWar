@@ -83,23 +83,36 @@ def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None
             "http_app": http_app,
         }
     finally:
-        # Stop HTTP before waiting for its serving thread.
-        http_app.stop()
-        http_thread.join(timeout=3.0)
-        assert not http_thread.is_alive(), "HTTP server thread did not stop cleanly"
+        cleanup_errors: list[Exception] = []
+        try:
+            http_app.stop()
+        except Exception as exc:
+            cleanup_errors.append(exc)
+        finally:
+            http_thread.join(timeout=3.0)
+        if http_thread.is_alive():
+            cleanup_errors.append(RuntimeError("HTTP server thread did not stop cleanly"))
 
-        if ws_server is not None and not loop.is_closed():
-            async def _stop_ws_server() -> None:
-                ws_server.close()
-                await ws_server.wait_closed()
+        try:
+            if ws_server is not None and not loop.is_closed():
+                async def _stop_ws_server() -> None:
+                    ws_server.close()
+                    await ws_server.wait_closed()
 
-            stop_future = asyncio.run_coroutine_threadsafe(_stop_ws_server(), loop)
-            stop_future.result(timeout=5.0)
+                stop_future = asyncio.run_coroutine_threadsafe(_stop_ws_server(), loop)
+                stop_future.result(timeout=5.0)
+        except Exception as exc:
+            cleanup_errors.append(exc)
+        finally:
+            if not loop.is_closed():
+                loop.call_soon_threadsafe(loop.stop)
+            ws_thread.join(timeout=3.0)
+            if ws_thread.is_alive():
+                cleanup_errors.append(RuntimeError("WebSocket event-loop thread did not stop cleanly"))
 
-        if not loop.is_closed():
-            loop.call_soon_threadsafe(loop.stop)
-        ws_thread.join(timeout=3.0)
-        assert not ws_thread.is_alive(), "WebSocket event-loop thread did not stop cleanly"
+        if cleanup_errors:
+            details = "; ".join(str(error) for error in cleanup_errors)
+            raise RuntimeError(f"Playwright server teardown failed: {details}") from cleanup_errors[0]
 
 
 @pytest.fixture(scope="module")
@@ -144,7 +157,7 @@ def attach_browser_error_capture(page: Page) -> list[str]:
 
 
 def assert_browser_has_no_errors(errors: list[str], label: str) -> None:
-    assert not errors, f"{label} reported browser/runtime/network errors:\\n" + "\\n".join(errors)
+    assert not errors, f"{label} reported browser/runtime/network errors:\n" + "\n".join(errors)
 
 
 def click_canvas_square(page: Page, r: int, c: int, grid_size: int = 8) -> None:
