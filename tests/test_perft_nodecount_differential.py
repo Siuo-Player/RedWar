@@ -24,7 +24,24 @@ CASES = (
 SEED_B_OPENING_1_SEED = 10211
 
 
+def apply_perft_action(state: GameState, action: dict) -> None:
+    """Apply an already-canonicalized action directly to state for perft traversal."""
+    act_type = action["type"]
+    if act_type == "surrender":
+        state._execute_surrender(action.get("actor_team"))
+    else:
+        state.make_action(
+            action["start"],
+            action["end"],
+            act_type,
+            affected_area=action.get("area"),
+            spawn_name=action.get("spawn_name"),
+            spell_name=action.get("spell_name"),
+        )
+
+
 def python_perft(state: GameState, depth: int) -> int:
+    """Traverse game tree to compute node counts at depth without redundant action re-generation."""
     if depth == 0:
         return 1
 
@@ -32,7 +49,7 @@ def python_perft(state: GameState, depth: int) -> int:
     total = 0
     for action in actions:
         child = state.fast_clone()
-        child.execute_action(action)
+        apply_perft_action(child, action)
         total += python_perft(child, depth - 1)
     return total
 
@@ -81,6 +98,23 @@ def assert_cpp_perft_matches(requests: list[tuple[str, GameState, int]]) -> None
             f"{label}: Python/C++ node-count mismatch at depth {depth}: "
             f"Python={expected_nodes}, C++={actual_nodes}"
         )
+
+
+def test_execute_action_perft_equivalence_contract():
+    """Verify that public execute_action validates correctly and matches apply_perft_action identically."""
+    state = make_case(0)
+    tested = 0
+    for action in actions_for(state):
+        c1 = state.fast_clone()
+        c2 = state.fast_clone()
+        c1.execute_action(action)
+        apply_perft_action(c2, action)
+        assert c1.to_rwen() == c2.to_rwen(), "RWEN state mismatch between execute_action and apply_perft_action"
+        assert c1.white_to_move == c2.white_to_move
+        assert c1.game_over == c2.game_over
+        assert c1.winner == c2.winner
+        tested += 1
+    assert tested > 0, "Expected at least one action to test equivalence"
 
 
 def test_python_cpp_perft_node_counts_match():

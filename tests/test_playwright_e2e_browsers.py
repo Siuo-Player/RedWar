@@ -3,10 +3,12 @@
 Playwright End-to-End Headless Browser Test Suite for RedWar Web Platform.
 
 Verifies:
-1. Multi-viewport CSS responsiveness (320x640 mobile, 768x1024 tablet, 1366x768 desktop).
-2. Live interactive UI tabs and panel toggling without unhandled console errors.
+1. Multi-viewport CSS responsiveness (320x640 mobile, 768x1024 tablet, 1366x768 desktop)
+   with zero horizontal overflow and strict error tracking (pageerror and console error).
+2. Live interactive UI tabs and panel toggling with real visibility assertions (is_visible)
+   and mutual exclusivity verification across Academy, Puzzles, Analytics, Leaderboard, and Review.
 3. Two-player browser multiplayer lifecycle: room joining, authoritative synchronization,
-   resignation, post-game buttons, and UI control reset on rematch.
+   resignation, post-game buttons, and UI control reset on rematch with clean WS server teardown.
 """
 from __future__ import annotations
 
@@ -29,7 +31,7 @@ from online.server.web_app import RedWarWebApp, _RedWarHTTPRequestHandler
 
 @pytest.fixture(scope="module")
 def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None]:
-    """Start headless HTTP web server and WebSocket multiplayer server on ephemeral ports."""
+    """Start headless HTTP web server and WebSocket multiplayer server on ephemeral ports with strict lifecycle management."""
     tmp_dir = tmp_path_factory.mktemp("playwright_servers")
     db_file = tmp_dir / "ratings.json"
     lb = LeaderboardManager(storage_path=str(db_file))
@@ -47,6 +49,7 @@ def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None
 
     # 2. Start WebSocket server in dedicated asyncio thread
     ws_port_box = [0]
+    ws_server_box = [None]
     ws_ready = threading.Event()
     loop = asyncio.new_event_loop()
 
@@ -56,15 +59,19 @@ def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None
 
         async def _serve():
             server = await websockets.serve(ws_app.gerir_conexao, "127.0.0.1", 0)
+            ws_server_box[0] = server
             ws_port_box[0] = server.sockets[0].getsockname()[1]
             ws_ready.set()
-            await asyncio.Future()  # run forever
+            await server.wait_closed()
 
-        loop.run_until_complete(_serve())
+        try:
+            loop.run_until_complete(_serve())
+        finally:
+            loop.close()
 
     ws_thread = threading.Thread(target=_run_ws, daemon=True)
     ws_thread.start()
-    ws_ready.wait(timeout=5.0)
+    assert ws_ready.wait(timeout=5.0), "WebSocket server failed to start within 5.0 seconds"
 
     servers = {
         "http_url": f"http://127.0.0.1:{http_port}",
@@ -75,8 +82,21 @@ def web_and_ws_servers(tmp_path_factory) -> Generator[dict[str, Any], None, None
 
     yield servers
 
-    # Teardown
+    # Explicit teardown of HTTP, WebSocket, event loop, and threads
     http_app.stop()
+    if ws_server_box[0] is not None:
+        async def _stop_ws():
+            ws_server_box[0].close()
+            await ws_server_box[0].wait_closed()
+
+        try:
+            future = asyncio.run_coroutine_threadsafe(_stop_ws(), loop)
+            future.result(timeout=3.0)
+        except Exception:
+            pass
+
+    loop.call_soon_threadsafe(loop.stop)
+    ws_thread.join(timeout=3.0)
 
 
 @pytest.fixture(scope="module")
@@ -103,7 +123,7 @@ def click_canvas_square(page: Page, r: int, c: int, grid_size: int = 8) -> None:
 
 def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, chromium_browser):
     """Verify that the RedWar web application adapts across mobile, tablet, and desktop viewports,
-    and maintains zero horizontal overflow across all major interactive tabs.
+    and maintains zero horizontal overflow across all major interactive tabs with strict JS error capturing.
     """
     http_url = web_and_ws_servers["http_url"]
 
@@ -117,8 +137,10 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, c
         context: BrowserContext = chromium_browser.new_context(viewport={"width": vp["width"], "height": vp["height"]})
         page: Page = context.new_page()
 
-        console_errors = []
+        console_errors: list[str] = []
+        page_errors: list[str] = []
         page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+        page.on("pageerror", lambda exc: page_errors.append(str(exc)))
 
         page.goto(http_url, wait_until="domcontentloaded")
         page.evaluate("""async () => {
@@ -153,19 +175,29 @@ def test_playwright_responsive_viewports_and_dom_integrity(web_and_ws_servers, c
         btn_resign = page.query_selector("#btnResign")
         assert btn_resign is not None, f"Button #btnResign missing in {vp['name']}"
 
-        # Check that no unhandled fatal script errors occurred
-        fatal_errors = [e for e in console_errors if "SyntaxError" in e or "ReferenceError" in e]
-        assert len(fatal_errors) == 0, f"Fatal JS errors in {vp['name']}: {fatal_errors}"
+        # Strict JS error checking: fail on any uncaught page error or console errors
+        assert len(page_errors) == 0, f"Unhandled page exceptions in {vp['name']}: {page_errors}"
+        fatal_errors = [
+            e for e in console_errors
+            if not any(ign in e for ign in ["favicon.ico", "Failed to load resource"])
+        ]
+        assert len(fatal_errors) == 0, f"Critical console errors in {vp['name']}: {fatal_errors}"
 
         context.close()
 
 
 def test_playwright_interactive_panels_and_tabs(web_and_ws_servers, chromium_browser):
-    """Verify tab navigation toggles panels between Academy, Puzzles, Analytics, and Leaderboard."""
+    """Verify tab navigation toggles panels between Academy, Puzzles, Analytics, Leaderboard, and Review
+    using real visibility checks (is_visible) and verifying mutual exclusivity (inactive panels are hidden).
+    """
     http_url = web_and_ws_servers["http_url"]
 
     context: BrowserContext = chromium_browser.new_context()
     page: Page = context.new_page()
+
+    page_errors: list[str] = []
+    page.on("pageerror", lambda exc: page_errors.append(str(exc)))
+
     page.goto(http_url, wait_until="domcontentloaded")
     page.evaluate("""async () => {
         await document.fonts.ready;
@@ -177,31 +209,61 @@ def test_playwright_interactive_panels_and_tabs(web_and_ws_servers, chromium_bro
         );
     }""")
 
-    # 1. Click Academy Tab
+    # 1. Click Academy Tab -> academyPanel visible, others hidden
     page.click("#tabAcademy")
-    academy_display = page.evaluate("document.getElementById('academyPanel').style.display")
-    assert academy_display != "none", "Academy panel should be visible after clicking tabAcademy"
+    assert page.is_visible("#academyPanel"), "Academy panel should be visible after clicking tabAcademy"
+    assert not page.is_visible("#puzzlesPanel"), "Puzzles panel should be hidden"
+    assert not page.is_visible("#analyticsPanel"), "Analytics panel should be hidden"
+    assert not page.is_visible("#leaderboardPanel"), "Leaderboard panel should be hidden"
+    assert not page.is_visible("#reviewPanel"), "Review panel should be hidden"
+    assert not page.is_visible("#playPanel"), "Play panel should be hidden"
 
-    # 2. Click Puzzles Tab
+    # 2. Click Puzzles Tab -> puzzlesPanel visible, others hidden
     page.click("#tabPuzzles")
-    puzzles_display = page.evaluate("document.getElementById('puzzlesPanel').style.display")
-    assert puzzles_display != "none", "Puzzles panel should be visible after clicking tabPuzzles"
+    assert page.is_visible("#puzzlesPanel"), "Puzzles panel should be visible after clicking tabPuzzles"
+    assert not page.is_visible("#academyPanel"), "Academy panel should be hidden"
+    assert not page.is_visible("#analyticsPanel"), "Analytics panel should be hidden"
+    assert not page.is_visible("#leaderboardPanel"), "Leaderboard panel should be hidden"
+    assert not page.is_visible("#reviewPanel"), "Review panel should be hidden"
+    assert not page.is_visible("#playPanel"), "Play panel should be hidden"
 
-    # 3. Click Analytics Tab
+    # 3. Click Analytics Tab -> analyticsPanel visible, others hidden
     page.click("#tabAnalytics")
-    analytics_display = page.evaluate("document.getElementById('analyticsPanel').style.display")
-    assert analytics_display != "none", "Analytics panel should be visible after clicking tabAnalytics"
+    assert page.is_visible("#analyticsPanel"), "Analytics panel should be visible after clicking tabAnalytics"
+    assert not page.is_visible("#academyPanel"), "Academy panel should be hidden"
+    assert not page.is_visible("#puzzlesPanel"), "Puzzles panel should be hidden"
+    assert not page.is_visible("#leaderboardPanel"), "Leaderboard panel should be hidden"
+    assert not page.is_visible("#reviewPanel"), "Review panel should be hidden"
+    assert not page.is_visible("#playPanel"), "Play panel should be hidden"
 
-    # 4. Click Leaderboard Tab
+    # 4. Click Leaderboard Tab -> leaderboardPanel visible, others hidden
     page.click("#tabLeaderboard")
-    leaderboard_display = page.evaluate("document.getElementById('leaderboardPanel').style.display")
-    assert leaderboard_display != "none", "Leaderboard panel should be visible after clicking tabLeaderboard"
+    assert page.is_visible("#leaderboardPanel"), "Leaderboard panel should be visible after clicking tabLeaderboard"
+    assert not page.is_visible("#academyPanel"), "Academy panel should be hidden"
+    assert not page.is_visible("#puzzlesPanel"), "Puzzles panel should be hidden"
+    assert not page.is_visible("#analyticsPanel"), "Analytics panel should be hidden"
+    assert not page.is_visible("#reviewPanel"), "Review panel should be hidden"
+    assert not page.is_visible("#playPanel"), "Play panel should be hidden"
 
-    # 5. Click Game Review Tab
+    # 5. Click Game Review Tab -> reviewPanel visible, others hidden
     page.click("#tabReview")
-    review_display = page.evaluate("document.getElementById('reviewPanel').style.display")
-    assert review_display != "none", "Review panel should be visible after clicking tabReview"
+    assert page.is_visible("#reviewPanel"), "Review panel should be visible after clicking tabReview"
+    assert not page.is_visible("#academyPanel"), "Academy panel should be hidden"
+    assert not page.is_visible("#puzzlesPanel"), "Puzzles panel should be hidden"
+    assert not page.is_visible("#analyticsPanel"), "Analytics panel should be hidden"
+    assert not page.is_visible("#leaderboardPanel"), "Leaderboard panel should be hidden"
+    assert not page.is_visible("#playPanel"), "Play panel should be hidden"
 
+    # 6. Click Play Tab -> playPanel visible, others hidden
+    page.click("#tabPlay")
+    assert page.is_visible("#playPanel"), "Play panel should be visible after clicking tabPlay"
+    assert not page.is_visible("#academyPanel"), "Academy panel should be hidden"
+    assert not page.is_visible("#puzzlesPanel"), "Puzzles panel should be hidden"
+    assert not page.is_visible("#analyticsPanel"), "Analytics panel should be hidden"
+    assert not page.is_visible("#leaderboardPanel"), "Leaderboard panel should be hidden"
+    assert not page.is_visible("#reviewPanel"), "Review panel should be hidden"
+
+    assert len(page_errors) == 0, f"Unhandled page exceptions during tab switching: {page_errors}"
     context.close()
 
 
@@ -218,6 +280,11 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_bro
 
     page_alice: Page = ctx_alice.new_page()
     page_bob: Page = ctx_bob.new_page()
+
+    alice_errors: list[str] = []
+    bob_errors: list[str] = []
+    page_alice.on("pageerror", lambda exc: alice_errors.append(str(exc)))
+    page_bob.on("pageerror", lambda exc: bob_errors.append(str(exc)))
 
     # Load page for both players and configure WebSocket endpoint
     for page, pid in [(page_alice, "alice_pw"), (page_bob, "bob_pw")]:
@@ -327,6 +394,9 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_bro
 
     page_alice.wait_for_function("() => document.getElementById('btnResign').style.display !== 'none'", timeout=5000)
     page_alice.wait_for_function("() => document.getElementById('btnRematch').style.display === 'none'", timeout=5000)
+
+    assert len(alice_errors) == 0, f"Alice encountered unhandled page errors: {alice_errors}"
+    assert len(bob_errors) == 0, f"Bob encountered unhandled page errors: {bob_errors}"
 
     ctx_alice.close()
     ctx_bob.close()
