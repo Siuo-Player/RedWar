@@ -87,7 +87,7 @@ def test_ice_on_inquisitor_square_blocks_direct_focus_and_cross_splash_effect():
         if action.type is ActionType.SPELL
         and action.spell_name == "nevada"
         and action.start == (4, 1)
-        and action.end == (3, 4)
+        and action.end == (4, 3)
     ]
     assert len(splash_actions) == 1
     gs.execute_action(splash_actions[0])
