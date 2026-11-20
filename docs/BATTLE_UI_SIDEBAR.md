@@ -43,3 +43,7 @@ Estas atividades são `VALIDATION`, não implementação da arquitetura:
 Uma conclusão de UX só deve ser promovida a `VALIDATED` quando houver evidência de interação/inspeção visual adequada.
 
 Fonte operacional da sequência: [`ROADMAP.md`](ROADMAP.md).
+
+## Explicit feedback for blocked spells
+
+When the selected hero is silenced by an active opposing Inquisitor, the selected-hero status must state that spells are unavailable and give the recovery action (move outside the Inquisitor's configured aura). This status is informational only: it must call the engine's read-only silence query rather than reimplementing radius/turn-state rules in the UI. An active Inquisitor's aura suppresses spells, not movement; the UI must not imply that the entire hero is unable to act. If the selected hero is also stunned, the status must show the stun first and explain that the hero must wait for recovery before moving out of the aura. This feedback does not resolve or change the strategic outcome of the separate 16-FrostMage-vs-Inquisitor endgame report (#444), whose exact replay is still required for a complete reproduction.
