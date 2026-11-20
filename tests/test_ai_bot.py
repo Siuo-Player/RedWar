@@ -34,7 +34,7 @@ def test_cpp_engine_bot_accepts_0000_only_for_confirmed_terminal_state(monkeypat
 
     assert bot.escolher_jogada(gs) is None
     assert gs.game_over is True
-    assert gs.winner == "Brancas Vencem (Oponente Bloqueado)"
+    assert gs.winner == "Pretas Vencem (Oponente Bloqueado)"
 
 
 def test_cpp_engine_bot_rejects_0000_for_non_terminal_state(monkeypatch):
@@ -87,4 +87,4 @@ def test_arena_zero_move_state_is_terminal_under_python_rules():
     gs.check_game_over()
 
     assert gs.game_over is True
-    assert gs.winner == "Brancas Vencem (Oponente Bloqueado)"
+    assert gs.winner == "Pretas Vencem (Oponente Bloqueado)"
