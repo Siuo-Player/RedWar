@@ -145,10 +145,10 @@ def test_execute_action_perft_equivalence_contract():
     for label, state in roots:
         actions = legal_actions(state)
         if not actions:
-            # GameState() is the empty-board fixture: it is intentionally terminal
-            # and has no board actions. Its perft leaf count is still one.
+            # GameState() is the empty-board fixture: it has no board actions.
+            # At positive remaining depth, a terminal position contributes zero nodes.
             assert label == "initial", f"{label}: unexpected empty canonical action space"
-            assert python_perft(state, 1) == 1
+            assert python_perft(state, 1) == 0
             continue
 
         for action in actions:
