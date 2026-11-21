@@ -3950,7 +3950,7 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
 
 // User Interaction Handler (STRICT INVARIANT: Player cannot move Black/AI pieces, No Self-Capture)
 canvas.addEventListener("click", (e) => {
-  if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying || (isPuzzleMode && currentPuzzleSolved)) return || (isAcademyMode && academyLessonSolved) return;
+  if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying || (isPuzzleMode && currentPuzzleSolved) || (isAcademyMode && academyLessonSolved)) return;
 
   const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
   if (oppVal === "online_room") {
@@ -4013,7 +4013,14 @@ canvas.addEventListener("click", (e) => {
   }
 
   // Check if destination (r, c) is among the valid legal actions
-  const chosenAction = currentLegalActions.find(act => act.r === r && act.c === c);
+  const lessonSolution = isAcademyMode ? HERO_LESSONS[activeLessonKey]?.solution : null;
+  const chosenAction = currentLegalActions.find(act =>
+    act.r === r && act.c === c &&
+    (!lessonSolution || r !== lessonSolution.toR || c !== lessonSolution.toC ||
+      (act.type === lessonSolution.type &&
+       (act.spell_name || null) === (lessonSolution.spell_name || null) &&
+       (act.spawn_name || null) === (lessonSolution.spawn_name || null)))
+  );
 
   if (chosenAction) {
     // Academy solutions are checked as canonical actions, not just matching coordinates.
