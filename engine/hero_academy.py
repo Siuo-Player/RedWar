@@ -163,8 +163,17 @@ class HeroAcademy:
                     raise RuntimeError(f"Lesson {hero_name} is missing {field}")
             if not isinstance(entry.get("pieces"), list) or not entry["pieces"]:
                 raise RuntimeError(f"Lesson {hero_name} has no initial pieces")
-            _solution_action(entry["solution"])
-            _build_initial_state(entry)
+            solution_action = _solution_action(entry["solution"])
+            initial_state = _build_initial_state(entry)
+            source_row, source_col = solution_action.start
+            actor_name = entry.get("actor_name", hero_name)
+            actor = initial_state.board[source_row][source_col]
+            if actor is None or actor.name != actor_name or actor.team != "brancas":
+                raise RuntimeError(f"Invalid acting piece for lesson {hero_name}")
+            from engine.legal_actions import legal_actions
+
+            if solution_action not in legal_actions(initial_state):
+                raise RuntimeError(f"Lesson solution is not legal for {hero_name}")
             self._raw_lessons[hero_id] = entry
             self._lessons[hero_id] = AcademyLesson(
                 hero_id=hero_id,

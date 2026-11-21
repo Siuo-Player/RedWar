@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
 
 from engine.actions import GameAction
 from engine.game_state import GameState
@@ -138,3 +137,30 @@ def test_web_academy_loads_the_shared_catalogue_and_builds_the_selector():
     assert "const HERO_LESSONS = {" not in app_js
     selector = html.split('id="heroSelect"', 1)[1].split("</select>", 1)[0]
     assert "<option" not in selector
+
+
+def test_every_solution_uses_the_declared_actor_and_exact_action_metadata():
+    for lesson in _catalogue()["lessons"]:
+        solution = lesson["solution"]
+        state = _build_state(lesson)
+        actor = state.board[solution["fromR"]][solution["fromC"]]
+        assert actor is not None
+        assert actor.name == lesson["actor_name"]
+        assert actor.team == "brancas"
+        if solution["type"] == "spell":
+            assert solution.get("spell_name")
+        if solution["type"] == "spawn":
+            assert solution.get("spawn_name")
+
+
+def test_catalogue_has_27_selectable_heroes_and_three_unit_entries():
+    catalogue = _catalogue()
+    assert sum(1 for lesson in catalogue["lessons"] if lesson["draftable"]) == 27
+    assert {
+        lesson["hero_id"] for lesson in catalogue["lessons"] if not lesson["draftable"]
+    } == {"bone", "ghoul", "stonewall"}
+
+
+def test_web_rules_cover_nightshade_ghost_orthogonal_movement():
+    app_js = (ROOT / "deploy" / "web" / "app.js").read_text(encoding="utf-8")
+    assert 'Nightshade: {\n    move: { type: "orthogonal", steps: 4, ghost: true }' in app_js
