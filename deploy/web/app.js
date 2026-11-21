@@ -682,7 +682,7 @@ HERO_ASSET_NAMES.forEach(name => {
 const HERO_RULES = {
   Paladin: {
     move: { type: "orthogonal", steps: 2, ghost: false },
-    attack: { type: "orthogonal", steps: 2 },
+    attack: { type: "orthogonal", steps: 1 },
     cost: 55,
     acronym: "Pa"
   },
@@ -700,14 +700,14 @@ const HERO_RULES = {
     acronym: "Sc"
   },
   Hookmaster: {
-    move: { type: "orthogonal", steps: 1, ghost: false },
-    attack: { type: "orthogonal", steps: 3 },
+    move: { type: "adjacent", steps: 1, ghost: false },
+    attack: { type: "orthogonal", steps: 1 },
     cost: 52,
     acronym: "Hk"
   },
   Timekeeper: {
-    move: { type: "diagonal", steps: 1, ghost: false },
-    attack: { type: "diagonal", steps: 2 },
+    move: { type: "adjacent", steps: 1, ghost: false },
+    attack: { type: "orthogonal", steps: 1 },
     cost: 59,
     acronym: "Tk"
   },
@@ -773,8 +773,8 @@ const HERO_RULES = {
     acronym: "Cl"
   },
   Templar: {
-    move: { type: "orthogonal", steps: 2, ghost: false },
-    attack: { type: "orthogonal", steps: 2 },
+    move: { type: "orthogonal", steps: 1, ghost: false },
+    attack: { type: "orthogonal", steps: 1 },
     cost: 15,
     acronym: "Te"
   },
@@ -799,8 +799,8 @@ const HERO_RULES = {
     acronym: "Li"
   },
   Nightshade: {
-    move: { type: "diagonal", steps: 2, ghost: false },
-    attack: { type: "adjacent", steps: 1 },
+    move: { type: "orthogonal", steps: 4, ghost: true },
+    attack: { type: "orthogonal", steps: 1 },
     cost: 193,
     acronym: "Ni"
   },
@@ -883,155 +883,42 @@ const ADJ_DIRS = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], 
 const KNIGHT_DIRS = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
 
 // Hero Academy Curriculum & Interactive Lessons
-const HERO_LESSONS = {
-  paladin: {
-    title: "Paladin: O Bastião da Linha de Frente",
-    lore: "Treinado nos mosteiros de ferro das montanhas do norte, o Paladino é um guerreiro sagrado inabalável. Serve como âncora defensiva da equipa.",
-    ability: "Avanço Ortogonal: Move-se até 2 casas em linha reta e atordoa o alvo ao colidir.",
-    objective: "Avança 2 casas para cima para aplicar o segundo stun no Dragoon inimigo enfraquecido e eliminá-lo.",
-    pieces: [
-      { r: 4, c: 3, name: "Paladin", team: "brancas", stun: 0 },
-      { r: 2, c: 3, name: "Dragoon", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 4, fromC: 3, toR: 2, toC: 3 },
-    explanation: "Correto! O avanço de 2 casas ortogonais do Paladino permitiu colidir com a unidade atordoada e garantir uma eliminação imediata."
-  },
-  shadowblade: {
-    title: "Shadowblade: A Lâmina Fantasma",
-    lore: "Criada nas sombras das criptas ancestrais, a Shadowblade maneja adagas de éter e transita entre dimensões. Ignora quaisquer bloqueios na sua rota diagonal.",
-    ability: "Mobilidade Fantasma: Move-se até 3 casas em diagonal atravessando peças aliadas e inimigas sem bloqueios.",
-    objective: "Usa a mobilidade fantasma da Shadowblade para atravessar o soldado aliado e abater o FrostMage inimigo na casa (1, 1).",
-    pieces: [
-      { r: 3, c: 3, name: "Shadowblade", team: "brancas", stun: 0 },
-      { r: 2, c: 2, name: "Bone", team: "brancas", stun: 0 },
-      { r: 1, c: 1, name: "FrostMage", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 3, fromC: 3, toR: 1, toC: 1 },
-    explanation: "Excelente! A Shadowblade atravessou o soldado sem colidir, demonstrando a capacidade única de ignorar bloqueios e alcançar alvos protegidos."
-  },
-  stormcaller: {
-    title: "Stormcaller: O Mestre dos Relâmpagos",
-    lore: "Capaz de canalizar as correntes elétricas da estratosfera, o Stormcaller domina o combate à distância sem se expor.",
-    ability: "Chain Lightning: Feitiço de raio direto disparado em linha reta até 4 casas de distância.",
-    objective: "Dispara o teu raio elétrico ao longo da coluna para eliminar o BoneLord inimigo atordoado.",
-    pieces: [
-      { r: 5, c: 2, name: "Stormcaller", team: "brancas", stun: 0 },
-      { r: 2, c: 2, name: "BoneLord", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
-    explanation: "Vitória! O raio do Stormcaller atingiu o alvo com precisão cirúrgica sem expor a sua posição defensiva."
-  },
-  dragoon: {
-    title: "Dragoon: O Salto do Dragão",
-    lore: "Armado com lança forjada em escamas de dragão, combina velocidade e poder aéreo fulminante.",
-    ability: "Salto Tático em L: Salta sobre obstáculos alcançando alvos em posições protegidas.",
-    objective: "Salta sobre a barreira e neutraliza o Paladin inimigo.",
-    pieces: [
-      { r: 4, c: 4, name: "Dragoon", team: "brancas", stun: 0 },
-      { r: 2, c: 5, name: "Paladin", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 4, fromC: 4, toR: 2, toC: 5 },
-    explanation: "Excelente! O salto do Dragoon contornou as linhas defensivas com maestria."
-  },
-  frostmage: {
-    title: "FrostMage: O Domínio do Gelo",
-    lore: "Especialista em magia glacial arcaica, controla o ritmo da partida reduzindo a temperatura ao redor dos oponentes.",
-    ability: "Congelamento Remoto: Aplica stun à distância até 3 casas ortogonais, paralisando unidades chave.",
-    objective: "Congela o atacante inimigo antes que ele consiga romper as tuas defesas.",
-    pieces: [
-      { r: 4, c: 1, name: "FrostMage", team: "brancas", stun: 0 },
-      { r: 4, c: 3, name: "Dragoon", team: "pretas", stun: 0 }
-    ],
-    solution: { fromR: 4, fromC: 1, toR: 4, toC: 3 },
-    explanation: "Perfeito! O atordoamento de gelo paralisou a ameaça antes do seu próximo turno."
-  },
-  bonelord: {
-    title: "BoneLord: O Soberano das Criptas",
-    lore: "Necromante lendário que ergue soldados esqueléticos para criar superioridade numérica no tabuleiro.",
-    ability: "Invocação de Minions: Invoca soldados em casas adjacentes livres, criando obstáculos e peões de sacrifício.",
-    objective: "Move o BoneLord para a casa central para consolidar o controle da área.",
-    pieces: [
-      { r: 4, c: 3, name: "BoneLord", team: "brancas", stun: 0 },
-      { r: 1, c: 3, name: "FrostMage", team: "pretas", stun: 0 }
-    ],
-    solution: { fromR: 4, fromC: 3, toR: 3, toC: 3 },
-    explanation: "Muito bem! O avanço do BoneLord estabelece a presença central necessária para invocar tropas nos turnos seguintes."
-  },
-  valkyrie: {
-    title: "Valkyrie: As Asas Celestes",
-    lore: "Guerreira celestial com asas translúcidas que plana sobre o campo de batalha. Salta sobre obstáculos e tropas com voo espectral.",
-    ability: "Voo Espectral: Move-se até 3 casas (ortogonal ou diagonal) ignorando quaisquer obstáculos terrestres.",
-    objective: "Voa sobre a barreira inimiga e desfere o golpe letal no Lich atordoado.",
-    pieces: [
-      { r: 5, c: 2, name: "Valkyrie", team: "brancas", stun: 0 },
-      { r: 4, c: 2, name: "StoneWall", team: "pretas", stun: 0 },
-      { r: 3, c: 2, name: "Bone", team: "pretas", stun: 0 },
-      { r: 2, c: 2, name: "Lich", team: "pretas", stun: 2 }
-    ],
-    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
-    explanation: "Sensacional! As asas da Valkyrie ignoraram a barreira terrestre e liquidaram o alvo protegido."
-  },
-  arcanist: {
-    title: "Arcanist: A Rajada Rúnica",
-    lore: "Mago acadêmico dos círculos rúnicos arcanos. Canaliza rajadas perfurantes em linha reta que eliminam unidades debilitadas.",
-    ability: "Rajada Arcana: Ataque ortogonal em raio até 3 casas com impacto mágico direto.",
-    objective: "Dispara a rajada arcana ao longo da coluna para eliminar o atacante atordoado.",
-    pieces: [
-      { r: 5, c: 3, name: "Arcanist", team: "brancas", stun: 0 },
-      { r: 2, c: 3, name: "Stormcaller", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 5, fromC: 3, toR: 2, toC: 3 },
-    explanation: "Perfeito! O raio arcano percorreu 3 casas e vaporizou o adversário atordoado."
-  },
-  duelist: {
-    title: "Duelist: A Estocada Precisa",
-    lore: "Mestre esgrimista das academias reais, domina as diagonais com lâmina leve e contra-ataques fulminantes.",
-    ability: "Estocada Diagonal: Move-se e ataca em diagonais até 2 casas com precisão cirúrgica.",
-    objective: "Avança em diagonal para trespassar o Berserker debilitado.",
-    pieces: [
-      { r: 4, c: 2, name: "Duelist", team: "brancas", stun: 0 },
-      { r: 2, c: 4, name: "Berserker", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 4, fromC: 2, toR: 2, toC: 4 },
-    explanation: "Magnífico! O golpe diagonal cirúrgico finalizou a ameaça sem sofrer retaliação."
-  },
-  warden: {
-    title: "Warden: O Bastião Inabalável",
-    lore: "Com escudo de torre e armadura pesada, o Warden ancora a linha de frente e rechaça quaisquer invasores.",
-    ability: "Golpe de Escudo: Movimenta-se 1 casa em qualquer direção e desfere golpe ortogonal contundente.",
-    objective: "Avança com o escudo e elimina a Nightshade infiltrada.",
-    pieces: [
-      { r: 3, c: 3, name: "Warden", team: "brancas", stun: 0 },
-      { r: 2, c: 3, name: "Nightshade", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 3, fromC: 3, toR: 2, toC: 3 },
-    explanation: "Inabalável! O avanço defensivo do Warden conteve a infiltração inimiga com autoridade."
-  },
-  illusionist: {
-    title: "Illusionist: O Mestre dos Espelhos",
-    lore: "Manipulador de percepções e transposição tática, controla os eixos ortogonais e ataca em 360 graus a curta distância.",
-    ability: "Reflexo Prismático: Movimenta-se até 2 casas ortogonais e ataca 1 casa em qualquer direção adjacente.",
-    objective: "Avança 2 casas para o centro e desfere golpe na diagonal adjacente.",
-    pieces: [
-      { r: 6, c: 3, name: "Illusionist", team: "brancas", stun: 0 },
-      { r: 3, c: 4, name: "BoneLord", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 6, fromC: 3, toR: 4, toC: 3 },
-    explanation: "Excelente! O avanço de 2 casas ortogonais preparou o golpe letal definitivo."
-  },
-  marksman: {
-    title: "Marksman: A Visada Balística",
-    lore: "Atirador de precisão tática, atinge alvos a 3 casas de distância em linha ortogonal limpa.",
-    ability: "Disparo de Precisão: Ataque ortogonal linear até 3 casas capaz de eliminar alvos atordoados.",
-    objective: "Dispara ao longo da coluna aberta para eliminar o Templar debilitado.",
-    pieces: [
-      { r: 5, c: 2, name: "Marksman", team: "brancas", stun: 0 },
-      { r: 2, c: 2, name: "Templar", team: "pretas", stun: 1 }
-    ],
-    solution: { fromR: 5, fromC: 2, toR: 2, toC: 2 },
-    explanation: "Tiro certeiro! A precisão balística do Marksman eliminou a peça à distância."
+let HERO_LESSONS = Object.create(null);
+
+async function loadAcademyCurriculum() {
+  const selector = document.getElementById("heroSelect");
+  if (!selector) return;
+  try {
+    const response = await fetch("hero_academy_lessons.json");
+    if (!response.ok) throw new Error(`HTTP ${response.status} while loading academy catalogue`);
+    const catalogue = await response.json();
+    if (catalogue.schema_version !== 1 || !Array.isArray(catalogue.lessons)) {
+      throw new Error("Unsupported Hero Academy catalogue schema");
+    }
+    const lessonMap = Object.create(null);
+    for (const lesson of catalogue.lessons) {
+      if (!lesson || typeof lesson.hero_id !== "string" || !lesson.solution ||
+          !Array.isArray(lesson.pieces) || lessonMap[lesson.hero_id]) {
+        throw new Error("Malformed or duplicate lesson in Hero Academy catalogue");
+      }
+      lessonMap[lesson.hero_id] = lesson;
+    }
+    HERO_LESSONS = lessonMap;
+    selector.replaceChildren();
+    for (const lesson of catalogue.lessons) {
+      const option = document.createElement("option");
+      option.value = lesson.hero_id;
+      option.textContent = `${lesson.hero_name} — ${lesson.title}${lesson.draftable ? "" : " [Unidade não draftável]"}`;
+      selector.appendChild(option);
+    }
+    selector.value = HERO_LESSONS.paladin ? "paladin" : (catalogue.lessons[0]?.hero_id || "");
+    if (selector.value) loadAcademyLesson(selector.value);
+  } catch (error) {
+    console.error("Hero Academy catalogue failed to load:", error);
+    showNotification("Não foi possível carregar a Academia de Heróis. Atualiza a página e tenta novamente.", "error");
   }
-};
+}
+
 
 // Empirical Hero Analytics (Football-style stats & Riot Game Balance Framework)
 const HERO_ANALYTICS_DATA = {
@@ -4063,7 +3950,7 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
 
 // User Interaction Handler (STRICT INVARIANT: Player cannot move Black/AI pieces, No Self-Capture)
 canvas.addEventListener("click", (e) => {
-  if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying || (isPuzzleMode && currentPuzzleSolved)) return;
+  if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying || (isPuzzleMode && currentPuzzleSolved)) return || (isAcademyMode && academyLessonSolved) return;
 
   const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
   if (oppVal === "online_room") {
@@ -4129,26 +4016,42 @@ canvas.addEventListener("click", (e) => {
   const chosenAction = currentLegalActions.find(act => act.r === r && act.c === c);
 
   if (chosenAction) {
-    // If in Academy Mode, verify with lesson objective
+    // Academy solutions are checked as canonical actions, not just matching coordinates.
     if (isAcademyMode && HERO_LESSONS[activeLessonKey]) {
       const lesson = HERO_LESSONS[activeLessonKey];
       const sol = lesson.solution;
+      const actor = boardData[fromR] && boardData[fromR][fromC];
       const feedback = document.getElementById("academyFeedback");
+      const actionMatches =
+        actor && actor.name === lesson.actor_name &&
+        fromR === sol.fromR && fromC === sol.fromC &&
+        r === sol.toR && c === sol.toC &&
+        chosenAction.type === sol.type &&
+        (chosenAction.spell_name || null) === (sol.spell_name || null) &&
+        (chosenAction.spawn_name || null) === (sol.spawn_name || null);
       feedback.style.display = "block";
-
-      if (fromR === sol.fromR && fromC === sol.fromC && r === sol.toR && c === sol.toC) {
-        feedback.style.background = "rgba(34, 197, 94, 0.2)";
-        feedback.style.border = "1px solid #22c55e";
-        feedback.style.color = "#22c55e";
-        feedback.innerHTML = `<strong>✨ Sucesso!</strong> ${lesson.explanation}`;
-        playChime("victory");
-      } else {
+      if (!actionMatches) {
         feedback.style.background = "rgba(239, 68, 68, 0.2)";
         feedback.style.border = "1px solid #ef4444";
         feedback.style.color = "#f87171";
-        feedback.innerHTML = "<strong>Lance Incorreto.</strong> Tenta novamente observando as capacidades únicas do herói.";
+        feedback.textContent = "Lance incorreto. Confirma a peça, o tipo de ação e o alvo indicados.";
         playChime("stun");
+        selectedSquare = null;
+        currentLegalActions = [];
+        drawBoard();
+        return;
       }
+      feedback.style.background = "rgba(34, 197, 94, 0.2)";
+      feedback.style.border = "1px solid #22c55e";
+      feedback.style.color = "#22c55e";
+      feedback.textContent = `✨ Sucesso! ${lesson.explanation}`;
+      playChime("victory");
+      applyAction(fromR, fromC, chosenAction);
+      academyLessonSolved = true;
+      selectedSquare = null;
+      currentLegalActions = [];
+      drawBoard();
+      return;
     }
 
     // If in Tactical Puzzle Mode, verify with puzzle solution before mutating board
@@ -4376,12 +4279,14 @@ function initDefaultBoard() {
 // Hero Academy Curriculum
 let activeLessonKey = "paladin";
 let isAcademyMode = false;
+let academyLessonSolved = false;
 
 function loadAcademyLesson(heroKey) {
   const lesson = HERO_LESSONS[heroKey];
   if (!lesson) return;
   activeLessonKey = heroKey;
   isAcademyMode = true;
+  academyLessonSolved = false;
 
   document.getElementById("heroTitle").textContent = lesson.title;
   document.getElementById("heroLore").textContent = lesson.lore;
@@ -5215,6 +5120,7 @@ if (btnAuthDedicated) {
 }
 
 // Initial Boot
+void loadAcademyCurriculum();
 initDefaultBoard();
 drawBoard();
 updateClockDisplays();
