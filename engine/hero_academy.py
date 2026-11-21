@@ -1,11 +1,20 @@
-# engine/hero_academy.py
-"""
-Hero Academy (Academia de Heróis) for RedWar.
-Provides interactive tutorial lessons, deep hero lore, ability breakdowns,
-and tactical puzzle scenarios designed to teach new and advanced mechanics.
-"""
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
+"""Canonical Hero Academy backed by the shared browser/Python lesson catalogue."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import json
+from pathlib import Path
+from typing import Any
+
+
+CATALOGUE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "deploy"
+    / "web"
+    / "hero_academy_lessons.json"
+)
+HERO_CONFIG_PATH = Path(__file__).resolve().with_name("heroes_config.json")
 
 
 @dataclass
@@ -16,142 +25,198 @@ class AcademyLesson:
     lore: str
     ability_description: str
     puzzle_objective: str
-    initial_board: Dict[str, List[Dict[str, Any]]]
-    solution_moves: List[Dict[str, Any]]
+    initial_board: dict[str, list[dict[str, Any]]]
+    solution_moves: list[dict[str, Any]]
     post_solve_explanation: str
+    draftable: bool = True
+    unit_category: str = "hero"
+    actor_name: str | None = None
+
+
+def _solution_dict(raw: dict[str, Any]) -> dict[str, Any]:
+    """Convert the versioned catalogue action to the public legacy move shape."""
+    result: dict[str, Any] = {
+        "type": raw["type"],
+        "from": (raw["fromR"], raw["fromC"]),
+        "to": (raw["toR"], raw["toC"]),
+    }
+    for key in ("spell_name", "spawn_name", "area"):
+        if key in raw:
+            result[key] = raw[key]
+    return result
+
+
+def _action_from_attempt(move: dict[str, Any]):
+    """Normalize a user attempt without coercing booleans or malformed coordinates."""
+    from engine.actions import GameAction
+
+    if not isinstance(move, dict):
+        raise TypeError("move must be an object")
+    action_type = move.get("type")
+    start = move.get("from", move.get("start"))
+    end = move.get("to", move.get("end"))
+    if start is None or end is None:
+        raise ValueError("move requires source and destination")
+    payload: dict[str, Any] = {
+        "type": action_type,
+        "start": start,
+        "end": end,
+    }
+    for key in ("spell_name", "spawn_name", "area"):
+        if key in move:
+            payload[key] = move[key]
+    return GameAction.from_dict(payload)
+
+
+def _solution_action(solution: dict[str, Any]):
+    from engine.actions import GameAction
+
+    payload: dict[str, Any] = {
+        "type": solution["type"],
+        "start": [solution["fromR"], solution["fromC"]],
+        "end": [solution["toR"], solution["toC"]],
+    }
+    for key in ("spell_name", "spawn_name", "area"):
+        if key in solution:
+            payload[key] = solution[key]
+    return GameAction.from_dict(payload)
+
+
+def _build_initial_state(raw_lesson: dict[str, Any]):
+    from engine.game_state import GameState
+    from engine.pieces import criar_peca_por_nome
+
+    state = GameState(rows=8, cols=8)
+    for entry in raw_lesson["pieces"]:
+        row, col = entry["r"], entry["c"]
+        if (
+            isinstance(row, bool) or not isinstance(row, int)
+            or isinstance(col, bool) or not isinstance(col, int)
+            or not (0 <= row < 8 and 0 <= col < 8)
+        ):
+            raise ValueError(f"Invalid lesson coordinate for {raw_lesson['hero_id']}")
+        if state.board[row][col] is not None:
+            raise ValueError(f"Duplicate lesson square {(row, col)}")
+        piece = criar_peca_por_nome(entry["name"], entry["team"])
+        stun = entry.get("stun", 0)
+        if isinstance(stun, bool) or not isinstance(stun, int) or stun < 0:
+            raise ValueError(f"Invalid stun value for {raw_lesson['hero_id']}")
+        piece.stun_timer = stun
+        state.board[row][col] = piece
+    state.white_to_move = True
+    return state
 
 
 class HeroAcademy:
-    """Manages the curriculum of hero tutorials, lore, and interactive puzzles."""
+    """Loads a single versioned curriculum consumed by both Python and Web."""
 
-    def __init__(self):
-        self._lessons: Dict[str, AcademyLesson] = {}
+    def __init__(self, catalogue_path: Path | None = None):
+        self.catalogue_path = catalogue_path or CATALOGUE_PATH
+        self._raw_lessons: dict[str, dict[str, Any]] = {}
+        self._lessons: dict[str, AcademyLesson] = {}
         self._build_curriculum()
 
-    def _build_curriculum(self):
-        # 1. Paladin
-        self._lessons["paladin"] = AcademyLesson(
-            hero_id="paladin",
-            hero_name="Paladin",
-            title="O Bastião da Linha de Frente",
-            lore="Treinado nos mosteiros de ferro das montanhas do norte, o Paladino é um guerreiro sagrado inabalável. Serve como âncora defensiva da equipa, quebrando avanços inimigos com o seu escudo de corpo inteiro.",
-            ability_description="Avanço Ortogonal: Move-se até 2 casas em linha reta (horizontal ou vertical). Aplica um stun poderoso a qualquer inimigo que colida no seu caminho.",
-            puzzle_objective="Avança 2 casas para cima para aplicar o segundo stun no Dragoon inimigo enfraquecido e eliminá-lo.",
-            initial_board={
-                "white": [{"name": "Paladin", "pos": (4, 3), "stun": 0}],
-                "black": [{"name": "Dragoon", "pos": (2, 3), "stun": 1}],
-            },
-            solution_moves=[{"from": (4, 3), "to": (2, 3)}],
-            post_solve_explanation="Correto! O avanço de 2 casas ortogonais do Paladino permitiu colidir com a unidade atordoada e garantir uma eliminação imediata."
-        )
+    def _build_curriculum(self) -> None:
+        try:
+            catalogue = json.loads(self.catalogue_path.read_text(encoding="utf-8"))
+            hero_config = json.loads(HERO_CONFIG_PATH.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError("Unable to load the canonical Hero Academy catalogue") from exc
 
-        # 2. Shadowblade
-        self._lessons["shadowblade"] = AcademyLesson(
-            hero_id="shadowblade",
-            hero_name="Shadowblade",
-            title="A Lâmina Fantasma",
-            lore="Criada nas sombras das criptas ancestrais, a Shadowblade maneja adagas de éter e transita entre dimensões. Nenhuma muralha defensiva ou formação compacta consegue bloquear a sua passagem.",
-            ability_description="Mobilidade Fantasma: Move-se até 3 casas em diagonal atravessando peças aliadas e inimigas sem ser bloqueada. Golpeia e atordoa o alvo na casa final.",
-            puzzle_objective="Usa a mobilidade fantasma da Shadowblade para atravessar o soldado aliado e abater o FrostMage inimigo na casa (1, 1).",
-            initial_board={
-                "white": [
-                    {"name": "Shadowblade", "pos": (3, 3), "stun": 0},
-                    {"name": "Bone", "pos": (2, 2), "stun": 0},  # Ally in between
-                ],
-                "black": [{"name": "FrostMage", "pos": (1, 1), "stun": 1}],
-            },
-            solution_moves=[{"from": (3, 3), "to": (1, 1)}],
-            post_solve_explanation="Excelente! A Shadowblade atravessou o soldado sem colidir, demonstrando a capacidade única de ignorar bloqueios e alcançar alvos protegidos."
-        )
+        if not isinstance(catalogue, dict) or catalogue.get("schema_version") != 1:
+            raise RuntimeError("Unsupported Hero Academy catalogue schema version")
+        entries = catalogue.get("lessons")
+        if not isinstance(entries, list):
+            raise RuntimeError("Hero Academy catalogue must contain a lessons array")
 
-        # 3. Stormcaller
-        self._lessons["stormcaller"] = AcademyLesson(
-            hero_id="stormcaller",
-            hero_name="Stormcaller",
-            title="O Mestre dos Relâmpagos",
-            lore="Capaz de canalizar as correntes elétricas da estratosfera, o Stormcaller domina o combate à distância sem precisar de se aproximar dos perigos do combate corpo a corpo.",
-            ability_description="Chain Lightning: Feitiço de raio direto que dispara ao longo de uma coluna ou linha direta até 4 casas de alcance, atordoando à distância.",
-            puzzle_objective="Dispara o teu raio elétrico ao longo da coluna para atordoar o herói inimigo desprotegido.",
-            initial_board={
-                "white": [{"name": "Stormcaller", "pos": (5, 2), "stun": 0}],
-                "black": [{"name": "BoneLord", "pos": (2, 2), "stun": 0}],
-            },
-            solution_moves=[{"from": (5, 2), "to": (2, 2)}],
-            post_solve_explanation="Vitória! O raio do Stormcaller atingiu o alvo com precisão cirúrgica sem expor a sua posição defensiva."
-        )
+        expected_ids = {name.lower() for name in hero_config}
+        actual_ids = [entry.get("hero_id") for entry in entries if isinstance(entry, dict)]
+        if len(actual_ids) != len(entries) or len(set(actual_ids)) != len(actual_ids):
+            raise RuntimeError("Hero Academy catalogue contains malformed or duplicate lessons")
+        if set(actual_ids) != expected_ids:
+            missing = sorted(expected_ids - set(actual_ids))
+            unexpected = sorted(set(actual_ids) - expected_ids)
+            raise RuntimeError(
+                f"Hero Academy roster mismatch; missing={missing}, unexpected={unexpected}"
+            )
 
-        # 4. Dragoon
-        self._lessons["dragoon"] = AcademyLesson(
-            hero_id="dragoon",
-            hero_name="Dragoon",
-            title="O Salto do Dragão",
-            lore="Armado com uma lança pesada forjada em escamas de dragão, o Dragoon combina velocidade e poder aéreo fulminante.",
-            ability_description="Salto Tático em L: Move-se de forma semelhante ao cavalo do xadrez, mas com alcance estendido para surpreender formações inimigas.",
-            puzzle_objective="Salta sobre a barreira e neutraliza a retaguarda inimiga.",
-            initial_board={
-                "white": [{"name": "Dragoon", "pos": (4, 4), "stun": 0}],
-                "black": [{"name": "Paladin", "pos": (2, 5), "stun": 1}],
-            },
-            solution_moves=[{"from": (4, 4), "to": (2, 5)}],
-            post_solve_explanation="Excelente! O salto do Dragoon contornou as linhas defensivas com maestria."
-        )
+        for entry in entries:
+            hero_id = entry["hero_id"]
+            hero_name = entry.get("hero_name")
+            if hero_name not in hero_config or hero_name.lower() != hero_id:
+                raise RuntimeError(f"Invalid hero identity in lesson {hero_id!r}")
+            draftable = bool(hero_config[hero_name].get("draftable", True))
+            if entry.get("draftable") is not draftable:
+                raise RuntimeError(f"Draftability mismatch for {hero_name}")
+            expected_category = (
+                "hero" if draftable
+                else "obstacle" if hero_name == "StoneWall"
+                else "summoned_unit"
+            )
+            if entry.get("unit_category") != expected_category:
+                raise RuntimeError(f"Unit category mismatch for {hero_name}")
 
-        # 5. FrostMage
-        self._lessons["frostmage"] = AcademyLesson(
-            hero_id="frostmage",
-            hero_name="FrostMage",
-            title="O Domínio do Gelo",
-            lore="Especialista em magia glacial arcaica, o FrostMage controla o tempo e o ritmo da partida reduzindo a temperatura ao redor dos oponentes.",
-            ability_description="Congelamento Remoto: Aplica stun à distância em alvos dentro de 3 casas ortogonais, paralisando unidades chave durante 2 turnos.",
-            puzzle_objective="Congela o atacante inimigo antes que ele consiga romper as tuas defesas.",
-            initial_board={
-                "white": [{"name": "FrostMage", "pos": (4, 1), "stun": 0}],
-                "black": [{"name": "Dragoon", "pos": (4, 3), "stun": 0}],
-            },
-            solution_moves=[{"from": (4, 1), "to": (4, 3)}],
-            post_solve_explanation="Perfeito! O atordoamento de gelo paralisou a ameaça antes do seu próximo turno."
-        )
+            required_text = ("title", "lore", "ability", "objective", "explanation")
+            for field in required_text:
+                value = entry.get(field)
+                if not isinstance(value, str) or not value.strip():
+                    raise RuntimeError(f"Lesson {hero_name} is missing {field}")
+            if not isinstance(entry.get("pieces"), list) or not entry["pieces"]:
+                raise RuntimeError(f"Lesson {hero_name} has no initial pieces")
+            _solution_action(entry["solution"])
+            _build_initial_state(entry)
+            self._raw_lessons[hero_id] = entry
+            self._lessons[hero_id] = AcademyLesson(
+                hero_id=hero_id,
+                hero_name=hero_name,
+                title=entry["title"],
+                lore=entry["lore"],
+                ability_description=entry["ability"],
+                puzzle_objective=entry["objective"],
+                initial_board={
+                    "white": [
+                        {"name": p["name"], "pos": (p["r"], p["c"]), "stun": p.get("stun", 0)}
+                        for p in entry["pieces"] if p["team"] == "brancas"
+                    ],
+                    "black": [
+                        {"name": p["name"], "pos": (p["r"], p["c"]), "stun": p.get("stun", 0)}
+                        for p in entry["pieces"] if p["team"] == "pretas"
+                    ],
+                },
+                solution_moves=[_solution_dict(entry["solution"])],
+                post_solve_explanation=entry["explanation"],
+                draftable=draftable,
+                unit_category=expected_category,
+                actor_name=entry.get("actor_name", hero_name),
+            )
 
-        # 6. BoneLord
-        self._lessons["bonelord"] = AcademyLesson(
-            hero_id="bonelord",
-            hero_name="BoneLord",
-            title="O Soberano das Criptas",
-            lore="Necromante lendário que ergue soldados esqueléticos das profundezas para criar superioridade numérica no tabuleiro.",
-            ability_description="Invocação de Minions: Invoca soldados 'Bone' em casas adjacentes livres, criando obstáculos e peões de sacrifício.",
-            puzzle_objective="Move o BoneLord para a casa (3, 3) para consolidar o controle da área central.",
-            initial_board={
-                "white": [{"name": "BoneLord", "pos": (4, 3), "stun": 0}],
-                "black": [{"name": "FrostMage", "pos": (1, 3), "stun": 0}],
-            },
-            solution_moves=[{"from": (4, 3), "to": (3, 3)}],
-            post_solve_explanation="Muito bem! O avanço do BoneLord estabelece a presença central necessária para invocar tropas nos turnos seguintes."
-        )
-
-    def list_lessons(self) -> List[AcademyLesson]:
-        """Return all available lessons."""
+    def list_lessons(self) -> list[AcademyLesson]:
+        """Return all 30 lessons in the canonical catalogue order."""
         return list(self._lessons.values())
 
-    def get_lesson(self, hero_id: str) -> Optional[AcademyLesson]:
-        """Fetch a specific lesson by hero identifier."""
-        return self._lessons.get(hero_id)
+    def get_lesson(self, hero_id: str) -> AcademyLesson | None:
+        """Fetch a lesson by the lower-case configured unit identifier."""
+        if not isinstance(hero_id, str):
+            return None
+        return self._lessons.get(hero_id.lower())
 
-    def verify_solution(self, hero_id: str, move: Dict[str, Any]) -> Tuple[bool, str]:
-        """
-        Verify if the player's attempted move matches the lesson solution.
-        Returns: (is_correct, feedback_message)
-        """
+    def verify_solution(self, hero_id: str, move: dict[str, Any]) -> tuple[bool, str]:
+        """Accept only the exact canonical action that is legal in the lesson position."""
         lesson = self.get_lesson(hero_id)
-        if not lesson:
+        if lesson is None:
             return False, "Lição não encontrada."
+        raw = self._raw_lessons[lesson.hero_id]
+        try:
+            attempted = _action_from_attempt(move)
+            expected = _solution_action(raw["solution"])
+            if attempted != expected:
+                return False, "Lance incorreto. Confirma o tipo de ação e as casas escolhidas."
 
-        from_pos = tuple(move.get("from", ()))
-        to_pos = tuple(move.get("to", ()))
+            from engine.legal_actions import legal_actions
 
-        for sol in lesson.solution_moves:
-            sol_from = tuple(sol.get("from", ()))
-            sol_to = tuple(sol.get("to", ()))
-            if from_pos == sol_from and to_pos == sol_to:
-                return True, lesson.post_solve_explanation
-
-        return False, "Lance incorreto. Tenta novamente observando as capacidades únicas do herói."
+            state = _build_initial_state(raw)
+            if attempted not in legal_actions(state):
+                return False, "A solução desta lição não é uma ação legal nesta posição."
+        except (KeyError, TypeError, ValueError, IndexError):
+            return False, "Lance inválido. Verifica a peça, a ação e as coordenadas."
+        return True, lesson.post_solve_explanation
