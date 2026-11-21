@@ -837,7 +837,7 @@ const HERO_RULES = {
     acronym: "Gh"
   },
   Valkyrie: {
-    move: { type: "adjacent", steps: 3, ghost: true },
+    move: { type: "adjacent", steps: 1, ghost: true },
     attack: { type: "orthogonal", steps: 3, ghost: true },
     cost: 22,
     acronym: "Va"

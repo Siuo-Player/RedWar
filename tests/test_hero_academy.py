@@ -178,3 +178,15 @@ def test_catalogue_loader_does_not_enter_academy_mode_on_page_boot():
     loader_end = app_js.index("\nfunction ", loader_start + 10)
     loader_body = app_js[loader_start:loader_end]
     assert "loadAcademyLesson(selector.value)" not in loader_body
+
+
+def test_valkyrie_academy_matches_current_engine_move_range_until_issue_679():
+    catalogue = _catalogue()
+    lesson = next(item for item in catalogue["lessons"] if item["hero_id"] == "valkyrie")
+    assert lesson["solution"]["type"] == "move"
+    assert (lesson["solution"]["toR"], lesson["solution"]["toC"]) == (4, 4)
+    app_js = (ROOT / "deploy" / "web" / "app.js").read_text(encoding="utf-8")
+    start = app_js.index("Valkyrie: {")
+    block = app_js[start:start + 240]
+    assert 'move: { type: "adjacent", steps: 1, ghost: true }' in block
+    assert "issue #679" in lesson["ability"]

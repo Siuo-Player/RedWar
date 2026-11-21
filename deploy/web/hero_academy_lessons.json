@@ -881,10 +881,10 @@
       "draftable": true,
       "unit_category": "hero",
       "title": "Voo sobre o Campo",
-      "lore": "A Valkyrie cruza o campo com liberdade de direção e ignora unidades no percurso. A casa de destino tem de ser válida e não pode conter uma peça aliada.",
-      "ability": "Move-se até três casas em qualquer uma das oito direções, ignorando peças no trajeto. O ataque tem alcance ortogonal até três casas e também ignora peças intermédias.",
-      "objective": "Avança três casas na vertical, atravessando a posição de uma unidade aliada no percurso.",
-      "explanation": "Excelente. A Valkyrie atravessou o trajeto e aterrou dentro do seu alcance de movimento.",
+      "lore": "A Valkyrie protege corredores com a sua mobilidade em várias direções e com um ataque espectral à distância. O motor atual permite-lhe mover-se uma casa adjacente; o ataque mantém alcance ortogonal superior.",
+      "ability": "No espaço de ações atual, move-se uma casa em qualquer direção adjacente. O ataque alcança até três casas ortogonais e atravessa peças intermédias. A configuração declara três casas também para o movimento, mas o compilador atual ainda limita esse movimento a uma casa (issue #679).",
+      "objective": "Move uma casa na diagonal superior direita para ocupar uma posição livre; mantém a linha ortogonal aberta para compreender o alcance do ataque espectral.",
+      "explanation": "Boa jogada. A Valkyrie moveu-se uma casa na diagonal. O ataque espectral pode atingir até três casas ortogonais e atravessar peças intermédias; o alcance de movimento declarado na configuração está registado para correção na issue #679.",
       "actor_name": "Valkyrie",
       "pieces": [
         {
@@ -913,8 +913,8 @@
         "type": "move",
         "fromR": 5,
         "fromC": 3,
-        "toR": 2,
-        "toC": 3
+        "toR": 4,
+        "toC": 4
       }
     },
     {
