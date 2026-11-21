@@ -164,3 +164,9 @@ def test_catalogue_has_27_selectable_heroes_and_three_unit_entries():
 def test_web_rules_cover_nightshade_ghost_orthogonal_movement():
     app_js = (ROOT / "deploy" / "web" / "app.js").read_text(encoding="utf-8")
     assert 'Nightshade: {\n    move: { type: "orthogonal", steps: 4, ghost: true }' in app_js
+
+
+def test_web_academy_allows_legal_ally_spell_targets():
+    app_js = (ROOT / "deploy" / "web" / "app.js").read_text(encoding="utf-8")
+    assert 'act => act.r === r && act.c === c && act.type === "spell"' in app_js
+    assert "&& !alliedSpellTarget" in app_js

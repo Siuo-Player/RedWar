@@ -4004,8 +4004,11 @@ canvas.addEventListener("click", (e) => {
     return;
   }
 
-  // If clicked another allied piece, switch selection to that ally (NO self-capture!)
-  if (clickedPiece && clickedPiece.team === selectedPiece.team) {
+  // An allied piece can be an intentional target of support spells (for example Purify or Swap).
+  const alliedSpellTarget = currentLegalActions.some(
+    act => act.r === r && act.c === c && act.type === "spell"
+  );
+  if (clickedPiece && clickedPiece.team === selectedPiece.team && !alliedSpellTarget) {
     selectedSquare = { r, c };
     currentLegalActions = getLegalActionsForPiece(r, c, boardData);
     drawBoard();
