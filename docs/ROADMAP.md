@@ -152,7 +152,11 @@ RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabele
 
 A cadeia operacional **RedWar 1.0 Full (#370–#375) está concluída**: todos os seis gates estão fechados no GitHub. Isto não significa que o produto deixou de ter trabalho futuro.
 
-A evolução **RedWar 2.0 continua em curso** e é governada por `docs/ROADMAP_2_0.md` e pelas issues específicas. No início do Sprint da Academia, a auditoria encontrou 30 definições de unidades em `engine/heroes_config.json` (27 draftáveis e três não draftáveis), mas apenas 12 lições Web e seis lições Python. A correção está em execução na issue [#677](https://github.com/Siuo-Player/RedWar/issues/677), através da PR [#678](https://github.com/Siuo-Player/RedWar/pull/678); não se considera concluída até CI verde, aceitação e integração.
+A evolução **RedWar 2.0 continua em curso** e é governada por `docs/ROADMAP_2_0.md` e pelas issues específicas.
+
+**Academia de Heróis 30/30 — concluída e integrada.** A auditoria inicial encontrou 30 definições em `engine/heroes_config.json` (27 draftáveis e três não draftáveis), mas apenas 12 lições Web e seis Python. A PR [#678](https://github.com/Siuo-Player/RedWar/pull/678), associada à issue [#677](https://github.com/Siuo-Player/RedWar/issues/677), introduziu o catálogo JSON partilhado, migrou os dois consumidores, validou todas as soluções no espaço canónico de ações e gerou o selector Web a partir das 30 entradas. Foi integrada em `main` pelo commit `fe1d69a934919d8617dde663f29db46070ee558d`. Evidência CI no head integrado antes do merge: **1236 testes passaram, 4 foram ignorados; suite CPU-intensiva: 4 passaram; CodeQL Python/C++: sucesso; Windows black-box acceptance: sucesso; AI Quality Gate: sucesso.**
+
+A auditoria detetou ainda uma discrepância independente na configuração/motor da Valkyrie (`max_steps=3` configurado, mas vetores adjacentes limitados a uma casa pelo compilador). Esta correção mecânica está isolada na issue [#679](https://github.com/Siuo-Player/RedWar/issues/679); a PR #678 não alterou regras de combate e descreve o comportamento atualmente aceite pelo motor.
 
 A issue [#444](https://github.com/Siuo-Player/RedWar/issues/444) permanece aberta: a reprodução da partida original ainda depende do replay/RWEN e da sequência completa de ações. Fixtures sintéticas não substituem essa evidência.
 

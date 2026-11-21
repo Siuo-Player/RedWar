@@ -75,11 +75,13 @@ Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **
 
 ### Milestone 2.5: Academia de Heróis e Documentação Wiki
 
-- [~] **Academia de Heróis completa — em execução (#677 / PR #678)**:
-  - A configuração contém 30 definições: 27 heróis draftáveis e três unidades não draftáveis (Bone, Ghoul e StoneWall).
-  - A auditoria à versão integrada encontrou apenas 12 lições no cliente Web e seis no backend Python; portanto, a antiga marcação de conclusão era incorreta.
-  - A correção estabelece um catálogo JSON versionado e partilhado por Python e Web, lições identificadas por unidade, soluções com tipo de ação explícito e validação no espaço de ações canónico.
-  - Critério de conclusão: 30 entradas exatas, soluções legais, selector Web gerado a partir do catálogo, testes e CI verdes, PR integrada. Não marcar como concluído antes desse ponto.
+- [x] **Academia de Heróis completa — 30/30 (#677 / PR #678, integrada)**:
+  - A configuração contém 30 definições: 27 heróis draftáveis e três unidades não draftáveis (Bone, Ghoul e StoneWall), todas com uma lição contextualizada e identificada.
+  - Catálogo JSON versionado e partilhado por Python e Web; ambos os consumidores carregam a mesma fonte.
+  - As soluções incluem o tipo de ação e metadados de feitiço/invocação, e são verificadas contra `legal_actions` do motor canónico.
+  - O selector Web é gerado a partir das 30 entradas e assinala unidades não draftáveis. Foram acrescentados testes de contrato, legalidade, integração e interação real Playwright.
+  - Integrada em `main` no commit `fe1d69a934919d8617dde663f29db46070ee558d`. CI: 1236 passed / 4 skipped; CPU-intensive: 4 passed; CodeQL Python/C++, Windows acceptance e AI Quality Gate passaram.
+  - Follow-up separado: a discrepância de alcance da Valkyrie está registada em #679; não foi alterada nesta entrega.
 - [x] **Documentação Wiki Oficial do GitHub (`wiki/`, `.github/workflows/deploy_wiki.yml`)**:
   - Estrutura da Wiki com seis secções (Home, Regras, Heróis, Ares/SPRT, Modos e Publicação) sincronizada com o repositório GitHub Wiki.
 
@@ -89,17 +91,21 @@ Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **
 
 A ordem abaixo explicita dependências e bloqueios; não transforma propostas em trabalho concluído.
 
-1. **Academia 30/30 — #677 / PR #678.** Fechar o catálogo, conteúdo, legalidade das soluções, integração Web/Python e documentação.
-2. **FrostMage vs Inquisitor — #444.** Retomar apenas com o replay/RWEN da partida original e a sequência integral de ações. Depois reproduzir deterministicamente e investigar com busca adversarial; profundidade mínima 8 é uma ferramenta de análise, não prova por si só de empate forçado.
-3. **Animações e drag-and-drop.** Melhorias de interação no cliente Web, com testes de regressão para ações legais, acessibilidade e comportamento em diferentes tamanhos de ecrã.
-4. **Matchmaking.** Tratar como trabalho de produto/infraestrutura separado: critérios de emparelhamento, rating, filas, abandono, reconexão e proteção contra abuso, sem confundir matchmaking com a existência atual de salas WebSocket.
-5. **Ares C++/WASM.** Criar uma fronteira de compilação e contrato de compatibilidade entre o motor C++ e o browser, com testes diferenciais Python/C++ e medições antes de substituir o caminho existente.
+A Academia 30/30 está concluída e integrada. As próximas frentes permanecem separadas, com estes pré-requisitos:
+
+1. **FrostMage vs Inquisitor — #444 (bloqueada por evidência).** Retomar apenas com o replay/RWEN da partida original e a sequência integral de ações. Depois reproduzir deterministicamente e investigar com busca adversarial; profundidade mínima 8 é uma ferramenta de análise, não prova por si só de empate forçado.
+2. **Animações e drag-and-drop.** Melhorias de interação no cliente Web, com testes de regressão para ações legais, acessibilidade e comportamento em diferentes tamanhos de ecrã.
+3. **Matchmaking.** Tratar como trabalho de produto/infraestrutura separado: critérios de emparelhamento, rating, filas, abandono, reconexão e proteção contra abuso, sem confundir matchmaking com a existência atual de salas WebSocket.
+4. **Ares C++/WASM.** Criar uma fronteira de compilação e contrato de compatibilidade entre o motor C++ e o browser, com testes diferenciais Python/C++ e medições antes de substituir o caminho existente.
+
+**Follow-up técnico descoberto pela Academia:** #679 — corrigir `BehaviorCompiler._adjacent(max_steps)` para respeitar o alcance declarado da Valkyrie e provar a paridade com o browser. É uma alteração de regras independente e continua aberta; não bloqueou a conclusão da Academia porque a lição foi alinhada ao comportamento legal atual.
 
 ## Registo de estado
 
 - A cadeia 1.0 (#370–#375) está fechada no GitHub.
-- A Academia 30/30 está em execução em #677 / PR #678.
+- A Academia 30/30 está concluída e integrada em #677 / PR #678 (commit `fe1d69a`).
 - #444 continua bloqueada pela falta do replay original; não inferir resultados a partir de fixtures sintéticas.
+- #679 acompanha, separadamente, a discrepância de alcance da Valkyrie descoberta durante a validação da Academia.
 
 ## Regra de Governação
 
