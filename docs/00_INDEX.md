@@ -47,7 +47,7 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | Modos Avançados & Draft | `ROADMAP_2_0.md` + `engine/draft_tournament.py` |
 | Ares Engine 2.0 | `ROADMAP_2_0.md` + `ai/ares2.py` |
 | Ares SPRT & Perfis | `ROADMAP_2_0.md` + `ai/sprt.py` + `ai/profiles.py` |
-| Academia de Heróis | `ROADMAP_2_0.md` + `engine/hero_academy.py` |
+| Academia de Heróis | `deploy/web/hero_academy_lessons.json` (catálogo partilhado) + `engine/hero_academy.py` + `engine/heroes_config.json` (regras) + `ROADMAP_2_0.md` |
 | Análise Empírica & Heatmaps | `tools/analytics/hero_data_profiler.py` + `deploy/web/` |
 | Wiki Oficial | `../wiki/` |
 | Fundações Teóricas & Papers | `THEORETICAL_FOUNDATIONS_AND_PAPERS.md` |

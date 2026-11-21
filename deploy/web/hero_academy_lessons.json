@@ -1,0 +1,1098 @@
+{
+  "schema_version": 1,
+  "description": "Catálogo canónico partilhado da Academia de Heróis. As regras mecânicas permanecem em engine/heroes_config.json.",
+  "lessons": [
+    {
+      "hero_id": "bone",
+      "hero_name": "Bone",
+      "draftable": false,
+      "unit_category": "summoned_unit",
+      "title": "O Escudeiro Ósseo",
+      "lore": "Bone é uma unidade invocada e temporária, não uma escolha de recrutamento. Serve para ocupar casas, bloquear linhas e obrigar o adversário a gastar uma ação.",
+      "ability": "Move-se e ataca uma casa ortogonal. A configuração define uma duração de cinco turnos, pelo que deve ser usado como apoio temporário.",
+      "objective": "Avança uma casa na vertical para ocupar o corredor e proteger a retaguarda.",
+      "explanation": "Correto. O Bone avançou uma casa ortogonal e passou a ocupar o corredor; lembra-te de que é uma unidade temporária.",
+      "actor_name": "Bone",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Bone",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Berserker",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "ghoul",
+      "hero_name": "Ghoul",
+      "draftable": false,
+      "unit_category": "summoned_unit",
+      "title": "A Investida do Ghoul",
+      "lore": "O Ghoul é uma criatura invocada e temporária. A sua orientação depende da equipa: as Brancas avançam para cima e as Pretas para baixo.",
+      "ability": "Move-se e ataca uma casa em cone frontal: em frente ou numa das duas diagonais da frente. A direção inverte-se com a equipa.",
+      "objective": "Avança na direção frontal das Brancas, usando a casa diretamente à frente.",
+      "explanation": "Correto. O Ghoul avançou pelo cone frontal das Brancas; para as Pretas, a direção seria a oposta.",
+      "actor_name": "Ghoul",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Ghoul",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Paladin",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "obelisk",
+      "hero_name": "Obelisk",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Sentinela Imóvel",
+      "lore": "O Obelisk controla o território sem se deslocar. A sua imobilidade exige que seja colocado no sítio certo para ameaçar corredores próximos.",
+      "ability": "Não tem movimento. Ataca uma casa ortogonal adjacente, funcionando como sentinela fixa que protege passagens estreitas.",
+      "objective": "Ataca a unidade inimiga imediatamente à direita sem sair da sua posição.",
+      "explanation": "Muito bem. O Obelisk atacou sem se deslocar, demonstrando que uma peça imóvel ainda pode controlar casas adjacentes.",
+      "actor_name": "Obelisk",
+      "pieces": [
+        {
+          "r": 4,
+          "c": 3,
+          "name": "Obelisk",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 4,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "attack",
+        "fromR": 4,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4
+      }
+    },
+    {
+      "hero_id": "phantom",
+      "hero_name": "Phantom",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "O Golpe Espectral",
+      "lore": "O Phantom atravessa a linha de frente sem depender de uma rota livre. A sua mobilidade em L ameaça posições protegidas por peças intermédias.",
+      "ability": "Move-se em L como um cavalo e ignora peças no trajeto. Spectral Strike também atinge um inimigo numa posição de cavalo.",
+      "objective": "Usa Spectral Strike para atingir o Bone inimigo na casa em L indicada.",
+      "explanation": "Acertaste. O Phantom atingiu o alvo com Spectral Strike; as peças no caminho não bloqueiam esta ação.",
+      "actor_name": "Phantom",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 2,
+          "name": "Phantom",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 3,
+          "c": 3,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 2,
+        "toR": 3,
+        "toC": 3,
+        "spell_name": "spectral_strike"
+      }
+    },
+    {
+      "hero_id": "sentry",
+      "hero_name": "Sentry",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Linha de Tiro da Sentry",
+      "lore": "A Sentry protege corredores longos. Precisa de uma linha de visão ortogonal, pelo que posicionamento e ausência de obstáculos são fundamentais.",
+      "ability": "Move-se uma casa ortogonalmente e dispara Sentinel Shot ao longo de uma linha ortogonal desimpedida.",
+      "objective": "Dispara pela coluna aberta e atinge o Bone inimigo a três casas de distância.",
+      "explanation": "Tiro confirmado. Sentinel Shot percorreu uma linha ortogonal livre e atingiu o alvo.",
+      "actor_name": "Sentry",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Sentry",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 3,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 2,
+        "toC": 3,
+        "spell_name": "sentinel_shot"
+      }
+    },
+    {
+      "hero_id": "frostmage",
+      "hero_name": "FrostMage",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "O Centro da Nevada",
+      "lore": "O FrostMage controla o ritmo do combate através do gelo. A escolha do ponto de foco é tão importante como a distância: a área afetada forma uma cruz.",
+      "ability": "Nevada seleciona um foco até distância Manhattan 3, atordoa inimigos nas casas ortogonais em torno do foco e cria gelo no centro.",
+      "objective": "Escolhe a casa imediatamente abaixo do inimigo como foco para o incluir na cruz de Nevada.",
+      "explanation": "Excelente. Nevada foi colocada no foco correto; o inimigo dentro da cruz foi atordoado e o centro ficou gelado.",
+      "actor_name": "FrostMage",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "FrostMage",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 3,
+          "c": 3,
+          "name": "Dragoon",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3,
+        "spell_name": "nevada"
+      }
+    },
+    {
+      "hero_id": "lich",
+      "hero_name": "Lich",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Reforços das Criptas",
+      "lore": "O Lich transforma espaço livre em pressão adicional. A invocação depende da direção da equipa e de existir uma casa desocupada à frente.",
+      "ability": "Move-se uma casa na diagonal e pode invocar um Ghoul numa das três casas do cone frontal. A invocação tem recarga.",
+      "objective": "Invoca um Ghoul na casa imediatamente à frente, mantendo livre a diagonal.",
+      "explanation": "Invocação concluída. O Lich criou um Ghoul na casa frontal livre; respeita o período de recarga.",
+      "actor_name": "Lich",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Lich",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Warden",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spawn",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3,
+        "spawn_name": "Ghoul"
+      }
+    },
+    {
+      "hero_id": "bonelord",
+      "hero_name": "BoneLord",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "O V em Osso",
+      "lore": "O BoneLord combina presença no centro com uma ameaça mágica em padrão. Bone V verifica posições específicas em forma de V, não uma linha contínua.",
+      "ability": "Move-se uma casa adjacente. Bone V atinge quatro posições diagonais específicas; ao eliminar um inimigo, a passiva pode gerar um Bone na casa do alvo.",
+      "objective": "Usa Bone V para atingir o Bone inimigo na posição diagonal mais afastada do padrão.",
+      "explanation": "Correto. Bone V atingiu uma posição do padrão; a invocação de Bone depende de uma eliminação confirmada.",
+      "actor_name": "BoneLord",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "BoneLord",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 3,
+          "c": 5,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 3,
+        "toC": 5,
+        "spell_name": "bone_v"
+      }
+    },
+    {
+      "hero_id": "ranger",
+      "hero_name": "Ranger",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Precisão a Distância",
+      "lore": "O Ranger precisa de espaço para preparar um disparo eficaz. O alcance mínimo impede que a sua habilidade principal seja usada contra alvos demasiado próximos.",
+      "ability": "Move-se uma casa ortogonalmente. Aimed Shot percorre uma linha ortogonal, exige pelo menos duas casas de distância e não atravessa obstáculos.",
+      "objective": "Dispara pela coluna aberta contra o Bone inimigo, a duas casas de distância.",
+      "explanation": "Acertaste. O Ranger respeitou o alcance mínimo e disparou numa linha ortogonal livre.",
+      "actor_name": "Ranger",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Ranger",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 5,
+          "c": 1,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 5,
+        "toC": 1,
+        "spell_name": "aimed_shot"
+      }
+    },
+    {
+      "hero_id": "templar",
+      "hero_name": "Templar",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Guarda do Templar",
+      "lore": "O Templar é uma unidade de linha que recompensa o posicionamento cuidadoso. A passiva defensiva está definida no motor, mas o movimento básico continua a ser a ferramenta de reposicionamento.",
+      "ability": "Move-se e ataca uma casa ortogonal. A configuração declara ainda uma passiva de redirecionamento de dano com recarga.",
+      "objective": "Reposiciona-te uma casa para a frente, mantendo o Templar entre a ameaça e as unidades frágeis.",
+      "explanation": "Boa decisão. O Templar avançou uma casa ortogonal e conservou a formação defensiva.",
+      "actor_name": "Templar",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Templar",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 5,
+          "name": "Marksman",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "berserker",
+      "hero_name": "Berserker",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Fúria do Berserker",
+      "lore": "O Berserker é perigoso quando entra em contacto com várias peças. O seu ataque adjacente desencadeia dano em área contra inimigos próximos, sem atingir aliados.",
+      "ability": "Move-se e ataca em qualquer uma das oito direções adjacentes. A passiva de ataque aplica dano em área adjacente sem fogo amigo.",
+      "objective": "Ataca o Bone inimigo à tua frente; outro inimigo ao lado permite observar a área de impacto.",
+      "explanation": "Ataque efetuado. O Berserker atingiu o alvo adjacente e a passiva considera inimigos próximos sem fogo amigo.",
+      "actor_name": "Berserker",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Berserker",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 3,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 4,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "attack",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "pyromancer",
+      "hero_name": "Pyromancer",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Acender o Campo",
+      "lore": "O Pyromancer usa fogo para transformar casas em zonas perigosas. O alvo pode ser uma casa vazia ou inimiga, mas nunca uma unidade aliada.",
+      "ability": "Move-se uma casa na diagonal e lança Ignite a uma casa dentro do alcance. O fogo aplica os efeitos definidos no motor.",
+      "objective": "Incendeia a casa ocupada pelo Bone inimigo na diagonal superior direita.",
+      "explanation": "Muito bem. Ignite foi aplicado ao alvo selecionado e criou fogo nessa casa.",
+      "actor_name": "Pyromancer",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Pyromancer",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 4,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4,
+        "spell_name": "ignite"
+      }
+    },
+    {
+      "hero_id": "dragoon",
+      "hero_name": "Dragoon",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Salto sobre Obstáculos",
+      "lore": "O Dragoon atravessa uma barreira saltando por cima dela. O destino tem de estar dentro do alcance de salto e não pode conter uma peça aliada.",
+      "ability": "Move-se e ataca uma casa ortogonalmente. A ação especial Jump salta sobre uma peça intermédia e aterra duas casas na direção escolhida.",
+      "objective": "Salta sobre o Bone que bloqueia a coluna e aterra na casa vazia depois dele.",
+      "explanation": "Salto concluído. O Dragoon ultrapassou o obstáculo intermédio e aterrou numa casa válida.",
+      "actor_name": "Dragoon",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Dragoon",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 3,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 3,
+        "toC": 3,
+        "spell_name": "jump"
+      }
+    },
+    {
+      "hero_id": "nightshade",
+      "hero_name": "Nightshade",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Sombra que Atravessa",
+      "lore": "A Nightshade atravessa formações sem depender de uma casa de passagem livre. Esta capacidade permite infiltrar-se por corredores ocupados, desde que a casa de destino esteja livre.",
+      "ability": "Move-se até quatro casas ortogonais e ignora peças no percurso. O ataque básico continua limitado a uma casa ortogonal.",
+      "objective": "Avança pela coluna atravessando o Bone aliado que está no caminho.",
+      "explanation": "Excelente. A Nightshade atravessou a peça intermédia e chegou ao destino livre, usando o movimento fantasma ortogonal.",
+      "actor_name": "Nightshade",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Nightshade",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 3,
+          "name": "Bone",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Paladin",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 1,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "cleric",
+      "hero_name": "Cleric",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Purificar a Linha",
+      "lore": "O Cleric apoia aliados debilitados em vez de procurar confronto direto. O alvo de Purify tem de pertencer à mesma equipa e estar atordoado.",
+      "ability": "Move-se uma casa na diagonal. Purify remove o atordoamento de um aliado dentro do alcance, sendo uma ação mágica distinta do movimento.",
+      "objective": "Usa Purify no Bone aliado atordoado que está uma casa à frente.",
+      "explanation": "Purificação concluída. O Cleric removeu o atordoamento do aliado; o feitiço não é um ataque ao adversário.",
+      "actor_name": "Cleric",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Cleric",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 3,
+          "name": "Bone",
+          "team": "brancas",
+          "stun": 2
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3,
+        "spell_name": "purify"
+      }
+    },
+    {
+      "hero_id": "trickster",
+      "hero_name": "Trickster",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Troca de Posições",
+      "lore": "O Trickster altera a formação sem atravessar as peças. A mobilidade em L oferece reposicionamento, enquanto Swap troca de lugar com um aliado.",
+      "ability": "Move-se em L como um cavalo. Swap seleciona outra peça aliada e troca as duas posições.",
+      "objective": "Troca de lugar com o Bone aliado para o retirar da linha de perigo.",
+      "explanation": "Boa jogada. O Trickster e o Bone trocaram de posição; esta ação reorganiza a formação, não captura.",
+      "actor_name": "Trickster",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Trickster",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 3,
+          "c": 4,
+          "name": "Bone",
+          "team": "brancas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 3,
+        "toC": 4,
+        "spell_name": "swap"
+      }
+    },
+    {
+      "hero_id": "geomancer",
+      "hero_name": "Geomancer",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Construir uma Barreira",
+      "lore": "O Geomancer altera o espaço disponível no tabuleiro. Uma barreira pode fechar um corredor, proteger uma peça ou obrigar o adversário a contornar a zona.",
+      "ability": "Move-se uma casa ortogonalmente. Barricade cria uma StoneWall numa casa adjacente vazia, com duração temporária.",
+      "objective": "Ergue uma barreira na casa ortogonal imediatamente acima do Geomancer.",
+      "explanation": "Barreira criada. A casa passou a conter uma StoneWall temporária; a barreira também limita os movimentos aliados.",
+      "actor_name": "Geomancer",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Geomancer",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Dragoon",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3,
+        "spell_name": "barricade"
+      }
+    },
+    {
+      "hero_id": "stonewall",
+      "hero_name": "StoneWall",
+      "draftable": false,
+      "unit_category": "obstacle",
+      "title": "A Parede de Pedra",
+      "lore": "A StoneWall não é um herói nem uma peça recrutável. É um obstáculo temporário que bloqueia corredores e altera as linhas de ataque e movimento das duas equipas.",
+      "ability": "Não se move nem ataca. A configuração define duração de três turnos; deve ser tratada como obstáculo e não como unidade controlável.",
+      "objective": "Com o Warden, aproxima-te do lado da barreira sem tentares ocupar a casa bloqueada.",
+      "explanation": "Correto. A StoneWall continua imóvel e bloqueia a casa; o Warden posicionou-se ao lado sem atravessar o obstáculo.",
+      "actor_name": "Warden",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 2,
+          "name": "Warden",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 3,
+          "name": "StoneWall",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 2,
+        "toR": 5,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "inquisitor",
+      "hero_name": "Inquisitor",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Aura do Silêncio",
+      "lore": "O Inquisitor controla o uso de feitiços numa região à sua volta. A sua presença força adversários mágicos a afastarem-se antes de voltarem a lançar habilidades.",
+      "ability": "Move-se e ataca uma casa em qualquer direção adjacente. A passiva desativa feitiços inimigos dentro do raio dois, sem impedir o movimento.",
+      "objective": "Avança em diagonal para controlar a zona central e aproximar a aura das unidades inimigas.",
+      "explanation": "Boa posição. O Inquisitor avançou uma casa e a sua aura ameaça os feitiços dos inimigos próximos.",
+      "actor_name": "Inquisitor",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Inquisitor",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "FrostMage",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4
+      }
+    },
+    {
+      "hero_id": "paladin",
+      "hero_name": "Paladin",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "O Avanço do Paladino",
+      "lore": "O Paladin protege a linha de frente com um movimento ortogonal mais longo do que o de muitas unidades. A distância máxima não permite atravessar peças nem aterrar sobre aliados.",
+      "ability": "Move-se até duas casas na horizontal ou vertical e ataca apenas uma casa ortogonal. Movimento e ataque são ações distintas.",
+      "objective": "Avança duas casas para cima, parando numa casa vazia antes da linha inimiga.",
+      "explanation": "Avanço correto. O Paladin percorreu duas casas ortogonais sem capturar nem atordoar; o ataque é uma ação separada.",
+      "actor_name": "Paladin",
+      "pieces": [
+        {
+          "r": 6,
+          "c": 3,
+          "name": "Paladin",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 3,
+          "name": "Dragoon",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 6,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "shadowblade",
+      "hero_name": "Shadowblade",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Lâmina Fantasma",
+      "lore": "A Shadowblade atravessa peças no caminho quando se desloca em diagonal. Esta mobilidade permite contornar formações e alcançar casas que outras unidades não conseguem.",
+      "ability": "Move-se até três casas na diagonal, ignorando peças intermédias. O ataque também é diagonal e pode atravessar peças, sujeito às regras de alvo.",
+      "objective": "Atravessa o Bone aliado na diagonal e alcança a casa vazia no fim da rota.",
+      "explanation": "Perfeito. A Shadowblade atravessou a peça intermédia e terminou numa casa vazia dentro do alcance diagonal.",
+      "actor_name": "Shadowblade",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Shadowblade",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 4,
+          "name": "Bone",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 3,
+          "c": 5,
+          "name": "Dragoon",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 2,
+        "toC": 6
+      }
+    },
+    {
+      "hero_id": "stormcaller",
+      "hero_name": "Stormcaller",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Relâmpago em Linha",
+      "lore": "O Stormcaller ameaça peças distantes sem se aproximar. O seu feitiço exige alinhamento ortogonal e uma linha sem obstáculos até ao alvo.",
+      "ability": "Move-se uma casa ortogonalmente. Chain Lightning é um feitiço de raio ortogonal com alcance máximo de três casas.",
+      "objective": "Dispara Chain Lightning pela coluna aberta contra o BoneLord inimigo.",
+      "explanation": "Relâmpago certeiro. O Stormcaller atingiu o alvo alinhado por uma linha ortogonal desimpedida.",
+      "actor_name": "Stormcaller",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Stormcaller",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 3,
+          "name": "BoneLord",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 2,
+        "toC": 3,
+        "spell_name": "chain_lightning"
+      }
+    },
+    {
+      "hero_id": "hookmaster",
+      "hero_name": "Hookmaster",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "O Gancho Tático",
+      "lore": "O Hookmaster foi pensado para reposicionamento. O código contém uma operação de puxar em linha ortogonal, mas esta ainda não está exposta como ação canónica do tabuleiro.",
+      "ability": "A configuração declara movimento adjacente e ataque ortogonal adjacente. A rotina de puxão existente não é uma ação presente no espaço canónico de jogadas.",
+      "objective": "Avança uma casa na diagonal para entrar numa posição adjacente ao corredor que pretendes controlar.",
+      "explanation": "Boa preparação. O Hookmaster reposicionou-se; a rotina de puxão não foi apresentada falsamente como lance executável.",
+      "actor_name": "Hookmaster",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Hookmaster",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Paladin",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4
+      }
+    },
+    {
+      "hero_id": "timekeeper",
+      "hero_name": "Timekeeper",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Ritmo e Posicionamento",
+      "lore": "O Timekeeper combina presença próxima com uma rotina temporal auxiliar. A lição distingue a mobilidade disponível no jogo das rotinas que ainda não são ações canónicas.",
+      "ability": "A configuração declara movimento adjacente e ataque ortogonal adjacente. A rotina temporal altera o atordoamento de uma peça, mas não está exposta como ação canónica.",
+      "objective": "Move-te uma casa na diagonal para apoiar uma unidade aliada sem abandonar o centro.",
+      "explanation": "Correto. O Timekeeper avançou para uma casa adjacente; a rotina temporal não foi simulada como feitiço disponível.",
+      "actor_name": "Timekeeper",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Timekeeper",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "FrostMage",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4
+      }
+    },
+    {
+      "hero_id": "valkyrie",
+      "hero_name": "Valkyrie",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "Voo sobre o Campo",
+      "lore": "A Valkyrie protege corredores com a sua mobilidade em várias direções e com um ataque espectral à distância. O motor atual permite-lhe mover-se uma casa adjacente; o ataque mantém alcance ortogonal superior.",
+      "ability": "No espaço de ações atual, move-se uma casa em qualquer direção adjacente. O ataque alcança até três casas ortogonais e atravessa peças intermédias. A configuração declara três casas também para o movimento, mas o compilador atual ainda limita esse movimento a uma casa (issue #679).",
+      "objective": "Move uma casa na diagonal superior direita para ocupar uma posição livre; mantém a linha ortogonal aberta para compreender o alcance do ataque espectral.",
+      "explanation": "Boa jogada. A Valkyrie moveu-se uma casa na diagonal. O ataque espectral pode atingir até três casas ortogonais e atravessar peças intermédias; o alcance de movimento declarado na configuração está registado para correção na issue #679.",
+      "actor_name": "Valkyrie",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Valkyrie",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 4,
+          "c": 3,
+          "name": "Bone",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Marksman",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4
+      }
+    },
+    {
+      "hero_id": "arcanist",
+      "hero_name": "Arcanist",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Rajada Arcana",
+      "lore": "O Arcanist alia mobilidade diagonal a um feitiço linear. A melhor oportunidade surge quando o alvo fica alinhado e a linha de tiro não está bloqueada.",
+      "ability": "Move-se até duas casas na diagonal. Arcane Blast atinge alvos numa linha ortogonal com alcance até três casas.",
+      "objective": "Usa Arcane Blast pela coluna aberta para atingir o Stormcaller inimigo.",
+      "explanation": "Muito bem. Arcane Blast percorreu a linha ortogonal e atingiu o alvo sem exigir contacto direto.",
+      "actor_name": "Arcanist",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Arcanist",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 3,
+          "name": "Stormcaller",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 2,
+        "toC": 3,
+        "spell_name": "arcane_blast"
+      }
+    },
+    {
+      "hero_id": "duelist",
+      "hero_name": "Duelist",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Estocada Diagonal",
+      "lore": "O Duelist domina diagonais curtas e pode avançar ou atacar ao longo delas. Não possui movimento fantasma: peças no percurso bloqueiam a rota.",
+      "ability": "Move-se e ataca até duas casas em qualquer diagonal. O alcance máximo do movimento e do ataque é semelhante, mas as ações são distintas.",
+      "objective": "Avança uma casa na diagonal superior direita para ganhar espaço sem te expor.",
+      "explanation": "Boa escolha. O Duelist deslocou-se numa diagonal válida e manteve a capacidade de estocada.",
+      "actor_name": "Duelist",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Duelist",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Berserker",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4
+      }
+    },
+    {
+      "hero_id": "warden",
+      "hero_name": "Warden",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "A Guarda do Warden",
+      "lore": "O Warden é um defensor de proximidade. A mobilidade em oito direções permite ajustar a posição, enquanto o ataque ortogonal mantém uma ameaça curta e previsível.",
+      "ability": "Move-se uma casa em qualquer direção adjacente e ataca uma casa ortogonal. Movimento diagonal não significa que também possa atacar na diagonal.",
+      "objective": "Move-te uma casa na diagonal para proteger o flanco do Paladin.",
+      "explanation": "Correto. O Warden reposicionou-se na diagonal; o ataque continua limitado às casas ortogonais adjacentes.",
+      "actor_name": "Warden",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Warden",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Dragoon",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 4
+      }
+    },
+    {
+      "hero_id": "illusionist",
+      "hero_name": "Illusionist",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "O Eixo dos Espelhos",
+      "lore": "O Illusionist desloca-se por linhas ortogonais e ataca em redor da sua posição. Distinguir alcance de movimento e alcance de ataque é central para o usar bem.",
+      "ability": "Move-se até duas casas na horizontal ou vertical e ataca uma casa em qualquer direção adjacente.",
+      "objective": "Avança duas casas na vertical para ocupar o corredor central.",
+      "explanation": "Excelente. O Illusionist percorreu duas casas ortogonais; a ameaça de ataque continua limitada à vizinhança imediata.",
+      "actor_name": "Illusionist",
+      "pieces": [
+        {
+          "r": 6,
+          "c": 3,
+          "name": "Illusionist",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 6,
+          "name": "Paladin",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "move",
+        "fromR": 6,
+        "fromC": 3,
+        "toR": 4,
+        "toC": 3
+      }
+    },
+    {
+      "hero_id": "marksman",
+      "hero_name": "Marksman",
+      "draftable": true,
+      "unit_category": "hero",
+      "title": "O Disparo do Marksman",
+      "lore": "O Marksman pressiona corredores à distância. O disparo especial tem de manter uma linha ortogonal e não atravessar peças intermédias.",
+      "ability": "Move-se uma casa adjacente em qualquer direção. Sniper Shot percorre até três casas ortogonais e é executado como feitiço de ataque.",
+      "objective": "Dispara pela coluna aberta contra o Bone inimigo a três casas de distância.",
+      "explanation": "Tiro confirmado. O Marksman atingiu o alvo dentro do alcance ortogonal declarado.",
+      "actor_name": "Marksman",
+      "pieces": [
+        {
+          "r": 5,
+          "c": 3,
+          "name": "Marksman",
+          "team": "brancas",
+          "stun": 0
+        },
+        {
+          "r": 2,
+          "c": 3,
+          "name": "Bone",
+          "team": "pretas",
+          "stun": 0
+        }
+      ],
+      "solution": {
+        "type": "spell",
+        "fromR": 5,
+        "fromC": 3,
+        "toR": 2,
+        "toC": 3,
+        "spell_name": "sniper_shot"
+      }
+    }
+  ]
+}

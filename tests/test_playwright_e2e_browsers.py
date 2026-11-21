@@ -440,3 +440,49 @@ def test_playwright_dual_player_web_multiplayer(web_and_ws_servers, chromium_bro
 
     ctx_alice.close()
     ctx_bob.close()
+
+
+
+def test_playwright_hero_academy_catalogue_and_support_spells(web_and_ws_servers, chromium_browser):
+    """Load all 30 lessons in Chromium and solve legal ally/overlapping-destination spells."""
+    page = chromium_browser.new_page()
+    browser_errors = attach_browser_error_capture(page)
+
+    page.goto(web_and_ws_servers["http_url"], wait_until="domcontentloaded")
+    page.wait_for_function(
+        "() => document.querySelectorAll('#heroSelect option').length === 30",
+        timeout=10000,
+    )
+
+    # Loading the catalogue must not silently switch a normal match into Academy mode.
+    assert page.evaluate("isAcademyMode") is False
+    options = page.locator("#heroSelect option")
+    labels = [option.text_content() for option in options.all()]
+    assert any("Bone" in label and "não draftável" in label for label in labels)
+    assert any("Ghoul" in label and "não draftável" in label for label in labels)
+    assert any("StoneWall" in label and "não draftável" in label for label in labels)
+
+    page.click("#tabAcademy")
+    assert page.evaluate("isAcademyMode") is True
+
+    # Purify targets an allied unit. The click handler must not mistake it for a selection change.
+    page.select_option("#heroSelect", "cleric")
+    click_canvas_square(page, 5, 3)
+    click_canvas_square(page, 4, 3)
+    page.wait_for_function(
+        "() => document.getElementById('academyFeedback').textContent.includes('Sucesso!')",
+        timeout=3000,
+    )
+
+    # Pyromancer's Ignite shares its destination with a possible movement candidate.
+    # The Academy must select the required spell action rather than the movement.
+    page.select_option("#heroSelect", "pyromancer")
+    click_canvas_square(page, 5, 3)
+    click_canvas_square(page, 4, 4)
+    page.wait_for_function(
+        "() => document.getElementById('academyFeedback').textContent.includes('Sucesso!')",
+        timeout=3000,
+    )
+
+    assert_browser_has_no_errors(browser_errors, "Hero Academy browser")
+    page.context.close()

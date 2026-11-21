@@ -1,20 +1,24 @@
 # RedWar — Roadmap Operacional
 
-## Gate chain 1.0 Full
+## Gate chain 1.0 Full — CONCLUÍDA
+
+Os seis gates da cadeia 1.0 estão **fechados no GitHub**. O roadmap não deve reabrir gates por existirem tarefas de evolução posteriores.
 
 ```text
 #370 Foundation (CLOSED)
       ↓
 #371 Gameplay (CLOSED)
       ↓
-#372 Ares Competitive Track (OPEN - Foco Stockfish-like AI & Avaliação de Balanceamento)
+#372 Ares Competitive Track (CLOSED)
       ↓
-#373 Product Full & Game Modes (OPEN - Modos balanceados, Leaderboards e Puzzles)
+#373 Product Full & Game Modes (CLOSED)
       ↓
-#374 Online Multiplayer & Web (OPEN - Chess.com model: WebSocket, ELO, Web app)
+#374 Online Multiplayer & Web (CLOSED)
       ↓
-#375 Release Full
+#375 Release Full (CLOSED)
 ```
+
+O trabalho posterior é evolução RedWar 2.0 ou follow-up especializado, e deve ter issues próprias. Em particular, a issue #318 continua aberta para objetivos especializados de análise de heróis; não altera o estado fechado dos gates 1.0.
 
 ## 1.0-Lite path (CONCLUÍDO)
 
@@ -41,10 +45,10 @@ RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabele
 - **#370 Foundation — CLOSED.** Contratos base, normalização de ações e fronteira de execução fechados.
 - **#371 Gameplay — CLOSED.** Ruleset jogável fechado (stun, morte, turnos sem captura, efeitos de fogo/gelo).
 - **#526 1.0-Lite — CLOSED.** Baseline local e produto desktop com aceitação real no Windows.
-- **#372 Ares Competitive Track — EM PROGRESSO (FOCO ATUAL).** Evolução competitiva contínua inspirada no **Stockfish** (busca alfa-beta otimizada, LMR, ordenação de lances, quiescence, TT e NNUE) servindo também como oráculo para o Balance Lab.
-- **#373 Product Full & Múltiplos Modos — EM DESENVOLVIMENTO PARALELO.** Implementação de múltiplos modos balanceados (8×8, 10×10, controlos de tempo Bullet/Blitz/Rápido, puzzles táticos e variantes de draft) e leaderboards.
-- **#374 Online Multiplayer & Web — EM PREPARAÇÃO.** Transição para o modelo **Chess.com**: servidor WebSocket autoritativo, matchmaking baseado em ELO/Glicko-2, relógios sincronizados e cliente Web.
-- **#375 Release Full — PLANEADO.** Lançamento multiplataforma unificado (Desktop + Web).
+- **#372 Ares Competitive Track — CLOSED.** Gate 1.0 encerrado; as melhorias posteriores do motor são acompanhadas como trabalho de evolução separado, com validação empírica própria.
+- **#373 Product Full & Múltiplos Modos — CLOSED.** Gate 1.0 encerrado; modos, puzzles e funcionalidades de produto aceites nesse âmbito.
+- **#374 Online Multiplayer & Web — CLOSED.** Gate 1.0 encerrado; servidor autoritativo, salas, relógios, API e cliente Web integrados.
+- **#375 Release Full — CLOSED.** Gate 1.0 encerrado; lançamento multiplataforma e auditoria de licenças concluídos.
 
 ---
 
@@ -144,13 +148,15 @@ RedWar completou com sucesso a primeira versão **local 1.0-Lite**, que estabele
 
 ---
 
-## 🏆 Estado Final do RoadMap: 100% Concluído
-Todas as fases principais do roadmap RedWar foram implementadas, validadas por testes rigorosos e integradas em `main`:
-1. **#371 — 1.0-Lite Local:** Regras sem HP (2 vidas / stun-morte), 19 heróis, draft, baseline determinístico e suite de testes.
-2. **#372 — Ares Engine Competitiva:** Alpha-beta com move ordering (MVV-LVA, stuns táticos), quiescence search, LMR, Zobrist TT, avaliação clássica/NNUE e 4 bot tiers calibrados (800-2500+ ELO).
-3. **#373 — Produto Full:** Modos de jogo Standard 8×8 e Grand 10×10, controlos de tempo (Bullet, Blitz, Rápido), sistema de rating ELO com leaderboard persistente e banco de puzzles táticos com RWEN.
-4. **#374 — Online Multiplayer & Web:** Servidor autoritativo WebSocket, salas com códigos e espectadores, relógios sincronizados com flag-fall timeout, REST API e cliente Web HTML5 Canvas estilo Chess.com.
-5. **#375 — Release Full:** Launcher unificado, conformidade e auditoria de licenças/assets e lançamento oficial do produto multiplataforma.
+## Estado de conclusão e evolução
+
+A cadeia operacional **RedWar 1.0 Full (#370–#375) está concluída**: todos os seis gates estão fechados no GitHub. Isto não significa que o produto deixou de ter trabalho futuro.
+
+A evolução **RedWar 2.0 continua em curso** e é governada por `docs/ROADMAP_2_0.md` e pelas issues específicas. No início do Sprint da Academia, a auditoria encontrou 30 definições de unidades em `engine/heroes_config.json` (27 draftáveis e três não draftáveis), mas apenas 12 lições Web e seis lições Python. A correção está em execução na issue [#677](https://github.com/Siuo-Player/RedWar/issues/677), através da PR [#678](https://github.com/Siuo-Player/RedWar/pull/678); não se considera concluída até CI verde, aceitação e integração.
+
+A issue [#444](https://github.com/Siuo-Player/RedWar/issues/444) permanece aberta: a reprodução da partida original ainda depende do replay/RWEN e da sequência completa de ações. Fixtures sintéticas não substituem essa evidência.
+
+Não usar “100% concluído” para descrever o produto global. O estado correto é: **gates 1.0 fechados; evolução 2.0 em progresso**.
 
 ---
 
