@@ -170,3 +170,11 @@ def test_web_academy_allows_legal_ally_spell_targets():
     app_js = (ROOT / "deploy" / "web" / "app.js").read_text(encoding="utf-8")
     assert 'act => act.r === r && act.c === c && act.type === "spell"' in app_js
     assert "&& !alliedSpellTarget" in app_js
+
+
+def test_catalogue_loader_does_not_enter_academy_mode_on_page_boot():
+    app_js = (ROOT / "deploy" / "web" / "app.js").read_text(encoding="utf-8")
+    loader_start = app_js.index("async function loadAcademyCurriculum")
+    loader_end = app_js.index("\nfunction ", loader_start + 10)
+    loader_body = app_js[loader_start:loader_end]
+    assert "loadAcademyLesson(selector.value)" not in loader_body

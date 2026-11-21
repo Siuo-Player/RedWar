@@ -912,7 +912,7 @@ async function loadAcademyCurriculum() {
       selector.appendChild(option);
     }
     selector.value = HERO_LESSONS.paladin ? "paladin" : (catalogue.lessons[0]?.hero_id || "");
-    if (selector.value) loadAcademyLesson(selector.value);
+    // Do not enter Academy mode on ordinary page load; the tab click starts the selected lesson.
   } catch (error) {
     console.error("Hero Academy catalogue failed to load:", error);
     showNotification("Não foi possível carregar a Academia de Heróis. Atualiza a página e tenta novamente.", "error");
