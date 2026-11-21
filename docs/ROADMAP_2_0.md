@@ -74,12 +74,32 @@ Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **
   - `StandardAresProfile`, `GrandAresProfile`, `DraftAresProfile` e `HazardAresProfile`, cada qual com pesos de avaliação, sinergias e parâmetros de busca dedicados.
 
 ### Milestone 2.5: Academia de Heróis e Documentação Wiki
-- [x] **Academia de Heróis Interativa (`engine/hero_academy.py`, `deploy/web/`)**:
-  - Puzzles interativos explicados passo a passo para introduzir as habilidades únicas de cada herói (Paladin, Shadowblade, Stormcaller, Dragoon, FrostMage, BoneLord) com lore, validação em tempo real e feedback tático.
+
+- [~] **Academia de Heróis completa — em execução (#677 / PR #678)**:
+  - A configuração contém 30 definições: 27 heróis draftáveis e três unidades não draftáveis (Bone, Ghoul e StoneWall).
+  - A auditoria à versão integrada encontrou apenas 12 lições no cliente Web e seis no backend Python; portanto, a antiga marcação de conclusão era incorreta.
+  - A correção estabelece um catálogo JSON versionado e partilhado por Python e Web, lições identificadas por unidade, soluções com tipo de ação explícito e validação no espaço de ações canónico.
+  - Critério de conclusão: 30 entradas exatas, soluções legais, selector Web gerado a partir do catálogo, testes e CI verdes, PR integrada. Não marcar como concluído antes desse ponto.
 - [x] **Documentação Wiki Oficial do GitHub (`wiki/`, `.github/workflows/deploy_wiki.yml`)**:
-  - Estrutura completa de Wiki com 6 secções canónicas (Home, Regras, Heróis, Ares/SPRT, Modos e Publicação) sincronizadas automaticamente com o repositório GitHub Wiki.
+  - Estrutura da Wiki com seis secções (Home, Regras, Heróis, Ares/SPRT, Modos e Publicação) sincronizada com o repositório GitHub Wiki.
 
 ---
+
+## Próximas frentes RedWar 2.0
+
+A ordem abaixo explicita dependências e bloqueios; não transforma propostas em trabalho concluído.
+
+1. **Academia 30/30 — #677 / PR #678.** Fechar o catálogo, conteúdo, legalidade das soluções, integração Web/Python e documentação.
+2. **FrostMage vs Inquisitor — #444.** Retomar apenas com o replay/RWEN da partida original e a sequência integral de ações. Depois reproduzir deterministicamente e investigar com busca adversarial; profundidade mínima 8 é uma ferramenta de análise, não prova por si só de empate forçado.
+3. **Animações e drag-and-drop.** Melhorias de interação no cliente Web, com testes de regressão para ações legais, acessibilidade e comportamento em diferentes tamanhos de ecrã.
+4. **Matchmaking.** Tratar como trabalho de produto/infraestrutura separado: critérios de emparelhamento, rating, filas, abandono, reconexão e proteção contra abuso, sem confundir matchmaking com a existência atual de salas WebSocket.
+5. **Ares C++/WASM.** Criar uma fronteira de compilação e contrato de compatibilidade entre o motor C++ e o browser, com testes diferenciais Python/C++ e medições antes de substituir o caminho existente.
+
+## Registo de estado
+
+- A cadeia 1.0 (#370–#375) está fechada no GitHub.
+- A Academia 30/30 está em execução em #677 / PR #678.
+- #444 continua bloqueada pela falta do replay original; não inferir resultados a partir de fixtures sintéticas.
 
 ## Regra de Governação
 
