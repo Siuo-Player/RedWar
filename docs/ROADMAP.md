@@ -156,11 +156,11 @@ A evolução **RedWar 2.0 continua em curso** e é governada por `docs/ROADMAP_2
 
 **Academia de Heróis 30/30 — concluída e integrada.** A auditoria inicial encontrou 30 definições em `engine/heroes_config.json` (27 draftáveis e três não draftáveis), mas apenas 12 lições Web e seis Python. A PR [#678](https://github.com/Siuo-Player/RedWar/pull/678), associada à issue [#677](https://github.com/Siuo-Player/RedWar/issues/677), introduziu o catálogo JSON partilhado, migrou os dois consumidores, validou todas as soluções no espaço canónico de ações e gerou o selector Web a partir das 30 entradas. Foi integrada em `main` pelo commit `fe1d69a934919d8617dde663f29db46070ee558d`. Evidência CI no head integrado antes do merge: **1236 testes passaram, 4 foram ignorados; suite CPU-intensiva: 4 passaram; CodeQL Python/C++: sucesso; Windows black-box acceptance: sucesso; AI Quality Gate: sucesso.**
 
-A validação da Academia detetou que Python e C++ ignoravam `max_steps=3` no movimento `adjacent` da Valkyrie, apesar de a configuração já declarar voo espectral de três casas. A correção está em execução na issue [#679](https://github.com/Siuo-Player/RedWar/issues/679), pela PR [#680](https://github.com/Siuo-Player/RedWar/pull/680), que alinha os dois motores, o browser e o oráculo independente.
+A validação da Academia detetou que Python e C++ ignoravam `max_steps=3` no movimento `adjacent` da Valkyrie. A correção foi integrada pela [PR #680](https://github.com/Siuo-Player/RedWar/pull/680), commit `32fdb3ebfdd0094e7ca9b91be95117db0dd3bb5d`, alinhando os dois motores, o browser, o oráculo independente e a lição da Academia. CI: 1245 testes passaram, 4 ignorados; CPU-intensive 4/4; CodeQL, Windows acceptance e AI Quality Gate passaram.
 
 A issue [#444](https://github.com/Siuo-Player/RedWar/issues/444) permanece aberta: a reprodução da partida original ainda depende do replay/RWEN e da sequência completa de ações. Fixtures sintéticas não substituem essa evidência.
 
-Não usar “100% concluído” para descrever o produto global. O estado correto é: **gates 1.0 fechados; evolução 2.0 em progresso**.
+A próxima frente Web de UX está registada em [#681](https://github.com/Siuo-Player/RedWar/issues/681): auditar e melhorar interação por clique/drag-and-drop, animações, acessibilidade e sincronização responsiva. A auditoria inicial encontrou Canvas com handler de clique, sem drag-and-drop e sem regra `prefers-reduced-motion` no CSS. Não usar “100% concluído” para descrever o produto global. O estado correto é: **gates 1.0 fechados; evolução 2.0 em progresso**.
 
 ---
 

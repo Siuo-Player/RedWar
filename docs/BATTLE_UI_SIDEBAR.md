@@ -47,3 +47,16 @@ Fonte operacional da sequência: [`ROADMAP.md`](ROADMAP.md).
 ## Explicit feedback for blocked spells
 
 When the selected hero is silenced by an active opposing Inquisitor, the selected-hero status must state that spells are unavailable and give the recovery action (move outside the Inquisitor's configured aura). This status is informational only: it must call the engine's read-only silence query rather than reimplementing radius/turn-state rules in the UI. An active Inquisitor's aura suppresses spells, not movement; the UI must not imply that the entire hero is unable to act. If the selected hero is also stunned, the status must show the stun first and explain that the hero must wait for recovery before moving out of the aura. This feedback does not resolve or change the strategic outcome of the separate 16-FrostMage-vs-Inquisitor endgame report (#444), whose exact replay is still required for a complete reproduction.
+
+
+## Auditoria inicial de interação Web — #681
+
+Inspeção do cliente em `main` após a PR #680:
+
+- O tabuleiro é um elemento `canvas#gameBoard`; a interação do tabuleiro está ligada a um handler `click`.
+- A seleção usa `selectedSquare` e `currentLegalActions`; o painel contextual de ações e os atalhos `1..9`/ `ESC` são a alternativa documentada para ações com múltiplas opções.
+- A sincronização online é autoritativa: estados recebidos atualizam o tabuleiro; ações pendentes podem ser revertidas para o último snapshot autoritativo.
+- Não foi encontrada implementação de `dragstart`, `dragover`, `drop` ou `pointerdown` no cliente Web auditado.
+- O CSS contém transições para navegação e barra de avaliação, mas não contém uma regra `prefers-reduced-motion`.
+
+**Conclusão:** drag-and-drop e animações de movimento não devem ser marcados como existentes. A implementação deve ser incremental, baseada em testes Playwright, e estritamente visual: nunca substituir validação do servidor nem antecipar o estado de jogo. A ausência de `prefers-reduced-motion` é uma lacuna de acessibilidade a tratar antes de introduzir movimento animado.
