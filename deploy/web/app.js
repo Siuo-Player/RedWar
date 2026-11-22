@@ -3949,7 +3949,7 @@ function verifyPuzzleMove(puzzleId, fromR, fromC, toR, toC) {
 }
 
 // User Interaction Handler (STRICT INVARIANT: Player cannot move Black/AI pieces, No Self-Capture)
-canvas.addEventListener("click", (e) => {
+function handleCanvasBoardClick(e) {
   if (isGameOver || isAiThinking || isOnlineMovePending || isPuzzleVerifying || (isPuzzleMode && currentPuzzleSolved) || (isAcademyMode && academyLessonSolved)) return;
 
   const oppVal = document.getElementById("opponentSelect") ? document.getElementById("opponentSelect").value : "bot_intermediate";
@@ -4188,6 +4188,45 @@ canvas.addEventListener("click", (e) => {
     currentLegalActions = [];
     drawBoard();
   }
+}
+
+// Click remains the accessible single-pointer interaction. Drag reuses the exact same
+// handler twice, so all legal-action, Academy, puzzle and online validation stays canonical.
+canvas.addEventListener("click", (e) => {
+  if (suppressBoardClickAfterDrag) {
+    suppressBoardClickAfterDrag = false;
+    return;
+  }
+  handleCanvasBoardClick(e);
+});
+
+let boardPointerStart = null;
+let suppressBoardClickAfterDrag = false;
+const BOARD_DRAG_THRESHOLD_PX = 6;
+
+canvas.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  boardPointerStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+});
+
+canvas.addEventListener("pointerup", (event) => {
+  const start = boardPointerStart;
+  boardPointerStart = null;
+  if (!start || start.pointerId !== event.pointerId) return;
+
+  const distance = Math.hypot(event.clientX - start.x, event.clientY - start.y);
+  if (distance < BOARD_DRAG_THRESHOLD_PX) return;
+
+  // Suppress the synthetic click generated after pointerup; this drag already
+  // performs the source selection and destination action through the click path.
+  suppressBoardClickAfterDrag = true;
+  handleCanvasBoardClick({ clientX: start.x, clientY: start.y });
+  handleCanvasBoardClick({ clientX: event.clientX, clientY: event.clientY });
+});
+
+canvas.addEventListener("pointercancel", () => {
+  boardPointerStart = null;
+  suppressBoardClickAfterDrag = false;
 });
 
 // Clocks and Timers
