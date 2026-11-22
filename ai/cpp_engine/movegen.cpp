@@ -100,8 +100,9 @@ std::vector<MoveVector> compile_move_behavior(const json& mv_json) {
                                   {1, -1, max_steps}, {1, 1, max_steps}}, 1, ghost);
     }
     if (type == "adjacent" || type == "adj") {
-        return normalize_vectors({{-1, -1, 1}, {-1, 0, 1}, {-1, 1, 1},
-                                  {0, -1, 1}, {0, 1, 1}, {1, -1, 1}, {1, 0, 1}, {1, 1, 1}}, 1, ghost);
+        return normalize_vectors({{-1, -1, max_steps}, {-1, 0, max_steps}, {-1, 1, max_steps},
+                                  {0, -1, max_steps}, {0, 1, max_steps},
+                                  {1, -1, max_steps}, {1, 0, max_steps}, {1, 1, max_steps}}, 1, ghost);
     }
     if (type == "knight") {
         return normalize_vectors({{-2, -1, 1}, {-2, 1, 1}, {-1, -2, 1}, {-1, 2, 1},
