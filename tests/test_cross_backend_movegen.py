@@ -205,13 +205,47 @@ def test_tactical_heroes_adjacent_and_ghost_parity():
     assert sb_attack in py_moves, f"Shadowblade ghost attack through obstacle missing in Python: {sb_attack}"
     assert sb_attack in cpp_moves, f"Shadowblade ghost attack through obstacle missing in C++: {sb_attack}"
 
-    # Valkyrie attacks (4,2) through (5,2)
+    # Valkyrie attacks (4,2) through (5,2).
     va_attack = "ATTACK C2 C4"  # (6,2) is C2, (4,2) is C4
     assert va_attack in py_moves, f"Valkyrie ghost attack through obstacle missing in Python: {va_attack}"
     assert va_attack in cpp_moves, f"Valkyrie ghost attack through obstacle missing in C++: {va_attack}"
+
+    # Valkyrie's configured three-step ghost movement crosses both occupied
+    # intermediate squares (5,2) and (4,2), landing at (3,2).
+    va_move = "MOVE C2 C5"
+    assert va_move in py_moves, f"Valkyrie three-step ghost move missing in Python: {va_move}"
+    assert va_move in cpp_moves, f"Valkyrie three-step ghost move missing in C++: {va_move}"
 
     missing = sorted(py_moves - cpp_moves)
     extra = sorted(cpp_moves - py_moves)
     assert not missing and not extra, (
         f"tactical_heroes mismatch: Missing in C++: {missing}, Extra in C++: {extra}"
     )
+
+
+
+def test_valkyrie_three_step_adjacent_moves_match_between_python_and_cpp():
+    assert BRIDGE.exists(), f"C++ movegen bridge missing: {BRIDGE}."
+
+    state = GameState()
+    state.board = [[None for _ in range(8)] for _ in range(8)]
+    put(state, 4, 4, "Valkyrie", "brancas")
+    state.white_to_move = True
+
+    directions = (
+        (-1, -1), (-1, 0), (-1, 1),
+        (0, -1),           (0, 1),
+        (1, -1),  (1, 0),  (1, 1),
+    )
+    expected = {
+        f"MOVE E4 {chr(ord('A') + 4 + dc * distance)}{8 - (4 + dr * distance)}"
+        for dr, dc in directions
+        for distance in (1, 2, 3)
+    }
+
+    py_moves = python_actions(state)
+    cpp_moves = cpp_actions([state.to_rwen()])[0]
+
+    assert expected <= py_moves
+    assert expected <= cpp_moves
+    assert py_moves == cpp_moves

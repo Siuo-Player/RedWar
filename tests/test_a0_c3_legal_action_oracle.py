@@ -95,3 +95,43 @@ def test_oracle_canonicalization_ignores_generation_order_and_deduplicates():
         type("A", (), {"key": lambda self: a})(),
         type("A", (), {"key": lambda self: a})(),
     ])
+
+
+
+def test_oracle_valkyrie_models_three_step_adjacent_ghost_movement():
+    state = _state()
+    _put(state, 4, 4, "Valkyrie")
+
+    expected = {
+        _action("MOVE", (4, 4), (4 + dr * distance, 4 + dc * distance))
+        for dr, dc in (
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),             (0, 1),
+            (1, -1),  (1, 0),   (1, 1),
+        )
+        for distance in (1, 2, 3)
+    }
+    oracle_actions = set(legal_actions(state))
+
+    assert expected <= oracle_actions
+
+    # The independent oracle and the engine must agree on the whole movement set.
+    from engine.legal_actions import legal_actions as engine_legal_actions
+    engine_moves = {
+        action.to_dict()["type"] for action in engine_legal_actions(state)
+        if action.to_dict()["start"] == (4, 4)
+    }
+    assert engine_moves == {"move"}
+
+
+def test_oracle_valkyrie_ghost_move_skips_blockers_without_landing_on_them():
+    state = _state()
+    _put(state, 4, 4, "Valkyrie")
+    _put(state, 3, 3, "Bone")
+    _put(state, 2, 2, "Bone", "pretas")
+
+    actions = set(legal_actions(state))
+
+    assert _action("MOVE", (4, 4), (1, 1)) in actions
+    assert _action("MOVE", (4, 4), (3, 3)) not in actions
+    assert _action("MOVE", (4, 4), (2, 2)) not in actions

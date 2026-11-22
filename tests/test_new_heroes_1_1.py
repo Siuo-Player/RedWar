@@ -87,3 +87,68 @@ def test_shadowblade_ghost_movement():
     assert (1, 1) in valid_moves
     # Cannot land directly on ally
     assert (3, 3) not in valid_moves
+
+
+
+def test_valkyrie_has_three_step_adjacent_movement_in_all_directions():
+    gs = GameState()
+    gs.board = [[None for _ in range(8)] for _ in range(8)]
+    valkyrie = criar_peca_por_nome("Valkyrie", "brancas")
+    gs.board[4][4] = valkyrie
+
+    directions = (
+        (-1, -1), (-1, 0), (-1, 1),
+        (0, -1),           (0, 1),
+        (1, -1),  (1, 0),  (1, 1),
+    )
+    expected = {
+        (4 + dr * distance, 4 + dc * distance)
+        for dr, dc in directions
+        for distance in (1, 2, 3)
+    }
+
+    assert set(valkyrie.get_valid_moves(4, 4, gs.board)) == expected
+
+
+def test_valkyrie_ghost_movement_crosses_occupied_squares_but_cannot_land_on_them():
+    gs = GameState()
+    gs.board = [[None for _ in range(8)] for _ in range(8)]
+    valkyrie = criar_peca_por_nome("Valkyrie", "brancas")
+    gs.board[4][4] = valkyrie
+    gs.board[3][3] = criar_peca_por_nome("Bone", "brancas")
+    gs.board[2][2] = criar_peca_por_nome("Bone", "pretas")
+
+    moves = set(valkyrie.get_valid_moves(4, 4, gs.board))
+
+    assert (3, 3) not in moves
+    assert (2, 2) not in moves
+    assert (1, 1) in moves
+
+
+def test_valkyrie_three_step_movement_is_clipped_at_board_edges():
+    gs = GameState()
+    gs.board = [[None for _ in range(8)] for _ in range(8)]
+    valkyrie = criar_peca_por_nome("Valkyrie", "pretas")
+    gs.board[0][0] = valkyrie
+
+    expected = {
+        (0, 1), (0, 2), (0, 3),
+        (1, 0), (2, 0), (3, 0),
+        (1, 1), (2, 2), (3, 3),
+    }
+    moves = set(valkyrie.get_valid_moves(0, 0, gs.board))
+
+    assert moves == expected
+    assert all(0 <= row < 8 and 0 <= col < 8 for row, col in moves)
+
+
+def test_adjacent_units_with_max_steps_one_remain_one_step():
+    for name in ("BoneLord", "Berserker", "Inquisitor", "Hookmaster", "Timekeeper", "Warden", "Marksman"):
+        gs = GameState()
+        gs.board = [[None for _ in range(8)] for _ in range(8)]
+        piece = criar_peca_por_nome(name, "brancas")
+        gs.board[4][4] = piece
+
+        moves = set(piece.get_valid_moves(4, 4, gs.board))
+        assert len(moves) == 8, name
+        assert all(max(abs(r - 4), abs(c - 4)) == 1 for r, c in moves), name
