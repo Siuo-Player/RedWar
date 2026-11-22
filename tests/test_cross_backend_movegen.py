@@ -249,3 +249,27 @@ def test_valkyrie_three_step_adjacent_moves_match_between_python_and_cpp():
     assert expected <= py_moves
     assert expected <= cpp_moves
     assert py_moves == cpp_moves
+
+
+
+def test_one_step_adjacent_movement_remains_one_step_in_python_and_cpp():
+    assert BRIDGE.exists(), f"C++ movegen bridge missing: {BRIDGE}."
+
+    state = GameState()
+    state.board = [[None for _ in range(8)] for _ in range(8)]
+    put(state, 4, 4, "Inquisitor", "brancas")
+    state.white_to_move = True
+
+    expected = {
+        f"MOVE E4 {chr(ord('A') + 4 + dc)}{8 - (4 + dr)}"
+        for dr, dc in (
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1),             (0, 1),
+            (1, -1),  (1, 0),   (1, 1),
+        )
+    }
+    py_moves = python_actions(state)
+    cpp_moves = cpp_actions([state.to_rwen()])[0]
+
+    assert {move for move in py_moves if move.startswith("MOVE E4 ")} == expected
+    assert {move for move in cpp_moves if move.startswith("MOVE E4 ")} == expected

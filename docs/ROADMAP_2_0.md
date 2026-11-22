@@ -98,7 +98,7 @@ A Academia 30/30 está concluída e integrada. As próximas frentes permanecem s
 3. **Matchmaking.** Tratar como trabalho de produto/infraestrutura separado: critérios de emparelhamento, rating, filas, abandono, reconexão e proteção contra abuso, sem confundir matchmaking com a existência atual de salas WebSocket.
 4. **Ares C++/WASM.** Criar uma fronteira de compilação e contrato de compatibilidade entre o motor C++ e o browser, com testes diferenciais Python/C++ e medições antes de substituir o caminho existente.
 
-**Follow-up técnico descoberto pela Academia:** #679 — corrigir `BehaviorCompiler._adjacent(max_steps)` para respeitar o alcance declarado da Valkyrie e provar a paridade com o browser. É uma alteração de regras independente e continua aberta; não bloqueou a conclusão da Academia porque a lição foi alinhada ao comportamento legal atual.
+**Follow-up técnico descoberto pela Academia — #679 / PR #680:** restaurar `max_steps=3` para o movimento `adjacent` da Valkyrie em Python e C++, sincronizar browser/oráculo e validar o movimento fantasma. A PR está em validação; marcar como concluída apenas após CI verde e integração.
 
 ## Registo de estado
 

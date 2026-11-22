@@ -60,6 +60,14 @@ Campos frequentes:
 - `forward_dir_by_team`
 - `ghost_move`
 
+Semântica importante:
+
+- `adjacent` define as oito direções (ortogonais e diagonais) a partir da peça.
+- `max_steps` define quantas casas pode percorrer em cada direção; o tipo `adjacent` não implica um limite de uma casa.
+- `ghost_move: true` permite atravessar peças intermédias aliadas ou inimigas, mas não permite aterrar numa casa ocupada. Efeitos que bloqueiam movimento, como gelo, continuam a interromper a trajetória.
+
+Exemplo: a Valkyrie usa `type: "adjacent"`, `max_steps: 3` e `ghost_move: true`; pode percorrer até três casas em qualquer das oito direções, atravessando peças no percurso.
+
 ## Ataque básico
 
 `behavior.attack` representa a geometria de um ataque normal quando a ação continua a ser um `ATTACK`.

@@ -881,10 +881,10 @@
       "draftable": true,
       "unit_category": "hero",
       "title": "Voo sobre o Campo",
-      "lore": "A Valkyrie protege corredores com a sua mobilidade em várias direções e com um ataque espectral à distância. O motor atual permite-lhe mover-se uma casa adjacente; o ataque mantém alcance ortogonal superior.",
-      "ability": "No espaço de ações atual, move-se uma casa em qualquer direção adjacente. O ataque alcança até três casas ortogonais e atravessa peças intermédias. A configuração declara três casas também para o movimento, mas o compilador atual ainda limita esse movimento a uma casa (issue #679).",
-      "objective": "Move uma casa na diagonal superior direita para ocupar uma posição livre; mantém a linha ortogonal aberta para compreender o alcance do ataque espectral.",
-      "explanation": "Boa jogada. A Valkyrie moveu-se uma casa na diagonal. O ataque espectral pode atingir até três casas ortogonais e atravessar peças intermédias; o alcance de movimento declarado na configuração está registado para correção na issue #679.",
+      "lore": "A Valkyrie domina o espaço com deslocações em oito direções. O seu voo espectral permite atravessar peças no percurso, mas exige sempre uma casa de destino livre.",
+      "ability": "Move-se até três casas em qualquer uma das oito direções, ortogonais ou diagonais. O voo permite atravessar peças aliadas e inimigas no percurso, mas não permite terminar numa casa ocupada. O ataque alcança até três casas ortogonais e também ignora obstáculos intermédios.",
+      "objective": "Voa três casas na vertical, atravessando o Bone aliado que bloqueia a passagem; termina na casa livre para além dele.",
+      "explanation": "Boa jogada. A Valkyrie percorreu três casas na vertical, ignorando o Bone intermédio e aterrando numa casa livre. A mesma regra permite voar na diagonal; nunca podes terminar numa casa ocupada.",
       "actor_name": "Valkyrie",
       "pieces": [
         {
@@ -913,8 +913,8 @@
         "type": "move",
         "fromR": 5,
         "fromC": 3,
-        "toR": 4,
-        "toC": 4
+        "toR": 2,
+        "toC": 3
       }
     },
     {
