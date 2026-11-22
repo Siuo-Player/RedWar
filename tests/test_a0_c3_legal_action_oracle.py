@@ -118,10 +118,17 @@ def test_oracle_valkyrie_models_three_step_adjacent_ghost_movement():
     # The independent oracle and the engine must agree on the whole movement set.
     from engine.legal_actions import legal_actions as engine_legal_actions
     engine_moves = {
-        action.to_dict()["type"] for action in engine_legal_actions(state)
-        if action.to_dict()["start"] == (4, 4)
+        (
+            action.type.value.upper(),
+            action.start,
+            action.end,
+            action.spell_name,
+            action.spawn_name,
+        )
+        for action in engine_legal_actions(state)
+        if action.start == (4, 4)
     }
-    assert engine_moves == {"move"}
+    assert engine_moves == expected
 
 
 def test_oracle_valkyrie_ghost_move_skips_blockers_without_landing_on_them():
