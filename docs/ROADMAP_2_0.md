@@ -81,7 +81,7 @@ Inspirado no modelo de ecossistema do **Chess.com** e no poder de cálculo do **
   - As soluções incluem o tipo de ação e metadados de feitiço/invocação, e são verificadas contra `legal_actions` do motor canónico.
   - O selector Web é gerado a partir das 30 entradas e assinala unidades não draftáveis. Foram acrescentados testes de contrato, legalidade, integração e interação real Playwright.
   - Integrada em `main` no commit `fe1d69a934919d8617dde663f29db46070ee558d`. CI: 1236 passed / 4 skipped; CPU-intensive: 4 passed; CodeQL Python/C++, Windows acceptance e AI Quality Gate passaram.
-  - Follow-up separado: a discrepância de alcance da Valkyrie está registada em #679; não foi alterada nesta entrega.
+  - Follow-up #679 / PR #680 concluído: `max_steps=3` aplicado ao movimento `adjacent` em Python e C++, com browser, oráculo e Academia sincronizados.
 - [x] **Documentação Wiki Oficial do GitHub (`wiki/`, `.github/workflows/deploy_wiki.yml`)**:
   - Estrutura da Wiki com seis secções (Home, Regras, Heróis, Ares/SPRT, Modos e Publicação) sincronizada com o repositório GitHub Wiki.
 
@@ -94,18 +94,18 @@ A ordem abaixo explicita dependências e bloqueios; não transforma propostas em
 A Academia 30/30 está concluída e integrada. As próximas frentes permanecem separadas, com estes pré-requisitos:
 
 1. **FrostMage vs Inquisitor — #444 (bloqueada por evidência).** Retomar apenas com o replay/RWEN da partida original e a sequência integral de ações. Depois reproduzir deterministicamente e investigar com busca adversarial; profundidade mínima 8 é uma ferramenta de análise, não prova por si só de empate forçado.
-2. **Animações e drag-and-drop.** Melhorias de interação no cliente Web, com testes de regressão para ações legais, acessibilidade e comportamento em diferentes tamanhos de ecrã.
+2. **Interação Web — #681.** Auditoria inicial confirma interação do tabuleiro por clique no Canvas; não foi encontrada implementação de drag-and-drop nem política `prefers-reduced-motion` no CSS. A issue #681 governa a validação e implementação incremental, começando por testes Playwright e preservando ações autoritativas.
 3. **Matchmaking.** Tratar como trabalho de produto/infraestrutura separado: critérios de emparelhamento, rating, filas, abandono, reconexão e proteção contra abuso, sem confundir matchmaking com a existência atual de salas WebSocket.
 4. **Ares C++/WASM.** Criar uma fronteira de compilação e contrato de compatibilidade entre o motor C++ e o browser, com testes diferenciais Python/C++ e medições antes de substituir o caminho existente.
 
-**Follow-up técnico descoberto pela Academia — #679 / PR #680:** restaurar `max_steps=3` para o movimento `adjacent` da Valkyrie em Python e C++, sincronizar browser/oráculo e validar o movimento fantasma. A PR está em validação; marcar como concluída apenas após CI verde e integração.
+**Follow-up técnico descoberto pela Academia — #679 / PR #680 (CONCLUÍDO):** `max_steps=3` foi restaurado no movimento `adjacent` da Valkyrie em Python e C++, sincronizando browser, oráculo independente e lição da Academia. Integrado em `main` no commit `32fdb3ebfdd0094e7ca9b91be95117db0dd3bb5d`; validação: 1245 testes passaram, 4 ignorados; suite CPU-intensiva 4/4; CodeQL Python/C++, Windows acceptance e AI Quality Gate passaram.
 
 ## Registo de estado
 
 - A cadeia 1.0 (#370–#375) está fechada no GitHub.
 - A Academia 30/30 está concluída e integrada em #677 / PR #678 (commit `fe1d69a`).
 - #444 continua bloqueada pela falta do replay original; não inferir resultados a partir de fixtures sintéticas.
-- #679 acompanha, separadamente, a discrepância de alcance da Valkyrie descoberta durante a validação da Academia.
+- #679 / PR #680 está concluída e integrada; o contrato de movimento adjacente respeita agora `max_steps` nos dois motores.
 
 ## Regra de Governação
 
