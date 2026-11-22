@@ -180,13 +180,16 @@ def test_catalogue_loader_does_not_enter_academy_mode_on_page_boot():
     assert "loadAcademyLesson(selector.value)" not in loader_body
 
 
-def test_valkyrie_academy_matches_current_engine_move_range_until_issue_679():
+def test_valkyrie_academy_teaches_declared_three_step_ghost_movement():
     catalogue = _catalogue()
     lesson = next(item for item in catalogue["lessons"] if item["hero_id"] == "valkyrie")
     assert lesson["solution"]["type"] == "move"
-    assert (lesson["solution"]["toR"], lesson["solution"]["toC"]) == (4, 4)
+    assert (lesson["solution"]["fromR"], lesson["solution"]["fromC"]) == (5, 3)
+    assert (lesson["solution"]["toR"], lesson["solution"]["toC"]) == (2, 3)
+    assert "três casas" in lesson["ability"].lower()
+    assert "atravessa" in lesson["ability"].lower()
+    assert "issue #679" not in lesson["ability"].lower()
     app_js = (ROOT / "deploy" / "web" / "app.js").read_text(encoding="utf-8")
-    start = app_js.index("Valkyrie: {")
+    start = app_js.index("Valkyrie: {", app_js.index("const HERO_RULES = {"))
     block = app_js[start:start + 240]
-    assert 'move: { type: "adjacent", steps: 1, ghost: true }' in block
-    assert "issue #679" in lesson["ability"]
+    assert 'move: { type: "adjacent", steps: 3, ghost: true }' in block

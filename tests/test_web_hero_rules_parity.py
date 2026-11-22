@@ -148,3 +148,17 @@ def test_special_actions_web_payload_authoritative_execution():
         else:
             assert gs_test.board[end[0]][end[1]] is None
 
+
+
+def test_valkyrie_web_rule_matches_three_step_configured_ghost_movement():
+    heroes_cfg = json.loads(Path("engine/heroes_config.json").read_text(encoding="utf-8"))
+    movement = heroes_cfg["Valkyrie"]["behavior"]["movement"]
+    app_js = Path("deploy/web/app.js").read_text(encoding="utf-8")
+    start = app_js.index("Valkyrie: {", app_js.index("const HERO_RULES = {"))
+    end = app_js.index("\n  },", start)
+    rule = app_js[start:end]
+
+    assert movement["type"] == "adjacent"
+    assert movement["max_steps"] == 3
+    assert movement["ghost_move"] is True
+    assert 'move: { type: "adjacent", steps: 3, ghost: true }' in rule

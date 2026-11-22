@@ -131,10 +131,11 @@ class BehaviorCompiler:
 
     @staticmethod
     def _adjacent(max_steps=1):
+        """Return the eight compass directions with the configured range."""
         return [
-            (-1, -1, 1), (-1, 0, 1), (-1, 1, 1),
-            (0, -1, 1), (0, 1, 1),
-            (1, -1, 1), (1, 0, 1), (1, 1, 1),
+            (-1, -1, max_steps), (-1, 0, max_steps), (-1, 1, max_steps),
+            (0, -1, max_steps),                       (0, 1, max_steps),
+            (1, -1, max_steps),  (1, 0, max_steps),  (1, 1, max_steps),
         ]
 
     @staticmethod

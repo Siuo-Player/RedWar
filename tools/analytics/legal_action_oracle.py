@@ -103,6 +103,8 @@ def _movement_actions(state: Any, r: int, c: int, piece: Any) -> list[OracleActi
         vectors, max_steps, ghost = DIAGONAL, 2, False
     elif name == "Nightshade":
         vectors, max_steps, ghost = ORTHOGONAL, 4, True
+    elif name == "Valkyrie":
+        vectors, max_steps, ghost = ADJACENT, 3, True
     elif name in {"Bone", "Sentry", "Ranger", "Templar", "Geomancer"}:
         vectors, max_steps, ghost = ORTHOGONAL, 1, False
     elif name in {"BoneLord", "Berserker", "Inquisitor"}:
