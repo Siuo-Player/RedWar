@@ -508,6 +508,7 @@ def test_playwright_board_drag_matches_click_move(web_and_ws_servers, chromium_b
 
     page.mouse.move(*start)
     page.mouse.down()
+    assert canvas.evaluate("(element) => element.hasPointerCapture(1)"), "Board must capture the active pointer for reliable drag completion"
     page.mouse.move(*end, steps=5)
     page.mouse.up()
 

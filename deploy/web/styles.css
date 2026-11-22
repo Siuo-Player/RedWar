@@ -455,6 +455,11 @@ select, input, textarea {
 }
 
 
+/* Pointer Events must remain active when a touch drag begins on the board. */
+#gameBoard {
+  touch-action: none;
+}
+
 /* Respect the operating system/browser preference for reduced motion. */
 @media (prefers-reduced-motion: reduce) {
   *,

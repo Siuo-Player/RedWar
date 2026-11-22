@@ -4207,6 +4207,8 @@ const BOARD_DRAG_THRESHOLD_PX = 6;
 canvas.addEventListener("pointerdown", (event) => {
   if (event.button !== 0 || !event.isPrimary) return;
   boardPointerStart = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  // Keep receiving pointerup even when the pointer leaves the canvas during a drag.
+  canvas.setPointerCapture(event.pointerId);
 });
 
 canvas.addEventListener("pointerup", (event) => {
