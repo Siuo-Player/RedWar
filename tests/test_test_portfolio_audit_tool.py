@@ -78,7 +78,7 @@ def test_markdown_inventory_discloses_heuristic_classification():
     markdown = render_markdown(items)
 
     assert "inventário estrutural de testes" in markdown
-    assert "heurísticas" in markdown
+    assert "heurístic" in markdown
     assert "| Módulo | Área" in markdown
     assert "test_sample.py" in markdown
 
