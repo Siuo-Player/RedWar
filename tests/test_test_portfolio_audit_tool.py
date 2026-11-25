@@ -71,6 +71,19 @@ def test_scan_ignores_support_files_and_reports_syntax_errors(tmp_path: Path):
     assert "conftest.py" not in {item["path"] for item in items}
 
 
+def test_scan_respects_declared_python_source_encoding(tmp_path: Path):
+    tests_dir = tmp_path / "tests"
+    tests_dir.mkdir()
+    source = b'# -*- coding: latin-1 -*-\\ndef test_accented():\\n    label = "caf\\xe9"\\n    assert label\\n'
+    (tests_dir / "test_latin1.py").write_bytes(source)
+
+    items = scan_test_root(tests_dir)
+
+    assert len(items) == 1
+    assert items[0]["test_functions"] == ["test_accented"]
+    assert "parse-error" not in items[0]["flags"]
+
+
 def test_markdown_inventory_discloses_heuristic_classification():
     items = [
         analyze_source("def test_sample():\n    assert True\n", "tests/test_sample.py")
