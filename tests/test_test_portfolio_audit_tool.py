@@ -75,10 +75,10 @@ def test_scan_respects_declared_python_source_encoding(tmp_path: Path):
     tests_dir = tmp_path / "tests"
     tests_dir.mkdir()
     source = (
-        b"# -*- coding: latin-1 -*-\\n"
-        b"def test_accented():\\n"
-        b'    label = "caf\\xe9"\\n'
-        b"    assert label\\n"
+        b"# -*- coding: latin-1 -*-\n"
+        b"def test_accented():\n"
+        b'    label = "caf\xe9"\n'
+        b"    assert label\n"
     )
     (tests_dir / "test_latin1.py").write_bytes(source)
 
