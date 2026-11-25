@@ -232,7 +232,7 @@ def test_invariant_every_normal_attacker_two_hit_stun_elimination():
 def test_every_declared_attack_action_spell_has_regression_coverage():
     """Every configured attack-as-spell capability must have an explicit stunned-target case."""
     configured = {
-        (hero_name, attack.get("attack_spell"))
+        (hero_name, attack.get("spell_name"))
         for hero_name, definition in HERO_DEFS.items()
         for attack in [definition.get("behavior", {}).get("attack", {})]
         if attack.get("attack_action") == "spell"
