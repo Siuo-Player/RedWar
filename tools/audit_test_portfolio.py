@@ -93,7 +93,7 @@ def analyze_source(source: str, path: str) -> dict[str, Any]:
         flags.add("subprocess")
     if "playwright" in imports or any("playwright" in call.lower() for call in calls):
         flags.add("browser")
-    if imports.intersection({"socket", "websocket", "http", "requests", "urllib"}):
+    if imports.intersection({"socket", "websocket", "websockets", "http", "requests", "urllib", "httpx", "aiohttp"}):
         flags.add("network")
     if imports.intersection({"threading", "concurrent"}):
         flags.add("threading")
@@ -137,7 +137,7 @@ def scan_test_root(test_root: Path) -> list[dict[str, Any]]:
     """Inventory test_*.py modules in a given tests directory."""
     results: list[dict[str, Any]] = []
     for path in sorted(test_root.glob("test_*.py")):
-        relative = path.as_posix()
+        relative = path.relative_to(test_root.parent).as_posix()
         try:
             results.append(analyze_source(path.read_text(encoding="utf-8"), relative))
         except (OSError, UnicodeError, SyntaxError) as exc:
