@@ -55,6 +55,7 @@ O estado implementado não é duplicado num `CURRENT_STATE.md` ou noutro snapsho
 | Segurança | `../SECURITY.md` |
 | Arquitetura de Segurança & Federação | `SECURITY_ARCHITECTURE_AND_FEDERATION.md` + `engine/auth.py` |
 | Licenças | `LEGAL_AND_LICENSES.md` |
+| Test engineering & estratégia de testes | `TEST_ENGINEERING_STRATEGY.md` + Issue #687 (inventário e requisitos pendentes) |
 
 ## 1.0-Lite baseline selection
 
