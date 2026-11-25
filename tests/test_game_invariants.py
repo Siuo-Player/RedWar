@@ -212,8 +212,12 @@ def test_invariant_every_normal_attacker_two_hit_stun_elimination():
                 gs.execute_action(
                     GameAction(ActionType.ATTACK, (3, 3), (target_r, target_c))
                 )
-                assert gs.board[target_r][target_c] is None, (
+                remaining_pieces = [piece for row in gs.board for piece in row if piece]
+                assert defender not in remaining_pieces, (
                     f"{attacker_name} failed to eliminate an already-stunned defender"
+                )
+                assert attacker in remaining_pieces, (
+                    f"{attacker_name} disappeared while resolving a normal attack"
                 )
                 exercised_attackers.add(attacker_name)
                 break
