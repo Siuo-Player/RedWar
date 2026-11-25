@@ -352,7 +352,7 @@ def test_invariant_no_rpg_numbers_pure_abstract_board_state():
 def test_invariant_unlimited_roster_extensibility():
     """
     ANTI-INVOLUTION INVARIANT: The roster is NEVER capped at 19 heroes.
-    Dynamic expansion past 24 heroes is supported seamlessly across engine systems.
+    Dynamic expansion beyond the current 30-unit baseline is supported across engine systems.
     """
     test_hero_name = "ExperimentalChampion"
     HERO_DEFS[test_hero_name] = {
