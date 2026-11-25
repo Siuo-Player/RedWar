@@ -9,7 +9,7 @@ with DOM & Canvas mocks to formally verify:
 3. INVARIANT_TWO_HIT_STUN_KILL: Second hit on stunned target results in immediate elimination.
 4. INVARIANT_ARES_BOT_AUTOPLAY: Ares AI automatically responds with legal Black actions.
 5. INVARIANT_STUN_TIMER_DECREMENT: Timers decrement only for the team whose turn begins.
-6. INVARIANT_HERO_RULE_COMPLETENESS: All 24 heroes have full movement, attack, and cost definitions.
+6. INVARIANT_HERO_RULE_COMPLETENESS: All 30 heroes have full movement, attack, and cost definitions.
 """
 import subprocess
 import json

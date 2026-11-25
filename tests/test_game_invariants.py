@@ -145,7 +145,7 @@ def test_invariant_draft_budget_conservation():
 def test_invariant_all_heroes_configured_and_instantiable():
     """All heroes must be instantiable for both teams, have descriptions, and respect game invariants."""
     heroes = carregar_heroes()
-    assert len(heroes) >= 24, f"Expected at least 24 heroes, got {len(heroes)}"
+    assert len(heroes) >= 30, f"Expected the current 30-unit roster or an expansion, got {len(heroes)}"
 
     for name in heroes.keys():
         white_p = criar_peca_por_nome(name, "brancas")
@@ -198,45 +198,58 @@ def test_invariant_every_hero_two_hit_stun_elimination():
             assert defender not in all_board_pieces, f"{attacker.name} failed to eliminate stunned defender!"
 
 
-def test_invariant_offensive_spells_stun_lethality():
-    """
-    CRITICAL INVARIANT: Every offensive spell (Nevada, Chain Lightning, Aimed Shot,
-    Spectral Strike) eliminates an already stunned target.
-    """
-    from engine.pieces import FrostMage, Dragoon, Ranger, Phantom
-    # Case 1: Nevada (FrostMage)
+def test_invariant_nevada_eliminates_previously_stunned_target():
+    """Nevada must eliminate an enemy already inside the active stun window."""
     gs = GameState()
     gs.white_to_move = True
-    mage = FrostMage("brancas")
-    target1 = Dragoon("pretas")
-    target1.stun_timer = 2
+    mage = criar_peca_por_nome("FrostMage", "brancas")
+    target = criar_peca_por_nome("Dragoon", "pretas")
+    target.stun_timer = 2
     gs.board[2][2] = mage
-    gs.board[2][4] = target1
+    gs.board[2][4] = target
+
     gs.execute_action(GameAction(ActionType.SPELL, (2, 2), (2, 4), spell_name="nevada"))
-    assert gs.board[2][4] is None, "Nevada failed to eliminate stunned target!"
 
-    # Case 2: Chain Lightning / Aimed Shot (Ranger/Stormcaller)
-    gs2 = GameState()
-    gs2.white_to_move = True
-    ranger = Ranger("brancas")
-    target2 = Dragoon("pretas")
-    target2.stun_timer = 2
-    gs2.board[3][0] = ranger
-    gs2.board[3][3] = target2
-    gs2.execute_action(GameAction(ActionType.SPELL, (3, 0), (3, 3), spell_name="aimed_shot"))
-    assert gs2.board[3][3] is None, "Aimed Shot failed to eliminate stunned target!"
+    assert gs.board[2][4] is None, "Nevada failed to eliminate the previously stunned target!"
 
-    # Case 3: Spectral Strike (Phantom)
-    gs3 = GameState()
-    gs3.white_to_move = True
-    phantom = Phantom("brancas")
-    target3 = Dragoon("pretas")
-    target3.stun_timer = 2
-    gs3.board[4][4] = phantom
-    gs3.board[2][5] = target3
-    gs3.execute_action(GameAction(ActionType.SPELL, (4, 4), (2, 5), spell_name="spectral_strike"))
-    assert gs3.board[2][5] is None, "Spectral Strike failed to eliminate stunned target!"
 
+@pytest.mark.parametrize(
+    "attacker_name,start_pos,end_pos,spell_name,expected_replacement",
+    [
+        ("Phantom", (6, 2), (4, 3), "spectral_strike", None),
+        ("Sentry", (6, 2), (4, 2), "sentinel_shot", None),
+        ("Ranger", (6, 2), (4, 2), "aimed_shot", None),
+        ("Stormcaller", (6, 2), (4, 2), "chain_lightning", None),
+        ("Arcanist", (6, 2), (4, 2), "arcane_blast", None),
+        ("Marksman", (6, 2), (4, 2), "sniper_shot", None),
+        ("BoneLord", (6, 2), (4, 4), "bone_v", "Bone"),
+    ],
+)
+def test_invariant_special_attack_spells_remove_stunned_targets(
+    attacker_name, start_pos, end_pos, spell_name, expected_replacement
+):
+    """Every configured direct-attack spell must remove its already-stunned enemy target."""
+    gs = GameState()
+    gs.white_to_move = True
+    attacker = criar_peca_por_nome(attacker_name, "brancas")
+    target = criar_peca_por_nome("Dragoon", "pretas")
+    target.stun_timer = 2
+    gs.board[start_pos[0]][start_pos[1]] = attacker
+    gs.board[end_pos[0]][end_pos[1]] = target
+
+    gs.execute_action(
+        GameAction(ActionType.SPELL, start_pos, end_pos, spell_name=spell_name)
+    )
+
+    result = gs.board[end_pos[0]][end_pos[1]]
+    if expected_replacement is None:
+        assert result is None, (
+            f"{attacker_name}/{spell_name} failed to eliminate an already-stunned target"
+        )
+    else:
+        assert result is not None, f"{attacker_name}/{spell_name} should replace the captured target"
+        assert result.name == expected_replacement
+        assert result.team == "brancas"
 
 def test_invariant_stun_timer_decrement_active_team_only():
     """
