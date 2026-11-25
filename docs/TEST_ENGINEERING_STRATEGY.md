@@ -167,7 +167,7 @@ Não otimizar isoladamente: contagem de testes, line coverage, número de workfl
 ## 9. Auditoria inicial (não exaustiva)
 
 Snapshot analisado em 2026-11-25:
-- 226 módulos Python sob `tests/`.
+- 226 ficheiros Python em `tests/`: 224 módulos `test_*.py`, mais `tests/__init__.py` e `tests/conftest.py`.
 - Suite principal recente: 1 247 passed, 4 skipped; suite CPU complementar: 4 passed.
 - Há cobertura relevante de invariantes de jogo, Python/C++ differential, make/unmake, perft, RWEN, Ares/Arena, replay, desktop, Web/Node, Playwright, multiplayer, API e segurança.
 
