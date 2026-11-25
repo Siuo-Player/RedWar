@@ -12,6 +12,7 @@ import argparse
 import ast
 import json
 import sys
+import tokenize
 from pathlib import Path
 from typing import Any
 
@@ -139,7 +140,9 @@ def scan_test_root(test_root: Path) -> list[dict[str, Any]]:
     for path in sorted(test_root.glob("test_*.py")):
         relative = path.relative_to(test_root.parent).as_posix()
         try:
-            results.append(analyze_source(path.read_text(encoding="utf-8"), relative))
+            with tokenize.open(path) as source_file:
+                source = source_file.read()
+            results.append(analyze_source(source, relative))
         except (OSError, UnicodeError, SyntaxError) as exc:
             results.append({
                 "path": relative, "domain": classify_domain(relative), "level": "unclassified",
@@ -226,7 +229,13 @@ def main(argv: list[str] | None = None) -> int:
         args.output.write_text(content, encoding="utf-8")
     else:
         sys.stdout.write(content)
-    return 1 if args.strict and any("parse-error" in item["flags"] for item in results) else 0
+    parse_errors = [item["path"] for item in results if "parse-error" in item["flags"]]
+    if args.strict and parse_errors:
+        print("Test inventory could not parse/read these modules:", file=sys.stderr)
+        for path in parse_errors:
+            print(f" - {path}", file=sys.stderr)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
