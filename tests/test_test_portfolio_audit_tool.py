@@ -74,7 +74,12 @@ def test_scan_ignores_support_files_and_reports_syntax_errors(tmp_path: Path):
 def test_scan_respects_declared_python_source_encoding(tmp_path: Path):
     tests_dir = tmp_path / "tests"
     tests_dir.mkdir()
-    source = b'# -*- coding: latin-1 -*-\\ndef test_accented():\\n    label = "caf\\xe9"\\n    assert label\\n'
+    source = (
+        b"# -*- coding: latin-1 -*-\\n"
+        b"def test_accented():\\n"
+        b'    label = "caf\\xe9"\\n'
+        b"    assert label\\n"
+    )
     (tests_dir / "test_latin1.py").write_bytes(source)
 
     items = scan_test_root(tests_dir)
