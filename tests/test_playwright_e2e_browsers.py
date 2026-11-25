@@ -486,3 +486,55 @@ def test_playwright_hero_academy_catalogue_and_support_spells(web_and_ws_servers
 
     assert_browser_has_no_errors(browser_errors, "Hero Academy browser")
     page.context.close()
+
+
+
+def test_playwright_board_drag_matches_click_move(web_and_ws_servers, chromium_browser):
+    """Dragging a friendly piece to a legal empty square must execute the same move as click-to-move."""
+    page = chromium_browser.new_page()
+    errors = attach_browser_error_capture(page)
+    page.goto(web_and_ws_servers["http_url"], wait_until="domcontentloaded")
+    page.wait_for_function(
+        "() => typeof boardData !== 'undefined' && boardData && boardData[6] && boardData[6][2] !== null",
+        timeout=5000,
+    )
+
+    canvas = page.locator("#gameBoard")
+    box = canvas.bounding_box()
+    assert box is not None
+    cell_w, cell_h = box["width"] / 8, box["height"] / 8
+    start = (box["x"] + 2.5 * cell_w, box["y"] + 6.5 * cell_h)
+    end = (box["x"] + 2.5 * cell_w, box["y"] + 5.5 * cell_h)
+
+    page.mouse.move(*start)
+    page.mouse.down()
+    assert canvas.evaluate("(element) => element.hasPointerCapture(1)"), "Board must capture the active pointer for reliable drag completion"
+    page.mouse.move(*end, steps=5)
+    page.mouse.up()
+
+    page.wait_for_function(
+        "() => boardData[5][2] !== null && boardData[6][2] === null",
+        timeout=1500,
+    )
+    assert page.evaluate("boardData[5][2].name") == "Bone"
+    assert_browser_has_no_errors(errors, "Board drag interaction")
+    page.context.close()
+
+
+def test_playwright_reduced_motion_disables_board_related_transitions(web_and_ws_servers, chromium_browser):
+    """The UI must honor prefers-reduced-motion without changing game state or functionality."""
+    context = chromium_browser.new_context(reduced_motion="reduce")
+    page = context.new_page()
+    errors = attach_browser_error_capture(page)
+    page.goto(web_and_ws_servers["http_url"], wait_until="domcontentloaded")
+
+    transition_duration = page.locator(".eval-bar-fill").evaluate(
+        "(element) => getComputedStyle(element).transitionDuration"
+    )
+    durations = [float(value.strip().removesuffix("s")) for value in transition_duration.split(",")]
+    assert all(duration <= 0.01 for duration in durations), (
+        f"Reduced-motion preference must disable non-essential transitions; got {transition_duration}"
+    )
+    assert page.evaluate("matchMedia('(prefers-reduced-motion: reduce)').matches")
+    assert_browser_has_no_errors(errors, "Reduced motion")
+    context.close()
