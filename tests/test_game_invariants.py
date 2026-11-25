@@ -170,33 +170,60 @@ def test_invariant_stunned_pieces_cannot_act():
         assert piece.get_valid_spells(3, 3, gs.board) == []
 
 
-def test_invariant_every_hero_two_hit_stun_elimination():
+def test_invariant_every_normal_attacker_two_hit_stun_elimination():
     """
-    CRITICAL INVARIANT: Every attacking hero in TODAS_AS_PECAS must eliminate
-    an already stunned defender on contact.
+    Every hero configured with a normal ATTACK action must be exercised.
+
+    The expected set comes from canonical hero data; each transition executes
+    through GameState. No attacker can silently pass because an arbitrary
+    first threat happened not to be attackable.
     """
     from engine.pieces import Dragoon
-    for piece_cls in TODAS_AS_PECAS:
-        gs = GameState()
-        gs.white_to_move = True
-        attacker = piece_cls("brancas")
-        defender = Dragoon("pretas")
-        defender.stun_timer = 2
 
-        gs.board[3][3] = attacker
-        threats = attacker.get_threat_area(3, 3, gs.board) or attacker.get_valid_moves(3, 3, gs.board)
-        if not threats:
-            continue
-        target_r, target_c = threats[0]
-        gs.board[target_r][target_c] = defender
+    expected_attackers = {
+        name
+        for name, definition in HERO_DEFS.items()
+        if definition.get("behavior", {}).get("attack", {}).get("type") not in (None, "none")
+        and definition.get("behavior", {}).get("attack", {}).get("attack_action") != "spell"
+    }
+    piece_classes = {piece_cls.__name__: piece_cls for piece_cls in TODAS_AS_PECAS}
+    missing_classes = expected_attackers - piece_classes.keys()
+    assert not missing_classes, f"Normal attack definitions have no piece class: {sorted(missing_classes)}"
 
-        valid_attacks = attacker.get_valid_attacks(3, 3, gs.board)
-        if (target_r, target_c) in valid_attacks:
-            act = GameAction(ActionType.ATTACK, (3, 3), (target_r, target_c))
-            gs.execute_action(act)
-            all_board_pieces = [p for row in gs.board for p in row if p]
-            assert defender not in all_board_pieces, f"{attacker.name} failed to eliminate stunned defender!"
+    exercised_attackers = set()
+    for attacker_name in sorted(expected_attackers):
+        attacker_cls = piece_classes[attacker_name]
+        for target_r in range(LINHAS):
+            for target_c in range(COLUNAS):
+                if (target_r, target_c) == (3, 3):
+                    continue
 
+                gs = GameState()
+                gs.white_to_move = True
+                attacker = attacker_cls("brancas")
+                defender = Dragoon("pretas")
+                defender.stun_timer = 2
+                gs.board[3][3] = attacker
+                gs.board[target_r][target_c] = defender
+
+                if (target_r, target_c) not in attacker.get_valid_attacks(3, 3, gs.board):
+                    continue
+
+                gs.execute_action(
+                    GameAction(ActionType.ATTACK, (3, 3), (target_r, target_c))
+                )
+                assert gs.board[target_r][target_c] is None, (
+                    f"{attacker_name} failed to eliminate an already-stunned defender"
+                )
+                exercised_attackers.add(attacker_name)
+                break
+            if attacker_name in exercised_attackers:
+                break
+
+    assert exercised_attackers == expected_attackers, (
+        "Every configured normal attacker must have an exercised two-hit-stun case; "
+        f"missing={sorted(expected_attackers - exercised_attackers)}"
+    )
 
 def test_invariant_nevada_eliminates_previously_stunned_target():
     """Nevada must eliminate an enemy already inside the active stun window."""
