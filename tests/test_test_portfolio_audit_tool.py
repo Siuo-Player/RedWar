@@ -116,6 +116,12 @@ def test_markdown_inventory_discloses_heuristic_classification():
     assert "test_sample.py" in markdown
 
 
+def test_domain_classifier_uses_whole_words_not_accidental_substrings():
+    assert classify_domain("tests/test_main_window.py") == "Desktop / UI / produto"
+    assert classify_domain("tests/test_playwright_e2e_browsers.py") == "Web / servidor / segurança"
+    assert classify_domain("tests/test_ai_quality_gate_scope.py") == "Ares / Arena / experiências"
+
+
 def test_domain_and_level_are_explicitly_heuristic():
     assert classify_domain("tests/test_cross_backend_movegen.py") == "Motor / Ares / Python-C++"
     assert classify_level("tests/test_playwright_e2e.py", {"browser"}) == "system/E2E (heurístico)"

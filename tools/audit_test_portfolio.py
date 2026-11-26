@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import re
 import sys
 import tokenize
 from pathlib import Path
@@ -28,17 +29,19 @@ def dotted_name(node: ast.AST) -> str:
 
 def classify_domain(path: str) -> str:
     name = Path(path).stem.lower()
-    if any(token in name for token in ("strength", "arena", "sprt", "calibration", "promotion", "balance", "pricer", "holdout", "historical")):
+    tokens = set(re.split(r"[^a-z0-9]+", name))
+
+    if tokens.intersection({"strength", "arena", "sprt", "calibration", "promotion", "balance", "pricer", "holdout", "historical"}):
         return "Ares / Arena / experiências"
-    if any(token in name for token in ("web", "online", "multiplayer", "socket", "security", "identity", "server", "api", "pvp")):
+    if tokens.intersection({"web", "online", "multiplayer", "socket", "security", "identity", "server", "api", "pvp", "playwright"}):
         return "Web / servidor / segurança"
-    if any(token in name for token in ("replay", "telemetry", "rwen", "history", "persistence")):
+    if tokens.intersection({"replay", "telemetry", "rwen", "history", "persistence"}):
         return "Replay / persistência / telemetria"
-    if any(token in name for token in ("cross_backend", "native", "perft", "engine", "ares", "nnue", "search", "bot", "ai", "tactical", "domain_specific")):
+    if "cross_backend" in name or tokens.intersection({"native", "perft", "engine", "ares", "nnue", "search", "bot", "ai", "tactical"}):
         return "Motor / Ares / Python-C++"
-    if any(token in name for token in ("lite", "ui", "sidebar", "hover", "interaction", "manual", "launcher", "icon", "layout", "studio")):
+    if tokens.intersection({"lite", "ui", "sidebar", "hover", "interaction", "manual", "launcher", "icon", "layout", "studio", "window"}):
         return "Desktop / UI / produto"
-    if any(token in name for token in ("hero", "spell", "action", "moves", "rules", "game", "invariant", "mechanic", "terminal", "stun", "draft", "hazard", "puzzle", "clock")):
+    if tokens.intersection({"hero", "spell", "action", "moves", "rules", "game", "invariant", "mechanic", "terminal", "stun", "draft", "hazard", "puzzle", "clock"}):
         return "Gameplay / regras"
     return "Tooling / governação"
 
