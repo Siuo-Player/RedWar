@@ -31,7 +31,7 @@ def classify_domain(path: str) -> str:
     name = Path(path).stem.lower()
     tokens = set(re.split(r"[^a-z0-9]+", name))
 
-    if tokens.intersection({"strength", "arena", "sprt", "calibration", "promotion", "balance", "pricer", "holdout", "historical"}):
+    if "ai_quality_gate" in name or tokens.intersection({"strength", "arena", "sprt", "calibration", "promotion", "balance", "pricer", "holdout", "historical"}):
         return "Ares / Arena / experiências"
     if tokens.intersection({"web", "online", "multiplayer", "socket", "security", "identity", "server", "api", "pvp", "playwright"}):
         return "Web / servidor / segurança"

@@ -76,7 +76,7 @@ def test_scan_recurses_into_nested_test_packages(tmp_path: Path):
     nested = tests_dir / "integration" / "web"
     nested.mkdir(parents=True)
     (nested / "test_nested.py").write_text(
-        "def test_nested_case():\\n    assert True\\n", encoding="utf-8"
+        "def test_nested_case():\n    assert True\n", encoding="utf-8"
     )
 
     items = scan_test_root(tests_dir)
