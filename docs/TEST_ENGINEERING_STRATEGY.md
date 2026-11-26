@@ -181,6 +181,18 @@ Achados concretos:
 
 A auditoria integral dos 226 módulos está em curso na [issue #687](https://github.com/Siuo-Player/RedWar/issues/687). Estes achados não são um inventário exaustivo.
 
+## 9.1 Inventário estrutural repetível
+
+Para obter uma fotografia atualizada dos módulos sem executar nenhum teste:
+
+```bash
+python tools/audit_test_portfolio.py --format markdown
+python tools/audit_test_portfolio.py --format json --output /tmp/redwar-test-portfolio.json
+python tools/audit_test_portfolio.py --format json --strict
+```
+
+O script usa apenas a biblioteca standard e a AST de Python. Não importa nem executa o código de teste. Regista funções de teste, fixtures, parametrização, `pytest.raises`, e sinais como subprocessos, browser, rede, threads, sleeps e leituras de ficheiros. As áreas e níveis são heurísticos. A ferramenta não prova cobertura, não decide se uma regra está correta e não substitui a matriz de rastreabilidade nem a revisão humana. A sua finalidade é tornar a inventariação repetível e tornar visíveis alterações estruturais ao longo do tempo.
+
 ## 10. Sequência de trabalho
 
 1. Descoberta do produto e reconciliação de contratos com respostas do responsável.
