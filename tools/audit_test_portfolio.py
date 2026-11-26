@@ -137,7 +137,7 @@ def analyze_source(source: str, path: str) -> dict[str, Any]:
 def scan_test_root(test_root: Path) -> list[dict[str, Any]]:
     """Inventory test_*.py modules in a given tests directory."""
     results: list[dict[str, Any]] = []
-    for path in sorted(test_root.glob("test_*.py")):
+    for path in sorted(test_root.rglob("test_*.py")):
         relative = path.relative_to(test_root.parent).as_posix()
         try:
             with tokenize.open(path) as source_file:

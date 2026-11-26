@@ -71,6 +71,21 @@ def test_scan_ignores_support_files_and_reports_syntax_errors(tmp_path: Path):
     assert "conftest.py" not in {item["path"] for item in items}
 
 
+def test_scan_recurses_into_nested_test_packages(tmp_path: Path):
+    tests_dir = tmp_path / "tests"
+    nested = tests_dir / "integration" / "web"
+    nested.mkdir(parents=True)
+    (nested / "test_nested.py").write_text(
+        "def test_nested_case():\\n    assert True\\n", encoding="utf-8"
+    )
+
+    items = scan_test_root(tests_dir)
+
+    assert len(items) == 1
+    assert items[0]["path"] == "tests/integration/web/test_nested.py"
+    assert items[0]["test_functions"] == ["test_nested_case"]
+
+
 def test_scan_respects_declared_python_source_encoding(tmp_path: Path):
     tests_dir = tmp_path / "tests"
     tests_dir.mkdir()
