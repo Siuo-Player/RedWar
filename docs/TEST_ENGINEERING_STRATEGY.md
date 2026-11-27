@@ -164,6 +164,10 @@ A Test Suite usa um manifesto versionado de identificadores individuais de teste
 
 O manifesto usa IDs estáveis do pytest (incluindo parametrizações) e IDs explícitos para testes nativos executados como comandos. O âmbito inicial está limitado à Test Suite em **Ubuntu 26.04 + Python 3.12**, incluindo os testes nativos de reversibilidade e smoke do C++. CodeQL, AI Quality Gate e outros workflows/plataformas continuam a ter os seus próprios gates; ainda não estão abrangidos por esta baseline.
 
+
+
+**Operação da baseline no dia a dia:** se uma PR introduzir novos testes que passam, o gate informa quantos IDs faltam no manifesto e publica `candidate-baseline.json` no artifact `redwar-test-baseline-candidate`. Substituir `.github/test-baselines/python-suite.json` por esse candidato, fazer commit no mesmo PR e deixar a CI recalcular/verificar. Se os testes novos ainda falharem, não há IDs a acrescentar e a baseline antiga mantém-se. Durante a inicialização, depois do primeiro merge limpo, a PR de bootstrap tem de ser aprovada antes de outras PRs poderem avançar.
+
 A baseline protege o **resultado** de cada teste, não a força semântica das suas asserções. Alterar um teste protegido continua a exigir revisão do requisito que protege. Oráculos independentes, rastreabilidade e mutation testing seletivo continuam necessários para detetar testes enfraquecidos. Uma baseline verde demonstra ausência de regressão nos testes protegidos, não prova que o modelo final do produto esteja completo.
 
 

@@ -321,13 +321,42 @@ def _command_verify_candidate(args: argparse.Namespace) -> int:
     try:
         expected = _read_json(Path(args.expected))
         committed = _read_json(Path(args.committed))
-        if _normalise_candidate(expected) != _normalise_candidate(committed):
+        expected_key = _normalise_candidate(expected)
+        committed_key = _normalise_candidate(committed)
+        if expected_key != committed_key:
             print(
-                "Committed baseline does not exactly match the baseline calculated from this run.",
+                "Committed baseline does not exactly match the candidate calculated from this run.",
                 file=sys.stderr,
             )
-            print("Expected:", json.dumps(expected, sort_keys=True), file=sys.stderr)
-            print("Committed:", json.dumps(committed, sort_keys=True), file=sys.stderr)
+            if expected.get("suite") != committed.get("suite"):
+                print("Suite differs between candidate and committed baseline.", file=sys.stderr)
+            if expected.get("scope") != committed.get("scope"):
+                print("Environment scope differs between candidate and committed baseline.", file=sys.stderr)
+
+            expected_ids = set(expected["tests"])
+            committed_ids = set(committed["tests"])
+            to_add = sorted(expected_ids - committed_ids)
+            unexpected = sorted(committed_ids - expected_ids)
+            print(
+                f"Candidate IDs missing from committed baseline: {len(to_add)}",
+                file=sys.stderr,
+            )
+            for test_id in to_add[:25]:
+                print(f"  + {test_id}", file=sys.stderr)
+            if len(to_add) > 25:
+                print(f"  ... and {len(to_add) - 25} more", file=sys.stderr)
+            print(
+                f"Unexpected IDs in committed baseline: {len(unexpected)}",
+                file=sys.stderr,
+            )
+            for test_id in unexpected[:25]:
+                print(f"  - {test_id}", file=sys.stderr)
+            if len(unexpected) > 25:
+                print(f"  ... and {len(unexpected) - 25} more", file=sys.stderr)
+            print(
+                "Use candidate-baseline.json from the redwar-test-baseline-candidate workflow artifact to update the manifest in this PR.",
+                file=sys.stderr,
+            )
             return 1
         print("Committed baseline exactly matches the calculated candidate.")
         return 0

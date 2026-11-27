@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
 from tools.testing.pytest_result_manifest import ResultRecorder
+from tools.testing.run_command_test import main as run_command_test
 from tools.testing.test_baseline import compare_baseline
 
 
@@ -242,6 +245,55 @@ def test_incomplete_new_test_report_is_always_an_infrastructure_error():
 
     assert result["ok"] is False
     assert any("incomplete test" in message for message in result["infrastructure_errors"])
+
+
+def test_native_command_runner_records_a_zero_exit_as_pass(tmp_path: Path):
+    report_path = tmp_path / "native-pass.json"
+    result = run_command_test([
+        "--report", str(report_path),
+        "--suite", SUITE,
+        "--scope", SCOPE,
+        "--test-id", "native.test-pass",
+        "--", sys.executable, "-c", "raise SystemExit(0)",
+    ])
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert result == 0
+    assert report["runner_exit_code"] == 0
+    assert report["tests"] == {"native.test-pass": "passed"}
+
+
+def test_native_command_runner_records_nonzero_exit_as_failure(tmp_path: Path):
+    report_path = tmp_path / "native-fail.json"
+    result = run_command_test([
+        "--report", str(report_path),
+        "--suite", SUITE,
+        "--scope", SCOPE,
+        "--test-id", "native.test-fail",
+        "--", sys.executable, "-c", "raise SystemExit(7)",
+    ])
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert result == 0
+    assert report["runner_exit_code"] == 7
+    assert report["tests"] == {"native.test-fail": "failed"}
+
+
+def test_native_command_runner_records_missing_executable_as_error(tmp_path: Path):
+    report_path = tmp_path / "native-error.json"
+    result = run_command_test([
+        "--report", str(report_path),
+        "--suite", SUITE,
+        "--scope", SCOPE,
+        "--test-id", "native.test-error",
+        "--", "redwar-definitely-missing-executable-9f31",
+    ])
+
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    assert result == 0
+    assert report["runner_exit_code"] is None
+    assert report["tests"] == {"native.test-error": "error"}
+    assert report["runner_error"].startswith("FileNotFoundError:")
 
 
 def _report(nodeid: str, when: str, outcome: str, wasxfail: bool = False):

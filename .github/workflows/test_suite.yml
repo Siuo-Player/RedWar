@@ -38,11 +38,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch trusted base branch
+      - name: Fetch exact trusted base commit
         if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.baseline_ref != '')
         env:
-          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref }}
-        run: git fetch --no-tags origin "$BASE_REF"
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.baseline_ref }}
+        shell: bash
+        run: |
+          git fetch --no-tags origin "$BASE_REF"
+          echo "REDWAR_TRUSTED_BASE_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
@@ -134,12 +137,16 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref || 'main' }}
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.baseline_ref || '' }}
         run: |
           mkdir -p artifacts
           if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            if git cat-file -e "origin/$BASE_REF:$REDWAR_BASELINE_PATH" 2>/dev/null; then
-              git show "origin/$BASE_REF:$REDWAR_BASELINE_PATH" > artifacts/trusted-baseline.json
+            if [[ -z "$REDWAR_TRUSTED_BASE_SHA" ]]; then
+              echo "Trusted base commit was not resolved." >&2
+              exit 1
+            fi
+            if git cat-file -e "$REDWAR_TRUSTED_BASE_SHA:$REDWAR_BASELINE_PATH" 2>/dev/null; then
+              git show "$REDWAR_TRUSTED_BASE_SHA:$REDWAR_BASELINE_PATH" > artifacts/trusted-baseline.json
             else
               printf '%s\n' '{"schema_version":1,"suite":"redwar-test-suite","scope":"ubuntu-26.04-python3.12","bootstrapped":false,"tests":[]}' > artifacts/trusted-baseline.json
             fi
@@ -163,27 +170,29 @@ jobs:
       - name: Verify the committed passing-test baseline
         env:
           EVENT_NAME: ${{ github.event_name }}
-          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref || 'main' }}
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.baseline_ref || '' }}
         shell: bash
         run: |
           set -euo pipefail
           trusted_bootstrapped="$(python -c 'import json; print(str(bool(json.load(open("artifacts/trusted-baseline.json", encoding="utf-8"))["bootstrapped"])).lower())')"
+          trusted_baseline_exists=false
           manifest_changed=false
 
-          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            if git cat-file -e "origin/$BASE_REF:$REDWAR_BASELINE_PATH" 2>/dev/null; then
-              if ! git diff --quiet "origin/$BASE_REF...HEAD" -- "$REDWAR_BASELINE_PATH"; then
-                manifest_changed=true
-              fi
+          if [[ -n "${REDWAR_TRUSTED_BASE_SHA:-}" ]] && git cat-file -e "$REDWAR_TRUSTED_BASE_SHA:$REDWAR_BASELINE_PATH" 2>/dev/null; then
+            trusted_baseline_exists=true
+            if ! git diff --quiet "$REDWAR_TRUSTED_BASE_SHA...HEAD" -- "$REDWAR_BASELINE_PATH"; then
+              manifest_changed=true
             fi
           fi
 
-          # Once bootstrapped, the candidate manifest must be part of this same
-          # approved commit/PR. The only separate PR is the one-time bootstrap.
+          # Once bootstrapped, every PR must carry its exact candidate manifest.
           if [[ "$trusted_bootstrapped" == "true" || "$manifest_changed" == "true" ]]; then
             python -m tools.testing.test_baseline verify-candidate \
               --expected artifacts/candidate-baseline.json \
               --committed "$REDWAR_BASELINE_PATH"
+          elif [[ "$EVENT_NAME" == "pull_request" && "$trusted_baseline_exists" == "true" ]]; then
+            echo "The target branch has an unbootstrapped baseline. Merge the one-time baseline bootstrap PR before merging other changes." >&2
+            exit 1
           else
             echo "Initial bootstrap: no prior passing-test baseline exists yet. The first manifest will be proposed after the clean bootstrap run."
           fi
