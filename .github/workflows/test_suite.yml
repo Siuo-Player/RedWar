@@ -47,6 +47,26 @@ jobs:
           git fetch --no-tags origin "$BASE_REF"
           echo "REDWAR_TRUSTED_BASE_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
 
+      - name: Stage trusted test tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/redwar-trusted"
+          source_sha="HEAD"
+          if [[ -n "${REDWAR_TRUSTED_BASE_SHA:-}" ]] && \
+             git cat-file -e "$REDWAR_TRUSTED_BASE_SHA:tools/testing/test_baseline.py" 2>/dev/null && \
+             git cat-file -e "$REDWAR_TRUSTED_BASE_SHA:tools/testing/pytest_result_manifest.py" 2>/dev/null && \
+             git cat-file -e "$REDWAR_TRUSTED_BASE_SHA:tools/testing/run_command_test.py" 2>/dev/null; then
+            source_sha="$REDWAR_TRUSTED_BASE_SHA"
+            echo "Using baseline comparer, pytest recorder and command runner from trusted base $source_sha."
+          else
+            echo "No previous trusted test tooling exists; using candidate tooling for the one-time installation/bootstrap."
+          fi
+          git show "$source_sha:tools/testing/test_baseline.py" > "$RUNNER_TEMP/redwar-trusted/test_baseline.py"
+          git show "$source_sha:tools/testing/pytest_result_manifest.py" > "$RUNNER_TEMP/redwar-trusted/redwar_trusted_pytest_result_manifest.py"
+          git show "$source_sha:tools/testing/run_command_test.py" > "$RUNNER_TEMP/redwar-trusted/run_command_test.py"
+          echo "REDWAR_TRUSTED_TOOLS_DIR=$RUNNER_TEMP/redwar-trusted" >> "$GITHUB_ENV"
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
         with:
@@ -85,7 +105,7 @@ jobs:
 
       - name: Run native reversibility contract
         run: |
-          python -m tools.testing.run_command_test \
+          python "$REDWAR_TRUSTED_TOOLS_DIR/run_command_test.py" \
             --report artifacts/test-results/native-reversibility.json \
             --suite "$REDWAR_TEST_SUITE" --scope "$REDWAR_TEST_SCOPE" \
             --test-id native.cpp-reversibility -- ./cpp_reversibility_test
@@ -93,7 +113,7 @@ jobs:
       - name: Build and run C++ smoke test
         run: |
           python tools/scripts/build_cpp_engine.py --smoke
-          python -m tools.testing.run_command_test \
+          python "$REDWAR_TRUSTED_TOOLS_DIR/run_command_test.py" \
             --report artifacts/test-results/native-smoke.json \
             --suite "$REDWAR_TEST_SUITE" --scope "$REDWAR_TEST_SCOPE" \
             --test-id native.cpp-smoke -- ./ai/cpp_engine/SmokeTest
@@ -105,10 +125,11 @@ jobs:
         shell: bash
         run: |
           set +e
+          export PYTHONPATH="$REDWAR_TRUSTED_TOOLS_DIR${PYTHONPATH:+:$PYTHONPATH}"
           python -m pytest tests/ \
             --ignore=tests/test_perft_nodecount_differential.py \
             --ignore=tests/test_lite_headless_product.py \
-            -p tools.testing.pytest_result_manifest \
+            -p redwar_trusted_pytest_result_manifest \
             --redwar-results-file artifacts/test-results/pytest-main.json \
             --redwar-suite "$REDWAR_TEST_SUITE" \
             --redwar-scope "$REDWAR_TEST_SCOPE" \
@@ -121,10 +142,11 @@ jobs:
         shell: bash
         run: |
           set +e
+          export PYTHONPATH="$REDWAR_TRUSTED_TOOLS_DIR${PYTHONPATH:+:$PYTHONPATH}"
           python -m pytest \
             tests/test_perft_nodecount_differential.py \
             tests/test_lite_headless_product.py \
-            -p tools.testing.pytest_result_manifest \
+            -p redwar_trusted_pytest_result_manifest \
             --redwar-results-file artifacts/test-results/pytest-cpu.json \
             --redwar-suite "$REDWAR_TEST_SUITE" \
             --redwar-scope "$REDWAR_TEST_SCOPE" \
@@ -156,7 +178,7 @@ jobs:
 
       - name: Compare with the last approved passing-test baseline
         run: |
-          python -m tools.testing.test_baseline compare \
+          python "$REDWAR_TRUSTED_TOOLS_DIR/test_baseline.py" compare \
             --baseline artifacts/trusted-baseline.json \
             --report artifacts/test-results/pytest-main.json \
             --report artifacts/test-results/pytest-cpu.json \
@@ -187,7 +209,7 @@ jobs:
 
           # Once bootstrapped, every PR must carry its exact candidate manifest.
           if [[ "$trusted_bootstrapped" == "true" || "$manifest_changed" == "true" ]]; then
-            python -m tools.testing.test_baseline verify-candidate \
+            python "$REDWAR_TRUSTED_TOOLS_DIR/test_baseline.py" verify-candidate \
               --expected artifacts/candidate-baseline.json \
               --committed "$REDWAR_BASELINE_PATH"
           elif [[ "$EVENT_NAME" == "pull_request" && "$trusted_baseline_exists" == "true" ]]; then

@@ -168,6 +168,8 @@ O manifesto usa IDs estáveis do pytest (incluindo parametrizações) e IDs expl
 
 **Operação da baseline no dia a dia:** se uma PR introduzir novos testes que passam, o gate informa quantos IDs faltam no manifesto e publica `candidate-baseline.json` no artifact `redwar-test-baseline-candidate`. Substituir `.github/test-baselines/python-suite.json` por esse candidato, fazer commit no mesmo PR e deixar a CI recalcular/verificar. Se os testes novos ainda falharem, não há IDs a acrescentar e a baseline antiga mantém-se. Durante a inicialização, depois do primeiro merge limpo, a PR de bootstrap tem de ser aprovada antes de outras PRs poderem avançar.
 
+**Árbitro de confiança:** em PRs posteriores à instalação, o comparador, o plugin que regista os resultados e o wrapper de comandos são carregados do SHA exato da branch base. A PR pode testar alterações próprias a estas ferramentas nos meta-testes, mas não consegue substituir o comparador usado para avaliar a sua própria execução. Só a primeira PR de instalação usa o código candidato, porque ainda não existe uma versão confiável anterior.
+
 A baseline protege o **resultado** de cada teste, não a força semântica das suas asserções. Alterar um teste protegido continua a exigir revisão do requisito que protege. Oráculos independentes, rastreabilidade e mutation testing seletivo continuam necessários para detetar testes enfraquecidos. Uma baseline verde demonstra ausência de regressão nos testes protegidos, não prova que o modelo final do produto esteja completo.
 
 
