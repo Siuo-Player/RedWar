@@ -1,0 +1,400 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any, Iterable
+
+SCHEMA_VERSION = 1
+DEFAULT_SUITE = "redwar-test-suite"
+DEFAULT_SCOPE = "ubuntu-latest-python3.12"
+VALID_OUTCOMES = {
+    "passed",
+    "failed",
+    "skipped",
+    "xfailed",
+    "xpassed",
+    "incomplete",
+    "error",
+}
+
+
+class BaselineError(ValueError):
+    """Raised when a baseline or a test-run report is malformed."""
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        raise BaselineError(f"Cannot read {path}: {exc}") from exc
+    except json.JSONDecodeError as exc:
+        raise BaselineError(f"Invalid JSON in {path}: {exc}") from exc
+    if not isinstance(value, dict):
+        raise BaselineError(f"{path} must contain a JSON object")
+    return value
+
+
+def _validate_baseline(
+    baseline: dict[str, Any], suite: str, scope: str
+) -> tuple[bool, set[str]]:
+    if baseline.get("schema_version") != SCHEMA_VERSION:
+        raise BaselineError("Unsupported baseline schema_version")
+    if baseline.get("suite") != suite:
+        raise BaselineError(
+            f"Baseline suite mismatch: expected {suite!r}, got {baseline.get('suite')!r}"
+        )
+    if baseline.get("scope") != scope:
+        raise BaselineError(
+            f"Baseline scope mismatch: expected {scope!r}, got {baseline.get('scope')!r}"
+        )
+    bootstrapped = baseline.get("bootstrapped")
+    if not isinstance(bootstrapped, bool):
+        raise BaselineError("Baseline bootstrapped must be a boolean")
+    raw_tests = baseline.get("tests")
+    if not isinstance(raw_tests, list):
+        raise BaselineError("Baseline tests must be a list of pytest node IDs/test IDs")
+    if any(not isinstance(item, str) or not item.strip() for item in raw_tests):
+        raise BaselineError("Every baseline test ID must be a non-empty string")
+    tests = set(raw_tests)
+    if len(tests) != len(raw_tests):
+        raise BaselineError("Baseline contains duplicate test IDs")
+    if not bootstrapped and tests:
+        raise BaselineError("An unbootstrapped baseline must not contain protected tests")
+    return bootstrapped, tests
+
+
+def _load_reports(
+    paths: Iterable[Path], suite: str, scope: str
+) -> tuple[dict[str, str], list[int], list[str]]:
+    observed: dict[str, str] = {}
+    runner_exit_codes: list[int] = []
+    infrastructure_errors: list[str] = []
+    report_count = 0
+
+    for path in paths:
+        report_count += 1
+        report = _read_json(path)
+        if report.get("schema_version") != SCHEMA_VERSION:
+            infrastructure_errors.append(f"{path}: unsupported report schema")
+            continue
+        if report.get("suite") != suite:
+            infrastructure_errors.append(f"{path}: suite mismatch")
+        if report.get("scope") != scope:
+            infrastructure_errors.append(f"{path}: environment/scope mismatch")
+
+        runner = report.get("runner")
+        if runner == "pytest":
+            exit_code = report.get("pytest_exit_code")
+            if not isinstance(exit_code, int):
+                infrastructure_errors.append(f"{path}: missing pytest_exit_code")
+            else:
+                runner_exit_codes.append(exit_code)
+                if exit_code not in (0, 1):
+                    infrastructure_errors.append(
+                        f"{path}: pytest exited with infrastructure/collection code {exit_code}"
+                    )
+        elif runner == "command":
+            if report.get("runner_error"):
+                infrastructure_errors.append(
+                    f"{path}: command runner error: {report['runner_error']}"
+                )
+        else:
+            infrastructure_errors.append(f"{path}: unknown report runner {runner!r}")
+
+        tests = report.get("tests")
+        if not isinstance(tests, dict):
+            infrastructure_errors.append(f"{path}: tests must be a JSON object")
+            continue
+        for test_id, outcome in tests.items():
+            if not isinstance(test_id, str) or not test_id:
+                infrastructure_errors.append(f"{path}: invalid test ID")
+                continue
+            if outcome not in VALID_OUTCOMES:
+                infrastructure_errors.append(
+                    f"{path}: invalid outcome {outcome!r} for {test_id}"
+                )
+                continue
+            if test_id in observed:
+                infrastructure_errors.append(
+                    f"Test ID appears in more than one report: {test_id}"
+                )
+                continue
+            observed[test_id] = outcome
+
+    if report_count == 0:
+        infrastructure_errors.append("No result reports were supplied")
+    if not observed:
+        infrastructure_errors.append("No individual test results were recorded")
+
+    return observed, runner_exit_codes, infrastructure_errors
+
+
+def compare_baseline(
+    baseline: dict[str, Any],
+    reports: Iterable[dict[str, Any]],
+    suite: str = DEFAULT_SUITE,
+    scope: str = DEFAULT_SCOPE,
+) -> dict[str, Any]:
+    bootstrapped, protected = _validate_baseline(baseline, suite, scope)
+
+    observed: dict[str, str] = {}
+    runner_exit_codes: list[int] = []
+    infrastructure_errors: list[str] = []
+
+    for index, report in enumerate(reports, start=1):
+        if report.get("schema_version") != SCHEMA_VERSION:
+            infrastructure_errors.append(f"Report {index}: unsupported schema")
+        if report.get("suite") != suite:
+            infrastructure_errors.append(f"Report {index}: suite mismatch")
+        if report.get("scope") != scope:
+            infrastructure_errors.append(f"Report {index}: scope mismatch")
+
+        runner = report.get("runner")
+        if runner == "pytest":
+            exit_code = report.get("pytest_exit_code")
+            if not isinstance(exit_code, int):
+                infrastructure_errors.append(f"Report {index}: missing pytest exit code")
+            else:
+                runner_exit_codes.append(exit_code)
+                if exit_code not in (0, 1):
+                    infrastructure_errors.append(
+                        f"Report {index}: pytest infrastructure/collection exit code {exit_code}"
+                    )
+        elif runner == "command":
+            if report.get("runner_error"):
+                infrastructure_errors.append(
+                    f"Report {index}: command runner error: {report['runner_error']}"
+                )
+        else:
+            infrastructure_errors.append(f"Report {index}: unknown runner {runner!r}")
+
+        tests = report.get("tests")
+        if not isinstance(tests, dict):
+            infrastructure_errors.append(f"Report {index}: tests must be an object")
+            continue
+        for test_id, outcome in tests.items():
+            if not isinstance(test_id, str) or not test_id:
+                infrastructure_errors.append(f"Report {index}: invalid test ID")
+                continue
+            if outcome not in VALID_OUTCOMES:
+                infrastructure_errors.append(
+                    f"Report {index}: invalid outcome {outcome!r} for {test_id}"
+                )
+                continue
+            if test_id in observed:
+                infrastructure_errors.append(
+                    f"Test ID appears in multiple reports: {test_id}"
+                )
+                continue
+            observed[test_id] = outcome
+
+    if not observed:
+        infrastructure_errors.append("No individual test results were recorded")
+
+    if 1 in runner_exit_codes:
+        has_reported_failure = any(
+            result in {"failed", "xpassed", "incomplete", "error"}
+            for result in observed.values()
+        )
+        if not has_reported_failure:
+            infrastructure_errors.append(
+                "Pytest returned exit code 1 but no failing test was present in its report"
+            )
+    if any(result == "error" for result in observed.values()):
+        infrastructure_errors.append("At least one test runner reported an execution error")
+
+    current_ids = set(observed)
+    missing = sorted(protected - current_ids)
+    regressions = [
+        {"test_id": test_id, "outcome": observed[test_id]}
+        for test_id in sorted(protected & current_ids)
+        if observed[test_id] != "passed"
+    ]
+
+    bootstrap_failures: list[dict[str, str]] = []
+    if not bootstrapped:
+        for test_id, outcome in sorted(observed.items()):
+            if outcome not in {"passed", "skipped"}:
+                bootstrap_failures.append({"test_id": test_id, "outcome": outcome})
+        if any(code != 0 for code in runner_exit_codes):
+            infrastructure_errors.append(
+                "Initial bootstrap requires every pytest invocation to exit with code 0"
+            )
+
+    new_passes = sorted(
+        test_id
+        for test_id, outcome in observed.items()
+        if outcome == "passed" and test_id not in protected
+    )
+    new_nonpassing = [
+        {"test_id": test_id, "outcome": outcome}
+        for test_id, outcome in sorted(observed.items())
+        if test_id not in protected and outcome != "passed"
+    ]
+
+    ok = not (infrastructure_errors or missing or regressions or bootstrap_failures)
+    candidate = None
+    if ok:
+        candidate = {
+            "schema_version": SCHEMA_VERSION,
+            "suite": suite,
+            "scope": scope,
+            "bootstrapped": True,
+            "tests": sorted(protected | {
+                test_id for test_id, outcome in observed.items() if outcome == "passed"
+            }),
+        }
+
+    return {
+        "ok": ok,
+        "bootstrapped_before_run": bootstrapped,
+        "protected_before_run": len(protected),
+        "observed_tests": len(observed),
+        "passed_now": sum(outcome == "passed" for outcome in observed.values()),
+        "new_passes": new_passes,
+        "new_nonpassing": new_nonpassing,
+        "missing_protected": missing,
+        "regressions": regressions,
+        "bootstrap_failures": bootstrap_failures,
+        "infrastructure_errors": infrastructure_errors,
+        "candidate": candidate,
+    }
+
+
+def _format_summary(result: dict[str, Any]) -> str:
+    lines = [
+        "## Progressive test baseline",
+        "",
+        f"**Result:** {'PASS — no protected test regressed' if result['ok'] else 'FAIL — baseline protection violated'}",
+        f"**Previous state:** {'bootstrapped' if result['bootstrapped_before_run'] else 'initial bootstrap'}",
+        f"**Previously protected:** {result['protected_before_run']}",
+        f"**Observed in this run:** {result['observed_tests']}",
+        f"**Passing now:** {result['passed_now']}",
+        f"**Newly protected after approval:** {len(result['new_passes'])}",
+        f"**New/non-protected non-passing tests:** {len(result['new_nonpassing'])}",
+        "",
+        "New passing tests are added to the candidate baseline. Non-passing tests that were not in the previous baseline are reported but do not block an already bootstrapped baseline.",
+    ]
+    sections = [
+        ("Protected tests missing from this run", result["missing_protected"]),
+        ("Protected tests that regressed", result["regressions"]),
+        ("Bootstrap failures", result["bootstrap_failures"]),
+        ("Infrastructure/report errors", result["infrastructure_errors"]),
+        ("New non-passing tests (non-blocking after bootstrap)", result["new_nonpassing"]),
+    ]
+    for title, items in sections:
+        if items:
+            lines.extend(["", f"### {title}"])
+            for item in items:
+                if isinstance(item, dict):
+                    lines.append(f"- {item.get('test_id')}: {item.get('outcome')}")
+                else:
+                    lines.append(f"- {item}")
+    return "\n".join(lines) + "\n"
+
+
+def _write_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def _command_compare(args: argparse.Namespace) -> int:
+    try:
+        baseline = _read_json(Path(args.baseline))
+        report_values = [_read_json(Path(path)) for path in args.report]
+        result = compare_baseline(
+            baseline,
+            report_values,
+            suite=args.suite,
+            scope=args.scope,
+        )
+        summary = _format_summary(result)
+        print(summary, end="")
+        if args.summary_output:
+            Path(args.summary_output).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.summary_output).write_text(summary, encoding="utf-8")
+        if result["ok"] and result["candidate"] is not None:
+            _write_json(Path(args.candidate_output), result["candidate"])
+        else:
+            candidate_path = Path(args.candidate_output)
+            if candidate_path.exists():
+                candidate_path.unlink()
+        return 0 if result["ok"] else 1
+    except BaselineError as exc:
+        print(f"Baseline comparison error: {exc}", file=sys.stderr)
+        return 2
+
+
+def _normalise_candidate(value: dict[str, Any]) -> tuple[Any, ...]:
+    bootstrapped, tests = _validate_baseline(
+        value,
+        str(value.get("suite")),
+        str(value.get("scope")),
+    )
+    return (
+        value.get("schema_version"),
+        value.get("suite"),
+        value.get("scope"),
+        bootstrapped,
+        tuple(sorted(tests)),
+    )
+
+
+def _command_verify_candidate(args: argparse.Namespace) -> int:
+    try:
+        expected = _read_json(Path(args.expected))
+        committed = _read_json(Path(args.committed))
+        if _normalise_candidate(expected) != _normalise_candidate(committed):
+            print(
+                "Committed baseline does not exactly match the baseline calculated from this run.",
+                file=sys.stderr,
+            )
+            print("Expected:", json.dumps(expected, sort_keys=True), file=sys.stderr)
+            print("Committed:", json.dumps(committed, sort_keys=True), file=sys.stderr)
+            return 1
+        print("Committed baseline exactly matches the calculated candidate.")
+        return 0
+    except BaselineError as exc:
+        print(f"Candidate verification error: {exc}", file=sys.stderr)
+        return 2
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Compare this run with RedWar's progressive passing-test baseline."
+    )
+    commands = parser.add_subparsers(dest="command", required=True)
+
+    compare = commands.add_parser("compare", help="Compare result reports with a baseline.")
+    compare.add_argument("--baseline", required=True)
+    compare.add_argument("--report", action="append", required=True)
+    compare.add_argument("--candidate-output", required=True)
+    compare.add_argument("--summary-output")
+    compare.add_argument("--suite", default=DEFAULT_SUITE)
+    compare.add_argument("--scope", default=DEFAULT_SCOPE)
+    compare.set_defaults(func=_command_compare)
+
+    verify = commands.add_parser(
+        "verify-candidate",
+        help="Verify a committed manifest against the calculated candidate.",
+    )
+    verify.add_argument("--expected", required=True)
+    verify.add_argument("--committed", required=True)
+    verify.set_defaults(func=_command_verify_candidate)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    return int(args.func(args))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

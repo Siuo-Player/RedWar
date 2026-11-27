@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "suite": "redwar-test-suite",
+  "scope": "ubuntu-latest-python3.12",
+  "bootstrapped": false,
+  "tests": []
+}
