@@ -286,19 +286,24 @@ jobs:
           fi
 
           # GITHUB_TOKEN-created pull requests do not automatically trigger
-          # pull_request workflows. Dispatch the same workflow on the bot branch,
-          # explicitly comparing against main's trusted baseline.
+          # pull_request workflows. Dispatch the required checks explicitly on the
+          # bot branch so branch protection receives its normal status contexts.
+          gh workflow run codeql.yml --ref "$branch"
+          gh workflow run ai_quality_gate.yml --ref "$branch"
           gh workflow run test_suite.yml --ref "$branch" --field baseline_ref=main
-          run_id=""
-          for attempt in $(seq 1 30); do
-            run_id="$(gh run list --workflow test_suite.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
-            if [[ -n "$run_id" ]]; then
-              break
+
+          for workflow in codeql.yml ai_quality_gate.yml test_suite.yml; do
+            run_id=""
+            for attempt in $(seq 1 30); do
+              run_id="$(gh run list --workflow "$workflow" --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+              if [[ -n "$run_id" ]]; then
+                break
+              fi
+              sleep 2
+            done
+            if [[ -z "$run_id" ]]; then
+              echo "Could not locate the $workflow validation run." >&2
+              exit 1
             fi
-            sleep 2
+            gh run watch "$run_id" --exit-status
           done
-          if [[ -z "$run_id" ]]; then
-            echo "Could not locate the baseline-validation workflow run." >&2
-            exit 1
-          fi
-          gh run watch "$run_id" --exit-status
