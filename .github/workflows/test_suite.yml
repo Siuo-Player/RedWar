@@ -7,6 +7,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Trusted branch whose baseline should be used (for baseline-maintenance validation).
+        required: false
+        default: main
+        type: string
 
 concurrency:
   group: redwar-tests-${{ github.event.pull_request.number || github.ref }}
@@ -18,12 +24,25 @@ permissions:
 jobs:
   tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
+    permissions:
+      contents: read
     env:
       PYTHONHASHSEED: '0'
+      REDWAR_TEST_SCOPE: ubuntu-latest-python3.12
+      REDWAR_TEST_SUITE: redwar-test-suite
+      REDWAR_BASELINE_PATH: .github/test-baselines/python-suite.json
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Fetch trusted base branch
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.baseline_ref != '')
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref }}
+        run: git fetch --no-tags origin "$BASE_REF"
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v7
@@ -43,6 +62,9 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
+      - name: Test the baseline tooling itself (strict)
+        run: python -m pytest -q tests/test_progressive_test_baseline.py
+
       - name: Build C++ differential test helpers
         run: |
           python tools/scripts/build_cpp_engine.py --bridge-test
@@ -55,27 +77,169 @@ jobs:
       - name: Build Cython evaluator
         run: python setup.py build_ext --inplace
 
+      - name: Prepare result reports
+        run: mkdir -p artifacts/test-results
+
       - name: Run native reversibility contract
-        run: ./cpp_reversibility_test
+        run: |
+          python -m tools.testing.run_command_test \
+            --report artifacts/test-results/native-reversibility.json \
+            --suite "$REDWAR_TEST_SUITE" --scope "$REDWAR_TEST_SCOPE" \
+            --test-id native.cpp-reversibility -- ./cpp_reversibility_test
 
       - name: Build and run C++ smoke test
         run: |
           python tools/scripts/build_cpp_engine.py --smoke
-          ./ai/cpp_engine/SmokeTest
+          python -m tools.testing.run_command_test \
+            --report artifacts/test-results/native-smoke.json \
+            --suite "$REDWAR_TEST_SUITE" --scope "$REDWAR_TEST_SCOPE" \
+            --test-id native.cpp-smoke -- ./ai/cpp_engine/SmokeTest
 
       - name: Build production C++ engine for Ares tests
         run: python tools/scripts/build_cpp_engine.py
 
       - name: Run parallel Python test suite
+        shell: bash
         run: |
+          set +e
           python -m pytest tests/ \
             --ignore=tests/test_perft_nodecount_differential.py \
             --ignore=tests/test_lite_headless_product.py \
+            -p tools.testing.pytest_result_manifest \
+            --redwar-results-file artifacts/test-results/pytest-main.json \
+            --redwar-suite "$REDWAR_TEST_SUITE" \
+            --redwar-scope "$REDWAR_TEST_SCOPE" \
             -n 2 --dist=loadfile --durations=20 --durations-min=0.5
+          status=$?
+          echo "pytest main suite exit code: $status"
+          exit 0
 
       - name: Run CPU-intensive Python tests without worker contention
+        shell: bash
         run: |
+          set +e
           python -m pytest \
             tests/test_perft_nodecount_differential.py \
             tests/test_lite_headless_product.py \
+            -p tools.testing.pytest_result_manifest \
+            --redwar-results-file artifacts/test-results/pytest-cpu.json \
+            --redwar-suite "$REDWAR_TEST_SUITE" \
+            --redwar-scope "$REDWAR_TEST_SCOPE" \
             --durations=20 --durations-min=0.5
+          status=$?
+          echo "pytest CPU suite exit code: $status"
+          exit 0
+
+      - name: Load trusted test baseline
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref || 'main' }}
+        run: |
+          mkdir -p artifacts
+          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            if git cat-file -e "origin/$BASE_REF:$REDWAR_BASELINE_PATH" 2>/dev/null; then
+              git show "origin/$BASE_REF:$REDWAR_BASELINE_PATH" > artifacts/trusted-baseline.json
+            else
+              printf '%s\n' '{"schema_version":1,"suite":"redwar-test-suite","scope":"ubuntu-latest-python3.12","bootstrapped":false,"tests":[]}' > artifacts/trusted-baseline.json
+            fi
+          else
+            cp "$REDWAR_BASELINE_PATH" artifacts/trusted-baseline.json
+          fi
+
+      - name: Compare with the last approved passing-test baseline
+        run: |
+          python -m tools.testing.test_baseline compare \
+            --baseline artifacts/trusted-baseline.json \
+            --report artifacts/test-results/pytest-main.json \
+            --report artifacts/test-results/pytest-cpu.json \
+            --report artifacts/test-results/native-reversibility.json \
+            --report artifacts/test-results/native-smoke.json \
+            --candidate-output artifacts/candidate-baseline.json \
+            --summary-output artifacts/baseline-summary.md \
+            --suite "$REDWAR_TEST_SUITE" --scope "$REDWAR_TEST_SCOPE"
+          cat artifacts/baseline-summary.md
+
+      - name: Verify an intentional baseline update
+        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+        env:
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref || 'main' }}
+        run: |
+          if ! git diff --quiet "origin/$BASE_REF...HEAD" -- "$REDWAR_BASELINE_PATH"; then
+            python -m tools.testing.test_baseline verify-candidate \
+              --expected artifacts/candidate-baseline.json \
+              --committed "$REDWAR_BASELINE_PATH"
+          fi
+
+      - name: Upload test reports and candidate baseline
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redwar-test-baseline-candidate
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 30
+
+  propose_baseline_update:
+    needs: tests
+    if: needs.tests.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download calculated candidate baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: redwar-test-baseline-candidate
+          path: ${{ runner.temp }}/redwar-baseline
+
+      - name: Open an auditable baseline-update PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CANDIDATE_PATH: ${{ runner.temp }}/redwar-baseline/candidate-baseline.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          if cmp -s "$CANDIDATE_PATH" "$REDWAR_BASELINE_PATH"; then
+            echo "No newly passing tests; baseline is already current."
+            exit 0
+          fi
+
+          branch="automation/test-baseline-${GITHUB_SHA:0:12}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          cp "$CANDIDATE_PATH" "$REDWAR_BASELINE_PATH"
+          git add "$REDWAR_BASELINE_PATH"
+          git commit -m "test: advance progressive passing-test baseline"
+          git push --force origin "$branch"
+
+          pull_number="$(gh pr list --state open --head "$branch" --base main --json number --jq '.[0].number // empty')"
+          if [[ -z "$pull_number" ]]; then
+            gh pr create \
+              --base main \
+              --head "$branch" \
+              --title "test: advance progressive passing-test baseline" \
+              --body "Automated baseline proposal generated from successful Test Suite run for commit $GITHUB_SHA. The candidate only adds tests observed passing; it does not remove previously protected test IDs. The source run completed the full test job before this proposal was opened."
+          fi
+
+          # GITHUB_TOKEN-created pull requests do not automatically trigger
+          # pull_request workflows. Dispatch the same workflow on the bot branch,
+          # explicitly comparing against main's trusted baseline.
+          gh workflow run test_suite.yml --ref "$branch" --field baseline_ref=main
+          sleep 5
+          run_id="$(gh run list --workflow test_suite.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          if [[ -z "$run_id" ]]; then
+            echo "Could not locate the baseline-validation workflow run." >&2
+            exit 1
+          fi
+          gh run watch "$run_id" --exit-status
