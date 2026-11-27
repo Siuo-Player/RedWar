@@ -149,6 +149,30 @@ Aplicar mutation testing seletivamente a transições, legalidade, terminal, pro
 
 ## 7. Gates de CI
 
+### Baseline progressiva de testes (regression ratchet)
+
+A Test Suite usa um manifesto versionado de identificadores individuais de testes que já passaram: `.github/test-baselines/python-suite.json`. Em cada PR, o comparador lê a baseline da branch de destino, nunca a baseline que o próprio PR fornece como autoridade.
+
+**Regra de aprovação:**
+- Todos os testes que estavam PASS na última baseline aprovada têm de continuar presentes e PASS. Um teste protegido ausente, ignorado, xfailed, xpassed, incompleto ou falhado bloqueia a alteração.
+- Testes novos ou ainda não protegidos que falham não bloqueiam uma baseline já inicializada; continuam visíveis no relatório.
+- Todos os testes que passam pela primeira vez entram na baseline candidata.
+- Depois da inicialização, o manifesto candidato tem de acompanhar o código no mesmo PR/commit. Se um novo teste passar, o PR também tem de atualizar o manifesto para incluir esse ID. A CI verifica que o ficheiro committed corresponde exatamente ao candidato calculado a partir dos resultados.
+- Assim, quando o commit é aprovado, o código e a proteção dos novos testes entram juntos. Não existe uma janela entre a aprovação do código e a atualização posterior da baseline.
+- A remoção ou renomeação de um teste protegido é tratada como regressão até existir um processo explícito, revisto e auditável de aposentação/migração. Não apagar nem enfraquecer o teste para fazer passar a CI.
+- A primeira inicialização é uma exceção controlada: exige uma execução integral limpa da suite; os testes ignorados não entram como PASS. Após o merge inicial, é criada uma PR de bootstrap que regista os IDs aprovados. As atualizações normais seguintes pertencem à própria PR que introduz o novo teste/código.
+
+O manifesto usa IDs estáveis do pytest (incluindo parametrizações) e IDs explícitos para testes nativos executados como comandos. O âmbito inicial está limitado à Test Suite em **Ubuntu 26.04 + Python 3.12**, incluindo os testes nativos de reversibilidade e smoke do C++. CodeQL, AI Quality Gate e outros workflows/plataformas continuam a ter os seus próprios gates; ainda não estão abrangidos por esta baseline.
+
+
+
+**Operação da baseline no dia a dia:** se uma PR introduzir novos testes que passam, o gate informa quantos IDs faltam no manifesto e publica `candidate-baseline.json` no artifact `redwar-test-baseline-candidate`. Substituir `.github/test-baselines/python-suite.json` por esse candidato, fazer commit no mesmo PR e deixar a CI recalcular/verificar. Se os testes novos ainda falharem, não há IDs a acrescentar e a baseline antiga mantém-se. Durante a inicialização, depois do primeiro merge limpo, a PR de bootstrap tem de ser aprovada antes de outras PRs poderem avançar.
+
+**Árbitro de confiança:** em PRs posteriores à instalação, o comparador, o plugin que regista os resultados e o wrapper de comandos são carregados do SHA exato da branch base. A PR pode testar alterações próprias a estas ferramentas nos meta-testes, mas não consegue substituir o comparador usado para avaliar a sua própria execução. Só a primeira PR de instalação usa o código candidato, porque ainda não existe uma versão confiável anterior.
+
+A baseline protege o **resultado** de cada teste, não a força semântica das suas asserções. Alterar um teste protegido continua a exigir revisão do requisito que protege. Oráculos independentes, rastreabilidade e mutation testing seletivo continuam necessários para detetar testes enfraquecidos. Uma baseline verde demonstra ausência de regressão nos testes protegidos, não prova que o modelo final do produto esteja completo.
+
+
 O [routing de workflows](../.github/workflows/README.md) é autoritativo:
 - Test Suite: correção funcional, regressões e contratos Python/C++.
 - CodeQL: análise estática de segurança.
