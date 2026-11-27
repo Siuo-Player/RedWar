@@ -38,14 +38,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch exact trusted base commit
-        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.baseline_ref != '')
+      - name: Resolve exact trusted base commit
+        if: github.event_name == 'pull_request' || github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.baseline_ref != '')
         env:
-          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.baseline_ref }}
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || (github.event_name == 'push' && github.event.before) || inputs.baseline_ref }}
         shell: bash
         run: |
-          git fetch --no-tags origin "$BASE_REF"
-          echo "REDWAR_TRUSTED_BASE_SHA=$(git rev-parse FETCH_HEAD)" >> "$GITHUB_ENV"
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            # actions/checkout fetch-depth: 0 already fetched the parent commit.
+            git cat-file -e "$BASE_REF^{commit}"
+            trusted_sha="$(git rev-parse "$BASE_REF^{commit}")"
+          else
+            git fetch --no-tags origin "$BASE_REF"
+            trusted_sha="$(git rev-parse FETCH_HEAD)"
+          fi
+          echo "Trusted baseline source commit: $trusted_sha"
+          echo "REDWAR_TRUSTED_BASE_SHA=$trusted_sha" >> "$GITHUB_ENV"
 
       - name: Stage trusted test tooling
         shell: bash
@@ -162,7 +172,7 @@ jobs:
           BASE_REF: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || inputs.baseline_ref || '' }}
         run: |
           mkdir -p artifacts
-          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
+          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "push" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
             if [[ -z "$REDWAR_TRUSTED_BASE_SHA" ]]; then
               echo "Trusted base commit was not resolved." >&2
               exit 1
