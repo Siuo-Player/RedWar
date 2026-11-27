@@ -149,21 +149,22 @@ Aplicar mutation testing seletivamente a transições, legalidade, terminal, pro
 
 ## 7. Gates de CI
 
-### Progressive baseline ratchet
+### Baseline progressiva de testes (regression ratchet)
 
-The Test Suite uses a versioned manifest of individual passing test IDs at `.github/test-baselines/python-suite.json`. A run is compared against the manifest from the trusted target branch, never against a manifest supplied only by the PR being evaluated.
+A Test Suite usa um manifesto versionado de identificadores individuais de testes que já passaram: `.github/test-baselines/python-suite.json`. Em cada PR, o comparador lê a baseline da branch de destino, nunca a baseline que o próprio PR fornece como autoridade.
 
-Approval rules:
-- Every test ID that was PASS in the previous approved baseline must still be collected and PASS. Missing, skipped, xfailed, xpassed, incomplete or failed protected tests block the change.
-- New/non-protected tests that fail do not block an already bootstrapped baseline; they remain visible in the report. New tests that PASS are added to the candidate manifest.
-- A test that passes for the first time becomes protected in the next approved baseline.
-- Removing or renaming a protected test is treated as a regression until an explicit, reviewed retirement/migration process is provided. Do not delete the test or weaken its assertion to make the gate green.
-- The initial bootstrap is intentionally strict: the existing suite must complete cleanly before the first passing-test baseline is established. Skipped tests are not included as protected PASS tests.
-- A candidate baseline is proposed in a separate automated PR after a successful main-branch run. The PR is validated against the previous trusted baseline; only then can its manifest be merged. The Git commit history records each accepted baseline advancement.
+**Regra de aprovação:**
+- Todos os testes que estavam PASS na última baseline aprovada têm de continuar presentes e PASS. Um teste protegido ausente, ignorado, xfailed, xpassed, incompleto ou falhado bloqueia a alteração.
+- Testes novos ou ainda não protegidos que falham não bloqueiam uma baseline já inicializada; continuam visíveis no relatório.
+- Todos os testes que passam pela primeira vez entram na baseline candidata.
+- Depois da inicialização, o manifesto candidato tem de acompanhar o código no mesmo PR/commit. Se um novo teste passar, o PR também tem de atualizar o manifesto para incluir esse ID. A CI verifica que o ficheiro committed corresponde exatamente ao candidato calculado a partir dos resultados.
+- Assim, quando o commit é aprovado, o código e a proteção dos novos testes entram juntos. Não existe uma janela entre a aprovação do código e a atualização posterior da baseline.
+- A remoção ou renomeação de um teste protegido é tratada como regressão até existir um processo explícito, revisto e auditável de aposentação/migração. Não apagar nem enfraquecer o teste para fazer passar a CI.
+- A primeira inicialização é uma exceção controlada: exige uma execução integral limpa da suite; os testes ignorados não entram como PASS. Após o merge inicial, é criada uma PR de bootstrap que regista os IDs aprovados. As atualizações normais seguintes pertencem à própria PR que introduz o novo teste/código.
 
-The manifest stores stable pytest node IDs (including parametrization) and IDs for native command tests. This initial integration covers the Python Test Suite workflow on Ubuntu/Python 3.12 plus the two native smoke/reversibility executables. Other independent workflows/platforms need their own scoped baselines before being described as covered by this ratchet.
+O manifesto usa IDs estáveis do pytest (incluindo parametrizações) e IDs explícitos para testes nativos executados como comandos. O âmbito inicial está limitado à Test Suite em **Ubuntu 26.04 + Python 3.12**, incluindo os testes nativos de reversibilidade e smoke do C++. CodeQL, AI Quality Gate e outros workflows/plataformas continuam a ter os seus próprios gates; ainda não estão abrangidos por esta baseline.
 
-The ratchet protects the *result* of a test, not the semantic strength of its assertions. Changes to tests still require review against the requirement they protect; use independent oracles, selected mutation testing and requirement traceability to detect weakened tests. A green ratchet is evidence of no regression in protected tests, not proof that the final product model is complete.
+A baseline protege o **resultado** de cada teste, não a força semântica das suas asserções. Alterar um teste protegido continua a exigir revisão do requisito que protege. Oráculos independentes, rastreabilidade e mutation testing seletivo continuam necessários para detetar testes enfraquecidos. Uma baseline verde demonstra ausência de regressão nos testes protegidos, não prova que o modelo final do produto esteja completo.
 
 
 O [routing de workflows](../.github/workflows/README.md) é autoritativo:

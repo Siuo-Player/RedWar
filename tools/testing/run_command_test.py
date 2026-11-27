@@ -14,7 +14,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--report", required=True)
     parser.add_argument("--suite", default="redwar-test-suite")
-    parser.add_argument("--scope", default="local")
+    parser.add_argument("--scope", default="ubuntu-26.04-python3.12")
     parser.add_argument("--test-id", required=True)
     parser.add_argument("command", nargs=argparse.REMAINDER)
     return parser

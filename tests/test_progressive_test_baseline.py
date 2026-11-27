@@ -10,7 +10,7 @@ from tools.testing.test_baseline import compare_baseline
 
 
 SUITE = "redwar-test-suite"
-SCOPE = "ubuntu-latest-python3.12"
+SCOPE = "ubuntu-26.04-python3.12"
 
 
 def baseline(*protected: str, bootstrapped: bool = True) -> dict:
@@ -206,6 +206,42 @@ def test_command_runner_error_is_always_blocking():
 
     assert result["ok"] is False
     assert any("command runner error" in message for message in result["infrastructure_errors"])
+
+
+@pytest.mark.parametrize(
+    ("outcome", "return_code"),
+    [("passed", 7), ("failed", 0), ("error", 1)],
+)
+def test_command_exit_code_must_match_recorded_outcome(outcome, return_code):
+    report = command_report("native.cpp.smoke", outcome, return_code=return_code)
+    result = compare_baseline(baseline(), [report])
+
+    assert result["ok"] is False
+    assert any("conflicts with outcome" in message for message in result["infrastructure_errors"])
+
+
+def test_pytest_exit_code_must_match_reported_test_failures():
+    report = pytest_report({"tests/test_new.py::test_failure": "failed"}, exit_code=0)
+    result = compare_baseline(baseline(), [report])
+
+    assert result["ok"] is False
+    assert any("pytest exited 0" in message for message in result["infrastructure_errors"])
+
+
+def test_unhashable_or_non_string_outcomes_are_reported_not_crashing():
+    report = pytest_report({"tests/test_new.py::test_bad_report": {"outcome": "passed"}})
+    result = compare_baseline(baseline(), [report])
+
+    assert result["ok"] is False
+    assert any("invalid outcome" in message for message in result["infrastructure_errors"])
+
+
+def test_incomplete_new_test_report_is_always_an_infrastructure_error():
+    report = pytest_report({"tests/test_new.py::test_incomplete": "incomplete"})
+    result = compare_baseline(baseline(), [report])
+
+    assert result["ok"] is False
+    assert any("incomplete test" in message for message in result["infrastructure_errors"])
 
 
 def _report(nodeid: str, when: str, outcome: str, wasxfail: bool = False):

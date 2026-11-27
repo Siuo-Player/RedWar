@@ -8,7 +8,7 @@ from typing import Any, Iterable
 
 SCHEMA_VERSION = 1
 DEFAULT_SUITE = "redwar-test-suite"
-DEFAULT_SCOPE = "ubuntu-latest-python3.12"
+DEFAULT_SCOPE = "ubuntu-26.04-python3.12"
 VALID_OUTCOMES = {
     "passed",
     "failed",
@@ -65,72 +65,6 @@ def _validate_baseline(
     return bootstrapped, tests
 
 
-def _load_reports(
-    paths: Iterable[Path], suite: str, scope: str
-) -> tuple[dict[str, str], list[int], list[str]]:
-    observed: dict[str, str] = {}
-    runner_exit_codes: list[int] = []
-    infrastructure_errors: list[str] = []
-    report_count = 0
-
-    for path in paths:
-        report_count += 1
-        report = _read_json(path)
-        if report.get("schema_version") != SCHEMA_VERSION:
-            infrastructure_errors.append(f"{path}: unsupported report schema")
-            continue
-        if report.get("suite") != suite:
-            infrastructure_errors.append(f"{path}: suite mismatch")
-        if report.get("scope") != scope:
-            infrastructure_errors.append(f"{path}: environment/scope mismatch")
-
-        runner = report.get("runner")
-        if runner == "pytest":
-            exit_code = report.get("pytest_exit_code")
-            if not isinstance(exit_code, int):
-                infrastructure_errors.append(f"{path}: missing pytest_exit_code")
-            else:
-                runner_exit_codes.append(exit_code)
-                if exit_code not in (0, 1):
-                    infrastructure_errors.append(
-                        f"{path}: pytest exited with infrastructure/collection code {exit_code}"
-                    )
-        elif runner == "command":
-            if report.get("runner_error"):
-                infrastructure_errors.append(
-                    f"{path}: command runner error: {report['runner_error']}"
-                )
-        else:
-            infrastructure_errors.append(f"{path}: unknown report runner {runner!r}")
-
-        tests = report.get("tests")
-        if not isinstance(tests, dict):
-            infrastructure_errors.append(f"{path}: tests must be a JSON object")
-            continue
-        for test_id, outcome in tests.items():
-            if not isinstance(test_id, str) or not test_id:
-                infrastructure_errors.append(f"{path}: invalid test ID")
-                continue
-            if outcome not in VALID_OUTCOMES:
-                infrastructure_errors.append(
-                    f"{path}: invalid outcome {outcome!r} for {test_id}"
-                )
-                continue
-            if test_id in observed:
-                infrastructure_errors.append(
-                    f"Test ID appears in more than one report: {test_id}"
-                )
-                continue
-            observed[test_id] = outcome
-
-    if report_count == 0:
-        infrastructure_errors.append("No result reports were supplied")
-    if not observed:
-        infrastructure_errors.append("No individual test results were recorded")
-
-    return observed, runner_exit_codes, infrastructure_errors
-
-
 def compare_baseline(
     baseline: dict[str, Any],
     reports: Iterable[dict[str, Any]],
@@ -140,10 +74,15 @@ def compare_baseline(
     bootstrapped, protected = _validate_baseline(baseline, suite, scope)
 
     observed: dict[str, str] = {}
-    runner_exit_codes: list[int] = []
     infrastructure_errors: list[str] = []
+    bootstrap_failures: list[dict[str, str]] = []
+    report_count = 0
 
     for index, report in enumerate(reports, start=1):
+        report_count += 1
+        if not isinstance(report, dict):
+            infrastructure_errors.append(f"Report {index}: report must be a JSON object")
+            continue
         if report.get("schema_version") != SCHEMA_VERSION:
             infrastructure_errors.append(f"Report {index}: unsupported schema")
         if report.get("suite") != suite:
@@ -152,37 +91,25 @@ def compare_baseline(
             infrastructure_errors.append(f"Report {index}: scope mismatch")
 
         runner = report.get("runner")
-        if runner == "pytest":
-            exit_code = report.get("pytest_exit_code")
-            if not isinstance(exit_code, int):
-                infrastructure_errors.append(f"Report {index}: missing pytest exit code")
-            else:
-                runner_exit_codes.append(exit_code)
-                if exit_code not in (0, 1):
-                    infrastructure_errors.append(
-                        f"Report {index}: pytest infrastructure/collection exit code {exit_code}"
-                    )
-        elif runner == "command":
-            if report.get("runner_error"):
-                infrastructure_errors.append(
-                    f"Report {index}: command runner error: {report['runner_error']}"
-                )
-        else:
+        if runner not in {"pytest", "command"}:
             infrastructure_errors.append(f"Report {index}: unknown runner {runner!r}")
 
         tests = report.get("tests")
         if not isinstance(tests, dict):
             infrastructure_errors.append(f"Report {index}: tests must be an object")
             continue
+
+        report_outcomes: dict[str, str] = {}
         for test_id, outcome in tests.items():
-            if not isinstance(test_id, str) or not test_id:
+            if not isinstance(test_id, str) or not test_id.strip():
                 infrastructure_errors.append(f"Report {index}: invalid test ID")
                 continue
-            if outcome not in VALID_OUTCOMES:
+            if not isinstance(outcome, str) or outcome not in VALID_OUTCOMES:
                 infrastructure_errors.append(
                     f"Report {index}: invalid outcome {outcome!r} for {test_id}"
                 )
                 continue
+            report_outcomes[test_id] = outcome
             if test_id in observed:
                 infrastructure_errors.append(
                     f"Test ID appears in multiple reports: {test_id}"
@@ -190,38 +117,77 @@ def compare_baseline(
                 continue
             observed[test_id] = outcome
 
+        if runner == "pytest":
+            exit_code = report.get("pytest_exit_code")
+            if not isinstance(exit_code, int) or isinstance(exit_code, bool):
+                infrastructure_errors.append(f"Report {index}: missing/invalid pytest_exit_code")
+                continue
+            if exit_code not in (0, 1):
+                infrastructure_errors.append(
+                    f"Report {index}: pytest infrastructure/collection exit code {exit_code}"
+                )
+                continue
+
+            failed_outcomes = {"failed", "xpassed", "incomplete", "error"}
+            has_failure = any(value in failed_outcomes for value in report_outcomes.values())
+            if exit_code == 1 and not has_failure:
+                infrastructure_errors.append(
+                    f"Report {index}: pytest exited 1 but reported no failing test"
+                )
+            if exit_code == 0 and has_failure:
+                infrastructure_errors.append(
+                    f"Report {index}: pytest exited 0 but reported a failed/incomplete test"
+                )
+            if any(value in {"incomplete", "error"} for value in report_outcomes.values()):
+                infrastructure_errors.append(
+                    f"Report {index}: pytest reported an incomplete test or execution error"
+                )
+
+        elif runner == "command":
+            runner_error = report.get("runner_error")
+            exit_code = report.get("runner_exit_code")
+            if runner_error is not None:
+                if not isinstance(runner_error, str) or not runner_error.strip():
+                    infrastructure_errors.append(
+                        f"Report {index}: runner_error must be a non-empty string"
+                    )
+                if len(report_outcomes) != 1 or next(iter(report_outcomes.values()), None) != "error":
+                    infrastructure_errors.append(
+                        f"Report {index}: a command runner error must produce exactly one error outcome"
+                    )
+            else:
+                if not isinstance(exit_code, int) or isinstance(exit_code, bool):
+                    infrastructure_errors.append(
+                        f"Report {index}: command runner_exit_code is missing or invalid"
+                    )
+                elif len(report_outcomes) != 1:
+                    infrastructure_errors.append(
+                        f"Report {index}: command reports must contain exactly one test ID"
+                    )
+                else:
+                    outcome = next(iter(report_outcomes.values()))
+                    expected = "passed" if exit_code == 0 else "failed"
+                    if outcome != expected:
+                        infrastructure_errors.append(
+                            f"Report {index}: command exit code {exit_code} conflicts with outcome {outcome!r}"
+                        )
+
+    if report_count == 0:
+        infrastructure_errors.append("No result reports were supplied")
     if not observed:
         infrastructure_errors.append("No individual test results were recorded")
 
-    if 1 in runner_exit_codes:
-        has_reported_failure = any(
-            result in {"failed", "xpassed", "incomplete", "error"}
-            for result in observed.values()
-        )
-        if not has_reported_failure:
-            infrastructure_errors.append(
-                "Pytest returned exit code 1 but no failing test was present in its report"
-            )
-    if any(result == "error" for result in observed.values()):
-        infrastructure_errors.append("At least one test runner reported an execution error")
-
-    current_ids = set(observed)
-    missing = sorted(protected - current_ids)
+    missing = sorted(protected - set(observed))
     regressions = [
         {"test_id": test_id, "outcome": observed[test_id]}
-        for test_id in sorted(protected & current_ids)
+        for test_id in sorted(protected & set(observed))
         if observed[test_id] != "passed"
     ]
 
-    bootstrap_failures: list[dict[str, str]] = []
     if not bootstrapped:
         for test_id, outcome in sorted(observed.items()):
             if outcome not in {"passed", "skipped"}:
                 bootstrap_failures.append({"test_id": test_id, "outcome": outcome})
-        if any(code != 0 for code in runner_exit_codes):
-            infrastructure_errors.append(
-                "Initial bootstrap requires every pytest invocation to exit with code 0"
-            )
 
     new_passes = sorted(
         test_id

@@ -86,7 +86,7 @@ def pytest_addoption(parser: Any) -> None:
     group = parser.getgroup("redwar-baseline")
     group.addoption("--redwar-results-file", action="store", default=None)
     group.addoption("--redwar-suite", action="store", default="redwar-test-suite")
-    group.addoption("--redwar-scope", action="store", default="local")
+    group.addoption("--redwar-scope", action="store", default="ubuntu-26.04-python3.12")
 
 
 def pytest_configure(config: Any) -> None:

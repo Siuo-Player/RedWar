@@ -23,13 +23,13 @@ permissions:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: read
     env:
       PYTHONHASHSEED: '0'
-      REDWAR_TEST_SCOPE: ubuntu-latest-python3.12
+      REDWAR_TEST_SCOPE: ubuntu-26.04-python3.12
       REDWAR_TEST_SUITE: redwar-test-suite
       REDWAR_BASELINE_PATH: .github/test-baselines/python-suite.json
     steps:
@@ -141,7 +141,7 @@ jobs:
             if git cat-file -e "origin/$BASE_REF:$REDWAR_BASELINE_PATH" 2>/dev/null; then
               git show "origin/$BASE_REF:$REDWAR_BASELINE_PATH" > artifacts/trusted-baseline.json
             else
-              printf '%s\n' '{"schema_version":1,"suite":"redwar-test-suite","scope":"ubuntu-latest-python3.12","bootstrapped":false,"tests":[]}' > artifacts/trusted-baseline.json
+              printf '%s\n' '{"schema_version":1,"suite":"redwar-test-suite","scope":"ubuntu-26.04-python3.12","bootstrapped":false,"tests":[]}' > artifacts/trusted-baseline.json
             fi
           else
             cp "$REDWAR_BASELINE_PATH" artifacts/trusted-baseline.json
@@ -160,19 +160,32 @@ jobs:
             --suite "$REDWAR_TEST_SUITE" --scope "$REDWAR_TEST_SCOPE"
           cat artifacts/baseline-summary.md
 
-      - name: Verify an intentional baseline update
-        if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+      - name: Verify the committed passing-test baseline
         env:
+          EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref || 'main' }}
+        shell: bash
         run: |
-          if git cat-file -e "origin/$BASE_REF:$REDWAR_BASELINE_PATH" 2>/dev/null; then
-            if ! git diff --quiet "origin/$BASE_REF...HEAD" -- "$REDWAR_BASELINE_PATH"; then
-              python -m tools.testing.test_baseline verify-candidate \
-                --expected artifacts/candidate-baseline.json \
-                --committed "$REDWAR_BASELINE_PATH"
+          set -euo pipefail
+          trusted_bootstrapped="$(python -c 'import json; print(str(bool(json.load(open("artifacts/trusted-baseline.json", encoding="utf-8"))["bootstrapped"])).lower())')"
+          manifest_changed=false
+
+          if [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            if git cat-file -e "origin/$BASE_REF:$REDWAR_BASELINE_PATH" 2>/dev/null; then
+              if ! git diff --quiet "origin/$BASE_REF...HEAD" -- "$REDWAR_BASELINE_PATH"; then
+                manifest_changed=true
+              fi
             fi
+          fi
+
+          # Once bootstrapped, the candidate manifest must be part of this same
+          # approved commit/PR. The only separate PR is the one-time bootstrap.
+          if [[ "$trusted_bootstrapped" == "true" || "$manifest_changed" == "true" ]]; then
+            python -m tools.testing.test_baseline verify-candidate \
+              --expected artifacts/candidate-baseline.json \
+              --committed "$REDWAR_BASELINE_PATH"
           else
-            echo "No trusted baseline exists yet; the initial strict bootstrap will be recorded after this change is merged."
+            echo "Initial bootstrap: no prior passing-test baseline exists yet. The first manifest will be proposed after the clean bootstrap run."
           fi
 
       - name: Upload test reports and candidate baseline
@@ -180,14 +193,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: redwar-test-baseline-candidate
-          path: artifacts/
+          path: |
+            artifacts/candidate-baseline.json
+            artifacts/baseline-summary.md
+            artifacts/test-results/*.json
           if-no-files-found: warn
           retention-days: 30
 
   propose_baseline_update:
     needs: tests
     if: needs.tests.result == 'success' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:
       contents: write
