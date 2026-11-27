@@ -91,7 +91,7 @@ def compare_baseline(
             infrastructure_errors.append(f"Report {index}: scope mismatch")
 
         runner = report.get("runner")
-        if runner not in {"pytest", "command"}:
+        if not isinstance(runner, str) or runner not in {"pytest", "command"}:
             infrastructure_errors.append(f"Report {index}: unknown runner {runner!r}")
 
         tests = report.get("tests")
@@ -150,6 +150,10 @@ def compare_baseline(
                 if not isinstance(runner_error, str) or not runner_error.strip():
                     infrastructure_errors.append(
                         f"Report {index}: runner_error must be a non-empty string"
+                    )
+                else:
+                    infrastructure_errors.append(
+                        f"Report {index}: command runner error: {runner_error}"
                     )
                 if len(report_outcomes) != 1 or next(iter(report_outcomes.values()), None) != "error":
                     infrastructure_errors.append(
