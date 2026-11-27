@@ -149,23 +149,6 @@ Aplicar mutation testing seletivamente a transições, legalidade, terminal, pro
 
 ## 7. Gates de CI
 
-### Progressive baseline ratchet
-
-The Test Suite uses a versioned manifest of individual passing test IDs at `.github/test-baselines/python-suite.json`. A run is compared against the manifest from the trusted target branch, never against a manifest supplied only by the PR being evaluated.
-
-Approval rules:
-- Every test ID that was PASS in the previous approved baseline must still be collected and PASS. Missing, skipped, xfailed, xpassed, incomplete or failed protected tests block the change.
-- New/non-protected tests that fail do not block an already bootstrapped baseline; they remain visible in the report. New tests that PASS are added to the candidate manifest.
-- A test that passes for the first time becomes protected in the next approved baseline.
-- Removing or renaming a protected test is treated as a regression until an explicit, reviewed retirement/migration process is provided. Do not delete the test or weaken its assertion to make the gate green.
-- The initial bootstrap is intentionally strict: the existing suite must complete cleanly before the first passing-test baseline is established. Skipped tests are not included as protected PASS tests.
-- A candidate baseline is proposed in a separate automated PR after a successful main-branch run. The PR is validated against the previous trusted baseline; only then can its manifest be merged. The Git commit history records each accepted baseline advancement.
-
-The manifest stores stable pytest node IDs (including parametrization) and IDs for native command tests. This initial integration covers the Python Test Suite workflow on Ubuntu/Python 3.12 plus the two native smoke/reversibility executables. Other independent workflows/platforms need their own scoped baselines before being described as covered by this ratchet.
-
-The ratchet protects the *result* of a test, not the semantic strength of its assertions. Changes to tests still require review against the requirement they protect; use independent oracles, selected mutation testing and requirement traceability to detect weakened tests. A green ratchet is evidence of no regression in protected tests, not proof that the final product model is complete.
-
-
 O [routing de workflows](../.github/workflows/README.md) é autoritativo:
 - Test Suite: correção funcional, regressões e contratos Python/C++.
 - CodeQL: análise estática de segurança.

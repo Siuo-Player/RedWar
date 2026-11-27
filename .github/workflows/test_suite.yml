@@ -165,10 +165,14 @@ jobs:
         env:
           BASE_REF: ${{ github.event_name == 'pull_request' && github.base_ref || inputs.baseline_ref || 'main' }}
         run: |
-          if ! git diff --quiet "origin/$BASE_REF...HEAD" -- "$REDWAR_BASELINE_PATH"; then
-            python -m tools.testing.test_baseline verify-candidate \
-              --expected artifacts/candidate-baseline.json \
-              --committed "$REDWAR_BASELINE_PATH"
+          if git cat-file -e "origin/$BASE_REF:$REDWAR_BASELINE_PATH" 2>/dev/null; then
+            if ! git diff --quiet "origin/$BASE_REF...HEAD" -- "$REDWAR_BASELINE_PATH"; then
+              python -m tools.testing.test_baseline verify-candidate \
+                --expected artifacts/candidate-baseline.json \
+                --committed "$REDWAR_BASELINE_PATH"
+            fi
+          else
+            echo "No trusted baseline exists yet; the initial strict bootstrap will be recorded after this change is merged."
           fi
 
       - name: Upload test reports and candidate baseline
@@ -189,6 +193,8 @@ jobs:
       contents: write
       pull-requests: write
       actions: write
+    env:
+      REDWAR_BASELINE_PATH: .github/test-baselines/python-suite.json
     steps:
       - name: Checkout main
         uses: actions/checkout@v7
@@ -236,8 +242,14 @@ jobs:
           # pull_request workflows. Dispatch the same workflow on the bot branch,
           # explicitly comparing against main's trusted baseline.
           gh workflow run test_suite.yml --ref "$branch" --field baseline_ref=main
-          sleep 5
-          run_id="$(gh run list --workflow test_suite.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+          run_id=""
+          for attempt in $(seq 1 30); do
+            run_id="$(gh run list --workflow test_suite.yml --branch "$branch" --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId // empty')"
+            if [[ -n "$run_id" ]]; then
+              break
+            fi
+            sleep 2
+          done
           if [[ -z "$run_id" ]]; then
             echo "Could not locate the baseline-validation workflow run." >&2
             exit 1
