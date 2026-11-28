@@ -69,13 +69,24 @@ jobs:
       - name: Build Cython evaluator
         run: python setup.py build_ext --inplace
 
-      - name: Run native reversibility contract
-        run: ./cpp_reversibility_test
-
-      - name: Build and run C++ smoke test
+      - name: Run native reversibility tests (per-case results)
         run: |
-          python tools/scripts/build_cpp_engine.py --smoke
-          ./ai/cpp_engine/SmokeTest
+          set +e
+          ./cpp_reversibility_test > /tmp/redwar-test-baseline/cpp-reversibility.log 2>&1
+          exit_code=$?
+          set -e
+          python tools/testing/record_command_tests.py reversibility             --input /tmp/redwar-test-baseline/cpp-reversibility.log             --exit-code "$exit_code"             --output /tmp/redwar-test-baseline/cpp-reversibility.json
+
+      - name: Build C++ smoke tests
+        run: python tools/scripts/build_cpp_engine.py --smoke
+
+      - name: Run C++ smoke tests (per-case results)
+        run: |
+          set +e
+          ./ai/cpp_engine/SmokeTest > /tmp/redwar-test-baseline/cpp-smoke.log 2>&1
+          exit_code=$?
+          set -e
+          python tools/testing/record_command_tests.py smoke             --input /tmp/redwar-test-baseline/cpp-smoke.log             --exit-code "$exit_code"             --output /tmp/redwar-test-baseline/cpp-smoke.json
 
       - name: Build production C++ engine for Ares tests
         run: python tools/scripts/build_cpp_engine.py
@@ -113,6 +124,8 @@ jobs:
             --results \
               /tmp/redwar-test-baseline/parallel.json \
               /tmp/redwar-test-baseline/cpu.json \
+              /tmp/redwar-test-baseline/cpp-reversibility.json \
+              /tmp/redwar-test-baseline/cpp-smoke.json \
             --context "$REDWAR_TEST_BASELINE_CONTEXT" \
             --tested-commit "$GITHUB_SHA" \
             --candidate-output /tmp/redwar-test-baseline/candidate.json \

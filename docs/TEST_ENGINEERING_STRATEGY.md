@@ -154,7 +154,7 @@ A suite funcional utiliza uma **baseline progressiva de testes aprovados** (*reg
 
 ### Regra de aprovação
 
-Para cada contexto de CI (atualmente `ubuntu-latest-py3.12`), comparam-se os identificadores estáveis dos testes Pytest com a última baseline promovida:
+Para cada contexto de CI (atualmente `ubuntu-latest-py3.12`), comparam-se os identificadores estáveis dos testes Pytest e dos casos nomeados nos runners C++ autónomos com a última baseline promovida:
 
 - Todos os testes que estavam como `PASS` na baseline anterior têm de terminar novamente como `PASS` real.
 - Um teste protegido que falhe, seja ignorado, passe a `xfail/xpass`, fique incompleto ou desapareça bloqueia a aprovação.
@@ -174,7 +174,7 @@ As baselines são separadas por contexto de CI. Outro sistema operativo, versão
 
 A baseline deteta regressões nos resultados dos testes, mas não deteta assertions enfraquecidas que continuem a passar. A revisão dos contratos, a rastreabilidade de requisitos, os testes arquiteturais e o mutation testing seletivo continuam necessários. Passar a baseline demonstra ausência de regressões relativamente à proteção atual, não a completude do produto final.
 
-O artefacto de comparação apresenta os testes protegidos, regressões, novos testes aprovados e testes ainda não protegidos que não passaram.
+O artefacto de comparação apresenta os testes protegidos, regressões, novos testes aprovados e testes ainda não protegidos que não passaram. Os smoke tests C++ e os casos de reversibilidade são registados individualmente, e não como um único resultado binário.
 
 ## 7. Gates de CI
 

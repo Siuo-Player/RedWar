@@ -86,7 +86,7 @@ void expect_reversible(const std::string& rwen, const char* label) {
         ++checked;
     }
 
-    std::cout << "PASS " << label << " moves=" << checked << '\n';
+    (void)checked;
 }
 
 std::string build_position(
@@ -123,46 +123,60 @@ std::string build_position(
 
 } // namespace
 
+bool run_reversibility_case(const std::string& label, const std::string& rwen) {
+    try {
+        expect_reversible(rwen, label.c_str());
+        std::cout << "PASS " << label << '\n';
+        return true;
+    } catch (const std::exception& error) {
+        std::cout << "FAIL " << label << ' ' << error.what() << '\n';
+        return false;
+    }
+}
+
 int main() {
     try {
         ensure_hero_behaviors_loaded();
-
-        expect_reversible(
-            build_position({
-                {6, 0, "Bone", 'W', 0, 999, 0},
-                {1, 0, "Bone", 'B', 0, 999, 0},
-            }, {}),
-            "basic-move-capture"
-        );
-
-        expect_reversible(
-            build_position({
-                {4, 4, "FrostMage", 'W', 0, 999, 0},
-                {2, 4, "Bone", 'B', 1, 999, 0},
-            }, {}),
-            "stun-state"
-        );
-
-        expect_reversible(
-            build_position({
-                {4, 4, "Lich", 'W', 0, 999, 0},
-            }, {}),
-            "spawn-state"
-        );
-
-        expect_reversible(
-            build_position({
-                {6, 3, "Ghoul", 'W', 0, 1, 0},
-                {1, 3, "Bone", 'B', 0, 999, 0},
-            }, {
-                {5, 3, 'B', "fire", 2},
-            }),
-            "timers-and-effect"
-        );
-
-        return 0;
     } catch (const std::exception& error) {
-        std::cerr << "FAIL: " << error.what() << '\n';
+        std::cout << "FAIL setup " << error.what() << '\n';
+        std::cout << "REVERSIBILITY_RESULT FAIL\n";
         return 1;
     }
+
+    bool all_ok = true;
+    all_ok &= run_reversibility_case(
+        "basic-move-capture",
+        build_position({
+            {6, 0, "Bone", 'W', 0, 999, 0},
+            {1, 0, "Bone", 'B', 0, 999, 0},
+        }, {})
+    );
+
+    all_ok &= run_reversibility_case(
+        "stun-state",
+        build_position({
+            {4, 4, "FrostMage", 'W', 0, 999, 0},
+            {2, 4, "Bone", 'B', 1, 999, 0},
+        }, {})
+    );
+
+    all_ok &= run_reversibility_case(
+        "spawn-state",
+        build_position({
+            {4, 4, "Lich", 'W', 0, 999, 0},
+        }, {})
+    );
+
+    all_ok &= run_reversibility_case(
+        "timers-and-effect",
+        build_position({
+            {6, 3, "Ghoul", 'W', 0, 1, 0},
+            {1, 3, "Bone", 'B', 0, 999, 0},
+        }, {
+            {5, 3, 'B', "fire", 2},
+        })
+    );
+
+    std::cout << "REVERSIBILITY_RESULT " << (all_ok ? "PASS" : "FAIL") << '\n';
+    return all_ok ? 0 : 1;
 }

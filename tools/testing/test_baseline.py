@@ -85,9 +85,9 @@ def _load_result_documents(documents: list[dict[str, Any]]) -> dict[str, str]:
         if document.get("internal_errors"):
             raise BaselineError(f"Result manifest {index} contains pytest internal errors")
 
-        exit_code = document.get("pytest_exit_code")
+        exit_code = document.get("exit_code")
         if not isinstance(exit_code, int) or exit_code < 0:
-            raise BaselineError(f"Result manifest {index} has an invalid pytest exit code")
+            raise BaselineError(f"Result manifest {index} has an invalid test-runner exit code")
         if exit_code > 1:
             raise BaselineError(
                 f"Result manifest {index} ended with infrastructure/usage exit code {exit_code}"

@@ -74,7 +74,7 @@ class _ResultRecorder:
         document = {
             "schema_version": 1,
             "session_finished": True,
-            "pytest_exit_code": int(exitstatus),
+            "exit_code": int(exitstatus),
             "results": results,
             "collection_errors": self._collection_errors,
             "internal_errors": self._internal_errors,

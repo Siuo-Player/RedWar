@@ -37,7 +37,7 @@ def _run(*records: tuple[str, str], exit_code: int | None = None) -> dict:
     return {
         "schema_version": 1,
         "session_finished": True,
-        "pytest_exit_code": exit_code,
+        "exit_code": exit_code,
         "results": [
             {"nodeid": nodeid, "status": status}
             for nodeid, status in records
@@ -314,7 +314,7 @@ def test_result_recorder_writes_stable_node_ids_and_phase_outcomes(tmp_path: Pat
 
     document = json.loads(output.read_text(encoding="utf-8"))
     assert document["session_finished"] is True
-    assert document["pytest_exit_code"] == 0
+    assert document["exit_code"] == 0
     assert document["results"] == [
         {
             "nodeid": nodeid,
@@ -328,3 +328,45 @@ def test_result_recorder_writes_stable_node_ids_and_phase_outcomes(tmp_path: Pat
     ]
     assert document["collection_errors"] == []
     assert document["internal_errors"] == []
+
+
+
+def test_cpp_smoke_results_are_split_into_individual_baseline_ids():
+    from tools.testing.record_command_tests import parse_command_results
+
+    document = parse_command_results(
+        "smoke",
+        "Phantom: PASS\nSentry: FAIL\nSMOKE_RESULT FAIL\n",
+        1,
+    )
+
+    assert document["results"] == [
+        {"nodeid": "cpp::smoke::phantom", "status": "passed"},
+        {"nodeid": "cpp::smoke::sentry", "status": "failed"},
+    ]
+    assert document["exit_code"] == 1
+
+
+def test_cpp_reversibility_results_are_split_into_individual_baseline_ids():
+    from tools.testing.record_command_tests import parse_command_results
+
+    document = parse_command_results(
+        "reversibility",
+        "PASS basic-move-capture\nFAIL stun-state mismatch\nREVERSIBILITY_RESULT FAIL\n",
+        1,
+    )
+
+    assert document["results"] == [
+        {"nodeid": "cpp::reversibility::basic-move-capture", "status": "passed"},
+        {"nodeid": "cpp::reversibility::stun-state", "status": "failed"},
+    ]
+
+
+def test_cpp_result_parser_rejects_missing_or_inconsistent_summaries():
+    from tools.testing.record_command_tests import CommandResultError, parse_command_results
+
+    with pytest.raises(CommandResultError, match="missing its final summary"):
+        parse_command_results("smoke", "Phantom: PASS\n", 0)
+
+    with pytest.raises(CommandResultError, match="summary/exit-code mismatch"):
+        parse_command_results("smoke", "Phantom: FAIL\nSMOKE_RESULT FAIL\n", 0)
