@@ -147,6 +147,35 @@ Não usar reruns como prova de correção. Registar causa, frequência, duraçã
 ### Mutation e fuzzing
 Aplicar mutation testing seletivamente a transições, legalidade, terminal, protocolos, autenticação e rollback. Fuzzing começa por RWEN, parsers, configuração, replay, payloads HTTP/WS e adaptadores. Cada crash reproduzível passa a fixture/regressão reduzida.
 
+
+## Baseline progressiva de testes
+
+A suite funcional utiliza uma **baseline progressiva de testes aprovados** (*regression ratchet*), guardada na branch de automação `ci/test-baseline`. Isto permite manter testes do modelo final, mesmo quando a implementação atual ainda não suporta algumas funcionalidades.
+
+### Regra de aprovação
+
+Para cada contexto de CI (atualmente `ubuntu-latest-py3.12`), comparam-se os identificadores estáveis dos testes Pytest e dos casos nomeados nos runners C++ autónomos com a última baseline promovida:
+
+- Todos os testes que estavam como `PASS` na baseline anterior têm de terminar novamente como `PASS` real.
+- Um teste protegido que falhe, seja ignorado, passe a `xfail/xpass`, fique incompleto ou desapareça bloqueia a aprovação.
+- Um teste que ainda não pertence à baseline pode falhar sem bloquear a verificação de regressões. Continua visível no artefacto de comparação como lacuna ainda não protegida.
+- Todos os testes ainda não protegidos que passem são acrescentados à próxima baseline. Depois da promoção numa execução bem-sucedida de `main`, ficam protegidos nas alterações seguintes.
+- Um teste que falhava e passa pela primeira vez é automaticamente acrescentado à próxima baseline.
+
+A criação inicial é mais exigente: falhas normais, erros de recolha, erros internos do Pytest e falhas do runner impedem a criação da baseline. Testes explicitamente ignorados ou `xfail` não são considerados aprovados nem entram na baseline.
+
+### Confiança e promoção
+
+As PRs consultam a baseline da branch `ci/test-baseline`, não a versão incluída na própria PR. Uma execução bem-sucedida de testes gera um artefacto candidato. Só uma execução bem-sucedida após um push para `main` pode promover esse candidato. O bot atualiza apenas `ci/test-baseline`, nunca faz commits automáticos em `main`; esta branch também não ativa o workflow de testes.
+
+As baselines são separadas por contexto de CI. Outro sistema operativo, versão de Python ou ambiente materialmente diferente necessita da sua própria baseline. Renomear, apagar ou deixar de recolher um teste protegido conta como regressão até existir uma migração explícita e revista que preserve a sua identidade e cobertura. Não se usam totais agregados como identidade dos testes.
+
+### Limitação
+
+A baseline deteta regressões nos resultados dos testes, mas não deteta assertions enfraquecidas que continuem a passar. A revisão dos contratos, a rastreabilidade de requisitos, os testes arquiteturais e o mutation testing seletivo continuam necessários. Passar a baseline demonstra ausência de regressões relativamente à proteção atual, não a completude do produto final.
+
+O artefacto de comparação apresenta os testes protegidos, regressões, novos testes aprovados e testes ainda não protegidos que não passaram. Os smoke tests C++ e os casos de reversibilidade são registados individualmente, e não como um único resultado binário.
+
 ## 7. Gates de CI
 
 O [routing de workflows](../.github/workflows/README.md) é autoritativo:

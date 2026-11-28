@@ -77,3 +77,12 @@ Quando o trabalho for apenas um bug/produto, não preencher uma experiência cie
 ## Relação com o roadmap
 
 `docs/ROADMAP.md` continua a definir a ordem e o bloqueio entre gates. Este routing guide não cria uma segunda roadmap e não reclassifica #372, #365 ou outras Issues canónicas.
+
+
+## Baseline progressiva de testes
+
+O workflow `test_suite.yml` utiliza uma baseline progressiva de testes aprovados (*regression ratchet*), guardada na branch de automação `ci/test-baseline`.
+
+Uma alteração é aceite como não-regressiva quando todos os testes aprovados na última baseline continuam a passar. Testes novos ou que já falhavam podem permanecer visíveis como lacunas sem bloquear alterações não relacionadas; cada teste que passa fica protegido depois de uma execução bem-sucedida em `main`. A primeira execução, sem baseline, é estrita e exige que a suite existente passe antes de criar a baseline inicial.
+
+O workflow regista os identificadores individuais dos testes Pytest e dos casos nomeados nos smoke tests/reversibilidade C++, não apenas os totais de testes aprovados. O artefacto apresenta regressões, novos testes aprovados e testes ainda não protegidos que não passaram. Só execuções bem-sucedidas em `main` podem avançar a baseline; as PRs não podem modificar a baseline de confiança.
