@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 10
     env:
       PYTHONHASHSEED: '0'
+      REDWAR_TEST_BASELINE_CONTEXT: ubuntu-latest-py3.12
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -42,6 +43,19 @@ jobs:
           python -m pip install --upgrade pip setuptools
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
+
+      - name: Load trusted passing-test baseline
+        run: |
+          mkdir -p /tmp/redwar-test-baseline
+          if git ls-remote --exit-code --heads origin ci/test-baseline >/dev/null 2>&1; then
+            git fetch --no-tags --depth=1 origin \
+              refs/heads/ci/test-baseline:refs/remotes/origin/ci/test-baseline
+            git show refs/remotes/origin/ci/test-baseline:baseline/pass_baseline.json \
+              > /tmp/redwar-test-baseline/trusted.json
+            echo "Loaded trusted baseline from ci/test-baseline."
+          else
+            echo "No trusted baseline exists yet; this run must pass the complete suite to bootstrap it."
+          fi
 
       - name: Build C++ differential test helpers
         run: |
@@ -68,14 +82,125 @@ jobs:
 
       - name: Run parallel Python test suite
         run: |
+          set +e
           python -m pytest tests/ \
             --ignore=tests/test_perft_nodecount_differential.py \
             --ignore=tests/test_lite_headless_product.py \
-            -n 2 --dist=loadfile --durations=20 --durations-min=0.5
+            -n 2 --dist=loadfile --durations=20 --durations-min=0.5 \
+            -p tools.testing.pytest_result_plugin \
+            --redwar-results=/tmp/redwar-test-baseline/parallel.json
+          pytest_exit_code=$?
+          set -e
+          echo "Parallel pytest exit code: $pytest_exit_code"
 
       - name: Run CPU-intensive Python tests without worker contention
         run: |
+          set +e
           python -m pytest \
             tests/test_perft_nodecount_differential.py \
             tests/test_lite_headless_product.py \
-            --durations=20 --durations-min=0.5
+            --durations=20 --durations-min=0.5 \
+            -p tools.testing.pytest_result_plugin \
+            --redwar-results=/tmp/redwar-test-baseline/cpu.json
+          pytest_exit_code=$?
+          set -e
+          echo "CPU-intensive pytest exit code: $pytest_exit_code"
+
+      - name: Compare results with progressive passing-test baseline
+        run: |
+          python tools/testing/test_baseline.py compare \
+            --baseline /tmp/redwar-test-baseline/trusted.json \
+            --results \
+              /tmp/redwar-test-baseline/parallel.json \
+              /tmp/redwar-test-baseline/cpu.json \
+            --context "$REDWAR_TEST_BASELINE_CONTEXT" \
+            --tested-commit "$GITHUB_SHA" \
+            --candidate-output /tmp/redwar-test-baseline/candidate.json \
+            --report-output /tmp/redwar-test-baseline/comparison.json
+
+      - name: Upload baseline candidate and diagnostic report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: redwar-test-baseline-${{ github.run_id }}
+          path: /tmp/redwar-test-baseline/
+          if-no-files-found: warn
+          retention-days: 14
+
+  promote-baseline:
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.tests.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Download passing-test candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: redwar-test-baseline-${{ github.run_id }}
+          path: /tmp/redwar-test-baseline
+
+      - name: Confirm tested commit is still main
+        id: main-head
+        run: |
+          remote_main_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "$remote_main_sha" != "$GITHUB_SHA" ]; then
+            echo "current=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::main advanced after this test run; baseline promotion is skipped."
+          else
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Load current baseline branch
+        if: steps.main-head.outputs.current == 'true'
+        run: |
+          mkdir -p /tmp/redwar-test-baseline/current
+          if git ls-remote --exit-code --heads origin ci/test-baseline >/dev/null 2>&1; then
+            git fetch --no-tags --depth=1 origin \
+              refs/heads/ci/test-baseline:refs/remotes/origin/ci/test-baseline
+            git show refs/remotes/origin/ci/test-baseline:baseline/pass_baseline.json \
+              > /tmp/redwar-test-baseline/current/pass_baseline.json
+          fi
+
+      - name: Prepare promoted baseline
+        if: steps.main-head.outputs.current == 'true'
+        run: |
+          python tools/testing/test_baseline.py promote \
+            --baseline /tmp/redwar-test-baseline/current/pass_baseline.json \
+            --candidate /tmp/redwar-test-baseline/candidate.json \
+            --expected-commit "$GITHUB_SHA" \
+            --current-main-sha "$GITHUB_SHA" \
+            --output /tmp/redwar-test-baseline/promoted.json
+
+      - name: Update protected baseline branch
+        if: steps.main-head.outputs.current == 'true'
+        run: |
+          if git ls-remote --exit-code --heads origin ci/test-baseline >/dev/null 2>&1; then
+            git fetch --no-tags --depth=1 origin \
+              refs/heads/ci/test-baseline:refs/remotes/origin/ci/test-baseline
+            git switch --force-create ci/test-baseline refs/remotes/origin/ci/test-baseline
+          else
+            git switch --orphan ci/test-baseline
+            git rm -rf .
+          fi
+
+          mkdir -p baseline
+          cp /tmp/redwar-test-baseline/promoted.json baseline/pass_baseline.json
+          git add baseline/pass_baseline.json
+
+          if git diff --cached --quiet; then
+            echo "Passing-test baseline is unchanged."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(testing): advance passing-test baseline"
+          git push origin HEAD:refs/heads/ci/test-baseline
